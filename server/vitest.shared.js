@@ -85,6 +85,7 @@ export const UNIT_TEST_FILES = [
   'src/__tests__/itinerary-cluster.unit.test.ts',
   'src/__tests__/creator-username.unit.test.ts',
   'src/__tests__/creator-privilege-escalation.unit.test.ts',
+  'src/__tests__/creator-dashboard-query.unit.test.ts',
   'src/__tests__/challenge-proof.unit.test.ts',
   'src/__tests__/brevo-template-flows.unit.test.ts',
   'src/__tests__/pal-points-partner-redeem.unit.test.ts',

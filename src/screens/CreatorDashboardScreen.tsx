@@ -206,9 +206,14 @@ export default function CreatorDashboardScreen() {
 
   const dashboard = dashboardQuery.data;
   if (!dashboard) {
+    const loadError = dashboardQuery.error instanceof Error
+      ? dashboardQuery.error.message
+      : 'Could not load dashboard.';
     return (
       <View style={[styles.center, { backgroundColor: COLORS.bg }]}>
-        <Text style={{ color: COLORS.textPrimary }}>Could not load dashboard.</Text>
+        <Text style={{ color: COLORS.textPrimary, textAlign: 'center', paddingHorizontal: 24 }}>
+          {loadError || 'Could not load dashboard.'}
+        </Text>
         <TouchableOpacity style={styles.retryBtn} onPress={() => dashboardQuery.refetch()}>
           <Text style={styles.retryBtnText}>Try again</Text>
         </TouchableOpacity>

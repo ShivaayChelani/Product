@@ -29,21 +29,32 @@ function startOfDay(d: Date): Date {
   return x;
 }
 
+function toPositiveInt(value: unknown, fallback: number, max?: number): number {
+  const n = typeof value === 'number' ? value : parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(n) || n < 1) return fallback;
+  const i = Math.trunc(n);
+  return max ? Math.min(max, i) : i;
+}
+
 async function getApprovedProfile(userId: string) {
   return socialService.getApprovedCreatorProfile(userId);
 }
 
 export const creatorService = {
   async getDashboard(userId: string) {
-    const base = await socialService.getCreatorDashboard(userId);
+    // Do not call getCreatorDashboard — that path loads recent reels with nested
+    // collaboration includes and daily-reward rows. A failure there blanked the
+    // whole studio even though this payload never uses those fields.
     const profile = await getApprovedProfile(userId);
-
     const todayStart = startOfDay(new Date());
-    const [totals, reelsToday, draftCount, hiddenCount] = await Promise.all([
+    const [followingCount, reelCount, totals, totalComments, reelsToday, draftCount, hiddenCount] = await Promise.all([
+      prisma.follow.count({ where: { followerId: userId } }).catch(() => 0),
+      prisma.reel.count({ where: { creatorId: profile.id } }),
       prisma.reel.aggregate({
         where: { creatorId: profile.id, status: { in: [ReelStatus.APPROVED, ReelStatus.PENDING] } },
         _sum: { views: true, likes: true, shares: true, saves: true },
       }),
+      prisma.reelComment.count({ where: { reel: { creatorId: profile.id } } }).catch(() => 0),
       prisma.reel.count({
         where: { creatorId: profile.id, createdAt: { gte: todayStart }, status: { not: ReelStatus.HIDDEN } },
       }),
@@ -81,19 +92,29 @@ export const creatorService = {
     const saves = totals._sum.saves ?? 0;
 
     return {
-      profile: base.profile,
+      profile: {
+        id: profile.id,
+        username: profile.username,
+        fullName: profile.fullName,
+        avatar: profile.avatar,
+        verified: profile.verified,
+        followerCount: profile.followerCount,
+        followingCount,
+        totalViews: profile.totalViews,
+        ...socialService.creatorProfileFields(profile),
+      },
       todayGoal,
       overview: {
         views,
-        followers: base.profile.followerCount,
-        reels: base.reelCount,
+        followers: profile.followerCount,
+        reels: reelCount,
         likes,
-        comments: base.totalComments,
+        comments: totalComments,
         shares,
         saved: saves,
         reach: views,
       },
-      reelCount: base.reelCount,
+      reelCount,
       draftCount,
       archivedCount: hiddenCount,
     };
@@ -227,10 +248,10 @@ export const creatorService = {
     };
   },
 
-  async listReels(userId: string, query: { page?: string; limit?: string; status?: string }) {
+  async listReels(userId: string, query: { page?: string | number; limit?: string | number; status?: string }) {
     const profile = await getApprovedProfile(userId);
-    const page = Math.max(1, parseInt(query.page || '1', 10) || 1);
-    const limit = Math.min(50, Math.max(1, parseInt(query.limit || '20', 10) || 20));
+    const page = toPositiveInt(query.page, 1);
+    const limit = toPositiveInt(query.limit, 20, 50);
 
     const statusFilter = query.status?.toUpperCase();
     const where: { creatorId: string; status?: ReelStatus } = { creatorId: profile.id };
@@ -238,20 +259,76 @@ export const creatorService = {
       where.status = statusFilter as ReelStatus;
     }
 
-    const [items, total] = await Promise.all([
-      prisma.reel.findMany({
+    const skip = (page - 1) * limit;
+    const orderBy = { createdAt: 'desc' as const };
+    let items: Array<{
+      likes?: number;
+      views?: number;
+      shares?: number;
+      saves?: number;
+      _count?: { comments?: number; likesList?: number; savesList?: number } | null;
+      [key: string]: unknown;
+    }>;
+    try {
+      items = await prisma.reel.findMany({
         where,
-        skip: (page - 1) * limit,
+        skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
+        orderBy,
+        select: {
+          id: true,
+          creatorId: true,
+          videoUrl: true,
+          thumbnail: true,
+          title: true,
+          description: true,
+          likes: true,
+          views: true,
+          shares: true,
+          saves: true,
+          featured: true,
+          placeId: true,
+          vendorId: true,
+          eventId: true,
+          createdAt: true,
+          updatedAt: true,
+          category: true,
+          status: true,
+          scheduledAt: true,
+          collaborationId: true,
+          isCollaboration: true,
           creator: { select: { id: true, username: true, avatar: true, verified: true, userId: true } },
           place: { select: { id: true, name: true } },
           _count: { select: { comments: true, likesList: true, savesList: true } },
         },
-      }),
-      prisma.reel.count({ where }),
-    ]);
+      });
+    } catch {
+      items = await prisma.reel.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy,
+        select: {
+          id: true,
+          creatorId: true,
+          videoUrl: true,
+          thumbnail: true,
+          title: true,
+          description: true,
+          likes: true,
+          views: true,
+          shares: true,
+          saves: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          isCollaboration: true,
+          collaborationId: true,
+          creator: { select: { id: true, username: true, avatar: true, verified: true, userId: true } },
+        },
+      });
+    }
+    const total = await prisma.reel.count({ where });
 
     return {
       items: items.map(item => ({

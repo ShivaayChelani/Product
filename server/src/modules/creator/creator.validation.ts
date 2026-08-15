@@ -10,6 +10,8 @@ export const creatorReelsQuerySchema = z.object({
   status: z
     .enum(['DRAFT', 'PENDING', 'APPROVED', 'REJECTED', 'HIDDEN', 'ARCHIVED', 'SCHEDULED'])
     .optional(),
+  // Cache-bust param from the mobile client — must not fail validation.
+  _t: z.string().optional(),
 });
 
 export const createDraftSchema = z.object({

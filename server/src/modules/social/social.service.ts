@@ -52,13 +52,13 @@ const reelResponseInclude = {
   vendor: {
     select: { id: true, businessName: true, city: true, state: true },
   },
+  // Keep this shallow. Nested vendor/creator on Collaboration is 1:1 required and
+  // 500s the whole reel read when either side is missing.
   collaboration: {
     select: {
       id: true,
       campaignTitle: true,
       status: true,
-      vendor: { select: { id: true, businessName: true, city: true, state: true } },
-      creator: { select: { id: true, username: true, fullName: true, avatar: true, verified: true } },
     },
   },
   event: {
@@ -68,6 +68,41 @@ const reelResponseInclude = {
     select: { comments: true, likesList: true, savesList: true },
   },
 };
+
+/** Explicit scalar select so Prisma never SELECTs Unsupported search_vector (or a
+ * newly-added column that production has not migrated yet). */
+export const creatorReelListSelect = {
+  id: true,
+  creatorId: true,
+  videoUrl: true,
+  thumbnail: true,
+  title: true,
+  description: true,
+  likes: true,
+  views: true,
+  shares: true,
+  saves: true,
+  featured: true,
+  placeId: true,
+  vendorId: true,
+  eventId: true,
+  createdAt: true,
+  updatedAt: true,
+  category: true,
+  status: true,
+  scheduledAt: true,
+  collaborationId: true,
+  isCollaboration: true,
+  creator: {
+    select: { id: true, username: true, avatar: true, verified: true, userId: true },
+  },
+  place: {
+    select: { id: true, name: true, city: true, state: true },
+  },
+  _count: {
+    select: { comments: true, likesList: true, savesList: true },
+  },
+} as const;
 
 type LiveEngagementCounts = {
   likes: number;
@@ -95,6 +130,23 @@ function applyLiveEngagement<T extends LiveEngagementCounts>(item: T): LiveEngag
     views: item.views ?? 0,
     shares: item.shares ?? 0,
   };
+}
+
+async function loadCreatorReelList(
+  creatorId: string,
+  opts: { take?: number; skip?: number; orderBy?: 'createdAt' | 'views' } = {},
+) {
+  try {
+    return await prisma.reel.findMany({
+      where: { creatorId },
+      skip: opts.skip,
+      take: opts.take,
+      orderBy: opts.orderBy === 'views' ? { views: 'desc' } : { createdAt: 'desc' },
+      select: creatorReelListSelect,
+    });
+  } catch {
+    return [];
+  }
 }
 
 export const socialService = {
@@ -416,15 +468,10 @@ export const socialService = {
         _sum: { likes: true, shares: true, views: true, saves: true },
       }),
       prisma.reelComment.count({ where: { reel: { creatorId: profile.id } } }),
-      prisma.reel.findMany({
-        where: { creatorId: profile.id },
-        orderBy: { createdAt: 'desc' },
-        take: 5,
-        include: reelResponseInclude,
-      }),
+      loadCreatorReelList(profile.id, { take: 5 }),
       prisma.creatorDailyReward.findUnique({
         where: { creatorId_rewardDate: { creatorId: profile.id, rewardDate } },
-      }),
+      }).catch(() => null),
     ]);
 
     return {
@@ -463,12 +510,7 @@ export const socialService = {
         _sum: { views: true, likes: true, saves: true, shares: true },
       }),
       prisma.reelComment.count({ where: { reel: { creatorId: profile.id } } }),
-      prisma.reel.findMany({
-        where: { creatorId: profile.id },
-        orderBy: { views: 'desc' },
-        take: 5,
-        include: reelResponseInclude,
-      }),
+      loadCreatorReelList(profile.id, { take: 5, orderBy: 'views' }),
     ]);
     const views = totals._sum.views ?? 0;
     const likes = totals._sum.likes ?? 0;
@@ -497,13 +539,7 @@ export const socialService = {
     const limit = Math.min(50, Math.max(1, parseInt(limitInput || '20', 10) || 20));
     const where = { creatorId: profile.id };
     const [items, total] = await Promise.all([
-      prisma.reel.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: reelResponseInclude,
-      }),
+      loadCreatorReelList(profile.id, { skip: (page - 1) * limit, take: limit }),
       prisma.reel.count({ where }),
     ]);
     return {
@@ -991,30 +1027,7 @@ export const socialService = {
     }
 
     const include: any = {
-      creator: {
-        select: { id: true, username: true, avatar: true, verified: true, userId: true },
-      },
-      place: {
-        select: { id: true, name: true, city: true, state: true },
-      },
-      vendor: {
-        select: { id: true, businessName: true, city: true, state: true },
-      },
-      collaboration: {
-        select: {
-          id: true,
-          campaignTitle: true,
-          status: true,
-          vendor: { select: { id: true, businessName: true, city: true, state: true } },
-          creator: { select: { id: true, username: true, fullName: true, avatar: true, verified: true } },
-        },
-      },
-      event: {
-        select: { id: true, title: true },
-      },
-      _count: {
-        select: { comments: true, likesList: true, savesList: true },
-      },
+      ...reelResponseInclude,
     };
 
     if (userId) {
@@ -1222,30 +1235,12 @@ export const socialService = {
     const item = await prisma.reel.findUnique({
       where: { id },
       include: {
-        creator: {
-          select: { id: true, username: true, avatar: true, verified: true, userId: true },
-        },
-        place: {
-          select: { id: true, name: true, city: true, state: true },
-        },
+        ...reelResponseInclude,
         vendor: {
           select: { id: true, businessName: true, city: true, state: true, userId: true },
         },
-        collaboration: {
-          select: {
-            id: true,
-            campaignTitle: true,
-            status: true,
-            vendor: { select: { id: true, businessName: true, city: true, state: true } },
-            creator: { select: { id: true, username: true, fullName: true, avatar: true, verified: true } },
-          },
-        },
-        event: {
-          select: { id: true, title: true },
-        },
         likesList: userId ? { where: { userId } } : undefined,
         savesList: userId ? { where: { userId } } : undefined,
-        _count: { select: { comments: true, likesList: true, savesList: true } },
       },
     });
     if (!item) throw new ApiError(404, 'Reel not found.');
