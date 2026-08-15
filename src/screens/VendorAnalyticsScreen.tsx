@@ -216,18 +216,25 @@ export default function VendorAnalyticsScreen({ onBack: _onBack, vendorId, vendo
     try {
       const period = dateRange === 7 ? '7d' : dateRange === 90 ? '90d' : '30d';
       const [redRes, analyticsRes, dashRes, reelsRes] = await Promise.all([
-        redemptionsApi.vendorRedemptions(1, 200),
-        vendorsApi.getAnalytics(period),
-        vendorsApi.getDashboard(),
+        redemptionsApi.vendorRedemptions(1, 200).catch((e) => e),
+        vendorsApi.getAnalytics(period).catch((e) => e),
+        vendorsApi.getDashboard().catch((e) => e),
         currentVendor?.id
           ? vendorsApi.getVendorReels(currentVendor.id).catch(() => [])
           : Promise.resolve([]),
       ]);
 
-      setRedemptions(extractList(redRes));
+      const redFailed = redRes instanceof Error;
+      const analyticsFailed = analyticsRes instanceof Error;
+      const dashFailed = dashRes instanceof Error;
+      if (redFailed && analyticsFailed && dashFailed) {
+        throw redRes;
+      }
 
-      const analytics = (analyticsRes as any)?.data ?? analyticsRes;
-      const dashboard = (dashRes as any)?.data ?? dashRes;
+      setRedemptions(redFailed ? [] : extractList(redRes));
+
+      const analytics = analyticsFailed ? null : ((analyticsRes as any)?.data ?? analyticsRes);
+      const dashboard = dashFailed ? null : ((dashRes as any)?.data ?? dashRes);
       const views =
         analytics?.overview?.totalViews ??
         analytics?.totalViews ??

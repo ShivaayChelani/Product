@@ -1889,9 +1889,9 @@ export const vendorsService = {
     const todayPalPoints = todayRedemptionRows.reduce((sum, r) => sum + r.pointsSpent, 0);
 
     const listing = vendor.userId
-      ? (await entitlementsService.getForUser(vendor.userId)).vendorListing
+      ? await entitlementsService.getForUser(vendor.userId).then((e) => e.vendorListing).catch(() => null)
       : null;
-    const reelCount = await prisma.vendorReel.count({ where: { vendorId } });
+    const reelCount = await prisma.vendorReel.count({ where: { vendorId } }).catch(() => 0);
     const pendingTaggedReels = await listPendingTaggedCreatorReels(vendorId);
 
     return {
@@ -2020,42 +2020,61 @@ export const vendorsService = {
     const since = new Date();
     since.setDate(since.getDate() - days);
 
-    const [offers, redemptions] = await Promise.all([
-      prisma.vendorOffer.findMany({
-        where: { vendorId },
-        select: { id: true, title: true, viewCount: true, clickCount: true, currentRedemptions: true, discountValue: true },
-      }),
-      prisma.redemption.findMany({
-        where: { vendorId, createdAt: { gte: since } },
-        select: { id: true, status: true, pointsSpent: true, discountValue: true, createdAt: true, userId: true },
-        orderBy: { createdAt: 'desc' },
-      }),
-    ]);
-
-    const verified = redemptions.filter(r => r.status === 'VERIFIED');
-    const totalViews = offers.reduce((s, o) => s + o.viewCount, 0);
-    const totalClicks = offers.reduce((s, o) => s + o.clickCount, 0);
-    const popularOffers = [...offers].sort((a, b) => b.currentRedemptions - a.currentRedemptions).slice(0, 5);
-
-    return {
+    const empty = {
       period,
       overview: {
-        totalViews,
-        totalClicks,
-        totalRedemptions: redemptions.length,
-        verifiedRedemptions: verified.length,
-        totalPointsRedeemed: verified.reduce((s, r) => s + r.pointsSpent, 0),
-        revenueImpact: verified.reduce((s, r) => s + r.discountValue, 0),
-        uniqueCustomers: new Set(redemptions.map(r => r.userId).filter(Boolean)).size,
+        totalViews: 0,
+        totalClicks: 0,
+        totalRedemptions: 0,
+        verifiedRedemptions: 0,
+        totalPointsRedeemed: 0,
+        revenueImpact: 0,
+        uniqueCustomers: 0,
       },
-      popularOffers: popularOffers.map(o => ({
-        id: o.id, title: o.title, views: o.viewCount, clicks: o.clickCount, redemptions: o.currentRedemptions,
-      })),
-      dailyTrend: bucketRedemptions(redemptions, 'daily').map((d) => ({
-        date: d.date,
-        count: d.count,
-        points: d.points,
-      })),
+      popularOffers: [] as Array<{ id: string; title: string; views: number; clicks: number; redemptions: number }>,
+      dailyTrend: [] as Array<{ date: string; count: number; points: number }>,
     };
+
+    try {
+      const [offers, redemptions] = await Promise.all([
+        prisma.vendorOffer.findMany({
+          where: { vendorId },
+          select: { id: true, title: true, viewCount: true, clickCount: true, currentRedemptions: true, discountValue: true },
+        }),
+        prisma.redemption.findMany({
+          where: { vendorId, createdAt: { gte: since } },
+          select: { id: true, status: true, pointsSpent: true, discountValue: true, createdAt: true, userId: true },
+          orderBy: { createdAt: 'desc' },
+        }),
+      ]);
+
+      const verified = redemptions.filter(r => r.status === 'VERIFIED');
+      const totalViews = offers.reduce((s, o) => s + o.viewCount, 0);
+      const totalClicks = offers.reduce((s, o) => s + o.clickCount, 0);
+      const popularOffers = [...offers].sort((a, b) => b.currentRedemptions - a.currentRedemptions).slice(0, 5);
+
+      return {
+        period,
+        overview: {
+          totalViews,
+          totalClicks,
+          totalRedemptions: redemptions.length,
+          verifiedRedemptions: verified.length,
+          totalPointsRedeemed: verified.reduce((s, r) => s + r.pointsSpent, 0),
+          revenueImpact: verified.reduce((s, r) => s + r.discountValue, 0),
+          uniqueCustomers: new Set(redemptions.map(r => r.userId).filter(Boolean)).size,
+        },
+        popularOffers: popularOffers.map(o => ({
+          id: o.id, title: o.title, views: o.viewCount, clicks: o.clickCount, redemptions: o.currentRedemptions,
+        })),
+        dailyTrend: bucketRedemptions(redemptions, 'daily').map((d) => ({
+          date: d.date,
+          count: d.count,
+          points: d.points,
+        })),
+      };
+    } catch {
+      return empty;
+    }
   },
 };

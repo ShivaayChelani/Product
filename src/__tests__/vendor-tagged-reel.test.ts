@@ -13,8 +13,11 @@ describe('Creator reel tagged to a business', () => {
     expect(social).toMatch(/notifyVendorOfTaggedReel/);
     expect(tagged).toMatch(/vendor_tagged_reel/);
     expect(tagged).toMatch(/Allow it on your map profile/);
-    expect(tagged).toMatch(/VendorListingStatus.PENDING/);
+    expect(tagged).toMatch(/vendorListingStatus: VendorListingStatus.PENDING/);
     expect(tagged).toMatch(/action === 'allow'/);
+    expect(tagged).toMatch(/taggedReelSelect/);
+    expect(tagged).toMatch(/select: taggedReelSelect/);
+    expect(tagged).not.toMatch(/include: taggedReelInclude/);
   });
 
   it('shows Allow and Reject on the map vendor profile card', () => {
@@ -64,5 +67,12 @@ describe('Creator reel tagged to a business', () => {
     expect(profile).not.toMatch(/getVendorReels/);
     expect(publicList).toMatch(/getTaggedCreatorReels/);
     expect(publicList).toMatch(/getVendorReels/);
+  });
+
+  it('does not blank vendor statistics when one analytics request fails', () => {
+    const analytics = read('screens/VendorAnalyticsScreen.tsx');
+    expect(analytics).toMatch(/vendorRedemptions\(1, 200\)\.catch/);
+    expect(analytics).toMatch(/getAnalytics\(period\)\.catch/);
+    expect(analytics).toMatch(/getDashboard\(\)\.catch/);
   });
 });

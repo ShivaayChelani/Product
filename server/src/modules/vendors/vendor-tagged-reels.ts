@@ -22,7 +22,14 @@ export type TaggedCreatorReelDto = {
   };
 };
 
-const taggedReelInclude = {
+const taggedReelSelect = {
+  id: true,
+  videoUrl: true,
+  thumbnail: true,
+  title: true,
+  description: true,
+  vendorListingStatus: true,
+  createdAt: true,
   creator: {
     select: { id: true, username: true, avatar: true, userId: true, fullName: true },
   },
@@ -55,32 +62,40 @@ export function serializeTaggedCreatorReel(row: {
 }
 
 export async function listPublicTaggedCreatorReels(vendorId: string): Promise<TaggedCreatorReelDto[]> {
-  const rows = await prisma.reel.findMany({
-    where: {
-      vendorId,
-      status: ReelStatus.APPROVED,
-      vendorListingStatus: VendorListingStatus.APPROVED,
-    },
-    include: taggedReelInclude,
-    orderBy: { createdAt: 'desc' },
-    take: 50,
-  });
-  return rows.map(serializeTaggedCreatorReel);
+  try {
+    const rows = await prisma.reel.findMany({
+      where: {
+        vendorId,
+        status: ReelStatus.APPROVED,
+        vendorListingStatus: VendorListingStatus.APPROVED,
+      },
+      select: taggedReelSelect,
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    return rows.map(serializeTaggedCreatorReel);
+  } catch {
+    return [];
+  }
 }
 
 export async function listPendingTaggedCreatorReels(vendorId: string): Promise<TaggedCreatorReelDto[]> {
-  const rows = await prisma.reel.findMany({
-    where: {
-      vendorId,
-      status: ReelStatus.APPROVED,
-      vendorListingStatus: VendorListingStatus.PENDING,
-      isCollaboration: false,
-    },
-    include: taggedReelInclude,
-    orderBy: { createdAt: 'desc' },
-    take: 50,
-  });
-  return rows.map(serializeTaggedCreatorReel);
+  try {
+    const rows = await prisma.reel.findMany({
+      where: {
+        vendorId,
+        status: ReelStatus.APPROVED,
+        vendorListingStatus: VendorListingStatus.PENDING,
+        isCollaboration: false,
+      },
+      select: taggedReelSelect,
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    return rows.map(serializeTaggedCreatorReel);
+  } catch {
+    return [];
+  }
 }
 
 export async function listTaggedCreatorReelsForViewer(
@@ -160,7 +175,7 @@ export async function reviewTaggedCreatorReel(
 
   const reel = await prisma.reel.findUniqueOrThrow({
     where: { id: reelId },
-    include: taggedReelInclude,
+    select: taggedReelSelect,
   });
 
   const creatorUserId = reel.creator.userId;
