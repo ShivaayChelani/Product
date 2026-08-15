@@ -77,6 +77,7 @@ export default function MapVendorDetailCard({
   onOpenReel,
   onOpenVendorReels,
   onViewAllOffers,
+  onOpenOffer,
   onWriteReview,
 }: Props) {
   const { data: vendor, isLoading, isError, refetch } = useVendorMapDetail(vendorId);

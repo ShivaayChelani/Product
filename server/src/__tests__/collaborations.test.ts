@@ -61,6 +61,39 @@ describe.sequential('Collaborations API', () => {
       where: { id: vendorId },
       data: { subscriptionStatus: 'ACTIVE' },
     });
+
+    const vendorUserId = vendor!.userId;
+    const existingLiveSub = await prisma.userSubscription.findFirst({
+      where: {
+        userId: vendorUserId,
+        audience: 'VENDOR',
+        status: { in: ['ACTIVE', 'TRIALING'] },
+        currentPeriodEnd: { gte: new Date() },
+      },
+      select: { id: true },
+    });
+    if (!existingLiveSub) {
+      const plan = await prisma.subscriptionPlan.findFirst({
+        where: { audience: 'VENDOR' },
+        select: { id: true },
+      });
+      if (!plan) {
+        throw new Error('Collaborations tests need a VENDOR subscription plan in the test DB.');
+      }
+      await prisma.userSubscription.create({
+        data: {
+          userId: vendorUserId,
+          planId: plan.id,
+          audience: 'VENDOR',
+          status: 'ACTIVE',
+          billingPeriod: 'MONTHLY',
+          provider: 'ADMIN_GRANT',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+      });
+    }
+
     await cleanupVendorCreatorCollabs(vendorId, creatorProfileId);
   }, 120_000);
 
