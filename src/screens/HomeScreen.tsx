@@ -976,6 +976,7 @@ export default function HomeScreen({
         onNavigateToSaved={() => onNavigateToSearch?.('Saved', 'saved')}
         onNavigateToSettings={() => navigation.navigate('Settings')}
         onNavigateToHelp={() => onNavigateToLegal?.()}
+        onNavigateToSubscription={() => navigation.navigate('UserPremium')}
       />
     </View>
   );

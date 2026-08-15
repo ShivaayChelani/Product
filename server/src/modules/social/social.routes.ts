@@ -35,6 +35,7 @@ router.post('/reels', authenticate, requireCreatorRole, validate(createReelSchem
 router.get('/reels', optionalAuth, socialController.listReels);
 router.get('/reels/:id', optionalAuth, socialController.getReelById);
 router.patch('/reels/:id/views', socialController.incrementViews);
+router.patch('/reels/:id/shares', socialController.incrementShares);
 router.patch('/reels/:id', authenticate, requireCreatorRole, validate(updateReelSchema), socialController.updateReel);
 router.delete('/reels/:id', authenticate, requireCreatorRole, socialController.deleteOwnReel);
 

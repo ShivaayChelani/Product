@@ -20,22 +20,30 @@ type CollaborationTimelineProps = {
   status: string;
 };
 
+/** After a reel is sent, treat ACCEPTED/IN_PROGRESS as waiting on vendor review. */
+export function effectiveCollaborationStatus(status: string, hasSubmittedReel?: boolean): string {
+  if (hasSubmittedReel && (status === 'ACCEPTED' || status === 'IN_PROGRESS')) {
+    return 'REEL_UPLOADED';
+  }
+  return status;
+}
+
 export function CollaborationTimeline({ status }: CollaborationTimelineProps) {
-  // We infer progress based on standard statuses
   const stages = [
     { key: 'PENDING', label: 'Request Received' },
     { key: 'ACCEPTED', label: 'Accepted' },
     { key: 'IN_PROGRESS', label: 'Visit Business' },
     { key: 'REEL_UPLOADED', label: 'Content Submitted' },
     { key: 'APPROVED', label: 'Approval' },
-    { key: 'COMPLETED', label: 'Payment' },
   ];
 
   let currentIndex = stages.findIndex((s) => s.key === status);
-  if (currentIndex === -1) {
-    if (status === 'REVISION_REQUESTED') currentIndex = 2; // Treat as In Progress
+  if (status === 'COMPLETED') {
+    currentIndex = stages.length;
+  } else if (currentIndex === -1) {
+    if (status === 'REVISION_REQUESTED') currentIndex = 3;
     else if (status === 'REJECTED' || status === 'CANCELLED') currentIndex = 0;
-    else currentIndex = stages.length - 1;
+    else currentIndex = 0;
   }
 
   return (
@@ -43,8 +51,8 @@ export function CollaborationTimeline({ status }: CollaborationTimelineProps) {
       <Text style={timelineStyles.title}>Timeline</Text>
       <View style={timelineStyles.timeline}>
         {stages.map((stage, idx) => {
-          const isCompleted = idx < currentIndex || status === 'COMPLETED';
-          const isCurrent = idx === currentIndex && status !== 'COMPLETED';
+          const isCompleted = idx < currentIndex;
+          const isCurrent = idx === currentIndex;
           
           return (
             <View key={stage.key} style={timelineStyles.step}>
@@ -158,30 +166,33 @@ const timelineStyles = StyleSheet.create({
 // ==========================================
 type ActionFooterProps = {
   status: string;
+  hasSubmittedReel?: boolean;
   onAccept?: () => void;
   onDecline?: () => void;
   onStart?: () => void;
   onMessage?: () => void;
   onSubmitContent?: () => void;
   onViewContent?: () => void;
-  onViewEarnings?: () => void;
+  onPublishReel?: () => void;
 };
 
 export function ContextAwareActionFooter({
   status,
+  hasSubmittedReel,
   onAccept,
   onDecline,
   onStart,
   onMessage,
   onSubmitContent,
   onViewContent,
-  onViewEarnings,
+  onPublishReel,
 }: ActionFooterProps) {
   const padBottom = useBottomSafePadding(16);
+  const effective = effectiveCollaborationStatus(status, hasSubmittedReel);
 
   let content = null;
 
-  if (status === 'PENDING') {
+  if (effective === 'PENDING') {
     content = (
       <>
         <Pressable style={footerStyles.secondaryBtn} onPress={onDecline}>
@@ -192,7 +203,7 @@ export function ContextAwareActionFooter({
         </Pressable>
       </>
     );
-  } else if (status === 'ACCEPTED') {
+  } else if (effective === 'ACCEPTED') {
     content = (
       <>
         <Pressable style={footerStyles.secondaryBtn} onPress={onMessage}>
@@ -203,7 +214,18 @@ export function ContextAwareActionFooter({
         </Pressable>
       </>
     );
-  } else if (status === 'IN_PROGRESS' || status === 'REVISION_REQUESTED') {
+  } else if (effective === 'REVISION_REQUESTED') {
+    content = (
+      <>
+        <Pressable style={footerStyles.secondaryBtn} onPress={onMessage}>
+          <Text style={footerStyles.secondaryText}>Message</Text>
+        </Pressable>
+        <Pressable style={footerStyles.primaryBtn} onPress={onSubmitContent}>
+          <Text style={footerStyles.primaryText}>Edit & Resubmit</Text>
+        </Pressable>
+      </>
+    );
+  } else if (effective === 'IN_PROGRESS') {
     content = (
       <>
         <Pressable style={footerStyles.secondaryBtn} onPress={onMessage}>
@@ -214,22 +236,33 @@ export function ContextAwareActionFooter({
         </Pressable>
       </>
     );
-  } else if (status === 'REEL_UPLOADED') {
-    content = (
-      <Pressable style={footerStyles.secondaryBtn} onPress={onViewContent}>
-        <Text style={footerStyles.secondaryText}>View Submission</Text>
-      </Pressable>
-    );
-  } else if (status === 'APPROVED' || status === 'COMPLETED') {
+  } else if (effective === 'REEL_UPLOADED') {
     content = (
       <>
         <Pressable style={footerStyles.secondaryBtn} onPress={onViewContent}>
           <Text style={footerStyles.secondaryText}>View Content</Text>
         </Pressable>
-        <Pressable style={footerStyles.primaryBtn} onPress={onViewEarnings}>
-          <Text style={footerStyles.primaryText}>View Earnings</Text>
+        <Pressable style={[footerStyles.primaryBtn, footerStyles.pendingBtn]} disabled>
+          <Text style={footerStyles.primaryText}>Pending</Text>
         </Pressable>
       </>
+    );
+  } else if (effective === 'APPROVED') {
+    content = (
+      <>
+        <Pressable style={footerStyles.secondaryBtn} onPress={onViewContent}>
+          <Text style={footerStyles.secondaryText}>View Content</Text>
+        </Pressable>
+        <Pressable style={footerStyles.primaryBtn} onPress={onPublishReel}>
+          <Text style={footerStyles.primaryText}>Publish Reel</Text>
+        </Pressable>
+      </>
+    );
+  } else if (effective === 'COMPLETED') {
+    content = (
+      <Pressable style={footerStyles.secondaryBtn} onPress={onViewContent}>
+        <Text style={footerStyles.secondaryText}>View Content</Text>
+      </Pressable>
     );
   }
 
@@ -272,6 +305,9 @@ const footerStyles = StyleSheet.create({
     color: '#FFF',
     fontWeight: '700',
     fontSize: 15,
+  },
+  pendingBtn: {
+    opacity: 0.72,
   },
   secondaryBtn: {
     flex: 1,

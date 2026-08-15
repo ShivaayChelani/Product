@@ -27,4 +27,11 @@ export const uploadController = {
     const result = await uploadService.uploadVideo(req.file);
     sendCreated(res, result, 'Video uploaded successfully');
   }),
+
+  deleteMedia: catchAsync(async (req: any, res: Response) => {
+    const publicId = String(req.body?.publicId || '').trim();
+    const resourceType = req.body?.resourceType === 'video' ? 'video' : 'image';
+    await uploadService.deleteMedia(publicId, resourceType);
+    sendSuccess(res, { deleted: true }, { message: 'Media removed' });
+  }),
 };

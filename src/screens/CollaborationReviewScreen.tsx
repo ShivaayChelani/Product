@@ -21,6 +21,8 @@ import { ReasonPromptModal, promptWithReason } from '../components/ReasonPromptM
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomSafePadding } from '../design/responsive';
 
+const MIN_REVISION_FEEDBACK = 10;
+
 type AndroidPromptState = {
   title: string;
   message?: string;
@@ -81,6 +83,19 @@ export default function CollaborationReviewScreen() {
   }
 
   const creatorName = item.creator?.fullName || item.creator?.username || 'Creator';
+  const revisionReady = feedback.trim().length >= MIN_REVISION_FEEDBACK;
+
+  const requestChanges = () => {
+    const note = feedback.trim();
+    if (note.length < MIN_REVISION_FEEDBACK) {
+      Alert.alert(
+        'Add more detail',
+        `Tell the creator what to change (at least ${MIN_REVISION_FEEDBACK} characters).`,
+      );
+      return;
+    }
+    act('Revision requested', () => collaborationsApi.requestRevision(item.id, note));
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right']}>
@@ -110,69 +125,82 @@ export default function CollaborationReviewScreen() {
           <Text style={styles.sub}>No preview available</Text>
         )}
 
-        <Text style={styles.label}>Request changes (optional feedback)</Text>
-        <TextInput
-          style={styles.input}
-          value={feedback}
-          onChangeText={setFeedback}
-          placeholder="Describe what to revise..."
-          placeholderTextColor={colors.textMuted}
-          multiline
-        />
+        {item.status === 'REEL_UPLOADED' ? (
+          <>
+            <Text style={styles.label}>What should the creator change?</Text>
+            <TextInput
+              style={styles.input}
+              value={feedback}
+              onChangeText={setFeedback}
+              placeholder="Describe what to revise (required)…"
+              placeholderTextColor={colors.textMuted}
+              multiline
+            />
+            <Text style={styles.hint}>
+              {feedback.trim().length}/{MIN_REVISION_FEEDBACK} characters minimum
+            </Text>
 
-        {acting ? <ActivityIndicator color={colors.primary} style={{ marginVertical: 12 }} /> : null}
+            {acting ? <ActivityIndicator color={colors.primary} style={{ marginVertical: 12 }} /> : null}
 
-        <TouchableOpacity
-          style={styles.approveBtn}
-          disabled={acting}
-          onPress={() => act('Reel approved and published', () => collaborationsApi.approveReel(item.id))}
-        >
-          <Text style={styles.approveText}>Approve & Publish</Text>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.approveBtn}
+              disabled={acting}
+              onPress={() => act('Creator can now publish the reel', () => collaborationsApi.approveReel(item.id))}
+            >
+              <Text style={styles.approveText}>Approve</Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.revisionBtn}
-          disabled={acting || feedback.trim().length < 10}
-          onPress={() => act('Revision requested', () => collaborationsApi.requestRevision(item.id, feedback.trim()))}
-        >
-          <Text style={styles.revisionText}>Request Changes</Text>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.revisionBtn, (!revisionReady || acting) && styles.btnDisabled]}
+              disabled={acting}
+              onPress={requestChanges}
+              accessibilityRole="button"
+              accessibilityLabel="Request Changes"
+            >
+              <Text style={styles.revisionText}>Request Changes</Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.rejectBtn}
-          disabled={acting}
-          onPress={() => {
-            const reject = (reason: string) => {
-              if (!reason.trim()) {
-                Alert.alert('Reason required', 'Please provide a reason for rejecting this reel.');
-                return;
-              }
-              act('Reel rejected', () => collaborationsApi.rejectReel(item.id, reason.trim()));
-            };
+            <TouchableOpacity
+              style={styles.rejectBtn}
+              disabled={acting}
+              onPress={() => {
+                const reject = (reason: string) => {
+                  if (!reason.trim()) {
+                    Alert.alert('Reason required', 'Please provide a reason for rejecting this reel.');
+                    return;
+                  }
+                  act('Reel rejected', () => collaborationsApi.rejectReel(item.id, reason.trim()));
+                };
 
-            if (Platform.OS === 'android') {
-              openAndroidModal(
-                {
-                  title: 'Reject reel',
-                  message: 'Tell the creator why this reel was rejected.',
-                  placeholder: 'Reason…',
-                  confirmLabel: 'Reject',
-                  required: true,
-                },
-                reject,
-              );
-              return;
-            }
+                if (Platform.OS === 'android') {
+                  openAndroidModal(
+                    {
+                      title: 'Reject reel',
+                      message: 'Tell the creator why this reel was rejected.',
+                      placeholder: 'Reason…',
+                      confirmLabel: 'Reject',
+                      required: true,
+                    },
+                    reject,
+                  );
+                  return;
+                }
 
-            promptWithReason(
-              { title: 'Reject reel', message: 'Reason', placeholder: 'Reason…', required: true },
-              reject,
-              openAndroidModal,
-            );
-          }}
-        >
-          <Text style={styles.rejectText}>Reject Reel</Text>
-        </TouchableOpacity>
+                promptWithReason(
+                  { title: 'Reject reel', message: 'Reason', placeholder: 'Reason…', required: true },
+                  reject,
+                  openAndroidModal,
+                );
+              }}
+            >
+              <Text style={styles.rejectText}>Reject Reel</Text>
+            </TouchableOpacity>
+          </>
+        ) : item.status === 'APPROVED' ? (
+          <Text style={styles.sub}>You approved this reel. The creator can now publish it.</Text>
+        ) : (
+          <Text style={styles.sub}>This reel is no longer waiting for review.</Text>
+        )}
       </ScrollView>
 
       <ReasonPromptModal
@@ -204,11 +232,13 @@ const styles = StyleSheet.create({
   videoWrap: { borderRadius: 16, overflow: 'hidden', backgroundColor: '#000', aspectRatio: 9 / 16, maxHeight: 420 },
   video: { width: '100%', height: '100%' },
   label: { color: '#CBD5E1', marginTop: 20, marginBottom: 8, fontWeight: '600' },
+  hint: { color: '#94A3B8', marginTop: 6, fontSize: 12 },
   input: { backgroundColor: '#1E293B', borderRadius: 12, padding: 14, color: '#fff', minHeight: 90, textAlignVertical: 'top' },
   approveBtn: { marginTop: 20, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   approveText: { color: '#fff', fontWeight: '700' },
   revisionBtn: { marginTop: 10, backgroundColor: '#F59E0B', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   revisionText: { color: '#fff', fontWeight: '700' },
+  btnDisabled: { opacity: 0.45 },
   rejectBtn: { marginTop: 10, borderWidth: 1, borderColor: '#475569', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   rejectText: { color: '#FCA5A5', fontWeight: '700' },
 });

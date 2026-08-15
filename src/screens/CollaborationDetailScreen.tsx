@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { collaborationsApi, type CollaborationItem } from '../services/api/collaborations';
 import {
@@ -20,7 +20,11 @@ import {
   promptWithReason,
 } from '../components/ReasonPromptModal';
 import { useBottomSafePadding } from '../design/responsive';
-import { CollaborationTimeline, ContextAwareActionFooter } from '../features/creator/components/CollaborationDetailWidgets';
+import {
+  CollaborationTimeline,
+  ContextAwareActionFooter,
+  effectiveCollaborationStatus,
+} from '../features/creator/components/CollaborationDetailWidgets';
 
 const C = {
   bg: '#FFFFFF',
@@ -108,6 +112,12 @@ export default function CollaborationDetailScreen() {
     enabled: !!collaborationId,
   });
 
+  useFocusEffect(
+    React.useCallback(() => {
+      if (collaborationId) void refetch();
+    }, [collaborationId, refetch]),
+  );
+
   const role = item?.viewerRole || 'other';
   const isCreator = role === 'creator';
   const isVendor = role === 'vendor';
@@ -118,6 +128,7 @@ export default function CollaborationDetailScreen() {
       await fn();
       await refetch();
       queryClient.invalidateQueries({ queryKey: ['collaborations'] });
+      queryClient.invalidateQueries({ queryKey: ['vendor-map-detail'] });
       Alert.alert('Done', label);
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Action failed');
@@ -160,8 +171,43 @@ export default function CollaborationDetailScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: contentPadBottom }]}>
-        
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: Math.max(contentPadBottom, 120) }]}>
+        {item.status === 'REVISION_REQUESTED' && isCreator ? (
+          <View style={styles.revisionCard}>
+            <View style={styles.revisionHeader}>
+              <Icon name="alert-circle" size={20} color="#B45309" />
+              <Text style={styles.revisionTitle}>Vendor requested changes</Text>
+            </View>
+            <Text style={styles.revisionBody}>
+              {item.revisionFeedback?.trim() || 'The vendor asked you to update this reel. Edit your content and resubmit it for review.'}
+            </Text>
+          </View>
+        ) : null}
+
+        {item.status === 'APPROVED' && isCreator ? (
+          <View style={styles.publishCard}>
+            <View style={styles.revisionHeader}>
+              <Icon name="checkmark-circle" size={20} color={C.green} />
+              <Text style={styles.publishTitle}>Vendor approved your reel</Text>
+            </View>
+            <Text style={styles.publishBody}>
+              Publish it to go live on PalSafar and this business’s map profile.
+            </Text>
+          </View>
+        ) : null}
+
+        {item.status === 'APPROVED' && isVendor ? (
+          <View style={styles.publishCard}>
+            <View style={styles.revisionHeader}>
+              <Icon name="time-outline" size={20} color={C.green} />
+              <Text style={styles.publishTitle}>Waiting for creator to publish</Text>
+            </View>
+            <Text style={styles.publishBody}>
+              You approved this reel. It will appear on your map profile after the creator publishes it.
+            </Text>
+          </View>
+        ) : null}
+
         <View style={styles.card}>
           <View style={styles.rowBetween}>
             <Text style={styles.cardLabel}>Collaboration Type</Text>
@@ -184,22 +230,6 @@ export default function CollaborationDetailScreen() {
           <View style={styles.rowBetween}>
             <Text style={styles.cardLabel}>Goal</Text>
             <Text style={styles.cardValue}>{parsedBrief?.campaignGoal || item.campaignCategory}</Text>
-          </View>
-          
-          <View style={styles.divider} />
-          
-          <View style={styles.rowBetween}>
-            <Text style={styles.cardLabel}>Campaign Duration</Text>
-            <Text style={styles.cardValue}>{parsedBrief?.startDate} – {parsedBrief?.endDate}</Text>
-          </View>
-          
-          <View style={styles.divider} />
-          
-          <View style={styles.rowBetween}>
-            <Text style={styles.cardLabel}>Budget</Text>
-            <Text style={styles.cardValue}>
-              {item.budgetFormatted} {parsedBrief?.budgetNegotiable ? <Text style={styles.negotiable}> Negotiable</Text> : ''}
-            </Text>
           </View>
 
           {parsedBrief?.benefitsOffered?.length ? (
@@ -266,7 +296,9 @@ export default function CollaborationDetailScreen() {
         ) : null}
 
         {isCreator ? (
-          <CollaborationTimeline status={item.status} />
+          <CollaborationTimeline
+            status={effectiveCollaborationStatus(item.status, Boolean(item.reel?.id))}
+          />
         ) : (
           <>
             <Text style={styles.sectionHeader}>Status Timeline</Text>
@@ -275,6 +307,18 @@ export default function CollaborationDetailScreen() {
         )}
 
         {acting && <ActivityIndicator color={C.brown} style={{ marginVertical: 12 }} />}
+
+        {isVendor && item.status === 'REEL_UPLOADED' ? (
+          <View style={styles.actions}>
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              disabled={acting}
+              onPress={() => navigation.navigate('CollaborationReview', { collaborationId: item.id })}
+            >
+              <Text style={styles.primaryBtnText}>Review Reel</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         {isVendor && ['PENDING'].includes(item.status) ? (
           <View style={styles.actions}>
@@ -304,6 +348,7 @@ export default function CollaborationDetailScreen() {
       {isCreator ? (
         <ContextAwareActionFooter
           status={item.status}
+          hasSubmittedReel={Boolean(item.reel?.id)}
           onAccept={() => runAction('Collaboration accepted', () => collaborationsApi.accept(item.id))}
           onDecline={() =>
             promptDeclineWithOptions(
@@ -319,10 +364,53 @@ export default function CollaborationDetailScreen() {
             else if (item.contactEmail) Linking.openURL(`mailto:${item.contactEmail}`);
             else Alert.alert('No contact info', 'Vendor has not provided contact details yet.');
           }}
-          onStart={() => navigation.navigate('CreateReel', { collaborationId: item.id })}
-          onSubmitContent={() => navigation.navigate('CreateReel', { collaborationId: item.id })}
-          onViewContent={() => Alert.alert('View Content', 'This would open the reel viewer.')}
-          onViewEarnings={() => navigation.navigate('Wallet')}
+          onStart={() => {
+            void (async () => {
+              try {
+                await collaborationsApi.markInProgress(item.id);
+                await refetch();
+                queryClient.invalidateQueries({ queryKey: ['collaborations'] });
+              } catch {
+                /* already in progress or offline — still open the reel form */
+              }
+              navigation.navigate('CreateReel', { collaborationId: item.id });
+            })();
+          }}
+          onSubmitContent={() =>
+            navigation.navigate('CreateReel', {
+              collaborationId: item.id,
+              revisionNote: item.status === 'REVISION_REQUESTED'
+                ? (item.revisionFeedback?.trim() || 'Please update your reel.')
+                : undefined,
+              prefillMediaUri: item.status === 'REVISION_REQUESTED'
+                ? (item.reel?.videoUrl || undefined)
+                : undefined,
+              captionHint: item.status === 'REVISION_REQUESTED'
+                ? (item.reel?.title || undefined)
+                : undefined,
+            })
+          }
+          onViewContent={() => {
+            if (item.reel?.id) {
+              navigation.navigate('ReelDetail', { reelId: item.reel.id });
+              return;
+            }
+            Alert.alert('View Content', 'Your reel is waiting for vendor review.');
+          }}
+          onPublishReel={() => {
+            Alert.alert(
+              'Publish reel',
+              'This reel will go live on PalSafar and the vendor’s map profile.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Publish',
+                  onPress: () =>
+                    runAction('Reel published', () => collaborationsApi.publishReel(item.id)),
+                },
+              ],
+            );
+          }}
         />
       ) : null}
 
@@ -418,6 +506,27 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   lockedText: { fontSize: 13, color: C.textMuted, marginLeft: 12, flex: 1 },
+  revisionCard: {
+    backgroundColor: '#FFF7ED',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDBA74',
+  },
+  revisionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  revisionTitle: { fontSize: 15, fontWeight: '800', color: '#9A3412', flex: 1 },
+  revisionBody: { fontSize: 14, color: '#9A3412', lineHeight: 20 },
+  publishCard: {
+    backgroundColor: '#ECFDF5',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  publishTitle: { fontSize: 15, fontWeight: '800', color: '#065F46', flex: 1 },
+  publishBody: { fontSize: 14, color: '#047857', lineHeight: 20 },
   
   link: { fontSize: 15, color: C.brown, fontWeight: '600', marginVertical: 6 },
   

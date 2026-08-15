@@ -58,7 +58,12 @@ export const collaborationsController = {
 
   approveReel: catchAsync(async (req: any, res: Response) => {
     const result = await collaborationsService.approveReel(req.params.id, req.user.id);
-    sendSuccess(res, result, { message: 'Reel approved and published' });
+    sendSuccess(res, result, { message: 'Reel approved. The creator can now publish it.' });
+  }),
+
+  publishReel: catchAsync(async (req: any, res: Response) => {
+    const result = await collaborationsService.publishReel(req.params.id, req.user.id);
+    sendSuccess(res, result, { message: 'Reel published' });
   }),
 
   requestRevision: catchAsync(async (req: any, res: Response) => {

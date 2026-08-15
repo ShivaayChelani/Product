@@ -3,13 +3,15 @@ import {
   CollaborationStatus,
   Prisma,
   ReelStatus,
+  VendorListingStatus,
   VendorStatus,
 } from '@prisma/client';
 import { prisma } from '../../config/database';
-import { ApiError } from '../../shared/utils/ApiError';
+import { ApiError, ErrorCodes } from '../../shared/utils/ApiError';
 import { getPaginationParams, paginatedResponse } from '../../shared/utils/pagination';
 import { auditService } from '../audit/audit.service';
 import { notificationService } from '../notifications/notification.service';
+import { planEnforcementService } from '../monetization/plan-enforcement.service';
 import type {
   CreateCollaborationInput,
   ListCollaborationsQuery,
@@ -30,6 +32,7 @@ const DUPLICATE_BLOCK_STATUSES: CollaborationStatus[] = [
   CollaborationStatus.IN_PROGRESS,
   CollaborationStatus.REEL_UPLOADED,
   CollaborationStatus.REVISION_REQUESTED,
+  CollaborationStatus.APPROVED,
 ];
 
 const REQUEST_EXPIRY_DAYS = 14;
@@ -66,6 +69,7 @@ const collaborationInclude = {
       title: true,
       description: true,
       status: true,
+      vendorListingStatus: true,
       views: true,
       likes: true,
       isCollaboration: true,
@@ -308,6 +312,7 @@ function buildBucketFilter(
             CollaborationStatus.IN_PROGRESS,
             CollaborationStatus.REEL_UPLOADED,
             CollaborationStatus.REVISION_REQUESTED,
+            CollaborationStatus.APPROVED,
           ],
         },
       };
@@ -394,6 +399,7 @@ async function notifyCollaboration(
 ) {
   const screenByType: Record<string, string> = {
     collab_reel_uploaded: 'CollaborationReview',
+    collab_reel_approved: 'CollaborationDetail',
     collab_reel_published: 'ReelDetail',
   };
   await notificationService.sendToUser(userId, title, body, {
@@ -409,6 +415,7 @@ async function notifyCollaboration(
 export const collaborationsService = {
   async createRequest(vendorUserId: string, input: CreateCollaborationInput) {
     const vendor = await getVendorForUser(vendorUserId);
+    await planEnforcementService.assertVendorCanCollaborate(vendorUserId);
     const creator = await getCreatorProfileById(input.creatorProfileId);
 
     if (creator.userId === vendorUserId) {
@@ -634,8 +641,8 @@ export const collaborationsService = {
     await notifyCollaboration(
       row.vendorUserId,
       'collab_accepted',
-      'Collaboration accepted',
-      `${updated.creator.fullName || updated.creator.username} accepted your collaboration request.`,
+      'Creator is ready to collaborate',
+      `${updated.creator.fullName || updated.creator.username} accepted your request and is ready to collaborate.`,
       id,
     );
     await notifyCollaboration(
@@ -803,6 +810,7 @@ export const collaborationsService = {
           description: input.description,
           placeId: input.placeId || null,
           status: ReelStatus.PENDING,
+          vendorListingStatus: VendorListingStatus.PENDING,
           isCollaboration: true,
           collaborationId: id,
           category: 'BUSINESS',
@@ -883,22 +891,7 @@ export const collaborationsService = {
         throw new ApiError(400, 'No reel pending approval.');
       }
 
-      await tx.reel.update({
-        where: { id: row.reelId! },
-        data: { status: ReelStatus.APPROVED },
-      });
-
       await recordStatusChange(tx, id, CollaborationStatus.REEL_UPLOADED, CollaborationStatus.APPROVED, vendorUserId);
-
-      await tx.collaboration.update({
-        where: { id },
-        data: {
-          status: CollaborationStatus.COMPLETED,
-          completedAt: new Date(),
-        },
-      });
-
-      await recordStatusChange(tx, id, CollaborationStatus.APPROVED, CollaborationStatus.COMPLETED, vendorUserId);
 
       return tx.collaboration.findUniqueOrThrow({
         where: { id },
@@ -906,27 +899,74 @@ export const collaborationsService = {
       });
     }, { timeout: 15000 });
 
-    await auditService.log(AuditAction.COLLABORATION_COMPLETED, 'Collaboration', id, vendorUserId);
+    await notifyCollaboration(
+      row.creatorUserId,
+      'collab_reel_approved',
+      'Reel approved — publish to go live',
+      `${row.businessName} approved your reel. Publish it to go live on PalSafar and their map profile.`,
+      id,
+      { reelId: row.reelId },
+    );
 
+    return maskCollaboration(updated, vendorUserId, 'vendor');
+  },
+
+  async publishReel(id: string, creatorUserId: string) {
+    const row = await getCollaborationOrThrow(id);
+    if (row.creatorUserId !== creatorUserId) {
+      throw new ApiError(403, 'Only the creator can publish the collaboration reel.');
+    }
+    if (row.status !== CollaborationStatus.APPROVED) {
+      throw new ApiError(400, 'The vendor must approve this reel before you can publish it.');
+    }
+    if (!row.reelId) throw new ApiError(400, 'Collaboration has no approved reel.');
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const marked = await tx.collaboration.updateMany({
+        where: { id, status: CollaborationStatus.APPROVED },
+        data: {
+          status: CollaborationStatus.COMPLETED,
+          completedAt: new Date(),
+        },
+      });
+      if (marked.count === 0) {
+        throw new ApiError(400, 'The vendor must approve this reel before you can publish it.');
+      }
+
+      await tx.reel.update({
+        where: { id: row.reelId! },
+        data: { status: ReelStatus.APPROVED, vendorListingStatus: VendorListingStatus.APPROVED },
+      });
+
+      await recordStatusChange(tx, id, CollaborationStatus.APPROVED, CollaborationStatus.COMPLETED, creatorUserId);
+
+      return tx.collaboration.findUniqueOrThrow({
+        where: { id },
+        include: collaborationInclude,
+      });
+    }, { timeout: 15000 });
+
+    await auditService.log(AuditAction.COLLABORATION_COMPLETED, 'Collaboration', id, creatorUserId);
     await syncAnalytics(id);
 
     await notifyCollaboration(
-      row.creatorUserId,
+      creatorUserId,
       'collab_reel_published',
       'Collaboration reel published',
-      `${row.businessName} approved your reel. It is now live.`,
+      `Your reel for ${row.businessName} is live on PalSafar and their map profile.`,
       id,
       { reelId: row.reelId },
     );
     await notifyCollaboration(
-      vendorUserId,
+      row.vendorUserId,
       'collab_completed',
       'Campaign completed',
-      `Your collaboration with ${updated.creator.fullName || updated.creator.username} is complete.`,
+      `${updated.creator.fullName || updated.creator.username} published the collaboration reel. It is now on your map profile.`,
       id,
+      { reelId: row.reelId },
     );
 
-    return maskCollaboration(updated, vendorUserId, 'vendor');
+    return maskCollaboration(updated, creatorUserId, 'creator');
   },
 
   async requestRevision(id: string, vendorUserId: string, feedback: string) {
@@ -993,6 +1033,7 @@ export const collaborationsService = {
           where: { id: row.reelId },
           data: {
             status: ReelStatus.REJECTED,
+            vendorListingStatus: VendorListingStatus.REJECTED,
             collaborationId: null,
             isCollaboration: false,
           },
@@ -1002,6 +1043,7 @@ export const collaborationsService = {
           where: { collaborationId: id },
           data: {
             status: ReelStatus.REJECTED,
+            vendorListingStatus: VendorListingStatus.REJECTED,
             collaborationId: null,
             isCollaboration: false,
           },
@@ -1206,6 +1248,14 @@ export const collaborationsService = {
   async canVendorCollaborate(vendorUserId: string, creatorProfileId: string) {
     try {
       const vendor = await getVendorForUser(vendorUserId);
+      try {
+        await planEnforcementService.assertVendorCanCollaborate(vendorUserId);
+      } catch (err) {
+        if (err instanceof ApiError && err.code === ErrorCodes.PLAN_LIMIT_REACHED) {
+          return { allowed: false, reason: err.message, needsSubscription: true };
+        }
+        throw err;
+      }
       const creator = await getCreatorProfileById(creatorProfileId);
       if (creator.userId === vendorUserId) {
         return { allowed: false, reason: 'Cannot collaborate with your own account.' };
@@ -1224,7 +1274,11 @@ export const collaborationsService = {
       return { allowed: true, vendorActive: true };
     } catch (err) {
       if (err instanceof ApiError) {
-        return { allowed: false, reason: err.message };
+        return {
+          allowed: false,
+          reason: err.message,
+          needsSubscription: err.code === ErrorCodes.PLAN_LIMIT_REACHED,
+        };
       }
       throw err;
     }

@@ -203,6 +203,17 @@ export default function CollaborationRequestScreen() {
 
       setShowSuccess(true);
     } catch (error: any) {
+      if (error?.status === 403 || error?.code === 'PLAN_LIMIT_REACHED') {
+        Alert.alert(
+          'Subscription required',
+          error?.message || 'Subscribe to a vendor plan to send collaboration requests.',
+          [
+            { text: 'Not now', style: 'cancel' },
+            { text: 'Subscribe', onPress: () => navigation.navigate('VendorSubscription') },
+          ],
+        );
+        return;
+      }
       Alert.alert('Error', error?.message || 'Could not send request.');
     } finally {
       setSubmitting(false);

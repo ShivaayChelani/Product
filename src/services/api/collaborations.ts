@@ -138,7 +138,12 @@ export const collaborationsApi = {
   },
 
   canCollaborate(creatorProfileId: string) {
-    return apiClient.get<StandardApiResponse<{ allowed: boolean; reason?: string; collaborationId?: string }>>(
+    return apiClient.get<StandardApiResponse<{
+      allowed: boolean;
+      reason?: string;
+      collaborationId?: string;
+      needsSubscription?: boolean;
+    }>>(
       `/collaborations/vendor/can-collaborate/${creatorProfileId}`,
     );
   },
@@ -155,12 +160,20 @@ export const collaborationsApi = {
     return apiClient.post<StandardApiResponse<CollaborationItem>>(`/collaborations/${id}/cancel`, { reason });
   },
 
+  markInProgress(id: string) {
+    return apiClient.post<StandardApiResponse<CollaborationItem>>(`/collaborations/${id}/in-progress`, {});
+  },
+
   submitReel(id: string, payload: { videoUrl: string; thumbnail?: string; title?: string; description?: string; placeId?: string }) {
     return apiClient.post<StandardApiResponse<CollaborationItem>>(`/collaborations/${id}/submit-reel`, payload);
   },
 
   approveReel(id: string) {
     return apiClient.post<StandardApiResponse<CollaborationItem>>(`/collaborations/${id}/approve-reel`, {});
+  },
+
+  publishReel(id: string) {
+    return apiClient.post<StandardApiResponse<CollaborationItem>>(`/collaborations/${id}/publish-reel`, {});
   },
 
   requestRevision(id: string, feedback: string) {

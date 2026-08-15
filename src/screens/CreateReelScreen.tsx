@@ -20,12 +20,18 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUserContext } from '../context/UserContext';
 import { useDataContext } from '../context/DataContext';
-import { placesApi } from '../services/api';
+import { placesApi, vendorsApi } from '../services/api';
 import { creatorApi } from '../features/creator/api/creatorApi';
-import { uploadReelVideo } from '../services/reelService';
 import { caughtErrorMessage } from '../utils/caughtError';
 import { useNavigation } from '@react-navigation/native';
 import { creatorUploadManager } from '../services/creator/creatorUploadManager';
+import { detectReelMediaKind, isStaticImageUrl } from '../services/reels/reelMediaKind';
+import { navigateToWorkspaceHome } from '../navigation/workspaceHome';
+import { CREATOR_CAPTION_EMOJIS, insertAtCursor } from '../features/creator/utils/captionEmoji';
+import {
+  mergeLocationSuggestions,
+  type LocationSuggestion,
+} from '../features/creator/utils/locationSuggestions';
 
 interface CreateReelScreenProps {
   onBack: () => void;
@@ -42,6 +48,10 @@ interface CreateReelScreenProps {
   editReel?: any;
   collaborationId?: string;
   useBackgroundUpload?: boolean;
+  /** Vendor feedback when resubmitting a collaboration reel. */
+  revisionNote?: string;
+  /** Existing media URL so the creator can keep or replace it. */
+  prefillMediaUri?: string;
 }
 
 const C = {
@@ -83,6 +93,8 @@ export default function CreateReelScreen({
   editReel,
   collaborationId,
   useBackgroundUpload = true,
+  revisionNote,
+  prefillMediaUri,
 }: CreateReelScreenProps) {
   const { user } = useUserContext();
   const { currentVendor: _currentVendor } = useDataContext();
@@ -90,11 +102,14 @@ export default function CreateReelScreen({
   const navigation = useNavigation<any>();
   const isDraftEdit = String(editReel?.status || '').toUpperCase() === 'DRAFT';
 
-  const [videoUri, setVideoUri] = useState<string | null>(editReel?.videoUrl || null);
+  const isCollabRevision = Boolean(collaborationId && revisionNote);
+  const [videoUri, setVideoUri] = useState<string | null>(editReel?.videoUrl || prefillMediaUri || null);
   const [_videoThumbnail, setVideoThumbnail] = useState<string | null>(editReel?.thumbnail || null);
   const [videoMime, setVideoMime] = useState<string | null>(null);
   const [videoFileName, setVideoFileName] = useState<string | null>(null);
   const [caption, setCaption] = useState(editReel?.description || captionHint?.trim() || '');
+  const [captionSelection, setCaptionSelection] = useState({ start: 0, end: 0 });
+  const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>(editReel?.tags || []);
   const [uploading, setUploading] = useState(false);
 
@@ -113,29 +128,31 @@ export default function CreateReelScreen({
 
   // Location State
   const [locationModalVisible, setLocationModalVisible] = useState(false);
-  const [locationName, setLocationName] = useState(editReel?.place?.name || prefillPlaceName || '');
+  const [locationName, setLocationName] = useState(editReel?.place?.name || editReel?.vendor?.businessName || prefillPlaceName || '');
   const [spotId, setSpotId] = useState(editReel?.placeId || prefillPlaceId || '');
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [vendorId, setVendorId] = useState(editReel?.vendorId || '');
+  const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
 
   React.useEffect(() => {
-    const fetchPlaces = async () => {
-      if (!locationName.trim() || spotId) {
+    const fetchLocations = async () => {
+      if (!locationName.trim() || spotId || vendorId) {
         setSuggestions([]);
         return;
       }
+      const q = locationName.trim();
       try {
-        const res = await placesApi.list({ search: locationName, limit: 5 });
-        const data = (res as any)?.data || res;
-        if (Array.isArray(data)) {
-          setSuggestions(data);
-        }
+        const [placesRes, vendorsRes] = await Promise.all([
+          placesApi.list({ search: q, limit: 5 }),
+          vendorsApi.searchForLocation(q, 12),
+        ]);
+        setSuggestions(mergeLocationSuggestions(placesRes, vendorsRes, 8, q));
       } catch (err) {
-        console.warn('Failed to fetch places', err);
+        console.warn('Failed to fetch locations', err);
       }
     };
-    const timer = setTimeout(fetchPlaces, 300);
+    const timer = setTimeout(fetchLocations, 300);
     return () => clearTimeout(timer);
-  }, [locationName, spotId]);
+  }, [locationName, spotId, vendorId]);
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
 
@@ -164,7 +181,7 @@ export default function CreateReelScreen({
   const handlePickVideo = useCallback(async () => {
     try {
       const result = await launchImageLibrary({
-        mediaType: 'video',
+        mediaType: 'mixed',
         selectionLimit: 1,
       });
       if (result.assets && result.assets[0]) {
@@ -183,6 +200,29 @@ export default function CreateReelScreen({
     setSelectedTags(prev =>
       prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
     );
+  }, []);
+
+  const handleInsertEmoji = useCallback((emoji: string) => {
+    setCaption((prev) => {
+      const next = insertAtCursor(prev, emoji, captionSelection.start, captionSelection.end);
+      const cursor = Math.min(next.cursor, 2200);
+      setCaptionSelection({ start: cursor, end: cursor });
+      return next.text.slice(0, 2200);
+    });
+  }, [captionSelection]);
+
+  const handleSelectLocation = useCallback((item: LocationSuggestion) => {
+    setLocationName(item.name);
+    setSuggestions([]);
+    if (item.kind === 'vendor') {
+      setVendorId(item.id);
+      setSpotId('');
+    } else {
+      setSpotId(item.id);
+      setVendorId('');
+    }
+    if (item.latitude != null) setLatitude(String(item.latitude));
+    if (item.longitude != null) setLongitude(String(item.longitude));
   }, []);
 
   const handlePost = useCallback(async () => {
@@ -213,6 +253,7 @@ export default function CreateReelScreen({
 
       if (shouldBackgroundUpload) {
         await creatorUploadManager.startReelUpload({
+          kind: 'CREATOR',
           videoUri,
           caption: caption.trim(),
           spotId: finalSpotId || undefined,
@@ -222,10 +263,12 @@ export default function CreateReelScreen({
           userName: user!.displayName || 'Creator',
           mimeType: videoMime || undefined,
           fileName: videoFileName || undefined,
+          mediaKind: detectReelMediaKind(videoMime, videoUri, videoFileName),
+          vendorId: vendorId || undefined,
           editReelId: isDraftEdit && editReel?.id ? String(editReel.id) : undefined,
           publishDraft: isDraftEdit && Boolean(editReel?.id),
         });
-        navigation.navigate('CreatorTabs', { screen: 'Dashboard' });
+        navigateToWorkspaceHome(navigation, 'CREATOR');
         return;
       }
 
@@ -254,6 +297,7 @@ export default function CreateReelScreen({
     spotId,
     locationName,
     selectedTags,
+    vendorId,
     onSaveReel,
     onBack,
     suppressSuccessAlert,
@@ -295,6 +339,7 @@ export default function CreateReelScreen({
           title: caption.trim().slice(0, 200) || undefined,
           description: caption.trim() || undefined,
           placeId: finalSpotId || null,
+          vendorId: vendorId || null,
           tags: selectedTags,
         });
         Alert.alert('Draft saved', 'Your draft was updated.', [{ text: 'OK', onPress: () => onBack() }]);
@@ -302,12 +347,19 @@ export default function CreateReelScreen({
       }
 
       const alreadyRemote = /^https?:\/\//i.test(videoUri);
-      const videoUrl = alreadyRemote ? videoUri : await uploadReelVideo(videoUri, undefined, videoMime, videoFileName);
+      if (!alreadyRemote) {
+        Alert.alert(
+          'Draft saved on device',
+          'Photos and videos are uploaded to the cloud only when you publish. Tap Post Reel to go live — you can keep editing here until then.',
+        );
+        return;
+      }
       await creatorApi.saveDraft({
-        videoUrl,
+        videoUrl: videoUri,
         title: caption.trim().slice(0, 200) || undefined,
         description: caption.trim() || undefined,
         placeId: finalSpotId || undefined,
+        vendorId: vendorId || undefined,
       });
       Alert.alert('Draft saved', 'Find it under Creator → Reels → Drafts. It is not public.', [
         { text: 'OK', onPress: () => onBack() },
@@ -317,7 +369,7 @@ export default function CreateReelScreen({
     } finally {
       setUploading(false);
     }
-  }, [videoUri, caption, spotId, locationName, selectedTags, isDraftEdit, editReel, onBack, videoMime, videoFileName]);
+  }, [videoUri, caption, spotId, vendorId, locationName, selectedTags, isDraftEdit, editReel, onBack, videoMime, videoFileName]);
 
   if (!canUpload) {
     return (
@@ -327,8 +379,8 @@ export default function CreateReelScreen({
             <Icon name="chevron-back" size={24} color={C.text} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>{editReel ? 'Edit Reel' : 'Create Reel'}</Text>
-            <Text style={styles.headerSub}>{editReel ? 'Update your reel details' : 'Share your moments with PalSafar'}</Text>
+            <Text style={styles.headerTitle}>{editReel ? 'Edit Reel' : isCollabRevision ? 'Revise Reel' : 'Create Reel'}</Text>
+            <Text style={styles.headerSub}>{editReel ? 'Update your reel details' : isCollabRevision ? 'Update your reel and resubmit to the vendor' : 'Share your moments with PalSafar'}</Text>
           </View>
           <View style={{ width: 44 }} />
         </View>
@@ -351,8 +403,8 @@ export default function CreateReelScreen({
           <Icon name="chevron-back" size={24} color={C.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>{editReel ? 'Edit Reel' : 'Create Reel'}</Text>
-          <Text style={styles.headerSub}>{editReel ? 'Update your reel details' : 'Share your moments with PalSafar'}</Text>
+          <Text style={styles.headerTitle}>{editReel ? 'Edit Reel' : isCollabRevision ? 'Revise Reel' : 'Create Reel'}</Text>
+          <Text style={styles.headerSub}>{editReel ? 'Update your reel details' : isCollabRevision ? 'Update your reel and resubmit to the vendor' : 'Share your moments with PalSafar'}</Text>
         </View>
         <TouchableOpacity
           onPress={handlePost}
@@ -362,7 +414,7 @@ export default function CreateReelScreen({
           {uploading ? (
             <ActivityIndicator size="small" color={C.white} />
           ) : (
-            <Text style={styles.headerPostBtnText}>Post</Text>
+            <Text style={styles.headerPostBtnText}>{isCollabRevision ? 'Resubmit' : 'Post'}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -378,16 +430,20 @@ export default function CreateReelScreen({
             <TouchableOpacity style={styles.uploadDashedArea} onPress={handlePickVideo} activeOpacity={0.8}>
               {videoUri ? (
                 <View style={styles.videoPreviewWrap}>
-                  <Video
-                    source={{ uri: videoUri }}
-                    style={styles.videoThumb}
-                    resizeMode="cover"
-                    repeat
-                    muted
-                  />
+                  {isStaticImageUrl(videoUri) || detectReelMediaKind(videoMime, videoUri, videoFileName) === 'image' ? (
+                    <Image source={{ uri: videoUri }} style={styles.videoThumb} resizeMode="cover" />
+                  ) : (
+                    <Video
+                      source={{ uri: videoUri }}
+                      style={styles.videoThumb}
+                      resizeMode="cover"
+                      repeat
+                      muted
+                    />
+                  )}
                   <View style={styles.changeBadge}>
                     <Icon name="swap-horizontal" size={14} color={C.white} />
-                    <Text style={styles.changeBadgeText}>Change Video</Text>
+                    <Text style={styles.changeBadgeText}>Change media</Text>
                   </View>
                 </View>
               ) : (
@@ -395,8 +451,8 @@ export default function CreateReelScreen({
                   <View style={styles.uploadIconWrap}>
                     <Icon name="cloud-upload-outline" size={36} color={C.brown} />
                   </View>
-                  <Text style={styles.uploadTitle}>Tap to select video</Text>
-                  <Text style={styles.uploadSub}>MP4, MOV, AVI up to 100MB</Text>
+                  <Text style={styles.uploadTitle}>Tap to select photo or video</Text>
+                  <Text style={styles.uploadSub}>Photos and videos upload only when you publish</Text>
                   <Text style={styles.uploadSub}>Recommended: 9:16 (Portrait)</Text>
                 </View>
               )}
@@ -428,6 +484,16 @@ export default function CreateReelScreen({
             </View>
           </View>
 
+          {revisionNote ? (
+            <View style={styles.revisionBanner}>
+              <Icon name="alert-circle" size={20} color="#B45309" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.revisionBannerTitle}>Vendor requested changes</Text>
+                <Text style={styles.revisionBannerBody}>{revisionNote}</Text>
+              </View>
+            </View>
+          ) : null}
+
           {/* Upload Progress */}
           {uploading && (
             <View style={styles.progressContainer}>
@@ -448,15 +514,40 @@ export default function CreateReelScreen({
               placeholderTextColor={C.textMuted}
               value={caption}
               onChangeText={setCaption}
+              onSelectionChange={(e) => setCaptionSelection(e.nativeEvent.selection)}
               multiline
               maxLength={2200}
             />
             <View style={styles.captionFooter}>
               <Text style={styles.charCount}>{caption.length}/2200</Text>
-              <TouchableOpacity>
-                <Icon name="happy-outline" size={24} color={C.textMuted} />
+              <TouchableOpacity
+                onPress={() => setEmojiPickerVisible(true)}
+                accessibilityLabel="Add emoji"
+              >
+                <Icon name="happy-outline" size={24} color={emojiPickerVisible ? C.brown : C.textMuted} />
               </TouchableOpacity>
             </View>
+            {emojiPickerVisible ? (
+              <View style={styles.emojiSheet}>
+                <View style={styles.emojiSheetHeader}>
+                  <Text style={styles.emojiSheetTitle}>Emojis</Text>
+                  <TouchableOpacity onPress={() => setEmojiPickerVisible(false)}>
+                    <Icon name="close" size={18} color={C.textSub} />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.emojiGrid}>
+                  {CREATOR_CAPTION_EMOJIS.map((emoji) => (
+                    <TouchableOpacity
+                      key={emoji}
+                      style={styles.emojiCell}
+                      onPress={() => handleInsertEmoji(emoji)}
+                    >
+                      <Text style={styles.emojiGlyph}>{emoji}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            ) : null}
           </View>
 
           {/* Tags */}
@@ -492,7 +583,13 @@ export default function CreateReelScreen({
             <Icon name="location-outline" size={24} color={C.text} style={{ marginRight: 16 }} />
             <View style={{ flex: 1 }}>
               <Text style={styles.locationTitle}>{locationName || (latitude && longitude ? `${latitude}, ${longitude}` : 'Add Location')}</Text>
-              <Text style={styles.locationSub}>{locationName || latitude ? 'Location attached' : 'Let people know where this was taken'}</Text>
+              <Text style={styles.locationSub}>
+                {vendorId
+                  ? 'Vendor attached'
+                  : locationName || latitude
+                    ? 'Location attached'
+                    : 'Search a place or vendor'}
+              </Text>
             </View>
             <Icon name="chevron-forward" size={20} color={C.textMuted} />
           </TouchableOpacity>
@@ -535,7 +632,7 @@ export default function CreateReelScreen({
             ) : (
               <>
                 <Icon name="paper-plane-outline" size={20} color={C.white} style={{ marginRight: 8 }} />
-                <Text style={styles.primaryPostBtnText}>{editReel ? 'Save Changes' : 'Post Reel'}</Text>
+                <Text style={styles.primaryPostBtnText}>{editReel ? 'Save Changes' : isCollabRevision ? 'Resubmit to Vendor' : 'Post Reel'}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -562,30 +659,32 @@ export default function CreateReelScreen({
             <Text style={styles.inputLabel}>Location Name</Text>
             <TextInput
               style={styles.locationInput}
-              placeholder="e.g. Bhedhaghat, jabalpur"
+              placeholder="Search a place or vendor"
               placeholderTextColor={C.textMuted}
               value={locationName}
               onChangeText={(txt) => {
                 setLocationName(txt);
                 setSpotId('');
+                setVendorId('');
               }}
             />
             {suggestions.length > 0 && (
               <View style={styles.suggestionsBox}>
-                {suggestions.map((p: any) => (
-                  <TouchableOpacity 
-                    key={p.id} 
+                {suggestions.map((item) => (
+                  <TouchableOpacity
+                    key={`${item.kind}-${item.id}`}
                     style={styles.suggestionRow}
-                    onPress={() => {
-                      setLocationName(p.name);
-                      setSpotId(p.id);
-                      setSuggestions([]);
-                    }}
+                    onPress={() => handleSelectLocation(item)}
                   >
-                    <Icon name="location-outline" size={16} color={C.textSub} style={{ marginRight: 8 }} />
-                    <View>
-                      <Text style={styles.suggestionName}>{p.name}</Text>
-                      <Text style={styles.suggestionAddress}>{p.city || 'Unknown City'}</Text>
+                    <Icon
+                      name={item.kind === 'vendor' ? 'storefront-outline' : 'location-outline'}
+                      size={16}
+                      color={C.textSub}
+                      style={{ marginRight: 8 }}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.suggestionName}>{item.name}</Text>
+                      <Text style={styles.suggestionAddress}>{item.subtitle}</Text>
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -652,6 +751,18 @@ const styles = StyleSheet.create({
   headerCenter: { flex: 1, alignItems: 'center' },
   headerTitle: { fontSize: 20, fontWeight: '800', color: C.text },
   headerSub: { fontSize: 12, color: C.textSub, marginTop: 2 },
+  revisionBanner: {
+    flexDirection: 'row',
+    gap: 10,
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FDBA74',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+  },
+  revisionBannerTitle: { fontSize: 13, fontWeight: '800', color: '#9A3412', marginBottom: 4 },
+  revisionBannerBody: { fontSize: 13, color: '#9A3412', lineHeight: 18 },
   
   headerPostBtn: {
     backgroundColor: C.brown,
@@ -790,6 +901,30 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   charCount: { fontSize: 12, color: C.textMuted },
+  emojiSheet: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+    paddingTop: 12,
+  },
+  emojiSheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  emojiSheetTitle: { fontSize: 13, fontWeight: '700', color: C.textSub },
+  emojiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  emojiCell: {
+    width: '12.5%',
+    aspectRatio: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emojiGlyph: { fontSize: 22 },
   
   sectionHeaderRow: {
     flexDirection: 'row',

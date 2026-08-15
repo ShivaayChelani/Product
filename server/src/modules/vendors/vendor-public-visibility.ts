@@ -1,4 +1,9 @@
-import { VendorStatus, VendorSubscriptionStatus } from '@prisma/client';
+import {
+  PlanAudience,
+  SubscriptionStatus,
+  VendorStatus,
+  VendorSubscriptionStatus,
+} from '@prisma/client';
 
 /**
  * Derived listing states for Vendor Workspace / Admin.
@@ -16,27 +21,70 @@ export type VendorListingStatus =
 const APPROVED: VendorStatus = VendorStatus.APPROVED;
 const ACTIVE_SUB: VendorSubscriptionStatus = VendorSubscriptionStatus.ACTIVE;
 
-export const publicVendorListingWhere = {
-  status: APPROVED,
-  subscriptionStatus: ACTIVE_SUB,
-  suspendedAt: null,
-} as const;
+/** Paid/trial vendor plans that should appear on the public map. */
+const LIVE_VENDOR_SUB_STATUSES: SubscriptionStatus[] = [
+  SubscriptionStatus.ACTIVE,
+  SubscriptionStatus.TRIALING,
+];
 
-export const publicVendorMapWhere = {
-  ...publicVendorListingWhere,
-  showOnMap: true,
-  latitude: { not: null },
-  longitude: { not: null },
-} as const;
+function liveVendorSubscriptionSome(now = new Date()) {
+  return {
+    user: {
+      subscriptions: {
+        some: {
+          audience: PlanAudience.VENDOR,
+          status: { in: LIVE_VENDOR_SUB_STATUSES },
+          currentPeriodEnd: { gte: now },
+        },
+      },
+    },
+  };
+}
+
+/**
+ * Approved vendors with an active (or live UserSubscription) plan.
+ * Used for public listing, details, and map pins.
+ */
+export function getPublicVendorListingWhere(now = new Date()) {
+  return {
+    status: APPROVED,
+    suspendedAt: null,
+    OR: [
+      { subscriptionStatus: ACTIVE_SUB },
+      liveVendorSubscriptionSome(now),
+    ],
+  };
+}
+
+/**
+ * Map pins: subscribed + approved + coordinates.
+ * An active subscription always shows the pin — `showOnMap` cannot hide a paid listing.
+ */
+export function getPublicVendorMapWhere(now = new Date()) {
+  return {
+    ...getPublicVendorListingWhere(now),
+    latitude: { not: null },
+    longitude: { not: null },
+  };
+}
+
+/** @deprecated Prefer getPublicVendorListingWhere() so subscription end dates stay current. */
+export const publicVendorListingWhere = getPublicVendorListingWhere();
+
+/** @deprecated Prefer getPublicVendorMapWhere() so subscription end dates stay current. */
+export const publicVendorMapWhere = getPublicVendorMapWhere();
 
 export function isPublicVendorListingVisible(vendor: {
   status: string;
   subscriptionStatus: string;
   suspendedAt?: Date | null;
+  hasLiveSubscription?: boolean;
 }): boolean {
+  const subscribed =
+    vendor.subscriptionStatus === ACTIVE_SUB || vendor.hasLiveSubscription === true;
   return (
     vendor.status === APPROVED &&
-    vendor.subscriptionStatus === ACTIVE_SUB &&
+    subscribed &&
     vendor.suspendedAt == null
   );
 }
@@ -48,10 +96,10 @@ export function isPublicVendorMapVisible(vendor: {
   showOnMap?: boolean | null;
   latitude?: number | null;
   longitude?: number | null;
+  hasLiveSubscription?: boolean;
 }): boolean {
   return (
     isPublicVendorListingVisible(vendor) &&
-    vendor.showOnMap !== false &&
     vendor.latitude != null &&
     vendor.longitude != null
   );
@@ -107,6 +155,15 @@ export function deriveVendorListingStatus(input: {
 
 export const publicVendorListingSql = `
   status = 'APPROVED'
-  AND subscription_status = 'ACTIVE'
   AND suspended_at IS NULL
+  AND (
+    subscription_status = 'ACTIVE'
+    OR EXISTS (
+      SELECT 1 FROM user_subscriptions us
+      WHERE us.user_id = vendors.user_id
+        AND us.audience = 'VENDOR'
+        AND us.status IN ('ACTIVE', 'TRIALING')
+        AND us.current_period_end >= NOW()
+    )
+  )
 `;

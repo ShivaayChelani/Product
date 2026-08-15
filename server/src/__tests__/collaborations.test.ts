@@ -57,6 +57,10 @@ describe.sequential('Collaborations API', () => {
 
     const vendor = await prisma.vendor.findFirst({ where: { user: { email: 'streetstory@palsafar.com' } } });
     vendorId = vendor!.id;
+    await prisma.vendor.update({
+      where: { id: vendorId },
+      data: { subscriptionStatus: 'ACTIVE' },
+    });
     await cleanupVendorCreatorCollabs(vendorId, creatorProfileId);
   }, 120_000);
 
@@ -169,7 +173,7 @@ describe.sequential('Collaborations API', () => {
     expect(res.body.data.status).toBe('REVISION_REQUESTED');
   });
 
-  it('vendor can approve reel after re-upload', async () => {
+  it('vendor can approve reel after re-upload; creator then publishes', async () => {
     const resubmit = await request(app)
       .post(`/api/v1/collaborations/${collaborationId}/submit-reel`)
       .set('Authorization', `Bearer ${creatorToken}`)
@@ -184,8 +188,17 @@ describe.sequential('Collaborations API', () => {
       .set('Authorization', `Bearer ${vendorToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.data.status).toBe('COMPLETED');
-    expect(res.body.data.reel?.status).toBe('APPROVED');
+    expect(res.body.data.status).toBe('APPROVED');
+    expect(res.body.data.reel?.status).toBe('PENDING');
+
+    const published = await request(app)
+      .post(`/api/v1/collaborations/${collaborationId}/publish-reel`)
+      .set('Authorization', `Bearer ${creatorToken}`);
+
+    expect(published.status).toBe(200);
+    expect(published.body.data.status).toBe('COMPLETED');
+    expect(published.body.data.reel?.status).toBe('APPROVED');
+    expect(published.body.data.reel?.vendorListingStatus).toBe('APPROVED');
   });
 
   it('admin can list collaborations and view analytics', async () => {

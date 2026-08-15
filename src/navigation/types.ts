@@ -143,7 +143,7 @@ export type RootStackParamList = {
   MyContributions: undefined;
   RewardsWallet: undefined;
   Memories: undefined;
-  CreateReel: { sourceReelId?: string; captionHint?: string; collaborationId?: string; prefillPlaceId?: string; prefillPlaceName?: string; editReel?: any; suppressSuccessAlert?: boolean } | undefined;
+  CreateReel: { sourceReelId?: string; captionHint?: string; collaborationId?: string; prefillPlaceId?: string; prefillPlaceName?: string; editReel?: any; suppressSuccessAlert?: boolean; revisionNote?: string; prefillMediaUri?: string } | undefined;
   PlaceReels: { placeId: string; placeName: string; placeCity?: string; placeState?: string; placeImage?: string | null; };
   CreateVendorReel: undefined;
   ReelDetail: { reelId: string; reels?: any[]; initialIndex?: number };

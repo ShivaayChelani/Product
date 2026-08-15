@@ -92,7 +92,7 @@ export default function CollaborationsDashboardScreen() {
 
   const pendingCount = items.filter(i => i.status === 'PENDING').length;
   const activeCount = items.filter(i => ['IN_PROGRESS', 'REVISION_REQUESTED', 'REEL_UPLOADED', 'ACCEPTED'].includes(i.status)).length;
-  const completedCount = items.filter(i => ['COMPLETED', 'APPROVED'].includes(i.status)).length;
+  const completedCount = items.filter(i => i.status === 'COMPLETED').length;
   const totalCount = items.length;
 
   const filteredItems = useMemo(() => {
@@ -102,8 +102,8 @@ export default function CollaborationsDashboardScreen() {
       res = res.filter(i => {
         if (creatorFilter === 'pending') return i.status === 'PENDING';
         if (creatorFilter === 'accepted') return i.status === 'ACCEPTED';
-        if (creatorFilter === 'in_progress') return ['IN_PROGRESS', 'REVISION_REQUESTED', 'REEL_UPLOADED'].includes(i.status);
-        if (creatorFilter === 'completed') return ['COMPLETED', 'APPROVED'].includes(i.status);
+        if (creatorFilter === 'in_progress') return ['IN_PROGRESS', 'REVISION_REQUESTED', 'REEL_UPLOADED', 'APPROVED'].includes(i.status);
+        if (creatorFilter === 'completed') return i.status === 'COMPLETED';
         return true;
       });
     }
@@ -139,11 +139,11 @@ export default function CollaborationsDashboardScreen() {
     switch(status) {
       case 'PENDING': return { text: 'New Request', color: '#D97706', bg: '#FEF3C7' }; // Amber
       case 'ACCEPTED': return { text: 'Accepted', color: '#2563EB', bg: '#DBEAFE' }; // Blue
-      case 'IN_PROGRESS': 
-      case 'REEL_UPLOADED':
-      case 'REVISION_REQUESTED': return { text: 'In Progress', color: '#059669', bg: '#D1FAE5' }; // Green
-      case 'COMPLETED': 
-      case 'APPROVED': return { text: 'Completed', color: '#7C3AED', bg: '#EDE9FE' }; // Purple
+      case 'IN_PROGRESS':
+      case 'REVISION_REQUESTED': return { text: 'Changes requested', color: '#B45309', bg: '#FFEDD5' };
+      case 'REEL_UPLOADED': return { text: 'Pending', color: '#D97706', bg: '#FEF3C7' };
+      case 'APPROVED': return { text: 'Ready to publish', color: '#047857', bg: '#D1FAE5' };
+      case 'COMPLETED': return { text: 'Completed', color: '#7C3AED', bg: '#EDE9FE' }; // Purple
       case 'REJECTED': 
       case 'CANCELLED': return { text: 'Cancelled', color: '#DC2626', bg: '#FEE2E2' }; // Red
       default: return { text: status, color: COLORS.textSub, bg: COLORS.border };

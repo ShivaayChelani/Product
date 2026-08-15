@@ -25,6 +25,11 @@ import { copyToClipboard } from '../utils/clipboard';
 import VendorWorkspaceSidebar from '../components/VendorWorkspaceSidebar';
 import { PalPointsIcon } from '../components/PalPointsIcon';
 import OfferStatsModal from '../components/vendor/OfferStatsModal';
+import { ReelUploadStatusCard } from '../features/creator/components/ReelUploadStatusCard';
+import { creatorUploadManager, type ReelUploadJob } from '../services/creator/creatorUploadManager';
+import { useQueryClient } from '@tanstack/react-query';
+import TaggedReelReviewRow from '../components/TaggedReelReviewRow';
+import type { TaggedCreatorReel } from '../services/api/vendors';
 import {
   getUnreadBadgeCount,
   subscribeUnreadBadge,
@@ -996,6 +1001,7 @@ export default function VendorDashboardScreen({
   hideBottomNav = false,
 }: VendorDashboardScreenProps) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const queryClient = useQueryClient();
   const { currentVendor, vendorOffers, redemptions, refreshVendorData } = useDataContext();
   const { user, setActiveMode, onLogout: contextLogout } = useUserContext();
   const { entitlements, refreshEntitlements } = useEntitlements();
@@ -1009,6 +1015,22 @@ export default function VendorDashboardScreen({
   const [activeTab, setActiveTab] = useState<'Home' | 'Offers' | 'Analytics' | 'Profile'>(forcedTab || 'Home');
   const [showSidebar, setShowSidebar] = useState(false);
   const [unreadCount, setUnreadCount] = useState(getUnreadBadgeCount());
+  const [uploadJobs, setUploadJobs] = useState<ReelUploadJob[]>([]);
+
+  useEffect(() => {
+    void creatorUploadManager.init();
+    const unsubJobs = creatorUploadManager.subscribe(setUploadJobs);
+    const unsubPosted = creatorUploadManager.onPosted((job) => {
+      if (job.kind !== 'VENDOR') return;
+      queryClient.invalidateQueries({ queryKey: ['vendor-reels'] });
+      queryClient.invalidateQueries({ queryKey: ['vendor-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['map-feed'] });
+    });
+    return () => {
+      unsubJobs();
+      unsubPosted();
+    };
+  }, [queryClient]);
 
   useFocusEffect(
     useCallback(() => {
@@ -1031,6 +1053,8 @@ export default function VendorDashboardScreen({
     expiredOffers?: number;
     reelCount?: number;
   } | null>(null);
+  const [pendingTaggedReels, setPendingTaggedReels] = useState<TaggedCreatorReel[]>([]);
+  const [reviewingTaggedId, setReviewingTaggedId] = useState<string | null>(null);
 
   const visibleTab = forcedTab || activeTab;
 
@@ -1053,6 +1077,8 @@ export default function VendorDashboardScreen({
         expiredOffers: Number(stats.expiredOffers) || 0,
         reelCount: Number(stats.reelCount) || 0,
       });
+      const pending = Array.isArray(data?.pendingTaggedReels) ? data.pendingTaggedReels : [];
+      setPendingTaggedReels(pending);
     } catch {
       /* keep local fallbacks */
     }
@@ -1088,6 +1114,29 @@ export default function VendorDashboardScreen({
       setRefreshing(false);
     }
   }, [refreshVendorData, loadDashboardStats]);
+
+  const reviewTaggedReel = useCallback(async (reelId: string, action: 'allow' | 'reject') => {
+    setReviewingTaggedId(reelId);
+    try {
+      if (action === 'allow') await vendorsApi.allowTaggedCreatorReel(reelId);
+      else await vendorsApi.rejectTaggedCreatorReel(reelId);
+      setPendingTaggedReels((prev) => prev.filter((r) => r.id !== reelId));
+      queryClient.invalidateQueries({ queryKey: ['vendor-map-detail'] });
+    } catch {
+      Alert.alert('Could not update reel', 'Please try again.');
+    } finally {
+      setReviewingTaggedId(null);
+    }
+  }, [queryClient]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!DEV_FLAGS.USE_SERVER_API) return;
+      void vendorsApi.listMyPendingTaggedReels()
+        .then(setPendingTaggedReels)
+        .catch(() => undefined);
+    }, []),
+  );
 
   const myOffers = useMemo(() => {
     if (!currentVendor) return [];
@@ -1329,13 +1378,6 @@ export default function VendorDashboardScreen({
             <View style={s.notifDot} />
           ) : null}
         </TouchableOpacity>
-        <TouchableOpacity
-          style={s.headerBtn}
-          onPress={() => navigation.navigate('Notifications')}
-          accessibilityLabel="Messages"
-        >
-          <Ionicons name="chatbubble-ellipses-outline" size={22} color={COLORS.skyDeep} />
-        </TouchableOpacity>
       </Animated.View>
       ) : null}
 
@@ -1416,6 +1458,39 @@ export default function VendorDashboardScreen({
               </View>
             </View>
           )}
+
+          {visibleTab === 'Home' && uploadJobs.filter((j) => j.status !== 'CANCELLED' && j.kind === 'VENDOR').length > 0 ? (
+            <View style={{ marginBottom: 16 }}>
+              <Text style={s.sectionTitle}>Uploading Reels</Text>
+              {uploadJobs
+                .filter((j) => j.status !== 'CANCELLED' && j.kind === 'VENDOR')
+                .map((job) => (
+                  <ReelUploadStatusCard
+                    key={job.localUploadId}
+                    job={job}
+                    onRetry={(id) => { void creatorUploadManager.retryUpload(id); }}
+                    onDismiss={(id) => { void creatorUploadManager.clearFinished(id); }}
+                    onViewReel={(reelId) => navigation.navigate('ReelDetail', { reelId })}
+                  />
+                ))}
+            </View>
+          ) : null}
+
+          {pendingTaggedReels.length > 0 ? (
+            <View style={{ marginBottom: 16, marginHorizontal: 16, gap: 10 }}>
+              <Text style={s.sectionTitle}>Creator reels to review</Text>
+              {pendingTaggedReels.map((reel) => (
+                <TaggedReelReviewRow
+                  key={reel.id}
+                  reel={reel}
+                  busy={reviewingTaggedId === reel.id}
+                  onAllow={() => { void reviewTaggedReel(reel.id, 'allow'); }}
+                  onReject={() => { void reviewTaggedReel(reel.id, 'reject'); }}
+                  onOpen={() => navigation.navigate('ReelDetail', { reelId: reel.id })}
+                />
+              ))}
+            </View>
+          ) : null}
 
           {/* Hero Dark Business Card */}
           <View style={s.heroDarkCard}>

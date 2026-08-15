@@ -3,9 +3,7 @@ import {
   View,
   StyleSheet,
   useWindowDimensions,
-  Alert,
   Platform,
-  Share,
   Vibration,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -39,7 +37,6 @@ interface ReelCardProps {
   onFollow?: (creatorProfileId: string, currentlyFollowing: boolean) => void;
   onPressAuthor?: (reel: Reel) => void;
   onReport?: (reelId: string) => void;
-  onDownload?: (reel: Reel) => void;
 }
 
 export const ReelCard: React.FC<ReelCardProps> = React.memo(({
@@ -59,7 +56,6 @@ export const ReelCard: React.FC<ReelCardProps> = React.memo(({
   onFollow,
   onPressAuthor,
   onReport: _onReport,
-  onDownload,
 }) => {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -94,69 +90,9 @@ export const ReelCard: React.FC<ReelCardProps> = React.memo(({
   const handleShare = useCallback(() => onShare(reel), [reel, onShare]);
   const handleSave = useCallback(() => onSave(reel.id), [reel.id, onSave]);
 
-  const handleDownload = useCallback(async () => {
-    if (onDownload) {
-      onDownload(reel);
-      return;
-    }
-    if (!reel.videoUrl) {
-      Alert.alert('Download Failed', 'Video URL is not available for this reel.');
-      return;
-    }
-    try {
-      const RNFS = require('react-native-fs');
-      const safeId = (reel.id || 'reel').replace(/[^a-zA-Z0-9_-]/g, '_');
-      const fileName = `${safeId}_${Date.now()}.mp4`;
-      const targetDir = Platform.OS === 'android'
-        ? (RNFS.DownloadDirectoryPath || RNFS.DocumentDirectoryPath)
-        : RNFS.DocumentDirectoryPath;
-      const destPath = `${targetDir}/${fileName}`;
-
-      Alert.alert('Downloading Reel', 'Saving video to your device storage...');
-
-      const result = await RNFS.downloadFile({
-        fromUrl: reel.videoUrl,
-        toFile: destPath,
-      }).promise;
-
-      if (result.statusCode && result.statusCode >= 400) {
-        throw new Error(`Download failed with status ${result.statusCode}`);
-      }
-
-      Alert.alert(
-        'Reel Saved',
-        `Reel downloaded successfully to local storage:\n${fileName}`,
-        [
-          { text: 'OK' },
-          {
-            text: 'Share / View',
-            onPress: () => {
-              Share.share({
-                url: Platform.OS === 'android' ? `file://${destPath}` : destPath,
-                message: `Check out this reel from PalSafar! ${reel.title || ''}`,
-              }).catch(() => {});
-            },
-          },
-        ],
-      );
-    } catch (e: any) {
-      try {
-        await Share.share({
-          url: reel.videoUrl,
-          message: `Watch and save this reel from PalSafar: ${reel.videoUrl}`,
-        });
-      } catch {
-        Alert.alert('Download Error', e?.message || 'Could not download reel video to local storage.');
-      }
-    }
-  }, [reel, onDownload]);
-
   const handleMenu = useCallback(() => {
-    showReelMenu(
-      () => _onReport?.(reel.id),
-      () => { handleDownload(); },
-    );
-  }, [_onReport, reel.id, handleDownload]);
+    showReelMenu(() => _onReport?.(reel.id));
+  }, [_onReport, reel.id]);
 
   const commentCount = typeof (reel as any).commentsCount === 'number'
     ? Math.max((reel as any).commentsCount, Array.isArray(reel.comments) ? reel.comments.length : 0)

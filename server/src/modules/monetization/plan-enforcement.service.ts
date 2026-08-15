@@ -202,5 +202,24 @@ export const planEnforcementService = {
     return { offersUsed, reelsUsedThisMonth };
   },
 
+  async assertVendorCanCollaborate(userId: string) {
+    const vendor = await prisma.vendor.findUnique({ where: { userId } });
+    if (!vendor) throw new ApiError(404, 'Vendor not found');
+
+    const entitlements = await entitlementsService.getForUser(userId);
+    const subscribed =
+      Boolean(entitlements.vendorSubscription) || entitlements.vendorListing?.visible === true;
+    if (!subscribed) {
+      throw new ApiError(
+        403,
+        'Subscribe to a vendor plan to send collaboration requests.',
+        true,
+        ErrorCodes.PLAN_LIMIT_REACHED,
+        { kind: 'collaboration' },
+      );
+    }
+    return entitlements;
+  },
+
   formatLimitLabel,
 };

@@ -73,6 +73,29 @@ function parsePhone(raw?: string): { code: string; number: string } {
   return { code: '+91', number: digits };
 }
 
+function deriveCreatorUsername(instagram: string, fullName: string): string {
+  const fromIg = instagram.replace(/^@/, '').replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+  if (fromIg.length >= 3) return fromIg.slice(0, 30);
+  const fromName = fullName.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+  if (fromName.length >= 3) return fromName.slice(0, 30);
+  return `cr_${Date.now().toString(36)}`.slice(0, 30);
+}
+
+function normalizeInstagramUrl(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) return trimmed.slice(0, 500);
+  const handle = trimmed.replace(/^@/, '').replace(/\s/g, '');
+  return handle ? `https://instagram.com/${handle}`.slice(0, 500) : '';
+}
+
+function normalizeOptionalUrl(raw: string): string | undefined {
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed.slice(0, 500);
+  return `https://${trimmed.replace(/^\/+/, '')}`.slice(0, 500);
+}
+
 export default function BecomeCreatorScreen({ onBack }: { onBack: () => void }) {
   const insets = useSafeAreaInsets();
   const contentPadBottom = useBottomSafePadding(32);
@@ -212,7 +235,8 @@ export default function BecomeCreatorScreen({ onBack }: { onBack: () => void }) 
   const submitApplication = async (confirmSwitch: boolean = false) => {
     setSubmitting(true);
     try {
-      const username = instagram.replace(/[^a-zA-Z0-9_]/g, '') || `creator_${Date.now()}`;
+      const username = deriveCreatorUsername(instagram, fullName);
+      const instagramUrl = normalizeInstagramUrl(instagram);
       const portfolioLinks = portfolioItems
         .map((item) => item.remoteUrl || (isRemoteUrl(item.uri) ? item.uri : ''))
         .filter(Boolean);
@@ -221,13 +245,14 @@ export default function BecomeCreatorScreen({ onBack }: { onBack: () => void }) 
       }
 
       const res = await socialApi.applyCreator({
-        username: username.toLowerCase(),
+        username,
         fullName: fullName.trim(),
         bio: bio.trim(),
         travelCategories: contentType ? [contentType] : [],
-        instagramUrl: instagram.trim(),
-        youtubeUrl: youtube.trim() || undefined,
-        applicationReason: buildApplicationReason(),
+        instagramUrl,
+        youtubeUrl: normalizeOptionalUrl(youtube),
+        applicationReason: buildApplicationReason().slice(0, 1000),
+        languages,
         confirmSwitch: confirmSwitch || undefined,
         portfolioLinks: portfolioLinks.length ? portfolioLinks : undefined,
       });
@@ -273,8 +298,27 @@ export default function BecomeCreatorScreen({ onBack }: { onBack: () => void }) 
       Alert.alert('Upload in progress', 'Wait for the portfolio image to finish uploading.');
       return;
     }
-    if (!fullName.trim() || !email.trim() || !phone.trim() || !bio.trim() || !contentType || !experience) {
-      Alert.alert('Missing Fields', 'Please fill in all required fields (marked with *).');
+    if (
+      !fullName.trim()
+      || !email.trim()
+      || !phone.trim()
+      || !dob.trim()
+      || !bio.trim()
+      || bio.trim().length < 20
+      || !contentType
+      || !experience
+      || languages.length === 0
+      || !howHeard
+      || !collab
+    ) {
+      Alert.alert(
+        'Missing Fields',
+        'Please fill in all required fields (marked with *). Your bio must be at least 20 characters.',
+      );
+      return;
+    }
+    if (!normalizeInstagramUrl(instagram)) {
+      Alert.alert('Instagram required', 'Add your Instagram handle or profile link before submitting.');
       return;
     }
     void submitApplication(false);
@@ -409,7 +453,7 @@ export default function BecomeCreatorScreen({ onBack }: { onBack: () => void }) 
                 <Text style={styles.sectionTitle}>Social Media Links</Text>
               </View>
               <View style={styles.row}>
-                <View style={styles.flex}>{renderInput('Instagram Handle', 'logo-instagram', instagram, setInstagram, '@yourusername')}</View>
+                <View style={styles.flex}>{renderInput('Instagram Handle', 'logo-instagram', instagram, setInstagram, '@yourusername', true)}</View>
                 <View style={styles.flex}>{renderInput('YouTube Channel', 'logo-youtube', youtube, setYoutube, 'youtube.com/@yourchannel')}</View>
                 <View style={styles.flex}>{renderInput('Other Link (Optional)', 'link-outline', otherLink, setOtherLink, 'https://...')}</View>
               </View>

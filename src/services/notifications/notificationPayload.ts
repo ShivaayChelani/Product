@@ -75,6 +75,22 @@ export function resolveNotificationRoute(
     || payload.params.tripId || payload.params.reelId || payload.params.vendorId
     || payload.params.offerId;
 
+  if (type === 'vendor_tagged_reel') {
+    return { screen: 'VendorTabs', params: { screen: 'Home' } };
+  }
+  if (/collab|collaboration/.test(type)) {
+    const collaborationId = payload.params.collaborationId || id;
+    if (/reel_uploaded/.test(type) && collaborationId) {
+      return { screen: 'CollaborationReview', params: { collaborationId } };
+    }
+    if (/reel_published/.test(type) && (payload.params.reelId || id)) {
+      return { screen: 'ReelDetail', params: { reelId: payload.params.reelId || id } };
+    }
+    if (collaborationId) {
+      return { screen: 'CollaborationDetail', params: { collaborationId } };
+    }
+    return { screen: 'CreatorTabs', params: { screen: 'Collaboration' } };
+  }
   if (/hidden_gem|place_approved|place_rejected/.test(type) && (id || payload.params.placeId)) {
     return { screen: 'SpotDetail', params: { spotId: id || payload.params.placeId } };
   }
@@ -104,16 +120,6 @@ export function resolveNotificationRoute(
   }
   if (/riddle|game_complete/.test(type)) {
     return { screen: 'Notifications' };
-  }
-  if (/collab|collaboration/.test(type)) {
-    const collaborationId = payload.params.collaborationId || id;
-    if (/reel_uploaded/.test(type) && collaborationId) {
-      return { screen: 'CollaborationReview', params: { collaborationId } };
-    }
-    if (collaborationId) {
-      return { screen: 'CollaborationDetail', params: { collaborationId } };
-    }
-    return { screen: 'CreatorTabs', params: { screen: 'Collaboration' } };
   }
   if (/quest|treasure/.test(type)) {
     return { screen: 'Notifications' };

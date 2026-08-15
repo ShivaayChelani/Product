@@ -118,8 +118,8 @@ android {
         applicationId "com.palsasafar"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.1"
         // Keep versionName/versionCode in sync with src/config/monitoringConfig.ts (Sentry release).
         // Defaults to the production app ID; override via ADMOB_APP_ID env or gradle.properties.
         manifestPlaceholders += [

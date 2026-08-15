@@ -53,6 +53,7 @@ type Props = {
   onNavigateToSaved?: () => void;
   onNavigateToSettings?: () => void;
   onNavigateToHelp?: () => void;
+  onNavigateToSubscription?: () => void;
 };
 
 export default function HomeSidebar({
@@ -78,6 +79,7 @@ export default function HomeSidebar({
   onNavigateToSaved,
   onNavigateToSettings,
   onNavigateToHelp,
+  onNavigateToSubscription,
 }: Props) {
   const insets = useSafeAreaInsets();
   const sidebarW = useSidebarWidth();
@@ -334,6 +336,16 @@ export default function HomeSidebar({
           <DrawerDivider />
 
           <DrawerSection title="More">
+            {!isGuest && onNavigateToSubscription ? (
+              <DrawerItem
+                icon="card-outline"
+                iconColor="#5C432F"
+                iconBg="#F5EFE6"
+                label="Subscription"
+                subtitle="Plans, billing & upgrades"
+                onPress={withClose(onNavigateToSubscription)}
+              />
+            ) : null}
             <DrawerItem
               icon="settings-outline"
               iconColor="#5C432F"

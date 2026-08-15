@@ -16,6 +16,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../navigation/types';
 import { placesApi } from '../services/api/places';
 import { Reel } from '../types';
+import { useUserContext } from '../context/UserContext';
+import { useDataContext } from '../context/DataContext';
+import { isVendorApproved } from '../utils/workspaceRoles';
 
 type PlaceReelsRouteProp = RouteProp<RootStackParamList, 'PlaceReels'>;
 
@@ -45,6 +48,9 @@ export default function PlaceReelsScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<PlaceReelsRouteProp>();
   const { placeId, placeName, placeCity, placeState, placeImage } = route.params;
+  const { user } = useUserContext();
+  const { currentVendor } = useDataContext();
+  const canCreateCreatorReel = !isVendorApproved(user, currentVendor?.verificationStatus);
 
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(true);
@@ -252,11 +258,17 @@ export default function PlaceReelsScreen() {
           <Icon name="videocam-outline" size={48} color="#D0BFA5" />
         </View>
         <Text style={styles.emptyTitle}>No Reels from this place yet</Text>
-        <Text style={styles.emptyDesc}>Be the first creator to share your experience.</Text>
-        <TouchableOpacity style={styles.createBtn} onPress={handleCreateReel}>
-          <Icon name="videocam" size={20} color="#FFF" style={{ marginRight: 8 }} />
-          <Text style={styles.createBtnText}>Create a Reel</Text>
-        </TouchableOpacity>
+        <Text style={styles.emptyDesc}>
+          {canCreateCreatorReel
+            ? 'Be the first creator to share your experience.'
+            : 'Post promotion reels from your vendor dashboard to appear on your business listing.'}
+        </Text>
+        {canCreateCreatorReel ? (
+          <TouchableOpacity style={styles.createBtn} onPress={handleCreateReel}>
+            <Icon name="videocam" size={20} color="#FFF" style={{ marginRight: 8 }} />
+            <Text style={styles.createBtnText}>Create a Reel</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     );
   };
@@ -290,7 +302,7 @@ export default function PlaceReelsScreen() {
         </View>
       )}
 
-      {!loading && reels.length > 0 && (
+      {!loading && reels.length > 0 && canCreateCreatorReel ? (
         <TouchableOpacity 
           style={[styles.fab, { bottom: insets.bottom + 24 }]} 
           onPress={handleCreateReel}
@@ -299,7 +311,7 @@ export default function PlaceReelsScreen() {
           <Icon name="videocam" size={20} color="#FFF" />
           <Text style={styles.fabText}>Create Reel</Text>
         </TouchableOpacity>
-      )}
+      ) : null}
     </View>
   );
 }

@@ -1,9 +1,9 @@
 import { SERIF, SANS, SANS_BOLD, SANS_SEMI } from '../profile/profileTheme';
 
 export const VF = {
-  bg: '#FEF0E3',
+  bg: '#FFFFFF',
   card: '#FFFFFF',
-  inputBg: '#FFFBF7',
+  inputBg: '#FFFFFF',
   border: '#E8DDD0',
   text: '#2C1810',
   textSecondary: '#8B7355',
@@ -16,7 +16,7 @@ export const VF = {
   stepInactive: '#D8CAB5',
   stepLine: '#E5D5C5',
   required: '#C0392B',
-  securityBg: '#FBF3E8',
+  securityBg: '#FFFFFF',
   btnBg: '#2D241D',
   btnText: '#F9F9F9',
   link: '#B9834B',

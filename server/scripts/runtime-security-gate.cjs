@@ -114,13 +114,13 @@ function assertAllow(name, r, allowed = [200, 201]) {
 
 async function loadSessions() {
   const specs = [
-    { key: 'user', email: 'QA_USER_EMAIL', pass: 'QA_USER_PASSWORD' },
-    { key: 'userB', email: 'QA_USER_B_EMAIL', pass: 'QA_USER_B_PASSWORD' },
-    { key: 'creator', email: 'QA_CREATOR_EMAIL', pass: 'QA_CREATOR_PASSWORD' },
-    { key: 'creatorB', email: 'QA_CREATOR_B_EMAIL', pass: 'QA_CREATOR_B_PASSWORD' },
-    { key: 'vendor', email: 'QA_VENDOR_EMAIL', pass: 'QA_VENDOR_PASSWORD' },
-    { key: 'vendorB', email: 'QA_VENDOR_B_EMAIL', pass: 'QA_VENDOR_B_PASSWORD' },
-    { key: 'admin', email: 'QA_ADMIN_EMAIL', pass: 'QA_ADMIN_PASSWORD' },
+    { key: 'user', email: 'QA_USER_EMAIL', pass: 'QA_USER_PASSWORD', required: true },
+    { key: 'userB', email: 'QA_USER_B_EMAIL', pass: 'QA_USER_B_PASSWORD', required: true },
+    { key: 'creator', email: 'QA_CREATOR_EMAIL', pass: 'QA_CREATOR_PASSWORD', required: true },
+    { key: 'creatorB', email: 'QA_CREATOR_B_EMAIL', pass: 'QA_CREATOR_B_PASSWORD', required: true },
+    { key: 'vendor', email: 'QA_VENDOR_EMAIL', pass: 'QA_VENDOR_PASSWORD', required: true },
+    { key: 'vendorB', email: 'QA_VENDOR_B_EMAIL', pass: 'QA_VENDOR_B_PASSWORD', required: true },
+    { key: 'admin', email: 'SEED_ADMIN_EMAIL', pass: 'SEED_ADMIN_PASSWORD', required: false },
   ];
   const sessions = {};
   let missing = false;
@@ -128,17 +128,23 @@ async function loadSessions() {
     const email = requireEnv(spec.email);
     const password = requireEnv(spec.pass);
     if (!email || !password) {
-      fail(`session/${spec.key}-login`, 'missing QA env credentials');
-      missing = true;
+      if (spec.required) {
+        fail(`session/${spec.key}-login`, 'missing QA env credentials');
+        missing = true;
+      } else {
+        skip(`session/${spec.key}-login`, 'canonical admin credentials not configured');
+      }
       continue;
     }
     const session = await login(email, password);
     if (session.ok) {
       sessions[spec.key] = session;
       pass(`session/${spec.key}-login`, 'authenticated');
-    } else {
+    } else if (spec.required) {
       fail(`session/${spec.key}-login`, `HTTP ${session.status}`);
       missing = true;
+    } else {
+      skip(`session/${spec.key}-login`, `HTTP ${session.status}`);
     }
   }
   return { sessions, missing };

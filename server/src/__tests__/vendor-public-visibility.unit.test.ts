@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   deriveVendorListingStatus,
+  getPublicVendorListingWhere,
+  getPublicVendorMapWhere,
   isPublicVendorListingVisible,
   isPublicVendorMapVisible,
-  publicVendorListingWhere,
 } from '../modules/vendors/vendor-public-visibility';
 
 describe('vendor public visibility', () => {
@@ -38,7 +39,7 @@ describe('vendor public visibility', () => {
     })).toBe(false);
   });
 
-  it('requires coordinates and showOnMap for map pointers', () => {
+  it('shows subscribed vendor pins even when showOnMap is off', () => {
     expect(isPublicVendorMapVisible({
       status: 'APPROVED',
       subscriptionStatus: 'ACTIVE',
@@ -50,6 +51,13 @@ describe('vendor public visibility', () => {
       status: 'APPROVED',
       subscriptionStatus: 'ACTIVE',
       showOnMap: false,
+      latitude: 23.18,
+      longitude: 79.98,
+    })).toBe(true);
+    expect(isPublicVendorMapVisible({
+      status: 'APPROVED',
+      subscriptionStatus: 'NONE',
+      showOnMap: true,
       latitude: 23.18,
       longitude: 79.98,
     })).toBe(false);
@@ -73,8 +81,14 @@ describe('vendor public visibility', () => {
     expect(deriveVendorListingStatus({ vendorStatus: 'SUSPENDED', subscriptionStatus: 'ACTIVE' })).toBe('SUSPENDED');
   });
 
-  it('uses ACTIVE subscription in the public prisma where clause', () => {
-    expect(publicVendorListingWhere.subscriptionStatus).toBe('ACTIVE');
-    expect(publicVendorListingWhere.status).toBe('APPROVED');
+  it('uses ACTIVE subscription or a live UserSubscription in the public prisma where clause', () => {
+    const listing = getPublicVendorListingWhere();
+    expect(listing.status).toBe('APPROVED');
+    expect(listing.OR).toEqual(expect.arrayContaining([
+      { subscriptionStatus: 'ACTIVE' },
+    ]));
+    const mapWhere = getPublicVendorMapWhere();
+    expect(mapWhere).not.toHaveProperty('showOnMap');
+    expect(mapWhere.latitude).toEqual({ not: null });
   });
 });

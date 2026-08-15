@@ -11,18 +11,21 @@ import {
   Platform,
   KeyboardAvoidingView,
   Switch,
-  StatusBar
+  StatusBar,
+  Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Video from 'react-native-video';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { useQueryClient } from '@tanstack/react-query';
 
-import { uploadApi } from '../services/api/upload';
-import { vendorsApi } from '../services/api/vendors';
 import { useBottomSafePadding } from '../design/responsive';
+import { creatorUploadManager } from '../services/creator/creatorUploadManager';
+import { detectReelMediaKind, isStaticImageUrl } from '../services/reels/reelMediaKind';
+import { navigateToWorkspaceHome } from '../navigation/workspaceHome';
+import { useUserContext } from '../context/UserContext';
+import { useDataContext } from '../context/DataContext';
 
 interface CreateVendorReelScreenProps {
   onBack: () => void;
@@ -46,9 +49,12 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const contentPadBottom = useBottomSafePadding(24);
-  const queryClient = useQueryClient();
+  const { user } = useUserContext();
+  const { currentVendor } = useDataContext();
 
   const [videoUri, setVideoUri] = useState<string | null>(null);
+  const [videoMime, setVideoMime] = useState<string | null>(null);
+  const [videoFileName, setVideoFileName] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [caption, setCaption] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -58,7 +64,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
 
   const handlePickVideo = useCallback(async (source: 'gallery' | 'camera') => {
     try {
-      const options: any = { mediaType: 'video', selectionLimit: 1, durationLimit: 60 };
+      const options: any = { mediaType: 'mixed', selectionLimit: 1, durationLimit: 60 };
       let result;
       if (source === 'camera') {
         result = await launchCamera(options);
@@ -67,10 +73,13 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
       }
       
       if (result.assets && result.assets[0]) {
-        setVideoUri(result.assets[0].uri || null);
+        const asset = result.assets[0];
+        setVideoUri(asset.uri || null);
+        setVideoMime(asset.type || null);
+        setVideoFileName(asset.fileName || null);
       }
     } catch {
-      Alert.alert('Error', 'Failed to pick video. Please try again.');
+      Alert.alert('Error', 'Failed to pick photo or video. Please try again.');
     }
   }, []);
 
@@ -96,10 +105,10 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
 
     setUploading(true);
     try {
-      // 1. Upload Video
-      const uploadResult = await uploadApi.uploadVideo(videoUri);
-      
-      // 2. Prepare structured data mapping to what the existing backend uses
+      if (!user?.uid) {
+        throw new Error('Please sign in again to publish this reel.');
+      }
+
       const structuredData = {
         _isStructuredVendorReel: true,
         caption: caption.trim(),
@@ -107,21 +116,21 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
         settings: { showOnHome }
       };
 
-      // 3. Create the Reel via backend
-      await vendorsApi.createVendorReel({
-        videoUrl: uploadResult.url,
+      await creatorUploadManager.startReelUpload({
+        kind: 'VENDOR',
+        videoUri,
         title: title.trim(),
-        description: JSON.stringify(structuredData),
+        caption: JSON.stringify(structuredData),
+        tags: selectedCategory ? [selectedCategory] : [],
+        userId: user.uid,
+        userName: currentVendor?.businessName || user.displayName || 'Vendor',
+        vendorId: currentVendor?.id,
+        mimeType: videoMime || undefined,
+        fileName: videoFileName || undefined,
+        mediaKind: detectReelMediaKind(videoMime, videoUri, videoFileName),
       });
 
-      // 4. Invalidate caches
-      queryClient.invalidateQueries({ queryKey: ['vendor-reels'] });
-      queryClient.invalidateQueries({ queryKey: ['vendor-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['map-feed'] });
-
-      Alert.alert('Reel Published', 'Your promotion is now live on your business profile and Business Reels on the map.', [
-        { text: 'OK', onPress: onBack }
-      ]);
+      navigateToWorkspaceHome(navigation, 'VENDOR');
     } catch (e: any) {
       if (e?.status === 403 || e?.code === 'PLAN_LIMIT_REACHED') {
         Alert.alert('Upgrade plan', e?.message || 'Your plan does not allow more reels this month.', [
@@ -136,7 +145,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
     } finally {
       setUploading(false);
     }
-  }, [videoUri, title, caption, selectedCategory, showOnHome, queryClient, onBack]);
+  }, [videoUri, videoMime, videoFileName, title, caption, selectedCategory, showOnHome, user, currentVendor, navigation]);
 
   return (
     <View style={[styles.safe, { paddingTop: Math.max(insets.top, 16) }]}>
@@ -165,13 +174,17 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
             <View style={styles.uploadDashedWrap}>
               {videoUri ? (
                 <View style={styles.videoPreviewContainer}>
-                  <Video
-                    source={{ uri: videoUri }}
-                    style={styles.videoPlayer}
-                    resizeMode="cover"
-                    repeat
-                    muted
-                  />
+                  {isStaticImageUrl(videoUri) || detectReelMediaKind(videoMime, videoUri, videoFileName) === 'image' ? (
+                    <Image source={{ uri: videoUri }} style={styles.videoPlayer} resizeMode="cover" />
+                  ) : (
+                    <Video
+                      source={{ uri: videoUri }}
+                      style={styles.videoPlayer}
+                      resizeMode="cover"
+                      repeat
+                      muted
+                    />
+                  )}
                   <TouchableOpacity style={styles.changeVideoBtn} onPress={() => handlePickVideo('gallery')}>
                     <Icon name="swap-horizontal" size={16} color="#FFF" />
                     <Text style={styles.changeVideoBtnText}>Change</Text>
@@ -185,8 +198,8 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
                       <Icon name="play" size={12} color="#FFF" style={{ marginLeft: 2 }} />
                     </View>
                   </View>
-                  <Text style={styles.uploadMainText}>Tap to upload video</Text>
-                  <Text style={styles.uploadSubText}>MP4, MOV, AVI • Portrait (9:16) • Max 60 sec</Text>
+                  <Text style={styles.uploadMainText}>Tap to upload photo or video</Text>
+                  <Text style={styles.uploadSubText}>Media is saved to the cloud only after your reel publishes</Text>
                 </TouchableOpacity>
               )}
             </View>

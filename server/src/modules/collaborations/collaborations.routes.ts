@@ -64,6 +64,7 @@ router.post(
   validate(submitCollaborationReelSchema),
   collaborationsController.submitReel,
 );
+router.post('/:id/publish-reel', requireCreatorRole, collaborationsController.publishReel);
 
 // Shared party routes
 router.get('/:id', collaborationsController.getById);

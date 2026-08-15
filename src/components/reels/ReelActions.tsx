@@ -117,10 +117,9 @@ export const ReelActions: React.FC<ReelActionsProps> = React.memo(({
   );
 });
 
-export function showReelMenu(onReport?: () => void, onDownload?: () => void) {
+export function showReelMenu(onReport?: () => void) {
   const { Alert } = require('react-native');
   Alert.alert('Reel options', undefined, [
-    { text: 'Download Reel', onPress: onDownload },
     { text: 'Report', style: 'destructive', onPress: onReport },
     { text: 'Cancel', style: 'cancel' },
   ]);

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -36,11 +36,11 @@ interface ReelFeedProps {
   onFollow?: (creatorProfileId: string, currentlyFollowing: boolean) => void;
   onPressAuthor?: (reel: Reel) => void;
   onReport?: (reelId: string) => void;
-  onDownload?: (reel: Reel) => void;
   layoutMode?: ReelLayoutMode;
   actionRailPosition?: ReelActionRailPosition;
   onRetry?: () => void;
   onActiveIndexChange?: (index: number) => void;
+  onReelViewed?: (reelId: string) => void;
   initialScrollIndex?: number;
 }
 
@@ -63,12 +63,12 @@ export const ReelFeed: React.FC<ReelFeedProps> = React.memo(({
   onFollow,
   onPressAuthor,
   onReport,
-  onDownload,
   layoutMode = 'tab',
   actionRailPosition,
   onRetry,
   isTabFocused = true,
   onActiveIndexChange,
+  onReelViewed,
   initialScrollIndex = 0,
 }) => {
   const { height: windowHeight } = useWindowDimensions();
@@ -87,6 +87,15 @@ export const ReelFeed: React.FC<ReelFeedProps> = React.memo(({
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 60,
   }).current;
+
+  const onReelViewedRef = useRef(onReelViewed);
+  onReelViewedRef.current = onReelViewed;
+
+  useEffect(() => {
+    if (!isTabFocused) return;
+    const reelId = reels[activeIndex]?.id;
+    if (reelId) onReelViewedRef.current?.(reelId);
+  }, [activeIndex, isTabFocused, reels]);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (viewableItems.length > 0 && viewableItems[0].index != null) {
@@ -137,14 +146,13 @@ export const ReelFeed: React.FC<ReelFeedProps> = React.memo(({
           onFollow={onFollow}
           onPressAuthor={onPressAuthor}
           onReport={onReport}
-          onDownload={onDownload}
         />
       </View>
     );
   }, [
     viewportHeight, activeIndex, isTabFocused, likedReelIds, savedReelIds, followingCreatorIds,
     currentUserId, layoutMode, actionRailPosition, onLike, onComment, onShare, onSave, onFollow,
-    onPressAuthor, onReport, onDownload,
+    onPressAuthor, onReport,
   ]);
 
   const keyExtractor = useCallback((item: Reel, index: number) => item.id || `reel-${index}`, []);

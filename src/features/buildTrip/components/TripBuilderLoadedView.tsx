@@ -62,7 +62,6 @@ function DayItinerarySection({
         legs={legs}
         listBottomPadding={listBottomPadding}
         scrollEnabled={scrollEnabled}
-        listKey={day.id}
         onReorder={ordered => onReorder(day.id, ordered)}
         onPressStop={onPressStop}
         onMenuStop={onMenuStop}

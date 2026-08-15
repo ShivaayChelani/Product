@@ -9,6 +9,7 @@ import { ReelCommentsBottomSheet } from '../components/reels/ReelCommentsBottomS
 import { useUserContext } from '../context/UserContext';
 import { commitReelLikeToggle, applyReelLikeResult, mergeLikedIds, isReelCurrentlyLiked } from '../services/reels/reelLike';
 import { buildReelShareMessage } from '../services/sharing/shareLinks';
+import { trackReelView, incrementReelShares } from '../services/reelService';
 
 interface ReelDetailScreenProps {
   reel: Reel;
@@ -90,7 +91,20 @@ export default function ReelDetailScreen({
     }
     try {
       await Share.share({ message, title: 'PalSafar Reel' });
+      setFeedData(prev => prev.map(r =>
+        r.id === target.id ? { ...r, shares: (r.shares || 0) + 1 } : r,
+      ));
+      void incrementReelShares(target.id);
     } catch { /* cancelled */ }
+  }, []);
+
+  const handleReelViewed = useCallback((reelId: string) => {
+    void trackReelView(reelId).then((recorded) => {
+      if (!recorded) return;
+      setFeedData(prev => prev.map(r =>
+        r.id === reelId ? { ...r, views: (r.views || 0) + 1 } : r,
+      ));
+    });
   }, []);
 
   const handleCommentAdded = useCallback((targetReelId: string, newComment: any) => {
@@ -180,6 +194,7 @@ export default function ReelDetailScreen({
         onShare={handleShare}
         onSave={() => {}}
         isTabFocused={isFocused}
+        onReelViewed={handleReelViewed}
         layoutMode="fullscreen"
         initialScrollIndex={initialIndex}
       />

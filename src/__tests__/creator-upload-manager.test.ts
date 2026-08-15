@@ -13,7 +13,6 @@ jest.mock('../services/videoCompressor', () => ({
 }));
 
 jest.mock('../services/reelService', () => ({
-  uploadReelVideo: jest.fn(),
   mapReelUrls: jest.fn((reel: any) => reel),
 }));
 
@@ -23,6 +22,14 @@ jest.mock('../services/api', () => ({
     getReelById: jest.fn(),
     updateReel: jest.fn(),
   },
+  uploadApi: {
+    uploadVideo: jest.fn(),
+    uploadImage: jest.fn(),
+    deleteMedia: jest.fn(),
+  },
+  vendorsApi: {
+    createVendorReel: jest.fn(),
+  },
 }));
 
 jest.mock('../features/creator/api/creatorApi', () => ({
@@ -31,9 +38,12 @@ jest.mock('../features/creator/api/creatorApi', () => ({
   },
 }));
 
-const { uploadReelVideo } = require('../services/reelService');
-const { socialApi } = require('../services/api');
+const { socialApi, uploadApi, vendorsApi } = require('../services/api');
 const { creatorApi } = require('../features/creator/api/creatorApi');
+
+function wait(ms = 80) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 describe('creatorUploadManager', () => {
   beforeEach(async () => {
@@ -41,6 +51,7 @@ describe('creatorUploadManager', () => {
     creatorUploadManager.__resetForTests();
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
     (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
+    uploadApi.deleteMedia.mockResolvedValue(undefined);
     await creatorUploadManager.init();
   });
 
@@ -48,8 +59,8 @@ describe('creatorUploadManager', () => {
     const seen: ReelUploadJob[][] = [];
     creatorUploadManager.subscribe((jobs) => seen.push([...jobs]));
 
-    let resolveUpload!: (url: string) => void;
-    uploadReelVideo.mockReturnValue(new Promise((res) => { resolveUpload = res; }));
+    let resolveUpload!: (result: { url: string; publicId: string }) => void;
+    uploadApi.uploadVideo.mockReturnValue(new Promise((res) => { resolveUpload = res; }));
     socialApi.createReel.mockResolvedValue({
       data: { id: 'reel_1', videoUrl: 'https://cdn.example/v.mp4', rewardPoints: 50 },
     });
@@ -66,16 +77,20 @@ describe('creatorUploadManager', () => {
     const queuedSnapshot = seen.find((batch) => batch.some((j) => j.localUploadId === localUploadId));
     expect(queuedSnapshot?.find((j) => j.localUploadId === localUploadId)?.status).toBe('QUEUED');
 
-    resolveUpload('https://cdn.example/v.mp4');
-    await new Promise((r) => setTimeout(r, 100));
+    resolveUpload({ url: 'https://cdn.example/v.mp4', publicId: 'palsasafar/reels/v' });
+    await wait(120);
 
     const jobs = creatorUploadManager.getJobs();
     expect(jobs[0]?.status).toBe('POSTED');
     expect(jobs[0]?.reelId).toBe('reel_1');
+    expect(uploadApi.deleteMedia).not.toHaveBeenCalled();
   });
 
-  it('retry reuses stored videoUrl and skips re-upload after a failure', async () => {
-    uploadReelVideo.mockResolvedValueOnce('https://cdn.example/retry.mp4');
+  it('deletes Cloudinary media when publish fails and re-uploads on retry', async () => {
+    uploadApi.uploadVideo.mockResolvedValueOnce({
+      url: 'https://cdn.example/retry.mp4',
+      publicId: 'palsasafar/reels/retry',
+    });
     socialApi.createReel.mockRejectedValueOnce(new Error('Server could not process your reel'));
 
     const localUploadId = await creatorUploadManager.startReelUpload({
@@ -86,26 +101,119 @@ describe('creatorUploadManager', () => {
       userName: 'Creator',
     });
 
-    await new Promise((r) => setTimeout(r, 100));
+    await wait(120);
     expect(creatorUploadManager.getJobs()[0]?.status).toBe('FAILED');
-    expect(creatorUploadManager.getJobs()[0]?.videoUrl).toBe('https://cdn.example/retry.mp4');
+    expect(creatorUploadManager.getJobs()[0]?.videoUrl).toBeUndefined();
+    expect(uploadApi.deleteMedia).toHaveBeenCalledWith('palsasafar/reels/retry', 'video');
 
-    uploadReelVideo.mockClear();
+    uploadApi.uploadVideo.mockClear();
+    uploadApi.uploadVideo.mockResolvedValue({
+      url: 'https://cdn.example/retry2.mp4',
+      publicId: 'palsasafar/reels/retry2',
+    });
     socialApi.createReel.mockClear();
     socialApi.createReel.mockResolvedValue({
-      data: { id: 'reel_retry', videoUrl: 'https://cdn.example/retry.mp4', rewardPoints: 0 },
+      data: { id: 'reel_retry', videoUrl: 'https://cdn.example/retry2.mp4', rewardPoints: 0 },
     });
 
     await creatorUploadManager.retryUpload(localUploadId);
-    await new Promise((r) => setTimeout(r, 100));
+    await wait(120);
 
-    expect(uploadReelVideo).not.toHaveBeenCalled();
+    expect(uploadApi.uploadVideo).toHaveBeenCalledTimes(1);
     expect(socialApi.createReel).toHaveBeenCalledTimes(1);
     expect(creatorUploadManager.getJobs()[0]?.status).toBe('POSTED');
   });
 
+  it('uploads photos through the image API and keeps them only after publish', async () => {
+    uploadApi.uploadImage.mockResolvedValue({
+      url: 'https://res.cloudinary.com/demo/image/upload/v1/palsasafar/places/still.jpg',
+      publicId: 'palsasafar/places/still',
+    });
+    socialApi.createReel.mockResolvedValue({
+      data: {
+        id: 'photo_reel',
+        videoUrl: 'https://res.cloudinary.com/demo/image/upload/v1/palsasafar/places/still.jpg',
+      },
+    });
+
+    await creatorUploadManager.startReelUpload({
+      videoUri: 'file:///tmp/still.jpg',
+      caption: 'Photo reel',
+      tags: [],
+      userId: 'user_1',
+      userName: 'Creator',
+      mimeType: 'image/jpeg',
+      fileName: 'still.jpg',
+      mediaKind: 'image',
+    });
+
+    await wait(120);
+    expect(uploadApi.uploadImage).toHaveBeenCalled();
+    expect(uploadApi.uploadVideo).not.toHaveBeenCalled();
+    expect(socialApi.createReel).toHaveBeenCalledWith(expect.objectContaining({
+      thumbnail: 'https://res.cloudinary.com/demo/image/upload/v1/palsasafar/places/still.jpg',
+    }));
+    expect(creatorUploadManager.getJobs()[0]?.status).toBe('POSTED');
+  });
+
+  it('publishes vendor reels through the vendor API', async () => {
+    uploadApi.uploadVideo.mockResolvedValue({
+      url: 'https://cdn.example/vendor.mp4',
+      publicId: 'palsasafar/reels/vendor',
+    });
+    vendorsApi.createVendorReel.mockResolvedValue({
+      id: 'vreel_1',
+      videoUrl: 'https://cdn.example/vendor.mp4',
+      title: 'Offer',
+    });
+
+    await creatorUploadManager.startReelUpload({
+      kind: 'VENDOR',
+      videoUri: 'file:///tmp/video.mp4',
+      caption: '{"caption":"Promo"}',
+      title: 'Offer',
+      tags: [],
+      userId: 'vendor_user',
+      userName: 'Cafe',
+      vendorId: 'vendor_1',
+    });
+
+    await wait(120);
+    expect(vendorsApi.createVendorReel).toHaveBeenCalledTimes(1);
+    expect(socialApi.createReel).not.toHaveBeenCalled();
+    expect(creatorUploadManager.getJobs()[0]?.status).toBe('POSTED');
+    expect(creatorUploadManager.getJobs()[0]?.reelId).toBe('vreel_1');
+  });
+
+  it('keeps creator reels on the social API when a vendor is tagged as location', async () => {
+    uploadApi.uploadVideo.mockResolvedValue({
+      url: 'https://cdn.example/v.mp4',
+      publicId: 'palsasafar/reels/v',
+    });
+    socialApi.createReel.mockResolvedValue({
+      data: { id: 'tagged_reel', videoUrl: 'https://cdn.example/v.mp4' },
+    });
+
+    await creatorUploadManager.startReelUpload({
+      kind: 'CREATOR',
+      videoUri: 'file:///tmp/video.mp4',
+      caption: 'At the cafe',
+      tags: [],
+      userId: 'user_1',
+      userName: 'Creator',
+      vendorId: 'vendor_1',
+    });
+
+    await wait(120);
+    expect(socialApi.createReel).toHaveBeenCalledWith(expect.objectContaining({ vendorId: 'vendor_1' }));
+    expect(vendorsApi.createVendorReel).not.toHaveBeenCalled();
+  });
+
   it('persists jobs to AsyncStorage', async () => {
-    uploadReelVideo.mockResolvedValue('https://cdn.example/v.mp4');
+    uploadApi.uploadVideo.mockResolvedValue({
+      url: 'https://cdn.example/v.mp4',
+      publicId: 'palsasafar/reels/v',
+    });
     socialApi.createReel.mockResolvedValue({
       data: { id: 'reel_persist', videoUrl: 'https://cdn.example/v.mp4' },
     });
@@ -118,12 +226,15 @@ describe('creatorUploadManager', () => {
       userName: 'Creator',
     });
 
-    await new Promise((r) => setTimeout(r, 30));
+    await wait(40);
     expect(AsyncStorage.setItem).toHaveBeenCalled();
   });
 
   it('publishes draft without creating a second reel record path', async () => {
-    uploadReelVideo.mockResolvedValue('https://cdn.example/draft.mp4');
+    uploadApi.uploadVideo.mockResolvedValue({
+      url: 'https://cdn.example/draft.mp4',
+      publicId: 'palsasafar/reels/draft',
+    });
     creatorApi.publishDraft.mockResolvedValue(undefined);
     socialApi.getReelById.mockResolvedValue({
       data: { id: 'draft_1', videoUrl: 'https://cdn.example/draft.mp4' },
@@ -139,7 +250,7 @@ describe('creatorUploadManager', () => {
       publishDraft: true,
     });
 
-    await new Promise((r) => setTimeout(r, 50));
+    await wait(80);
     expect(creatorApi.publishDraft).toHaveBeenCalledWith('draft_1');
     expect(socialApi.createReel).not.toHaveBeenCalled();
   });
@@ -165,6 +276,20 @@ describe('CreateReel background upload wiring', () => {
     const path = require('path');
     const src = fs.readFileSync(path.join(__dirname, '../screens/CreateReelScreen.tsx'), 'utf8');
     expect(src).toMatch(/creatorUploadManager\.startReelUpload/);
-    expect(src).toMatch(/navigation\.navigate\('CreatorTabs', \{ screen: 'Dashboard' \}\)/);
+    expect(src).toMatch(/navigateToWorkspaceHome\(navigation, 'CREATOR'\)/);
+    expect(src).toMatch(/mediaType: 'mixed'/);
+    expect(src).not.toMatch(/uploadReelVideo/);
+  });
+});
+
+describe('CreateVendorReel background upload wiring', () => {
+  it('queues a background vendor upload and returns to vendor home', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(path.join(__dirname, '../screens/CreateVendorReelScreen.tsx'), 'utf8');
+    expect(src).toMatch(/creatorUploadManager\.startReelUpload/);
+    expect(src).toMatch(/kind: 'VENDOR'/);
+    expect(src).toMatch(/navigateToWorkspaceHome\(navigation, 'VENDOR'\)/);
+    expect(src).not.toMatch(/uploadApi\.uploadVideo/);
   });
 });

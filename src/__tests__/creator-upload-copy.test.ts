@@ -14,6 +14,10 @@ describe('Creator upload copy and draft wiring', () => {
     expect(src).toMatch(/uploadApi\.uploadImage/);
     expect(src).toMatch(/remoteUrl/);
     expect(src).toMatch(/maxWidth: 1920/);
+    expect(src).toMatch(/deriveCreatorUsername/);
+    expect(src).toMatch(/normalizeInstagramUrl/);
+    expect(src).toMatch(/languages,/);
+    expect(src).toMatch(/bio\.trim\(\)\.length < 20/);
   });
 
   it('CreateReel saves drafts through the creator API instead of a fake alert', () => {
@@ -23,6 +27,9 @@ describe('Creator upload copy and draft wiring', () => {
     );
     expect(src).toMatch(/creatorApi\.saveDraft/);
     expect(src).toMatch(/creatorApi\.publishDraft/);
+    expect(src).toMatch(/handleInsertEmoji/);
+    expect(src).toMatch(/vendorsApi\.searchForLocation/);
+    expect(src).toMatch(/mergeLocationSuggestions/);
     expect(src).not.toMatch(/Saved to drafts/);
     expect(src).not.toMatch(/No drafts yet/);
   });

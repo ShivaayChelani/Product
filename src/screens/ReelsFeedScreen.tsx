@@ -13,7 +13,7 @@ import {
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { useUserContext } from '../context/UserContext';
 import { Reel } from '../types';
-import { getReelsFeed } from '../services/reelService';
+import { getReelsFeed, trackReelView, incrementReelShares } from '../services/reelService';
 import { commitReelLikeToggle, applyReelLikeResult, mergeLikedIds, isReelCurrentlyLiked } from '../services/reels/reelLike';
 import { buildReelShareMessage } from '../services/sharing/shareLinks';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -216,9 +216,19 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
         title: 'PalSafar Reel',
       });
       setReels(prev => prev.map(r =>
-        r.id === reel.id ? { ...r, shares: r.shares + 1 } : r,
+        r.id === reel.id ? { ...r, shares: (r.shares || 0) + 1 } : r,
       ));
+      void incrementReelShares(reel.id);
     } catch { /* cancelled */ }
+  }, []);
+
+  const handleReelViewed = useCallback((reelId: string) => {
+    void trackReelView(reelId).then((recorded) => {
+      if (!recorded) return;
+      setReels(prev => prev.map(r =>
+        r.id === reelId ? { ...r, views: (r.views || 0) + 1 } : r,
+      ));
+    });
   }, []);
 
   const handleReport = useCallback(async (reelId: string) => {
@@ -336,6 +346,7 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
         onReport={handleReport}
         onRetry={() => loadFeed(true)}
         isTabFocused={isFocused}
+        onReelViewed={handleReelViewed}
         actionRailPosition={REEL_ACTION_RAIL}
       />
 

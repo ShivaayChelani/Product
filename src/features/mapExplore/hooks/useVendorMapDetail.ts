@@ -1,32 +1,45 @@
 import { useQuery } from '@tanstack/react-query';
-import { vendorsApi, VendorPublicDetails, VendorReel } from '../../../services/api/vendors';
+import { vendorsApi, VendorPublicDetails, VendorReel, TaggedCreatorReel } from '../../../services/api/vendors';
 import { filterLiveVendorOffers } from '../utils/vendorFilters';
 
 export type VendorMapDetail = VendorPublicDetails & {
+  vendorReels: VendorReel[];
   promoReel: VendorReel | null;
   reelCount: number;
   offerCount: number;
+  pendingTaggedReels: TaggedCreatorReel[];
+  isOwner: boolean;
 };
 
 async function loadVendorMapDetail(vendorId: string): Promise<VendorMapDetail> {
-  const [detailRes, reelsRes] = await Promise.all([
+  const [detailRes, reelsRes, tagged] = await Promise.all([
     vendorsApi.getVendorDetails(vendorId),
     vendorsApi.getVendorReels(vendorId),
+    vendorsApi.getTaggedCreatorReels(vendorId).catch(() => ({
+      reels: [] as TaggedCreatorReel[],
+      pending: [] as TaggedCreatorReel[],
+      isOwner: false,
+    })),
   ]);
   const detail = (detailRes as { data?: VendorPublicDetails })?.data
     ?? (detailRes as unknown as VendorPublicDetails);
   const reelsRaw = (reelsRes as { data?: VendorReel[] })?.data ?? (reelsRes as unknown as VendorReel[]);
-  const reels = Array.isArray(reelsRaw) ? reelsRaw : [];
-  const promoReel = reels.find(r => r.thumbnail || r.videoUrl) ?? reels[0] ?? null;
-  
+  const vendorReels = Array.isArray(reelsRaw) ? reelsRaw : [];
+  const promoReel = vendorReels.find(r => r.thumbnail || r.videoUrl) ?? vendorReels[0] ?? null;
+  const taggedApproved = Array.isArray(tagged.reels) ? tagged.reels : [];
+  const pendingTaggedReels = Array.isArray(tagged.pending) ? tagged.pending : [];
+
   const activeOffers = filterLiveVendorOffers(detail.offers);
-  
+
   return {
     ...detail,
     offers: activeOffers,
+    vendorReels,
     promoReel,
-    reelCount: reels.length,
+    reelCount: taggedApproved.length,
     offerCount: activeOffers.length,
+    pendingTaggedReels,
+    isOwner: Boolean(tagged.isOwner),
   };
 }
 

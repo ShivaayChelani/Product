@@ -157,6 +157,17 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
       return;
     }
     if (collabGate && collabGate.allowed === false) {
+      if (collabGate.needsSubscription) {
+        Alert.alert(
+          'Subscription required',
+          collabGate.reason || 'Subscribe to a vendor plan to send collaboration requests.',
+          [
+            { text: 'Not now', style: 'cancel' },
+            { text: 'Subscribe', onPress: () => navigation.navigate('VendorSubscription') },
+          ],
+        );
+        return;
+      }
       Alert.alert('Unavailable', collabGate.reason || 'Cannot collaborate with this creator right now.');
       return;
     }

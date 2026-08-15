@@ -62,7 +62,13 @@ import {
   setMemoryCachedVendors,
 } from '../utils/mapViewportManager';
 import NetInfo from '@react-native-community/netinfo';
-import { quickAddPlaceToTrip, seedDraftTripCache, DRAFT_TRIP_ID_KEY } from '../utils/quickAddPlace';
+import {
+  quickAddPlaceToTrip,
+  seedDraftTripCache,
+  DRAFT_TRIP_ID_KEY,
+  isPlaceInItinerary,
+  loadItineraryPlaceIdSet,
+} from '../utils/quickAddPlace';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { tripsApi } from '../services/api/trips';
 import { recordSearchedPlace } from '../utils/passportPlaces';
@@ -662,7 +668,7 @@ export default function MapScreen({
       }
       if (fetchId !== vendorFetchCounterRef.current) return;
       const markers = (source || [])
-        .filter((v: any) => parseLatLng(v.latitude ?? v.lat, v.longitude ?? v.lng) != null && v.showOnMap !== false)
+        .filter((v: any) => parseLatLng(v.latitude ?? v.lat, v.longitude ?? v.lng) != null)
         .map(mapVendorToMarker);
       setAllVendors(mergeMarkersPreservingSelection(
         markers,
@@ -723,7 +729,7 @@ export default function MapScreen({
 
     if (source && source.length > 0) {
       const markers = source
-        .filter((v: any) => parseLatLng(v.latitude ?? v.lat, v.longitude ?? v.lng) != null && v.showOnMap !== false)
+        .filter((v: any) => parseLatLng(v.latitude ?? v.lat, v.longitude ?? v.lng) != null)
         .map(mapVendorToMarker);
       vendorsCache.current = { data: markers, ts: Date.now() };
       setAllVendors(markers);
@@ -1531,17 +1537,27 @@ export default function MapScreen({
     }
   }, [selectedMarker]);
 
+  const refreshItineraryPlaceIds = useCallback(async () => {
+    if (isGuest) return;
+    const ids = await loadItineraryPlaceIdSet(user?.currentItinerary);
+    setAddedPlaceIds(ids);
+  }, [isGuest, user?.currentItinerary]);
+
   useEffect(() => {
-    if (user?.currentItinerary?.length) {
-      setAddedPlaceIds(new Set(user.currentItinerary));
-    }
-  }, [user?.currentItinerary]);
+    void refreshItineraryPlaceIds();
+  }, [refreshItineraryPlaceIds]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshItineraryPlaceIds();
+    }, [refreshItineraryPlaceIds]),
+  );
 
   const handleAddToItinerary = useCallback(async () => {
     if (!selectedMarker || selectedMarker.type === 'vendor') return;
     const id = selectedMarker.id;
 
-    if (addedPlaceIds.has(id) || user?.currentItinerary?.includes(id)) return;
+    if (isPlaceInItinerary(id, addedPlaceIds)) return;
     if (pendingItineraryAddsRef.current.has(id)) return;
 
     if (isGuest) {
@@ -1602,7 +1618,7 @@ export default function MapScreen({
       pendingItineraryAddsRef.current.delete(id);
       setAddingPlaceId(current => (current === id ? null : current));
     }
-  }, [selectedMarker, setUser, isGuest, addedPlaceIds, user?.currentItinerary, showSuccess, showError]);
+  }, [selectedMarker, setUser, isGuest, addedPlaceIds, showSuccess, showError]);
 
   const handleBookRide = useCallback(() => {
     if (!selectedMarker) return;
@@ -2008,8 +2024,12 @@ export default function MapScreen({
             closeSheet();
             navigation.navigate('VendorProfile', { vendorId: selectedMarker.id });
           }}
-          onOpenReel={reelId => {
-            navigation.navigate('ReelDetail', { reelId });
+          onOpenReel={(reelId, extras) => {
+            navigation.navigate('ReelDetail', {
+              reelId,
+              reels: extras?.reels,
+              initialIndex: extras?.initialIndex,
+            });
           }}
           onOpenVendorReels={() => {
             closeSheet();
@@ -2057,10 +2077,7 @@ export default function MapScreen({
           }}
           isVendor={false}
           locationUnavailable={!isReliableUserPosition(effectivePosition)}
-          inItinerary={
-            addedPlaceIds.has(selectedMarker.id) ||
-            !!user?.currentItinerary?.includes(selectedMarker.id)
-          }
+          inItinerary={isPlaceInItinerary(selectedMarker.id, addedPlaceIds)}
           addingToItinerary={addingPlaceId === selectedMarker.id}
           bottomInset={detailBottomInset}
           onClose={closeSheet}

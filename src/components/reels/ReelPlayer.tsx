@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Image, ActivityIndicator } from 'react-native';
 import Video, { VideoRef } from 'react-native-video';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { isStaticImageUrl } from '../../services/reels/reelMediaKind';
 
 interface ReelPlayerProps {
   videoUrl: string;
@@ -118,7 +119,9 @@ export const ReelPlayer: React.FC<ReelPlayerProps> = React.memo(({
   };
 
   const actuallyPaused = !isActive || !isPlaying || isPausedOverride || isError;
-  const showVideo = !!resolvedInitial && !isError;
+  const isImageReel = isStaticImageUrl(resolvedInitial);
+  const showVideo = !!resolvedInitial && !isError && !isImageReel;
+  const showImage = !!resolvedInitial && isImageReel;
 
   return (
     <TouchableOpacity
@@ -127,13 +130,15 @@ export const ReelPlayer: React.FC<ReelPlayerProps> = React.memo(({
       onPress={handleTap}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      disabled={!showVideo && !posterUrl}
+      disabled={!showVideo && !showImage && !posterUrl}
     >
       {posterUrl ? (
         <Image source={{ uri: posterUrl }} style={styles.poster} resizeMode="cover" />
       ) : null}
 
-      {showVideo ? (
+      {showImage ? (
+        <Image source={{ uri: resolvedInitial }} style={styles.video} resizeMode="cover" />
+      ) : showVideo ? (
         <View style={styles.video} pointerEvents="none">
           <Video
           ref={videoRef}

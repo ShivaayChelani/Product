@@ -132,15 +132,29 @@ function getCreatorReelTab(reel: CreatorReelRow, archivedIds: Set<string>): TabK
   return 'APPROVED';
 }
 
+function liveReelStats(item: CreatorReelRow) {
+  const extra = item as CreatorReelRow & {
+    commentCount?: number;
+    likesCount?: number;
+    _count?: { comments?: number; likesList?: number };
+  };
+  return {
+    views: Number(item.views) || 0,
+    likes: Number(item.likes ?? extra.likesCount ?? extra._count?.likesList) || 0,
+    comments: Number(item.commentsCount ?? extra.commentCount ?? extra._count?.comments) || 0,
+    shares: Number(item.shares) || 0,
+  };
+}
+
 function sortReels(items: CreatorReelRow[], sort: SortKey): CreatorReelRow[] {
   const copy = [...items];
   switch (sort) {
     case 'oldest':
       return copy.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     case 'views':
-      return copy.sort((a, b) => b.views - a.views);
+      return copy.sort((a, b) => liveReelStats(b).views - liveReelStats(a).views);
     case 'likes':
-      return copy.sort((a, b) => b.likes - a.likes);
+      return copy.sort((a, b) => liveReelStats(b).likes - liveReelStats(a).likes);
     default:
       return copy.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
@@ -212,9 +226,11 @@ export default function CreatorReelsScreen() {
   }, [reels, activeTab, sort, archivedIds]);
 
   const load = useCallback(
-    async (refresh = false) => {
-      if (refresh) setRefreshing(true);
-      else setLoading(true);
+    async (refresh = false, silent = false) => {
+      if (!silent) {
+        if (refresh) setRefreshing(true);
+        else setLoading(true);
+      }
       try {
         const res = await creatorApi.listReels({ page: 1, limit: 50 });
         const items = filterOwnReels(unwrapMyReels(res.data), creatorProfileId, userId);
@@ -222,12 +238,16 @@ export default function CreatorReelsScreen() {
         setReels(items);
         setError('');
       } catch (e: any) {
-        setReels([]);
-        setAllReels([]);
-        setError(e?.message || 'Could not load your reels.');
+        if (!silent) {
+          setReels([]);
+          setAllReels([]);
+          setError(e?.message || 'Could not load your reels.');
+        }
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (!silent) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
     [creatorProfileId, userId],
@@ -265,7 +285,11 @@ export default function CreatorReelsScreen() {
   useFocusEffect(
     useCallback(() => {
       setUnreadCount(getUnreadBadgeCount());
-      load(true);
+      void load(true, true);
+      const timer = setInterval(() => {
+        void load(true, true);
+      }, 15000);
+      return () => clearInterval(timer);
     }, [load]),
   );
 
@@ -344,7 +368,7 @@ export default function CreatorReelsScreen() {
         {size === 'grid' ? (
           <View style={styles.gridViewsBadge}>
             <Icon name="eye-outline" size={10} color="#FFF" />
-            <Text style={styles.gridViewsText}>{compact(item.views)}</Text>
+            <Text style={styles.gridViewsText}>{compact(liveReelStats(item).views)}</Text>
           </View>
         ) : null}
       </View>
@@ -353,7 +377,7 @@ export default function CreatorReelsScreen() {
 
   const renderListCard = ({ item, index }: { item: CreatorReelRow; index: number }) => {
     const location = item.place?.name || item.vendor?.businessName || item.place?.city;
-    const comments = item.commentsCount ?? 0;
+    const stats = liveReelStats(item);
 
     return (
       <TouchableOpacity
@@ -419,19 +443,19 @@ export default function CreatorReelsScreen() {
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Icon name="eye-outline" size={14} color={C.deep} />
-              <Text style={styles.statText}>{compact(item.views)}</Text>
+              <Text style={styles.statText}>{compact(stats.views)}</Text>
             </View>
             <View style={styles.statItem}>
               <Icon name="heart-outline" size={14} color={C.deep} />
-              <Text style={styles.statText}>{compact(item.likes)}</Text>
+              <Text style={styles.statText}>{compact(stats.likes)}</Text>
             </View>
             <View style={styles.statItem}>
               <Icon name="chatbubble-outline" size={14} color={C.deep} />
-              <Text style={styles.statText}>{compact(comments)}</Text>
+              <Text style={styles.statText}>{compact(stats.comments)}</Text>
             </View>
             <View style={styles.statItem}>
               <Icon name="arrow-redo-outline" size={14} color={C.deep} />
-              <Text style={styles.statText}>{compact(item.shares || 0)}</Text>
+              <Text style={styles.statText}>{compact(stats.shares)}</Text>
             </View>
           </View>
         </View>

@@ -10,6 +10,7 @@ import {
   adminFeatureOfferSchema, adminModerateOfferSchema,
   vendorReviewSchema,
   vendorMapQuerySchema,
+  vendorLocationSearchSchema,
 } from './vendors.validation';
 
 const router = Router();
@@ -35,6 +36,9 @@ router.get('/offers', optionalAuth, vendorsController.getPublicOffers);
 router.post('/register', authenticate, validate(registerVendorSchema), vendorsController.register);
 router.get('/me', authenticate, vendorsController.getMyVendor);
 router.get('/me/listing-preview', authenticate, requireVendorRole, vendorsController.getListingPreview);
+router.get('/me/tagged-reels', authenticate, requireVendorRole, vendorsController.listMyPendingTaggedReels);
+router.post('/me/tagged-reels/:reelId/allow', authenticate, requireVendorRole, vendorsController.allowTaggedCreatorReel);
+router.post('/me/tagged-reels/:reelId/reject', authenticate, requireVendorRole, vendorsController.rejectTaggedCreatorReel);
 router.patch('/me', authenticate, validate(updateVendorSchema), vendorsController.updateMyVendor);
 
 // Vendor reels
@@ -66,10 +70,12 @@ router.get('/me/offers/:offerId/analytics', authenticate, requireVendorRole, ven
 // ── Public: Map vendors list ──
 router.get('/map', optionalAuth, validate(vendorMapQuerySchema, 'query'), vendorsController.listForMapViewport);
 router.get('/map-list', optionalAuth, vendorsController.listApprovedForMap);
+router.get('/location-search', optionalAuth, validate(vendorLocationSearchSchema, 'query'), vendorsController.searchForLocation);
 
 // ── Public: Vendor details & reels (must be after named routes) ──
 router.get('/:id/details', optionalAuth, vendorsController.getPublicDetails);
 router.get('/:id/reels', optionalAuth, vendorsController.getVendorReels);
+router.get('/:id/tagged-reels', optionalAuth, vendorsController.getTaggedCreatorReels);
 router.get('/:id/reviews', optionalAuth, vendorsController.getReviews);
 router.post('/:id/review', authenticate, validate(vendorReviewSchema), vendorsController.addReview);
 router.post('/:id/reviews/:reviewId/helpful', authenticate, vendorsController.markReviewHelpful);

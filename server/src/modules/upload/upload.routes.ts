@@ -12,5 +12,6 @@ router.use(uploadLimiter);
 router.post('/single', upload.single('image'), uploadController.uploadImage);
 router.post('/multiple', upload.array('images', 5), uploadController.uploadMultiple);
 router.post('/video', videoUpload.single('video'), uploadController.uploadVideo);
+router.delete('/', uploadController.deleteMedia);
 
 export default router;

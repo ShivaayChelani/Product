@@ -297,7 +297,7 @@ export default function CreatorDashboardScreen() {
                   COMPLETED: 'Completed',
                   APPROVED: 'Approved',
                   IN_PROGRESS: 'In Progress',
-                  REEL_UPLOADED: 'In Progress',
+                  REEL_UPLOADED: 'Pending',
                   PENDING: 'Pending',
                   REJECTED: 'Rejected',
                 };

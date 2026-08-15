@@ -339,3 +339,29 @@ export async function incrementReelViews(reelId: string): Promise<void> {
   if (reel) reel.views += 1;
 }
 
+const viewedReelIdsThisSession = new Set<string>();
+
+/** Record one real view per reel per app session. Returns true if a view was sent. */
+export async function trackReelView(reelId: string): Promise<boolean> {
+  if (!reelId || viewedReelIdsThisSession.has(reelId)) return false;
+  viewedReelIdsThisSession.add(reelId);
+  try {
+    await incrementReelViews(reelId);
+    return true;
+  } catch {
+    viewedReelIdsThisSession.delete(reelId);
+    return false;
+  }
+}
+
+export async function incrementReelShares(reelId: string): Promise<void> {
+  if (!reelId) return;
+  if (DEV_FLAGS.USE_SERVER_API) {
+    await socialApi.incrementShares(reelId);
+    return;
+  }
+  const localReels = getLocalReels();
+  const reel = localReels.find(r => r.id === reelId);
+  if (reel) reel.shares += 1;
+}
+

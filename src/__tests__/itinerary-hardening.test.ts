@@ -147,3 +147,19 @@ describe('itinerary hardening wiring', () => {
     expect(src).not.toMatch(/if \(cityFilterActive && !placeMatchesKnownCity/);
   });
 });
+
+describe('RootNavigator screen registration', () => {
+  it('registers AdminVendorVerification only once (admin shell uses sharedStackScreens)', () => {
+    const src = read('navigation/RootNavigator.tsx');
+    const matches = src.match(/name="AdminVendorVerification"/g) ?? [];
+    expect(matches).toHaveLength(1);
+  });
+});
+
+describe('MapScreen itinerary button state', () => {
+  it('syncs added places from the draft snapshot, not only user.currentItinerary', () => {
+    const src = read('screens/MapScreen.tsx');
+    expect(src).toMatch(/loadItineraryPlaceIdSet/);
+    expect(src).toMatch(/isPlaceInItinerary\(selectedMarker\.id, addedPlaceIds\)/);
+  });
+});

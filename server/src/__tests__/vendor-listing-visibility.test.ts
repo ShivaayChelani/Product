@@ -86,6 +86,47 @@ describe('Public vendor listing entitlement', () => {
     expect(ids).toContain(liveId);
   });
 
+  it('keeps an actively subscribed vendor on the map even if showOnMap is false', async () => {
+    await prisma.vendor.update({
+      where: { id: liveId },
+      data: { showOnMap: false },
+    });
+    const res = await request(app).get('/api/v1/vendors/map-list');
+    expect(res.status).toBe(200);
+    const ids = (res.body.data || []).map((v: { id: string }) => v.id);
+    expect(ids).toContain(liveId);
+    await prisma.vendor.update({
+      where: { id: liveId },
+      data: { showOnMap: true },
+    });
+  });
+
+  it('returns subscribed businesses in reel location search regardless of letter case or missing coords', async () => {
+    await prisma.vendor.update({
+      where: { id: liveId },
+      data: { latitude: null, longitude: null },
+    });
+
+    const mixed = await request(app).get(
+      `/api/v1/vendors/location-search?q=${encodeURIComponent('live cafe')}`,
+    );
+    expect(mixed.status).toBe(200);
+    const mixedIds = (mixed.body.data || []).map((v: { id: string }) => v.id);
+    expect(mixedIds).toContain(liveId);
+    expect(mixedIds).not.toContain(hiddenId);
+
+    const upper = await request(app).get(
+      `/api/v1/vendors/location-search?q=${encodeURIComponent('LIVE CAFE')}`,
+    );
+    expect(upper.status).toBe(200);
+    expect((upper.body.data || []).map((v: { id: string }) => v.id)).toContain(liveId);
+
+    await prisma.vendor.update({
+      where: { id: liveId },
+      data: { latitude: 23.1825, longitude: 79.9874 },
+    });
+  });
+
   it('404s public details for an unsubscribed vendor', async () => {
     const hidden = await request(app).get(`/api/v1/vendors/${hiddenId}/details`);
     expect(hidden.status).toBe(404);

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,17 @@ import {
   Animated,
   ActivityIndicator,
   Share,
+  Alert,
+  ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useQueryClient } from '@tanstack/react-query';
 import { MapExploreTheme as T } from '../features/mapExplore/theme';
 import { useVendorMapDetail } from '../features/mapExplore/hooks/useVendorMapDetail';
+import { vendorsApi } from '../services/api/vendors';
+import TaggedReelReviewRow from './TaggedReelReviewRow';
+import { mapVendorReelsToFeed } from '../features/mapExplore/utils/mapVendorReelToFeed';
+import type { Reel } from '../types';
 
 type Props = {
   vendorId: string;
@@ -24,7 +31,7 @@ type Props = {
   onAddToTrip: () => void;
   onBookRide: () => void;
   onOpenProfile: () => void;
-  onOpenReel: (reelId: string) => void;
+  onOpenReel: (reelId: string, extras?: { reels?: Reel[]; initialIndex?: number }) => void;
   onOpenVendorReels?: () => void;
   onViewAllOffers: () => void;
   onOpenOffer: (offerId: string) => void;
@@ -62,12 +69,15 @@ export default function MapVendorDetailCard({
   onAddToTrip,
   onBookRide,
   onOpenProfile,
+  onOpenReel,
   onOpenVendorReels,
   onViewAllOffers,
   onWriteReview,
 }: Props) {
   const { data: vendor, isLoading, isError, refetch } = useVendorMapDetail(vendorId);
   const translateY = useRef(new Animated.Value(0)).current;
+  const queryClient = useQueryClient();
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
 
   useEffect(() => {
     translateY.setValue(48);
@@ -109,6 +119,28 @@ export default function MapVendorDetailCard({
       });
     } catch {
       /* cancelled */
+    }
+  };
+
+  const vendorPromoReels = vendor?.showReels === false ? [] : (vendor?.vendorReels ?? []);
+  const vendorFeed = vendor ? mapVendorReelsToFeed(vendorPromoReels, vendor) : [];
+
+  const openVendorPromoReel = (reelId: string) => {
+    const index = Math.max(0, vendorFeed.findIndex(r => r.id === reelId));
+    onOpenReel?.(reelId, { reels: vendorFeed, initialIndex: index });
+  };
+
+  const handleReviewTagged = async (reelId: string, action: 'allow' | 'reject') => {
+    setReviewingId(reelId);
+    try {
+      if (action === 'allow') await vendorsApi.allowTaggedCreatorReel(reelId);
+      else await vendorsApi.rejectTaggedCreatorReel(reelId);
+      await queryClient.invalidateQueries({ queryKey: ['vendor-map-detail', vendorId] });
+      await refetch();
+    } catch {
+      Alert.alert('Could not update reel', 'Please try again.');
+    } finally {
+      setReviewingId(null);
     }
   };
 
@@ -217,6 +249,57 @@ export default function MapVendorDetailCard({
               </TouchableOpacity>
             </View>
           </View>
+
+          {vendor.isOwner && (vendor.pendingTaggedReels?.length ?? 0) > 0 ? (
+            <View style={styles.pendingWrap}>
+              {vendor.pendingTaggedReels.slice(0, 3).map((reel) => (
+                <TaggedReelReviewRow
+                  key={reel.id}
+                  reel={reel}
+                  busy={reviewingId === reel.id}
+                  onAllow={() => { void handleReviewTagged(reel.id, 'allow'); }}
+                  onReject={() => { void handleReviewTagged(reel.id, 'reject'); }}
+                  onOpen={() => onOpenReel?.(reel.id)}
+                />
+              ))}
+            </View>
+          ) : null}
+
+          {vendorPromoReels.length > 0 ? (
+            <View style={styles.vendorReelsWrap}>
+              <Text style={styles.vendorReelsLabel}>Business reels</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.vendorReelsRow}
+              >
+                {vendorPromoReels.map((reel) => {
+                  const thumb = reel.thumbnail || reel.videoUrl;
+                  return (
+                    <TouchableOpacity
+                      key={reel.id}
+                      style={styles.vendorReelThumb}
+                      onPress={() => openVendorPromoReel(reel.id)}
+                      activeOpacity={0.85}
+                      accessibilityRole="button"
+                      accessibilityLabel={reel.title || 'Play business reel'}
+                    >
+                      {thumb ? (
+                        <Image source={{ uri: thumb }} style={styles.vendorReelImage} />
+                      ) : (
+                        <View style={[styles.vendorReelImage, styles.vendorReelFallback]}>
+                          <Icon name="videocam-outline" size={22} color="#8C7B6F" />
+                        </View>
+                      )}
+                      <View style={styles.vendorReelPlay}>
+                        <Icon name="play" size={14} color="#FFFFFF" />
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          ) : null}
 
           {/* Discovery Tiles Section */}
           <View style={styles.tilesRow}>
@@ -381,6 +464,47 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   ratingText: { fontSize: 13, fontWeight: '700', color: '#5A4A3E' },
+  pendingWrap: {
+    paddingHorizontal: 16,
+    marginTop: 16,
+    gap: 10,
+  },
+  vendorReelsWrap: {
+    marginTop: 16,
+    paddingLeft: 16,
+  },
+  vendorReelsLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#B8895A',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+    marginBottom: 8,
+  },
+  vendorReelsRow: {
+    paddingRight: 16,
+    gap: 10,
+  },
+  vendorReelThumb: {
+    width: 72,
+    height: 96,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F3EBE0',
+  },
+  vendorReelImage: { width: '100%', height: '100%' },
+  vendorReelFallback: { alignItems: 'center', justifyContent: 'center' },
+  vendorReelPlay: {
+    position: 'absolute',
+    right: 6,
+    bottom: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tilesRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,

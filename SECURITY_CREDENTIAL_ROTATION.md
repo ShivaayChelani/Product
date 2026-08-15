@@ -13,7 +13,7 @@ Audit of `git log -S "password="` and `git log -S "SECRET="` alongside deep insp
 ## QA Credentials
 PASS
 
-Runtime QA provisioning in `server/scripts/provision-runtime-qa.cjs` securely reads from environment variables (e.g. `QA_ADMIN_PASSWORD`) and uses `crypto.randomBytes` natively if missing. Generated credentials strictly output to a gitignored `.env.runtime-qa`.
+Runtime QA provisioning in `server/scripts/provision-runtime-qa.cjs` creates traveler/vendor/creator gate accounts only. It no longer creates a dedicated QA admin user; fixture approvals use an existing canonical ADMIN account. Generated credentials are written to a gitignored `.env.runtime-qa`. Remove any legacy `qa-gate-admin@palsafar.test` row with `node -r dotenv/config scripts/remove-qa-gate-admin.cjs`.
 
 ## Seed Credentials
 PASS

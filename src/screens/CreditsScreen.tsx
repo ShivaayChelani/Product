@@ -12,6 +12,7 @@ import { Ionicons } from '../utils/Icons';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomSafePadding } from '../design/responsive';
+import { APP_VERSION } from '../config/monitoringConfig';
 
 interface CreditsScreenProps {
   onBack: () => void;
@@ -112,7 +113,7 @@ export default function CreditsScreen({ onBack }: CreditsScreenProps) {
             <Text style={styles.sectionText}>
               A gamified tourism mobile app built with React Native. Designed to make exploring India fun, rewarding, and accessible.
             </Text>
-            <Text style={styles.versionText}>Version 1.0.0</Text>
+            <Text style={styles.versionText}>Version {APP_VERSION}</Text>
           </View>
         </View>
 

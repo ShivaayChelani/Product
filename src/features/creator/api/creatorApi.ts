@@ -117,7 +117,7 @@ function adaptSocialDashboard(base: CreatorDashboard): CreatorDashboardPayload {
       reels: base.reelCount,
       likes: base.totalLikes,
       comments: base.totalComments,
-      shares: 0,
+      shares: (base.recentReels || []).reduce((sum, reel) => sum + (reel.shares || 0), 0),
       saved: 0,
       reach: views,
     },
@@ -139,7 +139,7 @@ function adaptSocialAnalytics(base: CreatorAnalytics, period: string): CreatorAn
       views: base.kpis.views,
       likes: base.kpis.likes,
       comments: base.kpis.comments,
-      shares: 0,
+      shares: (base.topReels || []).reduce((sum, reel) => sum + (reel.shares || 0), 0),
       saves: base.kpis.saves,
       engagementRate: base.kpis.engagementRate,
     },
@@ -243,6 +243,7 @@ export const creatorApi = {
     title?: string;
     description?: string;
     placeId?: string;
+    vendorId?: string;
   }) {
     return apiClient.post<Reel>('/creator/drafts', body);
   },

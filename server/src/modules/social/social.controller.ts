@@ -177,8 +177,14 @@ export const socialController = {
 
   incrementViews: catchAsync(async (req: any, res: Response) => {
     const { id: reelId } = req.params;
-    await socialService.incrementViews(reelId);
-    sendSuccess(res, null, { message: 'View count updated.' });
+    const data = await socialService.incrementViews(reelId);
+    sendSuccess(res, data, { message: 'View count updated.' });
+  }),
+
+  incrementShares: catchAsync(async (req: any, res: Response) => {
+    const { id: reelId } = req.params;
+    const data = await socialService.incrementShares(reelId);
+    sendSuccess(res, data, { message: 'Share count updated.' });
   }),
 
   updateReel: catchAsync(async (req: any, res: Response) => {

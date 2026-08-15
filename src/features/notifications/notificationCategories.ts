@@ -59,7 +59,7 @@ export function matchesNotificationTab(
     case 'Creator':
       return /creator|reel|trending|approved|audience/.test(t) || /creator|reel/.test(type);
     case 'Vendor':
-      return /vendor|redemption|scanner/.test(t) || /vendor|redemption/.test(type);
+      return /vendor|redemption|scanner|tagged.?reel|map profile/.test(t) || /vendor|redemption|tagged_reel/.test(type);
     case 'Community':
       return /review|comment|follow|liked/.test(t) || /comment|follow/.test(type);
     case 'System':

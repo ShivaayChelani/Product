@@ -77,7 +77,11 @@ function enrichPushData(
     collab_cancelled: 'CollaborationDetail',
     collab_expired: 'CollaborationDetail',
     collab_reel_uploaded: 'CollaborationReview',
+    collab_reel_approved: 'CollaborationDetail',
     collab_reel_published: 'ReelDetail',
+    vendor_tagged_reel: 'VendorTabs',
+    vendor_tagged_reel_allowed: 'ReelDetail',
+    vendor_tagged_reel_rejected: 'ReelDetail',
     collab_revision_requested: 'CollaborationDetail',
     collab_reel_rejected: 'CollaborationDetail',
     collab_completed: 'CollaborationDetail',
@@ -123,6 +127,7 @@ function isTransactionalType(type: string): boolean {
     t.startsWith('redemption_') ||
     t.startsWith('collab_') ||
     t.startsWith('hidden_gem_') ||
+    t.startsWith('vendor_tagged_reel') ||
     t === 'fraud_alert' ||
     t === 'vendor_code_reset' ||
     t === 'points_spent'

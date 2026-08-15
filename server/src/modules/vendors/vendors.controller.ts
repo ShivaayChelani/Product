@@ -118,8 +118,20 @@ export const vendorsController = {
     sendSuccess(res, vendors);
   }),
 
-  listApprovedForMap: catchAsync(async (_req: Request, res: Response) => {
-    const vendors = await vendorsService.listApprovedForMap();
+  listApprovedForMap: catchAsync(async (req: Request, res: Response) => {
+    const search = typeof req.query.search === 'string' ? req.query.search : undefined;
+    const vendors = await vendorsService.listApprovedForMap(search);
+    sendSuccess(res, vendors);
+  }),
+
+  searchForLocation: catchAsync(async (req: Request, res: Response) => {
+    const q = typeof req.query.q === 'string'
+      ? req.query.q
+      : typeof req.query.search === 'string'
+        ? req.query.search
+        : '';
+    const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : 12;
+    const vendors = await vendorsService.searchSubscribedVendorsForLocation(q, Number.isFinite(limit) ? limit : 12);
     sendSuccess(res, vendors);
   }),
 
@@ -167,6 +179,37 @@ export const vendorsController = {
       (req as any).user?.id,
     );
     sendSuccess(res, reels);
+  }),
+
+  getTaggedCreatorReels: catchAsync(async (req: Request, res: Response) => {
+    const result = await vendorsService.listTaggedCreatorReels(
+      req.params.id as string,
+      (req as any).user?.id,
+    );
+    sendSuccess(res, result);
+  }),
+
+  listMyPendingTaggedReels: catchAsync(async (req: Request, res: Response) => {
+    const reels = await vendorsService.listMyPendingTaggedReels((req as any).user.id);
+    sendSuccess(res, reels);
+  }),
+
+  allowTaggedCreatorReel: catchAsync(async (req: Request, res: Response) => {
+    const reel = await vendorsService.reviewTaggedCreatorReel(
+      (req as any).user.id,
+      req.params.reelId as string,
+      'allow',
+    );
+    sendSuccess(res, reel, { message: 'Reel allowed on your map profile' });
+  }),
+
+  rejectTaggedCreatorReel: catchAsync(async (req: Request, res: Response) => {
+    const reel = await vendorsService.reviewTaggedCreatorReel(
+      (req as any).user.id,
+      req.params.reelId as string,
+      'reject',
+    );
+    sendSuccess(res, reel, { message: 'Reel rejected from your map profile' });
   }),
 
   createVendorReel: catchAsync(async (req: Request, res: Response) => {

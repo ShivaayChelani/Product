@@ -3,7 +3,7 @@
  * Usage: node scripts/qa-critical-workflows.cjs [baseUrl]
  *
  * Required env:
- *   QA_ADMIN_EMAIL, QA_ADMIN_PASSWORD
+ *   SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD
  *   QA_USER_EMAIL, QA_USER_PASSWORD
  *   QA_VENDOR_EMAIL, QA_VENDOR_PASSWORD
  *   QA_CREATOR_EMAIL, QA_CREATOR_PASSWORD
@@ -52,7 +52,7 @@ async function api(method, path, token, body) {
 async function main() {
   console.log(`Critical workflows — ${BASE}\n`);
 
-  const admin = (await login(requireEnv('QA_ADMIN_EMAIL'), requireEnv('QA_ADMIN_PASSWORD'))).token;
+  const admin = (await login(requireEnv('SEED_ADMIN_EMAIL'), requireEnv('SEED_ADMIN_PASSWORD'))).token;
   const tourist = (await login(requireEnv('QA_USER_EMAIL'), requireEnv('QA_USER_PASSWORD'))).token;
   const vendor = (await login(requireEnv('QA_VENDOR_EMAIL'), requireEnv('QA_VENDOR_PASSWORD'))).token;
   const creator = (await login(requireEnv('QA_CREATOR_EMAIL'), requireEnv('QA_CREATOR_PASSWORD'))).token;

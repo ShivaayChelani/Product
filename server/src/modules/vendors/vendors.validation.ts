@@ -223,3 +223,12 @@ export const vendorMapQuerySchema = z.object({
   category: z.string().optional(),
   limit: z.string().optional().default('200'),
 });
+
+export const vendorLocationSearchSchema = z.object({
+  q: z.string().trim().min(1).max(120).optional(),
+  search: z.string().trim().min(1).max(120).optional(),
+  limit: z.string().optional(),
+}).refine((data) => Boolean((data.q || data.search || '').trim()), {
+  message: 'Search query is required',
+  path: ['q'],
+});

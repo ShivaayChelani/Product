@@ -13,6 +13,7 @@ export const socialApi = {
     applicationReason: string;
     avatar?: string;
     portfolioLinks?: string[];
+    languages?: string[];
     /** Set after the user confirmed that applying will retire their Vendor role. */
     confirmSwitch?: boolean;
   }) {
@@ -125,7 +126,11 @@ export const socialApi = {
   },
 
   async incrementViews(reelId: string) {
-    return apiClient.patch<any>(`/social/reels/${reelId}/views`);
+    return apiClient.patch<{ id: string; views: number }>(`/social/reels/${reelId}/views`);
+  },
+
+  async incrementShares(reelId: string) {
+    return apiClient.patch<{ id: string; shares: number }>(`/social/reels/${reelId}/shares`);
   },
 
   async updateReel(

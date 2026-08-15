@@ -5,6 +5,7 @@ import {
   filterEligiblePublicOffers,
   publicVendorOffersWhere,
 } from '../rewards/offer-eligibility';
+import { getPublicVendorListingWhere } from '../vendors/vendor-public-visibility';
 
 /** Collapse doubled letters (nidaan → nidan) for soft spelling matches. */
 function collapseRepeats(value: string): string {
@@ -152,8 +153,17 @@ export const searchService = {
             SELECT id, business_name as "businessName", business_type as "businessType", city, image_url as "imageUrl", description
             FROM vendors
             WHERE status = 'APPROVED'
-              AND subscription_status = 'ACTIVE'
               AND suspended_at IS NULL
+              AND (
+                subscription_status = 'ACTIVE'
+                OR EXISTS (
+                  SELECT 1 FROM user_subscriptions us
+                  WHERE us.user_id = vendors.user_id
+                    AND us.audience = 'VENDOR'
+                    AND us.status IN ('ACTIVE', 'TRIALING')
+                    AND us.current_period_end >= NOW()
+                )
+              )
               AND (
                 business_name ILIKE '%' || $1 || '%'
                 OR description ILIKE '%' || $1 || '%'
@@ -172,13 +182,15 @@ export const searchService = {
         } catch {
           return prisma.vendor.findMany({
             where: {
-              status: 'APPROVED',
-              subscriptionStatus: 'ACTIVE',
-              suspendedAt: null,
-              OR: [
-                { businessName: { contains: q, mode: 'insensitive' } },
-                { description: { contains: q, mode: 'insensitive' } },
-                { city: { contains: q, mode: 'insensitive' } },
+              ...getPublicVendorListingWhere(),
+              AND: [
+                {
+                  OR: [
+                    { businessName: { contains: q, mode: 'insensitive' } },
+                    { description: { contains: q, mode: 'insensitive' } },
+                    { city: { contains: q, mode: 'insensitive' } },
+                  ],
+                },
               ],
             },
             select: { id: true, businessName: true, businessType: true, city: true, imageUrl: true, description: true },

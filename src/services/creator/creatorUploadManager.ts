@@ -1,11 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { compressVideo } from '../videoCompressor';
-import { uploadReelVideo } from '../reelService';
-import { socialApi } from '../api';
+import { socialApi, uploadApi, vendorsApi } from '../api';
 import { creatorApi } from '../../features/creator/api/creatorApi';
 import { mapReelUploadError } from './reelUploadErrors';
 import { mapReelUrls } from '../reelService';
+import { detectReelMediaKind, type ReelMediaKind } from '../reels/reelMediaKind';
 import type { Reel } from '../../types';
+
+export type ReelUploadKind = 'CREATOR' | 'VENDOR';
 
 export type ReelUploadStatus =
   | 'QUEUED'
@@ -24,11 +26,14 @@ export interface ReelUploadJob {
   videoUrl?: string;
   thumbnail?: string | null;
   caption: string;
+  title?: string;
   spotId?: string;
   spotName?: string;
   tags: string[];
   mimeType?: string;
   fileName?: string;
+  mediaKind?: ReelMediaKind;
+  kind?: ReelUploadKind;
   userId: string;
   userName: string;
   vendorId?: string;
@@ -43,6 +48,7 @@ export interface ReelUploadJob {
 export interface StartReelUploadInput {
   videoUri: string;
   caption: string;
+  title?: string;
   spotId?: string;
   spotName?: string;
   tags: string[];
@@ -51,6 +57,8 @@ export interface StartReelUploadInput {
   vendorId?: string;
   mimeType?: string;
   fileName?: string;
+  mediaKind?: ReelMediaKind;
+  kind?: ReelUploadKind;
   editReelId?: string;
   publishDraft?: boolean;
 }
@@ -98,47 +106,120 @@ function createLocalUploadId(): string {
   return `reel_upload_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+async function discardUnpublishedMedia(
+  publicId: string | undefined,
+  mediaKind: ReelMediaKind,
+): Promise<void> {
+  if (!publicId) return;
+  try {
+    await uploadApi.deleteMedia(publicId, mediaKind);
+  } catch {
+    // Best-effort cleanup so failed publishes do not leave Cloudinary assets.
+  }
+}
+
+function vendorReelAsFeedItem(job: ReelUploadJob, vendorReel: {
+  id: string;
+  videoUrl: string;
+  thumbnail?: string | null;
+  title?: string | null;
+  description?: string | null;
+  likes?: number;
+  views?: number;
+  createdAt?: string;
+}): Reel {
+  return mapReelUrls({
+    id: vendorReel.id,
+    creatorId: job.vendorId || job.userId,
+    videoUrl: vendorReel.videoUrl,
+    thumbnail: vendorReel.thumbnail || (job.mediaKind === 'image' ? vendorReel.videoUrl : null),
+    title: vendorReel.title || job.title || null,
+    description: vendorReel.description || job.caption,
+    likes: vendorReel.likes || 0,
+    views: vendorReel.views || 0,
+    shares: 0,
+    saves: 0,
+    featured: false,
+    eventId: null,
+    rewardPoints: 0,
+    createdAt: vendorReel.createdAt || new Date().toISOString(),
+    tags: job.tags || [],
+    placeId: job.spotId || undefined,
+    vendorId: job.vendorId,
+    creator: {
+      id: job.vendorId || job.userId,
+      username: job.userName,
+      fullName: job.userName,
+      avatar: null,
+      verified: true,
+      userId: job.userId,
+    },
+  } as Reel);
+}
+
 async function runUploadJob(localUploadId: string): Promise<void> {
   const job = jobs.find((j) => j.localUploadId === localUploadId);
   if (!job || job.status === 'CANCELLED' || job.status === 'POSTED') return;
 
-  try {
-    updateJob(localUploadId, { status: 'UPLOADING', progress: 5, error: undefined });
+  const mediaKind = job.mediaKind || detectReelMediaKind(job.mimeType, job.videoUri, job.fileName);
+  let uploadedPublicId: string | undefined;
+  let uploadedUrl: string | undefined;
 
-    let videoUrl = job.videoUrl;
-    if (!videoUrl) {
-      if (/^https?:\/\//i.test(job.videoUri)) {
-        videoUrl = job.videoUri;
-        updateJob(localUploadId, { videoUrl, progress: 88 });
-      } else {
-        const compressed = await compressVideo(job.videoUri);
-        videoUrl = await uploadReelVideo(
-          compressed.compressedUri,
+  try {
+    updateJob(localUploadId, { status: 'UPLOADING', progress: 5, error: undefined, videoUrl: undefined });
+
+    if (/^https?:\/\//i.test(job.videoUri)) {
+      uploadedUrl = job.videoUri;
+      updateJob(localUploadId, { progress: 88 });
+    } else {
+      const localUri = mediaKind === 'video'
+        ? (await compressVideo(job.videoUri)).compressedUri
+        : job.videoUri;
+      const uploaded = mediaKind === 'image'
+        ? await uploadApi.uploadImage(localUri, job.mimeType, job.fileName)
+        : await uploadApi.uploadVideo(
+          localUri,
           (p) => updateJob(localUploadId, { progress: Math.max(5, Math.min(85, Math.round(p * 0.85))) }),
           job.mimeType,
           job.fileName,
         );
-        updateJob(localUploadId, { videoUrl, progress: 88 });
-      }
+      uploadedUrl = uploaded.url;
+      uploadedPublicId = uploaded.publicId;
+      updateJob(localUploadId, { progress: 88 });
+    }
+
+    if (!uploadedUrl) {
+      throw new Error('Media upload did not return a playable URL.');
     }
 
     updateJob(localUploadId, { status: 'PROCESSING', progress: 90 });
 
     let reel: Reel;
-    if (job.publishDraft && job.editReelId) {
-      if (videoUrl) {
-        await socialApi.updateReel(job.editReelId, {
-          title: job.caption.slice(0, 200) || undefined,
-          description: job.caption,
-          placeId: job.spotId || undefined,
-        });
+    if (job.kind === 'VENDOR') {
+      const vendorReel = await vendorsApi.createVendorReel({
+        videoUrl: uploadedUrl,
+        thumbnail: mediaKind === 'image' ? uploadedUrl : undefined,
+        title: job.title?.trim() || job.caption.slice(0, 200) || undefined,
+        description: job.caption,
+      });
+      if (!vendorReel?.id) {
+        throw new Error('Vendor reel was not created.');
       }
+      reel = vendorReelAsFeedItem(job, vendorReel);
+    } else if (job.publishDraft && job.editReelId) {
+      await socialApi.updateReel(job.editReelId, {
+        title: job.caption.slice(0, 200) || undefined,
+        description: job.caption,
+        placeId: job.spotId || undefined,
+        vendorId: job.vendorId || undefined,
+      });
       await creatorApi.publishDraft(job.editReelId);
       const res = await socialApi.getReelById(job.editReelId);
       reel = mapReelUrls(res.data);
     } else {
       const res = await socialApi.createReel({
-        videoUrl,
+        videoUrl: uploadedUrl,
+        thumbnail: mediaKind === 'image' ? uploadedUrl : undefined,
         title: job.caption.slice(0, 200) || undefined,
         description: job.caption,
         placeId: job.spotId || undefined,
@@ -151,6 +232,8 @@ async function runUploadJob(localUploadId: string): Promise<void> {
       status: 'POSTED',
       progress: 100,
       reelId: reel.id,
+      videoUrl: uploadedUrl,
+      thumbnail: mediaKind === 'image' ? uploadedUrl : job.thumbnail,
       rewardPoints: reel.rewardPoints || 0,
       error: undefined,
     });
@@ -158,8 +241,10 @@ async function runUploadJob(localUploadId: string): Promise<void> {
       postedListeners.forEach((fn) => fn(finished, reel));
     }
   } catch (err: unknown) {
+    await discardUnpublishedMedia(uploadedPublicId, mediaKind);
     updateJob(localUploadId, {
       status: 'FAILED',
+      videoUrl: undefined,
       error: mapReelUploadError(err),
     });
   }
@@ -237,11 +322,14 @@ export const creatorUploadManager = {
       progress: 0,
       videoUri: input.videoUri,
       caption: input.caption,
+      title: input.title,
       spotId: input.spotId,
       spotName: input.spotName,
       tags: input.tags,
       mimeType: input.mimeType,
       fileName: input.fileName,
+      mediaKind: input.mediaKind || detectReelMediaKind(input.mimeType, input.videoUri, input.fileName),
+      kind: input.kind || 'CREATOR',
       userId: input.userId,
       userName: input.userName,
       vendorId: input.vendorId,
@@ -264,6 +352,7 @@ export const creatorUploadManager = {
     updateJob(localUploadId, {
       status: 'QUEUED',
       progress: 0,
+      videoUrl: undefined,
       error: undefined,
     });
     void enqueueRun(localUploadId);

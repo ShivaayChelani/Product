@@ -38,6 +38,9 @@ export function notificationCategoryWhere(category: string | undefined, unread?:
     case 'community':
       push(['hidden_gem', 'review', 'comment', 'follow', 'creator', 'reel']);
       break;
+    case 'vendor':
+      push(['vendor', 'redemption', 'scanner', 'tagged_reel']);
+      break;
     case 'system':
       push(['system', 'security', 'password', 'login', 'update', 'maintenance', 'welcome', 'admin']);
       break;

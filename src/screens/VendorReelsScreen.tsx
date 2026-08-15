@@ -39,9 +39,20 @@ export default function VendorReelsScreen({
   const load = useCallback(async () => {
     try {
       setError(null);
-      const res = await vendorsApi.getVendorReels(vendorId);
-      const list = ((res as any)?.data || res || []) as VendorReelItem[];
-      setReels(Array.isArray(list) ? list : []);
+      const tagged = await vendorsApi.getTaggedCreatorReels(vendorId).catch(() => ({
+        reels: [],
+        pending: [],
+        isOwner: false,
+      }));
+      const taggedItems: VendorReelItem[] = (tagged.reels || []).map((r) => ({
+        id: r.id,
+        videoUrl: r.videoUrl,
+        thumbnail: r.thumbnail,
+        title: r.title || `@${r.creator.username}`,
+        description: r.description,
+        createdAt: r.createdAt,
+      }));
+      setReels(taggedItems);
     } catch {
       setError('Failed to load vendor reels');
     } finally {
@@ -96,8 +107,8 @@ export default function VendorReelsScreen({
           ListEmptyComponent={
             <View style={styles.centered}>
               <Icon name="videocam-outline" size={48} color="#B8A88A" />
-              <Text style={styles.emptyTitle}>No reels yet</Text>
-              <Text style={styles.emptyText}>Post from the dashboard Create Reel action.</Text>
+              <Text style={styles.emptyTitle}>No creator reels yet</Text>
+              <Text style={styles.emptyText}>Allowed creator reels for this business will show up here.</Text>
             </View>
           }
           renderItem={({ item }) => (

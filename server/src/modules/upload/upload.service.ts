@@ -51,6 +51,17 @@ export const uploadService = {
   },
 
   async deleteImage(publicId: string): Promise<void> {
-    await cloudinary.uploader.destroy(publicId);
+    await this.deleteMedia(publicId, 'image');
+  },
+
+  async deleteMedia(publicId: string, resourceType: 'image' | 'video' = 'image'): Promise<void> {
+    const id = String(publicId || '').trim();
+    if (!id) {
+      throw new ApiError(400, 'Media id is required.');
+    }
+    if (!id.startsWith('palsasafar/')) {
+      throw new ApiError(400, 'Invalid media id.');
+    }
+    await cloudinary.uploader.destroy(id, { resource_type: resourceType });
   },
 };

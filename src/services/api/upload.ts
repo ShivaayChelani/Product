@@ -59,4 +59,13 @@ export const uploadApi = {
     }
     return res.data;
   },
+
+  async deleteMedia(publicId: string, resourceType: 'image' | 'video' = 'image') {
+    const id = String(publicId || '').trim();
+    if (!id) return;
+    await apiClient.delete<{ deleted: boolean }>(API_CONFIG.endpoints.upload.delete, {
+      publicId: id,
+      resourceType,
+    });
+  },
 };

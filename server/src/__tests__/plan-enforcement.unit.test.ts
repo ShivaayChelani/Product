@@ -85,4 +85,21 @@ describe('vendor plan enforcement', () => {
       message: expect.stringMatching(/Subscribe to a vendor plan/i),
     });
   });
+
+  it('blocks collaboration requests without an active vendor plan', async () => {
+    getForUser.mockResolvedValue({ vendorSubscription: null, vendorListing: { visible: false } });
+    await expect(planEnforcementService.assertVendorCanCollaborate('u1')).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'PLAN_LIMIT_REACHED',
+      message: expect.stringMatching(/Subscribe to a vendor plan to send collaboration/i),
+    });
+  });
+
+  it('allows collaboration requests with an active vendor plan', async () => {
+    getForUser.mockResolvedValue({
+      vendorSubscription: { maxOffers: 1, maxReels: 2, name: 'Starter', planId: 'p-starter', features: {}, slug: 'vendor-starter' },
+      vendorListing: { visible: true },
+    });
+    await expect(planEnforcementService.assertVendorCanCollaborate('u1')).resolves.toBeTruthy();
+  });
 });

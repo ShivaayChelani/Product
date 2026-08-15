@@ -701,7 +701,7 @@ const styles = StyleSheet.create({
     color: VF.accentDark,
   },
   promoBanner: {
-    backgroundColor: '#FAF3EB',
+    backgroundColor: VF.card,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: VF.border,
@@ -717,7 +717,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 16,
-    backgroundColor: '#F0E4D0',
+    backgroundColor: '#F9F9F9',
     alignItems: 'center',
     justifyContent: 'center',
   },

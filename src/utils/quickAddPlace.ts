@@ -12,6 +12,7 @@ import {
 } from './destination';
 import { isCityMismatchError } from './tripNavigation';
 import { invalidateMyTripsList } from '../features/myTrips/myTripsCache';
+import { flattenTripPlaceIds, getActiveItineraryPlaceIds } from './resumeTrip';
 
 /** Offline map pins whose ids differ from the server seed. */
 const PLACE_ID_ALIASES: Record<string, string> = {
@@ -30,6 +31,46 @@ let ensureDraftInflight: Promise<TripPlan> | null = null;
 
 export function resolvePlaceIdForQuickAdd(placeId: string): string {
   return PLACE_ID_ALIASES[placeId] || placeId;
+}
+
+/** All ids that should match the same place (aliases + canonical). */
+export function expandPlaceIdVariants(placeId: string): string[] {
+  const variants = new Set<string>([placeId]);
+  const canonical = resolvePlaceIdForQuickAdd(placeId);
+  variants.add(canonical);
+  for (const [from, to] of Object.entries(PLACE_ID_ALIASES)) {
+    if (from === placeId || from === canonical) variants.add(to);
+    if (to === placeId || to === canonical) variants.add(from);
+  }
+  return [...variants];
+}
+
+export function isPlaceInItinerary(
+  placeId: string,
+  itineraryIds: Iterable<string>,
+): boolean {
+  const set = itineraryIds instanceof Set ? itineraryIds : new Set(itineraryIds);
+  for (const variant of expandPlaceIdVariants(placeId)) {
+    if (set.has(variant)) return true;
+  }
+  return false;
+}
+
+/** Draft snapshot + server trip stops, merged with any local currentItinerary ids. */
+export async function loadItineraryPlaceIdSet(
+  currentItinerary?: string[],
+): Promise<Set<string>> {
+  const ids = new Set<string>(currentItinerary || []);
+  const snapshot = await loadDraftSnapshot();
+  for (const id of flattenTripPlaceIds(snapshot)) ids.add(id);
+  if (ids.size === 0) {
+    try {
+      for (const id of await getActiveItineraryPlaceIds()) ids.add(id);
+    } catch {
+      /* non-blocking */
+    }
+  }
+  return ids;
 }
 
 export function invalidateDraftTripCache() {

@@ -1,12 +1,13 @@
 import { prisma } from '../../config/database';
-import { CreatorStatus, Role, RoleAssignmentStatus } from '@prisma/client';
+import { CreatorStatus, Role, RoleAssignmentStatus, VendorListingStatus } from '@prisma/client';
 import { ApiError, ErrorCodes } from '../../shared/utils/ApiError';
 import { mapCreatorStatusToRoleStatus } from '../../shared/utils/specialtyRoles';
 import { roleTransitionService } from '../../shared/services/roleTransition.service';
 import { notificationService } from '../notifications/notification.service';
 import { pointRulesService } from '../point-rules/pointRules.service';
 import { planEnforcementService } from '../monetization/plan-enforcement.service';
-import { publicVendorListingWhere } from '../vendors/vendor-public-visibility';
+import { getPublicVendorListingWhere } from '../vendors/vendor-public-visibility';
+import { notifyVendorOfTaggedReel } from '../vendors/vendor-tagged-reels';
 import type {
   ApplyCreatorInput,
   UpdateCreatorProfileInput,
@@ -66,7 +67,28 @@ const reelResponseInclude = {
   event: {
     select: { id: true, title: true },
   },
+  _count: {
+    select: { comments: true, likesList: true, savesList: true },
+  },
 };
+
+function applyLiveEngagement<T extends {
+  likes: number;
+  views: number;
+  shares: number;
+  saves: number;
+  _count?: { comments?: number; likesList?: number; savesList?: number } | null;
+}>(item: T) {
+  return {
+    ...item,
+    likes: item._count?.likesList ?? item.likes ?? 0,
+    commentsCount: item._count?.comments ?? 0,
+    saves: item._count?.savesList ?? item.saves ?? 0,
+    views: item.views ?? 0,
+    shares: item.shares ?? 0,
+    _count: undefined,
+  };
+}
 
 export const socialService = {
   // ── Creator Profile Operations ──
@@ -473,14 +495,8 @@ export const socialService = {
       }),
       prisma.reel.count({ where }),
     ]);
-    const commentCounts = await prisma.reelComment.groupBy({
-      by: ['reelId'],
-      where: { reelId: { in: items.map((item) => item.id) } },
-      _count: { _all: true },
-    });
-    const commentsByReel = new Map(commentCounts.map((item) => [item.reelId, item._count._all]));
     return {
-      items: items.map((item) => ({ ...item, commentsCount: commentsByReel.get(item.id) ?? 0 })),
+      items: items.map((item) => applyLiveEngagement(item)),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
   },
@@ -524,10 +540,38 @@ export const socialService = {
         dataToUpdate.placeId = null;
       }
     }
-    if (input.vendorId !== undefined) dataToUpdate.vendorId = input.vendorId;
+    if (input.vendorId !== undefined) {
+      dataToUpdate.vendorId = input.vendorId;
+      if (input.vendorId) {
+        const taggedVendor = await prisma.vendor.findFirst({
+          where: { id: input.vendorId, status: 'APPROVED' },
+          select: { id: true },
+        });
+        if (!taggedVendor) throw new ApiError(400, 'Business not found or not approved.');
+        dataToUpdate.vendorListingStatus = VendorListingStatus.PENDING;
+      } else {
+        dataToUpdate.vendorListingStatus = null;
+      }
+    }
     if (input.eventId !== undefined) dataToUpdate.eventId = input.eventId;
 
-    return prisma.reel.update({ where: { id: reelId }, data: dataToUpdate, include: reelResponseInclude });
+    const updated = await prisma.reel.update({
+      where: { id: reelId },
+      data: dataToUpdate,
+      include: reelResponseInclude,
+    });
+
+    if (input.vendorId && input.vendorId !== reel.vendorId) {
+      await notifyVendorOfTaggedReel({
+        vendorId: input.vendorId,
+        reelId: updated.id,
+        thumbnail: updated.thumbnail,
+        creatorUserId: userId,
+        creatorName: profile.fullName || profile.username,
+      }).catch(() => undefined);
+    }
+
+    return updated;
   },
 
   async deleteOwnReel(userId: string, reelId: string) {
@@ -710,6 +754,17 @@ export const socialService = {
       resolvedPlaceId = foundPlace?.id ?? null;
     }
 
+    let taggedVendor: { id: string; userId: string; businessName: string } | null = null;
+    if (input.vendorId?.trim()) {
+      taggedVendor = await prisma.vendor.findFirst({
+        where: { id: input.vendorId, status: 'APPROVED' },
+        select: { id: true, userId: true, businessName: true },
+      });
+      if (!taggedVendor) {
+        throw new ApiError(400, 'Business not found or not approved.');
+      }
+    }
+
     // Idempotency: retry with the same uploaded video must not create duplicate reels.
     const recentDuplicate = await prisma.reel.findFirst({
       where: {
@@ -739,7 +794,8 @@ export const socialService = {
           title: input.title || input.description?.slice(0, 200) || null,
           description: input.description,
           placeId: resolvedPlaceId,
-          vendorId: input.vendorId || null,
+          vendorId: taggedVendor?.id || null,
+          vendorListingStatus: taggedVendor ? VendorListingStatus.PENDING : null,
           eventId: input.eventId || null,
         },
         include: reelResponseInclude,
@@ -786,6 +842,16 @@ export const socialService = {
 
       return { reel, rewardPoints };
     });
+
+    if (taggedVendor) {
+      await notifyVendorOfTaggedReel({
+        vendorId: taggedVendor.id,
+        reelId: result.reel.id,
+        thumbnail: result.reel.thumbnail,
+        creatorUserId: userId,
+        creatorName: profile.fullName || profile.username,
+      }).catch(() => undefined);
+    }
 
     return {
       ...result.reel,
@@ -886,7 +952,8 @@ export const socialService = {
         { vendor: { city: { contains: sq, mode: 'insensitive' } } },
       ];
     } else if (query.category === 'BUSINESS') {
-      where.vendor = publicVendorListingWhere;
+      where.vendor = getPublicVendorListingWhere();
+      where.vendorListingStatus = VendorListingStatus.APPROVED;
     } else if (query.category === 'TRAVEL') {
       where.vendorId = null;
     } else if (query.category && query.category !== 'For You' && query.category !== 'Trending' && query.category !== 'Following') {
@@ -931,7 +998,7 @@ export const socialService = {
           creator: { status: 'APPROVED' },
           OR: [
             { placeId: { not: null } },
-            { vendorId: { not: null } },
+            { vendorId: { not: null }, vendorListingStatus: VendorListingStatus.APPROVED },
             { eventId: { not: null } },
           ],
         },
@@ -1001,7 +1068,7 @@ export const socialService = {
         select: { id: true, title: true },
       },
       _count: {
-        select: { comments: true },
+        select: { comments: true, likesList: true, savesList: true },
       },
     };
 
@@ -1072,10 +1139,9 @@ export const socialService = {
     return items.map((item: any) => {
       const isLiked = userId && item.likesList ? item.likesList.length > 0 : false;
       const isSaved = userId && item.savesList ? item.savesList.length > 0 : false;
-      const commentsCount = item._count?.comments ?? 0;
+      const live = applyLiveEngagement(item);
       return {
-        ...item,
-        commentsCount,
+        ...live,
         isLiked,
         isSaved,
         isFollowingCreator: userId && item.creator?.userId
@@ -1234,6 +1300,7 @@ export const socialService = {
         },
         likesList: userId ? { where: { userId } } : undefined,
         savesList: userId ? { where: { userId } } : undefined,
+        _count: { select: { comments: true, likesList: true, savesList: true } },
       },
     });
     if (!item) throw new ApiError(404, 'Reel not found.');
@@ -1252,8 +1319,9 @@ export const socialService = {
 
     const isLiked = userId ? item.likesList.length > 0 : false;
     const isSaved = userId ? item.savesList.length > 0 : false;
+    const live = applyLiveEngagement(item);
     return {
-      ...item,
+      ...live,
       isLiked,
       isSaved,
       isFollowingCreator,
@@ -1306,15 +1374,28 @@ export const socialService = {
     const reel = await prisma.reel.findUnique({ where: { id: reelId } });
     if (!reel) throw new ApiError(404, 'Reel not found.');
 
-    await prisma.reel.update({
+    const updated = await prisma.reel.update({
       where: { id: reelId },
       data: { views: { increment: 1 } },
+      select: { id: true, views: true },
     });
 
-    // Increment creator total views
     await prisma.creatorProfile.update({
       where: { id: reel.creatorId },
       data: { totalViews: { increment: 1 } },
+    });
+
+    return updated;
+  },
+
+  async incrementShares(reelId: string) {
+    const reel = await prisma.reel.findUnique({ where: { id: reelId }, select: { id: true } });
+    if (!reel) throw new ApiError(404, 'Reel not found.');
+
+    return prisma.reel.update({
+      where: { id: reelId },
+      data: { shares: { increment: 1 } },
+      select: { id: true, shares: true },
     });
   },
 

@@ -12,11 +12,16 @@ import { notificationService } from '../notifications/notification.service';
 import { planEnforcementService } from '../monetization/plan-enforcement.service';
 import { entitlementsService } from '../monetization/entitlements.service';
 import {
-  publicVendorListingWhere,
-  publicVendorMapWhere,
+  getPublicVendorListingWhere,
+  getPublicVendorMapWhere,
   isPublicVendorListingVisible,
   deriveVendorListingStatus,
 } from './vendor-public-visibility';
+import {
+  listTaggedCreatorReelsForViewer,
+  listPendingTaggedCreatorReels,
+  reviewTaggedCreatorReel,
+} from './vendor-tagged-reels';
 import { walletService } from '../wallet/wallet.service';
 import { pointRulesService } from '../point-rules/pointRules.service';
 import { logger } from '../../config/logger';
@@ -438,14 +443,19 @@ export const vendorsService = {
     const page = Math.max(1, parseInt(query.page || '1', 10));
     const limit = Math.min(100, Math.max(1, parseInt(query.limit || '20', 10)));
     const skip = (page - 1) * limit;
-    const where: any = { businessType, ...publicVendorListingWhere };
+    const where: any = { businessType, ...getPublicVendorListingWhere() };
 
     if (query.city) where.city = { contains: query.city, mode: 'insensitive' };
     if (query.state) where.state = { contains: query.state, mode: 'insensitive' };
     if (query.search) {
-      where.OR = [
-        { businessName: { contains: query.search, mode: 'insensitive' } },
-        { description: { contains: query.search, mode: 'insensitive' } },
+      where.AND = [
+        ...(where.AND || []),
+        {
+          OR: [
+            { businessName: { contains: query.search, mode: 'insensitive' } },
+            { description: { contains: query.search, mode: 'insensitive' } },
+          ],
+        },
       ];
     }
 
@@ -654,7 +664,7 @@ export const vendorsService = {
 
   async listNearbyApproved(query?: { lat?: number; lng?: number; radiusKm?: number }) {
     const vendors = await prisma.vendor.findMany({
-      where: publicVendorMapWhere,
+      where: getPublicVendorMapWhere(),
       select: {
         id: true,
         businessName: true,
@@ -696,9 +706,27 @@ export const vendorsService = {
       .sort((a, b) => a.distanceKm - b.distanceKm);
   },
 
-  async listApprovedForMap() {
+  async listApprovedForMap(search?: string) {
+    const q = String(search || '').trim();
     const vendors = await prisma.vendor.findMany({
-      where: publicVendorMapWhere,
+      where: {
+        ...getPublicVendorMapWhere(),
+        ...(q
+          ? {
+              AND: [
+                {
+                  OR: [
+                    { businessName: { contains: q, mode: 'insensitive' } },
+                    { city: { contains: q, mode: 'insensitive' } },
+                    { address: { contains: q, mode: 'insensitive' } },
+                    { state: { contains: q, mode: 'insensitive' } },
+                  ],
+                },
+              ],
+            }
+          : {}),
+      },
+      take: q ? 10 : undefined,
       select: {
         id: true,
         businessName: true,
@@ -762,6 +790,57 @@ export const vendorsService = {
     });
   },
 
+  /**
+   * Creator reel location picker: approved vendors with a live subscription.
+   * Coordinates are optional. Name matching is case-insensitive.
+   */
+  async searchSubscribedVendorsForLocation(search: string, limit = 12) {
+    const q = String(search || '').trim();
+    if (!q) return [];
+    const take = Math.min(Math.max(limit, 1), 25);
+    const vendors = await prisma.vendor.findMany({
+      where: {
+        ...getPublicVendorListingWhere(),
+        AND: [
+          {
+            OR: [
+              { businessName: { contains: q, mode: 'insensitive' } },
+              { city: { contains: q, mode: 'insensitive' } },
+              { address: { contains: q, mode: 'insensitive' } },
+              { state: { contains: q, mode: 'insensitive' } },
+              { businessType: { contains: q, mode: 'insensitive' } },
+              { description: { contains: q, mode: 'insensitive' } },
+            ],
+          },
+        ],
+      },
+      take,
+      select: {
+        id: true,
+        businessName: true,
+        businessType: true,
+        address: true,
+        city: true,
+        state: true,
+        latitude: true,
+        longitude: true,
+        imageUrl: true,
+        description: true,
+      },
+    });
+    const needle = q.toLowerCase();
+    const score = (name: string) => {
+      const n = name.toLowerCase();
+      if (n === needle) return 3;
+      if (n.startsWith(needle)) return 2;
+      if (n.includes(needle)) return 1;
+      return 0;
+    };
+    return [...vendors].sort(
+      (a, b) => score(b.businessName) - score(a.businessName) || a.businessName.localeCompare(b.businessName),
+    );
+  },
+
   async listForMapViewport(query: {
     north: number;
     south: number;
@@ -773,8 +852,7 @@ export const vendorsService = {
     const limit = Math.min(Math.max(query.limit ?? 200, 1), 300);
     const vendors = await prisma.vendor.findMany({
       where: {
-        ...publicVendorListingWhere,
-        showOnMap: true,
+        ...getPublicVendorMapWhere(),
         latitude: { not: null, gte: query.south, lte: query.north },
         longitude: { not: null, gte: query.west, lte: query.east },
         ...(query.category ? { businessType: query.category } : {}),
@@ -841,7 +919,7 @@ export const vendorsService = {
 
   async getPublicDetails(id: string) {
     const vendor = await prisma.vendor.findFirst({
-      where: { id, ...publicVendorListingWhere },
+      where: { id, ...getPublicVendorListingWhere() },
       select: {
         id: true,
         businessName: true,
@@ -922,7 +1000,7 @@ export const vendorsService = {
 
   async addReview(vendorId: string, userId: string, input: VendorReviewInput) {
     const vendor = await prisma.vendor.findFirst({
-      where: { id: vendorId, ...publicVendorListingWhere },
+      where: { id: vendorId, ...getPublicVendorListingWhere() },
       select: { id: true, status: true, userId: true },
     });
     if (!vendor) {
@@ -979,7 +1057,7 @@ export const vendorsService = {
 
   async getReviews(vendorId: string, query: { page?: string; limit?: string }) {
     const vendor = await prisma.vendor.findFirst({
-      where: { id: vendorId, ...publicVendorListingWhere },
+      where: { id: vendorId, ...getPublicVendorListingWhere() },
       select: { id: true },
     });
     if (!vendor) throw new ApiError(404, 'Vendor not found');
@@ -1062,6 +1140,23 @@ export const vendorsService = {
     if (!reel) throw new ApiError(404, 'Reel not found');
     if (reel.vendorId !== vendorId) throw new ApiError(403, 'Not your reel');
     await prisma.vendorReel.delete({ where: { id: reelId } });
+  },
+
+  async listTaggedCreatorReels(vendorId: string, viewerUserId?: string) {
+    return listTaggedCreatorReelsForViewer(vendorId, viewerUserId);
+  },
+
+  async listMyPendingTaggedReels(userId: string) {
+    const vendor = await prisma.vendor.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!vendor) throw new ApiError(404, 'Vendor not found');
+    return listPendingTaggedCreatorReels(vendor.id);
+  },
+
+  async reviewTaggedCreatorReel(userId: string, reelId: string, action: 'allow' | 'reject') {
+    return reviewTaggedCreatorReel(userId, reelId, action);
   },
 
   async updateVendorReel(
@@ -1758,6 +1853,7 @@ export const vendorsService = {
       ? (await entitlementsService.getForUser(vendor.userId)).vendorListing
       : null;
     const reelCount = await prisma.vendorReel.count({ where: { vendorId } });
+    const pendingTaggedReels = await listPendingTaggedCreatorReels(vendorId);
 
     return {
       vendor,
@@ -1768,7 +1864,7 @@ export const vendorsService = {
           suspendedAt: vendor.suspendedAt,
         }),
         visible: isPublicVendorListingVisible(vendor),
-        mapListing: isPublicVendorListingVisible(vendor) && vendor.showOnMap !== false ? 'Active' : 'Hidden',
+        mapListing: isPublicVendorListingVisible(vendor) ? 'Active' : 'Hidden',
       },
       stats: {
         totalOffers,
@@ -1786,9 +1882,11 @@ export const vendorsService = {
         totalClicks,
         conversionRate: totalViews > 0 ? Math.round((totalClicks / totalViews) * 100) : 0,
         reelCount,
+        pendingTaggedReelCount: pendingTaggedReels.length,
       },
       offers,
       recentRedemptions: recentRedemptions.slice(0, 10),
+      pendingTaggedReels,
     };
   },
 

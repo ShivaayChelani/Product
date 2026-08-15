@@ -25,7 +25,6 @@ type Props = {
   onAddPlaces?: () => void;
   /** False when nested in a parent ScrollView that shows every day. */
   scrollEnabled?: boolean;
-  listKey?: string;
 };
 
 function categoryIconName(category?: string | null): string {
@@ -163,7 +162,6 @@ function ItineraryTimelineListComponent({
   onMenuStop,
   onAddPlaces,
   scrollEnabled = true,
-  listKey,
 }: Props) {
   const renderItem = useCallback(
     ({ item, drag, isActive, getIndex }: RenderItemParams<TripPlanStop>) => {
@@ -213,7 +211,6 @@ function ItineraryTimelineListComponent({
       data={stops}
       extraData={legs}
       keyExtractor={keyExtractor}
-      listKey={listKey}
       renderItem={renderItem}
       onDragEnd={({ data }) => onReorder(data)}
       contentContainerStyle={[

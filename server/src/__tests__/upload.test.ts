@@ -3,10 +3,14 @@ import { vi } from 'vitest';
 import app from '../app';
 import { getAuthToken } from './helpers/auth';
 
+const { mockDestroy } = vi.hoisted(() => ({
+  mockDestroy: vi.fn().mockResolvedValue({ result: 'ok' }),
+}));
+
 vi.mock('../config/upload', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal<typeof import('../config/upload')>();
   return {
-    ...(actual as object),
+    ...actual,
     validateImageMagicBytes: vi.fn().mockReturnValue(true),
     uploadToCloudinary: vi.fn().mockResolvedValue({
       url: 'https://res.cloudinary.com/demo/image/upload/v1/test.jpg',
@@ -14,6 +18,13 @@ vi.mock('../config/upload', async (importOriginal) => {
       width: 800,
       height: 600,
     }),
+    cloudinary: {
+      ...actual.cloudinary,
+      uploader: {
+        ...actual.cloudinary.uploader,
+        destroy: mockDestroy,
+      },
+    },
   };
 });
 
@@ -112,6 +123,35 @@ describe('Upload API', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.message).toContain('No image files provided');
+    });
+  });
+
+  describe('DELETE /api/v1/upload', () => {
+    it('rejects without auth', async () => {
+      const res = await request(app)
+        .delete('/api/v1/upload')
+        .send({ publicId: 'palsasafar/reels/test', resourceType: 'video' });
+      expect(res.status).toBe(401);
+    });
+
+    it('removes a palsasafar Cloudinary asset', async () => {
+      mockDestroy.mockClear();
+      const res = await request(app)
+        .delete('/api/v1/upload')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ publicId: 'palsasafar/reels/test', resourceType: 'video' });
+      expect(res.status).toBe(200);
+      expect(mockDestroy).toHaveBeenCalledWith('palsasafar/reels/test', { resource_type: 'video' });
+    });
+
+    it('rejects public ids outside the app folder', async () => {
+      mockDestroy.mockClear();
+      const res = await request(app)
+        .delete('/api/v1/upload')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ publicId: 'other-cloud/secret', resourceType: 'image' });
+      expect(res.status).toBe(400);
+      expect(mockDestroy).not.toHaveBeenCalled();
     });
   });
 });

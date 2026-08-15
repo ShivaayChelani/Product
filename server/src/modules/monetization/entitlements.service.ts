@@ -142,7 +142,7 @@ export const entitlementsService = {
       vendorListing = {
         status: listingStatus,
         visible: listingVisible,
-        mapListing: listingVisible && vendorRow.showOnMap !== false ? 'Active' : 'Hidden',
+        mapListing: listingVisible ? 'Active' : 'Hidden',
         planName: vendor?.plan.name ?? null,
         planSlug: vendor?.plan.slug ?? null,
         planId: vendor?.planId ?? null,

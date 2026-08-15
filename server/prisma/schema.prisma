@@ -1298,6 +1298,7 @@ model Reel {
   featured        Boolean                  @default(false)
   placeId         String?                  @map("place_id")
   vendorId        String?                  @map("vendor_id")
+  vendorListingStatus VendorListingStatus? @map("vendor_listing_status")
   eventId         String?                  @map("event_id")
   createdAt       DateTime                 @default(now()) @map("created_at")
   updatedAt       DateTime                 @updatedAt @map("updated_at")
@@ -1321,6 +1322,7 @@ model Reel {
   @@index([creatorId])
   @@index([placeId])
   @@index([vendorId])
+  @@index([vendorId, vendorListingStatus])
   @@index([collaborationId])
   @@index([isCollaboration])
   @@index([eventId])
@@ -2538,6 +2540,13 @@ enum ReelStatus {
   DRAFT
   ARCHIVED
   SCHEDULED
+}
+
+/// Whether a creator reel tagged to a business may appear on that vendor's map / profile card.
+enum VendorListingStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum ReelReportStatus {

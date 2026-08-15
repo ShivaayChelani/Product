@@ -175,6 +175,7 @@ export default function RewardsScreen({
         onNavigateToLegal={() => navigation.navigate('LegalHub')}
         onLogout={onLogout}
         onNavigateToSettings={() => navigation.navigate('Settings')}
+        onNavigateToSubscription={() => navigation.navigate('UserPremium')}
       />
     </View>
   );

@@ -7,7 +7,7 @@ import {
   publicVendorOffersWhere,
   remainingRedemptionCount,
 } from './offer-eligibility';
-import { publicVendorMapWhere } from '../vendors/vendor-public-visibility';
+import { getPublicVendorMapWhere } from '../vendors/vendor-public-visibility';
 
 function toRad(deg: number): number {
   return (deg * Math.PI) / 180;
@@ -279,7 +279,7 @@ export const rewardsService = {
 
   async getNearbyRewards(lat: number, lng: number, radiusKm: number) {
     const vendors = await prisma.vendor.findMany({
-      where: publicVendorMapWhere,
+      where: getPublicVendorMapWhere(),
       select: {
         id: true,
         businessName: true,

@@ -3,7 +3,7 @@
  * Usage: node scripts/verify-credentials.cjs [baseUrl]
  *
  * Required env (never commit credentials):
- *   QA_ADMIN_EMAIL, QA_ADMIN_PASSWORD
+ *   SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD (optional admin check)
  *   QA_USER_EMAIL, QA_USER_PASSWORD
  *   QA_VENDOR_EMAIL, QA_VENDOR_PASSWORD  (optional vendorCheck)
  *   QA_CREATOR_EMAIL, QA_CREATOR_PASSWORD
@@ -22,18 +22,21 @@ function requireEnv(name) {
 function buildAccounts() {
   const accounts = [
     {
-      label: 'Admin',
-      email: requireEnv('QA_ADMIN_EMAIL'),
-      password: requireEnv('QA_ADMIN_PASSWORD'),
-      role: 'ADMIN',
-    },
-    {
       label: 'Tourist',
       email: requireEnv('QA_USER_EMAIL'),
       password: requireEnv('QA_USER_PASSWORD'),
       role: 'USER',
     },
   ];
+
+  if (process.env.SEED_ADMIN_EMAIL && process.env.SEED_ADMIN_PASSWORD) {
+    accounts.unshift({
+      label: 'Admin',
+      email: process.env.SEED_ADMIN_EMAIL.trim(),
+      password: process.env.SEED_ADMIN_PASSWORD.trim(),
+      role: 'ADMIN',
+    });
+  }
 
   if (process.env.QA_VENDOR_EMAIL && process.env.QA_VENDOR_PASSWORD) {
     accounts.push({

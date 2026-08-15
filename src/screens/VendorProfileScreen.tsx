@@ -6,7 +6,7 @@ import Pal from '../design/DesignSystem';
 import { GlassCard } from '../components/ui/GlassCard';
 import { Badge } from '../components/ui/Badge';
 import { GradientButton } from '../components/ui/GradientButton';
-import { vendorsApi, VendorPublicDetails, VendorPublicOffer, VendorReel, VendorReview } from '../services/api/vendors';
+import { vendorsApi, VendorPublicDetails, VendorPublicOffer, TaggedCreatorReel, VendorReview } from '../services/api/vendors';
 import { walletApi } from '../services/api/wallet';
 import { VENDOR_CATEGORY_EMOJI } from '../data/vendors';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -91,7 +91,7 @@ export default function VendorProfileScreen({
   const CARD_WIDTH = (width - H_PAD * 2 - CARD_GAP) / 2;
   const [vendor, setVendor] = useState<VendorPublicDetails | null>(null);
   const [status, setStatus] = useState<'PENDING' | 'APPROVED' | 'REJECTED' | 'CHANGES_REQUESTED' | null>(null);
-  const [reels, setReels] = useState<VendorReel[]>([]);
+  const [reels, setReels] = useState<TaggedCreatorReel[]>([]);
   const [reviews, setReviews] = useState<VendorReview[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
@@ -150,8 +150,8 @@ export default function VendorProfileScreen({
   const fetchReelsOnce = useCallback(async (id: string) => {
     if (!id || reelsLoadedForRef.current === id) return;
     try {
-      const reelsRes = await vendorsApi.getVendorReels(id);
-      setReels((reelsRes?.data || []) as VendorReel[]);
+      const tagged = await vendorsApi.getTaggedCreatorReels(id);
+      setReels(tagged.reels || []);
       reelsLoadedForRef.current = id;
     } catch {
       setReels([]);
@@ -199,12 +199,12 @@ export default function VendorProfileScreen({
         }
         fetchReviews(me.id).catch(() => {});
       } else {
-        const [v, r] = await Promise.all([
+        const [v, tagged] = await Promise.all([
           vendorsApi.getVendorDetails(vendorId),
-          vendorsApi.getVendorReels(vendorId),
+          vendorsApi.getTaggedCreatorReels(vendorId).catch(() => ({ reels: [], pending: [], isOwner: false })),
         ]);
         setVendor(v.data);
-        setReels(r.data || []);
+        setReels(tagged.reels || []);
         reelsLoadedForRef.current = vendorId;
         setStatus('APPROVED');
         lastFetchAtRef.current = Date.now();
@@ -837,7 +837,7 @@ export default function VendorProfileScreen({
           <View style={{ paddingHorizontal: H_PAD }}>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: CARD_GAP }}>
               {reels.map((reel) => (
-                <TouchableOpacity key={reel.id} onPress={() => onNavigate?.('VendorReels', { vendorId, vendorName: vendor.businessName })} style={{ width: CARD_WIDTH }}>
+                <TouchableOpacity key={reel.id} onPress={() => onNavigate?.('ReelDetail', { reelId: reel.id })} style={{ width: CARD_WIDTH }}>
                   <GlassCard style={{ padding: Pal.spacing[3], gap: 6, backgroundColor: '#FFFFFF' }}>
                     <View style={{ height: 120, borderRadius: Pal.borderRadius.md, backgroundColor: Pal.colors.light.primarySoft, alignItems: 'center', justifyContent: 'center' }}>
                       {reel.thumbnail ? (
@@ -847,10 +847,7 @@ export default function VendorProfileScreen({
                       )}
                     </View>
                     {reel.title && <Text style={{ fontSize: 12, fontFamily: Pal.typography.fontFamily.semibold, color: Pal.colors.light.text }} numberOfLines={1}>{reel.title}</Text>}
-                    <View style={{ flexDirection: 'row', gap: 12 }}>
-                      <Text style={{ fontSize: 10, color: Pal.colors.light.textMuted }}>👁️ {reel.views}</Text>
-                      <Text style={{ fontSize: 10, color: Pal.colors.light.textMuted }}>❤️ {reel.likes}</Text>
-                    </View>
+                    <Text style={{ fontSize: 10, color: Pal.colors.light.textMuted }} numberOfLines={1}>@{reel.creator.username}</Text>
                   </GlassCard>
                 </TouchableOpacity>
               ))}

@@ -21,8 +21,9 @@ const DEFAULTS = {
   QA_CREATOR_B_EMAIL: 'qa-gate-creator-b@palsafar.test',
   QA_VENDOR_EMAIL: 'qa-gate-vendor-a@palsafar.test',
   QA_VENDOR_B_EMAIL: 'qa-gate-vendor-b@palsafar.test',
-  QA_ADMIN_EMAIL: 'qa-gate-admin@palsafar.test',
 };
+
+const LEGACY_QA_ADMIN_EMAIL = 'qa-gate-admin@palsafar.test';
 
 function genPassword() {
   return crypto.randomBytes(21).toString('base64url');
@@ -232,11 +233,59 @@ async function ensureCollaboration(vendorUserId, creatorProfileId) {
   return collab.id;
 }
 
+async function findFixtureAdminId() {
+  const row = await prisma.userRole.findFirst({
+    where: {
+      role: Role.ADMIN,
+      status: RoleAssignmentStatus.APPROVED,
+      user: { email: { not: LEGACY_QA_ADMIN_EMAIL.toLowerCase() } },
+    },
+    select: { userId: true, user: { select: { email: true } } },
+  });
+  if (!row) {
+    throw new Error('No canonical ADMIN user found. Run API seed / ensureAdminUsers before QA provisioning.');
+  }
+  return row.userId;
+}
+
+async function removeLegacyQaAdmin() {
+  const user = await prisma.user.findUnique({
+    where: { email: LEGACY_QA_ADMIN_EMAIL.toLowerCase() },
+    select: { id: true },
+  });
+  if (!user) return;
+
+  const replacementId = await findFixtureAdminId().catch(() => null);
+  await prisma.vendor.updateMany({
+    where: { reviewedById: user.id },
+    data: { reviewedById: replacementId },
+  });
+  await prisma.vendorOffer.updateMany({
+    where: { approvedById: user.id },
+    data: { approvedById: replacementId },
+  });
+  await prisma.place.updateMany({
+    where: { approvedById: user.id },
+    data: { approvedById: replacementId },
+  });
+  await prisma.userRole.updateMany({
+    where: { approvedById: user.id },
+    data: { approvedById: replacementId },
+  });
+  await prisma.userRole.deleteMany({ where: { userId: user.id } });
+  await prisma.wallet.deleteMany({ where: { userId: user.id } });
+  await prisma.user.delete({ where: { id: user.id } });
+  console.log(`Removed legacy QA admin account (${LEGACY_QA_ADMIN_EMAIL}).`);
+}
+
 async function main() {
   if (process.env.NODE_ENV === 'production' && process.env.RUNTIME_QA_PROVISION !== 'true') {
     console.error('Refusing QA provisioning in production. Set RUNTIME_QA_PROVISION=true on disposable DB only.');
     process.exit(2);
   }
+
+  await removeLegacyQaAdmin();
+  const fixtureAdminId = await findFixtureAdminId();
 
   const creds = {
     QA_USER_EMAIL: envOrDefault('QA_USER_EMAIL'),
@@ -251,11 +300,8 @@ async function main() {
     QA_VENDOR_PASSWORD: envPassword('QA_VENDOR_PASSWORD'),
     QA_VENDOR_B_EMAIL: envOrDefault('QA_VENDOR_B_EMAIL'),
     QA_VENDOR_B_PASSWORD: envPassword('QA_VENDOR_B_PASSWORD'),
-    QA_ADMIN_EMAIL: envOrDefault('QA_ADMIN_EMAIL'),
-    QA_ADMIN_PASSWORD: envPassword('QA_ADMIN_PASSWORD'),
   };
 
-  const admin = await upsertUser(creds.QA_ADMIN_EMAIL, creds.QA_ADMIN_PASSWORD, 'QA Admin', Role.ADMIN, Role.ADMIN);
   const userA = await upsertUser(creds.QA_USER_EMAIL, creds.QA_USER_PASSWORD, 'QA Traveler A', Role.USER);
   const userB = await upsertUser(creds.QA_USER_B_EMAIL, creds.QA_USER_B_PASSWORD, 'QA Traveler B', Role.USER);
 
@@ -292,10 +338,10 @@ async function main() {
     Role.VENDOR,
     Role.USER,
   );
-  const vendorA = await ensureVendor(vendorAUser.id, 'A', admin.id);
-  const vendorB = await ensureVendor(vendorBUser.id, 'B', admin.id);
+  const vendorA = await ensureVendor(vendorAUser.id, 'A', fixtureAdminId);
+  const vendorB = await ensureVendor(vendorBUser.id, 'B', fixtureAdminId);
 
-  const challenges = await ensureChallenges(creatorAUser.id, admin.id);
+  const challenges = await ensureChallenges(creatorAUser.id, fixtureAdminId);
   const collabId = await ensureCollaboration(vendorAUser.id, profileB.id);
 
   const fixtureMeta = {

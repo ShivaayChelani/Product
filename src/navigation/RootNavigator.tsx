@@ -457,10 +457,13 @@ function CreateReelWrapper({ navigation, route }: any) {
     const { compressVideo } = require('../services/videoCompressor');
     try {
       onProgress?.(5);
-      const compressed = await compressVideo(data.videoUri);
-      const videoResult = await uploadApi.uploadVideo(compressed.compressedUri, (p: number) => onProgress?.(Math.round(p * 0.9)));
-      const videoUrl = videoResult?.url;
-      if (!videoUrl) throw new Error('Video upload failed');
+      let videoUrl = data.videoUri;
+      if (!/^https?:\/\//i.test(data.videoUri)) {
+        const compressed = await compressVideo(data.videoUri);
+        const videoResult = await uploadApi.uploadVideo(compressed.compressedUri, (p: number) => onProgress?.(Math.round(p * 0.9)));
+        videoUrl = videoResult?.url;
+        if (!videoUrl) throw new Error('Video upload failed');
+      }
       await collaborationsApi.submitReel(collaborationId, {
         videoUrl,
         title: data.caption?.slice(0, 200),
@@ -469,7 +472,9 @@ function CreateReelWrapper({ navigation, route }: any) {
       });
       onProgress?.(100);
       const { Alert } = require('react-native');
-      Alert.alert('Submitted', 'Your collaboration reel was sent to the vendor for review.', [
+      Alert.alert('Submitted', collaborationId && route.params?.revisionNote
+        ? 'Your updated reel was sent to the vendor for review.'
+        : 'Your collaboration reel was sent to the vendor for review.', [
         { text: 'OK', onPress: () => navigation.replace('CollaborationDetail', { collaborationId }) },
       ]);
     } catch (err: any) {
@@ -477,7 +482,7 @@ function CreateReelWrapper({ navigation, route }: any) {
       Alert.alert('Upload failed', err?.message || 'Could not submit collaboration reel.');
       throw err;
     }
-  }, [collaborationId, handleCreateReel, navigation, editReel?.id]);
+  }, [collaborationId, handleCreateReel, navigation, editReel?.id, route.params?.revisionNote]);
 
   return (
     <Screen
@@ -486,11 +491,13 @@ function CreateReelWrapper({ navigation, route }: any) {
       uploadProgress={reelsUploadProgress}
       sourceReelId={route.params?.sourceReelId}
       captionHint={route.params?.captionHint}
-      suppressSuccessAlert={route.params?.suppressSuccessAlert}
+      suppressSuccessAlert={Boolean(collaborationId) || route.params?.suppressSuccessAlert}
       prefillPlaceId={route.params?.prefillPlaceId}
       prefillPlaceName={route.params?.prefillPlaceName}
       editReel={editReel}
       collaborationId={collaborationId}
+      revisionNote={route.params?.revisionNote}
+      prefillMediaUri={route.params?.prefillMediaUri}
       useBackgroundUpload={!collaborationId}
     />
   );
@@ -550,6 +557,18 @@ function ReelDetailWrapper({ route, navigation }: { route: RouteProp<RootStackPa
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    const passed = route.params.reels;
+    const fromParams = Array.isArray(passed)
+      ? passed.find((r: any) => r.id === route.params.reelId)
+        || passed[route.params.initialIndex || 0]
+        || null
+      : null;
+    if (fromParams?.videoUrl) {
+      setReel(fromParams);
+      setLoading(false);
+      return;
+    }
+
     const found = reels.find((r: any) => r.id === route.params.reelId);
     if (found) {
       setReel(found);
@@ -566,7 +585,7 @@ function ReelDetailWrapper({ route, navigation }: { route: RouteProp<RootStackPa
           setLoading(false);
         });
     }
-  }, [route.params.reelId, reels]);
+  }, [route.params.reelId, route.params.reels, route.params.initialIndex, reels]);
 
   if (loading) {
     return (
@@ -996,7 +1015,11 @@ const sharedStackScreens = (
     <Stack.Screen name="CreateTrip" component={CreateTripWrapper} />
     <Stack.Screen name="TripDetail" component={TripDetailWrapper} />
     <Stack.Screen name="TripPreview" component={TripPreviewWrapper} />
-    <Stack.Screen name="VendorRegister" component={VendorRegisterWrapper} />
+    <Stack.Screen
+      name="VendorRegister"
+      component={VendorRegisterWrapper}
+      options={{ contentStyle: { backgroundColor: '#FFFFFF' } }}
+    />
     <Stack.Screen name="BecomeCreator" component={BecomeCreatorWrapper} />
     <Stack.Screen name="UploadPlacePhoto" component={UploadPlacePhotoWrapper} />
     <Stack.Screen name="SpotDetail" component={SpotDetailScreen} />
@@ -1140,7 +1163,6 @@ function AuthenticatedStack({ mode }: { mode: string }) {
         initialRouteName="AdminVendorVerification"
         screenOptions={{ headerShown: false, animation: 'fade' }}
       >
-        <Stack.Screen name="AdminVendorVerification" component={AdminVerificationWrapper} />
         {sharedStackScreens}
       </Stack.Navigator>
     );

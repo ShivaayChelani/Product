@@ -124,6 +124,27 @@ export interface VendorReel {
   createdAt: string;
 }
 
+export interface TaggedCreatorReel {
+  id: string;
+  videoUrl: string;
+  thumbnail: string | null;
+  title: string | null;
+  description: string | null;
+  vendorListingStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: string;
+  creator: {
+    id: string;
+    username: string;
+    avatar: string | null;
+  };
+}
+
+export interface TaggedCreatorReelsResponse {
+  reels: TaggedCreatorReel[];
+  pending: TaggedCreatorReel[];
+  isOwner: boolean;
+}
+
 export interface VendorListQuery {
   page?: number;
   limit?: number;
@@ -311,9 +332,24 @@ export const vendorsApi = {
     return apiClient.get<Vendor[]>(`/vendors/restaurants${qs ? `?${qs}` : ''}`);
   },
 
-  async listForMap() {
+  async listForMap(search?: string) {
+    const q = search?.trim();
+    const qs = q ? `?search=${encodeURIComponent(q)}` : '';
     return apiClient.get<Vendor[]>(
-      API_CONFIG.endpoints.vendors.mapList,
+      `${API_CONFIG.endpoints.vendors.mapList}${qs}`,
+    );
+  },
+
+  async searchForLocation(search: string, limit = 12) {
+    const q = search.trim();
+    if (!q) {
+      return { success: true, data: [] as Vendor[], message: '' };
+    }
+    const params = new URLSearchParams();
+    params.set('q', q);
+    if (limit) params.set('limit', String(limit));
+    return apiClient.get<Vendor[]>(
+      `${API_CONFIG.endpoints.vendors.locationSearch}?${params.toString()}`,
     );
   },
 
@@ -348,6 +384,40 @@ export const vendorsApi = {
     return apiClient.get<VendorReel[]>(
       API_CONFIG.endpoints.vendors.reels(id),
     );
+  },
+
+  async getTaggedCreatorReels(id: string) {
+    const res = await apiClient.get<TaggedCreatorReelsResponse>(
+      API_CONFIG.endpoints.vendors.taggedReels(id),
+    );
+    const data = (res as any)?.data ?? res;
+    return {
+      reels: Array.isArray(data?.reels) ? data.reels : [],
+      pending: Array.isArray(data?.pending) ? data.pending : [],
+      isOwner: Boolean(data?.isOwner),
+    } as TaggedCreatorReelsResponse;
+  },
+
+  async listMyPendingTaggedReels() {
+    const res = await apiClient.get<TaggedCreatorReel[]>(
+      API_CONFIG.endpoints.vendors.myTaggedReels,
+    );
+    const data = (res as any)?.data ?? res;
+    return Array.isArray(data) ? data : [];
+  },
+
+  async allowTaggedCreatorReel(reelId: string) {
+    const res = await apiClient.post<TaggedCreatorReel>(
+      API_CONFIG.endpoints.vendors.allowTaggedReel(reelId),
+    );
+    return (res as any)?.data ?? res;
+  },
+
+  async rejectTaggedCreatorReel(reelId: string) {
+    const res = await apiClient.post<TaggedCreatorReel>(
+      API_CONFIG.endpoints.vendors.rejectTaggedReel(reelId),
+    );
+    return (res as any)?.data ?? res;
   },
 
   async getReviews(id: string) {

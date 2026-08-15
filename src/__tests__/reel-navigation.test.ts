@@ -35,3 +35,24 @@ describe('reel close / back navigation', () => {
     expect(src).toMatch(/onPress=\{onBack\}/);
   });
 });
+
+describe('reel download option', () => {
+  it('is permanently removed from reel menus and players', () => {
+    const actions = fs.readFileSync(
+      path.join(__dirname, '../components/reels/ReelActions.tsx'),
+      'utf8',
+    );
+    const card = fs.readFileSync(
+      path.join(__dirname, '../components/reels/ReelCard.tsx'),
+      'utf8',
+    );
+    const feed = fs.readFileSync(
+      path.join(__dirname, '../components/reels/ReelFeed.tsx'),
+      'utf8',
+    );
+    expect(actions).not.toMatch(/Download Reel/);
+    expect(card).not.toMatch(/onDownload/);
+    expect(card).not.toMatch(/Downloading Reel/);
+    expect(feed).not.toMatch(/onDownload/);
+  });
+});

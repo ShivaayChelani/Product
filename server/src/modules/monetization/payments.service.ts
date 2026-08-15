@@ -386,6 +386,7 @@ export const paymentsService = {
         data: {
           subscriptionStatus: VendorSubscriptionStatus.ACTIVE,
           suspendedAt: null,
+          showOnMap: true,
         },
       });
     }
@@ -512,6 +513,7 @@ export const paymentsService = {
         data: {
           subscriptionStatus: VendorSubscriptionStatus.ACTIVE,
           suspendedAt: null,
+          showOnMap: true,
         },
       });
     }

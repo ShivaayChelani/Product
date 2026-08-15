@@ -50,7 +50,9 @@ import {
   clearDraftTripCache,
   getDraftTripIdForCity,
   invalidateDraftTripCache,
+  isPlaceInItinerary,
   loadDraftSnapshot,
+  loadItineraryPlaceIdSet,
   quickAddPlaceToTrip,
   seedDraftTripCache,
 } from '../utils/quickAddPlace';
@@ -225,5 +227,20 @@ describe('quickAddPlaceToTrip persistence and city isolation', () => {
     expect(store[DRAFT_TRIP_SNAPSHOT_KEY]).toBeUndefined();
     expect(JSON.parse(store[DRAFT_TRIP_IDS_BY_CITY_KEY] || '{}')).toEqual({ jabalpur: 'trip-jbp' });
     expect(await loadDraftSnapshot()).toBeNull();
+  });
+});
+
+describe('itinerary place id matching', () => {
+  it('treats alias ids as the same place', () => {
+    expect(isPlaceInItinerary('dhuandhar-falls', ['bhedaghat-dhuandhar'])).toBe(true);
+    expect(isPlaceInItinerary('bhedaghat-dhuandhar', ['dhuandhar-falls'])).toBe(true);
+    expect(isPlaceInItinerary('cable-car-bhedaghat', ['cable-car-bhedaghat'])).toBe(true);
+    expect(isPlaceInItinerary('cable-car-bhedaghat', ['other-place'])).toBe(false);
+  });
+
+  it('loads place ids from the draft trip snapshot', async () => {
+    seedDraftTripCache(tripWithStop('trip-jbp', 'Jabalpur', 'cable-car-bhedaghat', 'Jabalpur') as any);
+    const ids = await loadItineraryPlaceIdSet([]);
+    expect(ids.has('cable-car-bhedaghat')).toBe(true);
   });
 });

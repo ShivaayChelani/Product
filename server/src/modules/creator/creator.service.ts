@@ -247,22 +247,21 @@ export const creatorService = {
         include: {
           creator: { select: { id: true, username: true, avatar: true, verified: true, userId: true } },
           place: { select: { id: true, name: true } },
+          _count: { select: { comments: true, likesList: true, savesList: true } },
         },
       }),
       prisma.reel.count({ where }),
     ]);
 
-    const commentCounts = await prisma.reelComment.groupBy({
-      by: ['reelId'],
-      where: { reelId: { in: items.map(i => i.id) } },
-      _count: { _all: true },
-    });
-    const commentsByReel = new Map(commentCounts.map(c => [c.reelId, c._count._all]));
-
     return {
       items: items.map(item => ({
         ...item,
-        commentsCount: commentsByReel.get(item.id) ?? 0,
+        likes: item._count?.likesList ?? item.likes ?? 0,
+        commentsCount: item._count?.comments ?? 0,
+        saves: item._count?.savesList ?? item.saves ?? 0,
+        views: item.views ?? 0,
+        shares: item.shares ?? 0,
+        _count: undefined,
       })),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
@@ -331,16 +330,20 @@ export const creatorService = {
     const reel = await prisma.reel.findUnique({ where: { id: reelId } });
     if (!reel || reel.creatorId !== profile.id) throw new ApiError(404, 'Reel not found.');
 
-    const comments = await prisma.reelComment.count({ where: { reelId } });
+    const [comments, likes, saves] = await Promise.all([
+      prisma.reelComment.count({ where: { reelId } }),
+      prisma.reelLike.count({ where: { reelId } }),
+      prisma.reelSave.count({ where: { reelId } }),
+    ]);
     return {
       reelId,
       views: reel.views,
-      likes: reel.likes,
+      likes,
       shares: reel.shares,
-      saves: reel.saves,
+      saves,
       comments,
       engagementRate: reel.views
-        ? Number((((reel.likes + comments + reel.saves) / reel.views) * 100).toFixed(2))
+        ? Number((((likes + comments + saves) / reel.views) * 100).toFixed(2))
         : 0,
     };
   },
