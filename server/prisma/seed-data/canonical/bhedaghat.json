@@ -1,0 +1,34 @@
+{
+  "externalId": "canonical:bhedaghat",
+  "publicPlaceIdExample": "PS-IN-MP-JBP-000001",
+  "name": "Bhedaghat",
+  "description": "Bhedaghat is a renowned gorge on the Narmada River near Jabalpur, Madhya Pradesh, famous for marble-like limestone cliffs and boat rides through the Marble Rocks. The adjacent Dhuandhar Falls is a major waterfall where the river narrows and plunges with heavy mist.",
+  "shortDescription": "Marble Rocks gorge and Dhuandhar Falls on the Narmada near Jabalpur.",
+  "latitude": 23.1324,
+  "longitude": 79.8043,
+  "category": "ghat",
+  "subcategory": "river_gorge",
+  "state": "Madhya Pradesh",
+  "district": "Jabalpur",
+  "city": "Bhedaghat",
+  "country": "India",
+  "history": "The Marble Rocks (Bhedaghat) have long been a pilgrimage and sightseeing corridor on the Narmada; the Dhuandhar cascade is a well-known natural landmark in the region.",
+  "highlights": [
+    "Boat ride through Marble Rocks",
+    "Dhuandhar Falls viewpoint",
+    "Narmada gorge scenery"
+  ],
+  "searchKeywords": ["marble rocks", "narmada gorge", "jabalpur tourism"],
+  "aliases": [
+    { "alias": "Marble Rocks", "aliasType": "NICKNAME", "locale": "en" },
+    { "alias": "Marble Rock", "aliasType": "NICKNAME", "locale": "en" },
+    { "alias": "Dhuandhar Falls", "aliasType": "OFFICIAL_VARIANT", "locale": "en" },
+    { "alias": "Dhuadhar", "aliasType": "MISSPELLING", "locale": "en" },
+    { "alias": "Dhuan Dhar", "aliasType": "TRANSLITERATION", "locale": "en" },
+    { "alias": "Bheda Ghat", "aliasType": "MISSPELLING", "locale": "en" },
+    { "alias": "भेड़ाघाट", "aliasType": "LOCAL_NAME", "locale": "hi" },
+    { "alias": "मार्बल रॉक्स", "aliasType": "LOCAL_NAME", "locale": "hi" },
+    { "alias": "धुआंधार", "aliasType": "LOCAL_NAME", "locale": "hi" }
+  ],
+  "markVerified": false
+}

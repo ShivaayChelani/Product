@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Debug only (this resource replaces the release config).
+         Required for Metro (ws://localhost:8081 via adb reverse), the emulator
+         alias 10.0.2.2, and optional LAN HTTP to the local API. -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

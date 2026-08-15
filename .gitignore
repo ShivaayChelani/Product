@@ -1,0 +1,237 @@
+# Temporary Prisma recovery/debug folders
+/prisma/DELETE_ME/
+/prisma/migrations_history_20260809/
+/prisma/migrations_backup_20260809/
+
+/prisma/baseline/
+/prisma/*.sql
+
+# Temporary database inspection scripts
+/server/check-*.cjs
+/server/inspect-*.cjs
+/server/verify-*.cjs
+
+# ── Dependencies ──
+node_modules/
+.pnp
+.pnp.js
+.pnp.cjs
+.yarn/
+yarn.lock
+
+# ── Environment files (NEVER commit secrets) ──
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.staging.local
+.env.development
+.env.test
+.env.production
+.env.staging
+.env.development.*
+.env.test.*
+.env.production.*
+.env.staging.*
+.env.runtime-qa
+
+# But DO commit .env.example templates
+!.env.example
+!server/.env.example
+!admin/.env.example
+
+# ── Secrets / Credentials / Keys ──
+**/secrets/**
+**/credentials/**
+**/service-account*
+*.pem
+*.p12
+*.pfx
+*.jks
+*.key
+*.keystore
+*.cer
+*.crt
+*.cert
+*.der
+*.p7b
+*.p7r
+*.spc
+*.mobileprovision
+*.provisionprofile
+android/keystore.properties
+android/local.properties
+android/**/*.keystore
+android/palsafar-release.keystore
+android/app/google-services.json
+ios/PalSafar/GoogleService-Info.plist
+ios/.xcode.env.local
+sentry.properties.local
+src/config/monitoring.local.ts
+
+# But DO commit .example templates for Firebase configs
+!android/app/google-services.json.example
+
+# ── React Native ──
+.expo/
+*.hprof
+
+# ── Android ──
+android/app/build/
+android/build/
+android/.gradle/
+android/app/.cxx/
+android/.cxx/
+android/*.apk
+android/*.aab
+android/*.hprof
+android/hs_err_*.log
+android/last-build.log
+android/replay_pid*.log
+android/hs_err_pid*.log
+android/local.properties
+android/captures/
+android/.idea/
+
+# ── iOS ──
+ios/build/
+ios/Pods/
+ios/.xcode.env.local
+ios/PalSafar/GoogleService-Info.plist
+ios/PalSafar/*.mobileprovision
+**/xcuserdata/
+*.xcuserstate
+*.xcworkspace
+!ios/PalSafar.xcworkspace
+!ios/PalSafar.xcworkspace/**/*
+*.ipa
+*.dSYM.zip
+*.dSYM
+DerivedData/
+
+# ── Next.js (Admin Dashboard) ──
+.next/
+out/
+build/
+.next/**
+out/**
+
+# ── Node.js / Express (Server) ──
+dist/
+server/dist/
+/lib/
+es/
+
+# ── TypeScript / Build outputs ──
+*.tsbuildinfo
+next-env.d.ts
+*.js.map
+*.d.ts.map
+
+# ── Prisma ──
+.prisma/
+.cache/prisma/
+.prisma/**
+.cache/**
+server/prisma/seed-data/osm-places.json
+server/prisma/seed-data/places-wikidata.json
+server/prisma/seed-data/places-curated.json
+server/prisma/seed-data/places-geocoded.json
+server/prisma/seed-data/places-supplement.json
+
+# ── Testing / Coverage ──
+coverage/
+.coverage/
+.nyc_output/
+jest-coverage/
+
+# ── Uploaded user content ──
+server/uploads/reels/
+server/uploads/images/
+server/uploads/avatars/
+server/uploads/
+
+# ── Logs ──
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# ── Debug / Diagnostics ──
+*.hprof
+heapdump-*.heapsnapshot
+*.heapsnapshot
+core.*
+
+# ── OS files ──
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+*.swp
+*.swo
+*~
+*.orig
+
+# ── IDE / Editor ──
+.idea/
+.vscode/
+.vs/
+*.sublime-project
+*.sublime-workspace
+.jetro/
+.agents/
+.cursor/
+.gemini/
+.opencode/
+
+# ── Vercel ──
+.vercel
+.vercel/
+
+# ── Misc generated / temporary ──
+eslint_*.txt
+*-sentry.setup.txt
+status/
+scripts/check-creator.mjs
+tmp/
+temp/
+*.tmp
+*.temp
+
+# ── Sentry (local only) ──
+sentry.properties.local
+src/config/monitoring.local.ts
+
+# ── Terraform / IaC (generated) ──
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+terraform.rc
+.terraform/
+
+# ── Vite / Bundler ──
+.vite/
+
+# Temporary migration recovery files
+server/prisma/DELETE_ME/
+server/*.cjs
+server/*.js
+server/prisma/*.sql
+migrations-SAFE-COPY/
+scratch/
+
+# ── Local debug / diagnostic artifacts ──
+palsafar_crash.txt
+tombstone_*.txt
+_extract_*.txt
+parse-audit.js
+*_audit.json
+*-audit.json

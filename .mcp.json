@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "jetro": {
+      "type": "stdio",
+      "command": "C:\\Users\\SHIVAAY\\.jetro\\runtime\\node-win32-x64.exe",
+      "args": [
+        "C:\\Users\\SHIVAAY\\.jetro\\mcp-server\\index.js"
+      ],
+      "env": {
+        "JET_WORKSPACE": "d:\\PalSafar",
+        "JET_API_URL": "https://api.jetro.ai",
+        "PATH": "C:\\Users\\SHIVAAY\\.jetro\\runtime;C:\\Python314\\Scripts\\;C:\\Python314\\;C:\\Program Files\\Microsoft\\jdk-17.0.17.10-hotspot\\bin;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\Git\\cmd;C:\\ProgramData\\chocolatey\\bin;C:\\WINDOWS\\system32\\gs\\gs7.05\\bin;C:\\wamp64\\bin\\php\\php7.4.33;C:\\composer;C:\\Program Files\\nodejs\\;C:\\Program Files\\MiKTeX\\miktex\\bin\\x64\\;c:\\Users\\SHIVAAY\\AppData\\Local\\Programs\\cursor\\resources\\app\\codeBin;C:\\Users\\SHIVAAY\\.local\\bin;C:\\Users\\SHIVAAY\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\SHIVAAY\\AppData\\Roaming\\Python\\Python313\\site-packages;C:\\Users\\SHIVAAY\\AppData\\Local\\Programs\\Python\\Python313\\Scripts;C:\\Users\\SHIVAAY\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Users\\SHIVAAY\\AppData\\Local\\Android\\Sdk\\platform-tools;C:\\Users\\SHIVAAY\\AppData\\Local\\Programs\\Antigravity\\bin;C:\\Users\\SHIVAAY\\AppData\\Roaming\\npm;C:\\Users\\SHIVAAY\\AppData\\Local\\Programs\\Ollama;C:\\Users\\SHIVAAY\\AppData\\Local\\Programs\\Ollama;C:\\Users\\SHIVAAY\\AppData\\Local\\Microsoft\\WinGet\\Packages\\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe;C:\\Users\\SHIVAAY\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin"
+      }
+    }
+  }
+}

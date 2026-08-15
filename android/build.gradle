@@ -1,0 +1,37 @@
+buildscript {
+    ext {
+        buildToolsVersion = "36.0.0"
+        minSdkVersion = 24
+        compileSdkVersion = 36
+        targetSdkVersion = 36
+        ndkVersion = "27.1.12297006"
+        kotlinVersion = "2.3.0"
+    }
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle")
+        classpath("com.facebook.react:react-native-gradle-plugin:0.81.5")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+        classpath("com.google.gms:google-services:4.4.2")
+    }
+}
+
+apply plugin: "com.facebook.react.rootproject"
+
+allprojects {
+    configurations.all {
+        resolutionStrategy {
+            force "androidx.media3:media3-exoplayer:1.8.0"
+            force "androidx.media3:media3-exoplayer-dash:1.8.0"
+            force "androidx.media3:media3-exoplayer-hls:1.8.0"
+            force "androidx.media3:media3-exoplayer-smoothstreaming:1.8.0"
+            force "androidx.media3:media3-ui:1.8.0"
+            force "androidx.media3:media3-session:1.8.0"
+            force "androidx.media3:media3-datasource:1.8.0"
+            force "androidx.media3:media3-common:1.8.0"
+        }
+    }
+}

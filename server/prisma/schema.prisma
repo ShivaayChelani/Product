@@ -1,0 +1,2810 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                     String                 @id @default(cuid())
+  email                  String                 @unique
+  password               String?
+  name                   String
+  emailVerified          Boolean                @default(false) @map("email_verified")
+  bio                    String?
+  interests              String[]               @default([])
+  avatarStyle            Int                    @default(0) @map("avatar_style")
+  avatar                 String?
+  verificationStatus     VerificationStatus     @default(NONE) @map("verification_status")
+  verifiedAt             DateTime?              @map("verified_at")
+  verifiedById           String?                @map("verified_by_id")
+  createdAt              DateTime               @default(now()) @map("created_at")
+  updatedAt              DateTime               @updatedAt @map("updated_at")
+  badges                 String[]               @default([])
+  permission             Role                   @default(USER)
+  activeMode             Role                   @default(USER) @map("active_mode")
+  razorpayCustomerId     String?                @map("razorpay_customer_id")
+  aiGenerationLogs       AiGenerationLog[]
+  announcementsCreated   Announcement[]         @relation("AnnouncementCreatedBy")
+  appFeedback            AppFeedback[]
+  authAccounts           AuthAccount[]
+  audits                 AuditLog[]             @relation("AuditActor")
+  completedChallenges    ChallengeCompletion[]
+  createdChallenges      Challenge[]
+  checkIns               CheckIn[]              @relation("UserCheckIns")
+  collections            Collection[]           @relation("UserCollections")
+  couponRedemptions      CouponRedemption[]
+  creatorProfile         CreatorProfile?
+  deviceTokens           DeviceToken[]
+  followers              Follow[]               @relation("Followers")
+  following              Follow[]               @relation("Following")
+  notifications          InAppNotification[]
+  invoices               Invoice[]
+  legalVersionsAuthored  LegalDocumentVersion[] @relation("LegalVersionCreatedBy")
+  legalVersionsPublished LegalDocumentVersion[] @relation("LegalVersionPublishedBy")
+  paymentTransactions    PaymentTransaction[]
+  stats                  PlaceStat[]            @relation("UserStats")
+  approvedPlaces         Place[]                @relation("ApprovedPlaces")
+  placesLastVerified     Place[]                @relation("PlaceLastVerifiedBy")
+  submittedPlaces        Place[]                @relation("SubmittedPlaces")
+  pointBalance           PointBalance?
+  pointTransactions      PointTransaction[]
+  refundedRedemptions    Redemption[]           @relation("RefundedRedemptions")
+  redemptions            Redemption[]
+  verifiedRedemptions    Redemption[]           @relation("VerifiedRedemptions")
+  reelComments           ReelComment[]
+  reelLikes              ReelLike[]
+  reelReports            ReelReport[]
+  reelSaves              ReelSave[]
+  refreshTokens          RefreshToken[]
+  refundsProcessed       Refund[]               @relation("RefundProcessor")
+  refundsRequested       Refund[]               @relation("RefundRequester")
+  reviews                Review[]               @relation("UserReviews")
+  rewardClaims           RewardClaim[]
+  riddleSubmissions      RiddleSubmission[]
+  rideDestinations       RideDestination[]
+  rideFavorites          RideFavorite[]
+  rideHistory            RideHistory[]
+  rideRequests           RideRequest[]
+  collaborators          TripCollaborator[]
+  tripPlans              TripPlan[]             @relation("UserTrips")
+  userAppPreference      UserAppPreference?
+  blocksReceived         UserBlock[]            @relation("UserBlocksReceived")
+  blocksMade             UserBlock[]            @relation("UserBlocksMade")
+  reviewedPlaceImages    UserPlaceImage[]       @relation("reviewer")
+  userPlaceImages        UserPlaceImage[]
+  approvedUserRoles      UserRole[]             @relation("UserRoleApprover")
+  userRoles              UserRole[]             @relation("UserRoleAssignments")
+  subscriptions          UserSubscription[]
+  verifiedBy             User?                  @relation("VerifiedUsers", fields: [verifiedById], references: [id])
+  verifiedUsers          User[]                 @relation("VerifiedUsers")
+  approvedOffers         VendorOffer[]          @relation("ApprovedOffers")
+  rejectedOffers         VendorOffer[]          @relation("RejectedOffers")
+  vendorReviews          VendorReview[]         @relation("UserVendorReviews")
+  reviewedVendors        Vendor[]               @relation("VendorReviewer")
+  vendor                 Vendor?
+  walletTransactions     WalletTransaction[]
+  wallet                 Wallet?
+  user_badges            user_badges[]
+  user_streaks           user_streaks?
+  user_xp                user_xp?
+  xp_transactions        xp_transactions[]
+
+  @@index([permission])
+  @@index([activeMode])
+  @@index([verificationStatus])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model AuthAccount {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  provider          String
+  providerAccountId String   @map("provider_account_id")
+  email             String?
+  emailVerified     Boolean? @map("email_verified")
+  displayName       String?  @map("display_name")
+  avatar            String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@index([email])
+  @@map("auth_accounts")
+}
+
+model UserAppPreference {
+  userId        String   @id @map("user_id")
+  privacy       Json     @default("{}")
+  notifications Json     @default("{}")
+  security      Json     @default("{}")
+  appearance    Json     @default("{}")
+  language      String   @default("auto")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_app_preferences")
+}
+
+model UserBlock {
+  id        String   @id @default(cuid())
+  blockerId String   @map("blocker_id")
+  blockedId String   @map("blocked_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  blocked   User     @relation("UserBlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+  blocker   User     @relation("UserBlocksMade", fields: [blockerId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+  @@map("user_blocks")
+}
+
+model AppFeedback {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  category  String
+  message   String
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([category])
+  @@map("app_feedback")
+}
+
+/// Capability assignments for a single account (multi-role).
+/// Source of truth for authz; User.permission is denormalized for dual-write.
+model UserRole {
+  id             String               @id @default(cuid())
+  userId         String               @map("user_id")
+  role           Role
+  status         RoleAssignmentStatus
+  approvedById   String?              @map("approved_by_id")
+  approvedAt     DateTime?            @map("approved_at")
+  rejectedReason String?              @map("rejected_reason")
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+  retiredAt      DateTime?            @map("retired_at")
+  approvedBy     User?                @relation("UserRoleApprover", fields: [approvedById], references: [id])
+  user           User                 @relation("UserRoleAssignments", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@index([role, status])
+  @@index([userId])
+  @@map("user_roles")
+}
+
+model Vendor {
+  id                    String                   @id @default(cuid())
+  userId                String                   @unique @map("user_id")
+  businessName          String                   @map("business_name")
+  businessType          String                   @map("business_type")
+  phone                 String
+  address               String
+  city                  String
+  state                 String
+  latitude              Float?
+  longitude             Float?
+  description           String?
+  imageUrl              String?                  @map("image_url")
+  website               String?
+  operatingHours        String?                  @map("operating_hours")
+  images                String[]                 @default([])
+  status                VendorStatus             @default(PENDING)
+  rejectionReason       String?                  @map("rejection_reason")
+  reviewedById          String?                  @map("reviewed_by_id")
+  reviewedAt            DateTime?                @map("reviewed_at")
+  linkedSpotIds         String[]                 @map("linked_spot_ids")
+  services              Json?                    @map("services")
+  showOnMap             Boolean                  @default(true) @map("show_on_map")
+  showContact           Boolean                  @default(true) @map("show_contact")
+  showWebsite           Boolean                  @default(true) @map("show_website")
+  showImages            Boolean                  @default(true) @map("show_images")
+  showOffers            Boolean                  @default(true) @map("show_offers")
+  showReels             Boolean                  @default(true) @map("show_reels")
+  showNavigation        Boolean                  @default(true) @map("show_navigation")
+  createdAt             DateTime                 @default(now()) @map("created_at")
+  updatedAt             DateTime                 @updatedAt @map("updated_at")
+  vendorCode            String?                  @unique @map("vendor_code")
+  gstNumber             String?                  @map("gst_number")
+  documents             String[]                 @default([])
+  rating                Float?
+  reviewCount           Int                      @default(0) @map("review_count")
+  subscriptionStatus    VendorSubscriptionStatus @default(NONE) @map("subscription_status")
+  suspendedAt           DateTime?                @map("suspended_at")
+  vendorCodeResetCount  Int                      @default(0) @map("vendor_code_reset_count")
+  lastVendorCodeResetAt DateTime?                @map("last_vendor_code_reset_at")
+  collaborations        Collaboration[]
+  coupons               Coupon[]
+  redemptions           Redemption[]
+  socialReels           Reel[]
+  rewards               RewardCatalog[]
+  vendorDocuments       VendorDocument[]
+  offers                VendorOffer[]
+  palPointsPartner      VendorPalPointsPartner?
+  reels                 VendorReel[]
+  vendorReviews         VendorReview[]
+  reviewedBy            User?                    @relation("VendorReviewer", fields: [reviewedById], references: [id])
+  user                  User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([city])
+  @@index([state])
+  @@index([businessType])
+  @@index([latitude, longitude])
+  @@index([createdAt])
+  @@index([rating])
+  @@map("vendors")
+}
+
+model VendorOffer {
+  id                 String          @id @default(cuid())
+  vendorId           String          @map("vendor_id")
+  title              String
+  description        String?
+  discountType       String          @map("discount_type")
+  discountValue      Float           @map("discount_value")
+  pointsRequired     Int             @map("points_required")
+  minBillAmount      Float?          @map("min_bill_amount")
+  couponCode         String?         @map("coupon_code")
+  dailyLimit         Int?            @map("daily_limit")
+  validTill          String?         @map("valid_till")
+  category           String?         @map("category")
+  imageUrl           String?         @map("image_url")
+  startDate          DateTime?       @map("start_date")
+  maxRedemptions     Int?            @map("max_redemptions")
+  currentRedemptions Int             @default(0) @map("current_redemptions")
+  isFeatured         Boolean         @default(false) @map("is_featured")
+  isApproved         Boolean         @default(false) @map("is_approved")
+  approvedById       String?         @map("approved_by_id")
+  approvedAt         DateTime?       @map("approved_at")
+  isActive           Boolean         @default(true) @map("is_active")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+  banner             String?         @map("banner")
+  clickCount         Int             @default(0) @map("click_count")
+  pausedAt           DateTime?       @map("paused_at")
+  rejectedAt         DateTime?       @map("rejected_at")
+  rejectedById       String?         @map("rejected_by_id")
+  rejectionReason    String?         @map("rejection_reason")
+  viewCount          Int             @default(0) @map("view_count")
+  redemptions        Redemption[]
+  catalogEntries     RewardCatalog[]
+  approvedBy         User?           @relation("ApprovedOffers", fields: [approvedById], references: [id])
+  rejectedBy         User?           @relation("RejectedOffers", fields: [rejectedById], references: [id])
+  vendor             Vendor          @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
+  @@index([category])
+  @@index([isApproved, isActive])
+  @@map("vendor_offers")
+}
+
+model VendorReel {
+  id          String   @id @default(cuid())
+  vendorId    String   @map("vendor_id")
+  videoUrl    String   @map("video_url")
+  thumbnail   String?
+  title       String?
+  description String?
+  views       Int      @default(0)
+  likes       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
+  @@map("vendor_reels")
+}
+
+model PointBalance {
+  id             String   @id @default(cuid())
+  userId         String   @unique @map("user_id")
+  balance        Int      @default(0)
+  lifetimeEarned Int      @default(0) @map("lifetime_earned")
+  lifetimeSpent  Int      @default(0) @map("lifetime_spent")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("point_balances")
+}
+
+model PointTransaction {
+  id          String          @id @default(cuid())
+  userId      String?         @map("user_id")
+  amount      Int
+  reason      String
+  referenceId String?         @map("reference_id")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  type        TransactionType @default(EARN)
+  user        User?           @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([userId, type, createdAt])
+  @@map("point_transactions")
+}
+
+model Redemption {
+  id            String           @id @default(cuid())
+  userId        String?          @map("user_id")
+  offerId       String?          @map("offer_id")
+  vendorId      String?          @map("vendor_id")
+  pointsSpent   Int              @map("points_spent")
+  discountValue Float            @map("discount_value")
+  discountType  String           @map("discount_type")
+  qrCode        String           @unique @map("qr_code")
+  receiptNumber String?          @unique @map("receipt_number")
+  status        RedemptionStatus @default(PENDING)
+  verifiedAt    DateTime?        @map("verified_at")
+  verifiedById  String?          @map("verified_by_id")
+  refundedAt    DateTime?        @map("refunded_at")
+  refundedById  String?          @map("refunded_by_id")
+  notes         String?
+  createdAt     DateTime         @default(now()) @map("created_at")
+  token         RedemptionToken?
+  offer         VendorOffer?     @relation(fields: [offerId], references: [id])
+  refundedBy    User?            @relation("RefundedRedemptions", fields: [refundedById], references: [id])
+  user          User?            @relation(fields: [userId], references: [id])
+  vendor        Vendor?          @relation(fields: [vendorId], references: [id])
+  verifiedBy    User?            @relation("VerifiedRedemptions", fields: [verifiedById], references: [id])
+
+  @@index([offerId])
+  @@index([userId])
+  @@index([vendorId])
+  @@index([qrCode])
+  @@index([status])
+  @@index([createdAt])
+  @@index([status, offerId])
+  @@map("redemptions")
+}
+
+model ReceiptSequence {
+  year       Int @id
+  lastNumber Int @default(0) @map("last_number")
+
+  @@map("receipt_sequences")
+}
+
+model Wallet {
+  id             String              @id @default(cuid())
+  userId         String              @unique @map("user_id")
+  palPoints      Int                 @default(0) @map("pal_points")
+  lifetimeEarned Int                 @default(0) @map("lifetime_earned")
+  lifetimeSpent  Int                 @default(0) @map("lifetime_spent")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+  transactions   WalletTransaction[]
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id            String          @id @default(cuid())
+  walletId      String?         @map("wallet_id")
+  userId        String?         @map("user_id")
+  amount        Int
+  reason        String
+  referenceId   String?         @map("reference_id")
+  referenceType String?         @map("reference_type")
+  metadata      Json?           @map("metadata")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  type          TransactionType @default(EARN)
+  user          User?           @relation(fields: [userId], references: [id])
+  wallet        Wallet?         @relation(fields: [walletId], references: [id])
+
+  @@index([walletId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("wallet_transactions")
+}
+
+model RedemptionToken {
+  id           String     @id @default(cuid())
+  redemptionId String     @unique @map("redemption_id")
+  token        String     @unique
+  expiresAt    DateTime   @map("expires_at")
+  usedAt       DateTime?  @map("used_at")
+  usedById     String?    @map("used_by_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  redemption   Redemption @relation(fields: [redemptionId], references: [id], onDelete: Cascade)
+
+  @@map("redemption_tokens")
+}
+
+model PointRule {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  label       String
+  description String?
+  points      Int
+  xpAmount    Int      @default(0) @map("xp_amount")
+  category    String   @default("general")
+  isActive    Boolean  @default(true) @map("is_active")
+  cooldownSec Int?     @map("cooldown_sec")
+  maxDaily    Int?     @map("max_daily")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([category, isActive])
+  @@map("point_rules")
+}
+
+model RewardCatalog {
+  id             String       @id @default(cuid())
+  title          String
+  description    String?
+  category       String
+  pointsRequired Int          @map("points_required")
+  value          String?
+  imageUrl       String?      @map("image_url")
+  vendorId       String?      @map("vendor_id")
+  vendorOfferId  String?      @map("vendor_offer_id")
+  isActive       Boolean      @default(true) @map("is_active")
+  sortOrder      Int          @default(0) @map("sort_order")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  vendor         Vendor?      @relation(fields: [vendorId], references: [id])
+  vendorOffer    VendorOffer? @relation(fields: [vendorOfferId], references: [id])
+
+  @@index([category, isActive])
+  @@index([pointsRequired])
+  @@map("reward_catalog")
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  follower    User     @relation("Followers", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model Place {
+  id                       String                    @id @default(cuid())
+  name                     String
+  slug                     String                    @unique
+  description              String
+  shortDescription         String?                   @map("short_description")
+  latitude                 Float?
+  longitude                Float?
+  category                 String
+  tags                     String[]                  @default([])
+  images                   String[]                  @default([])
+  thumbnail                String?
+  city                     String                    @default("")
+  state                    String                    @default("")
+  country                  String                    @default("India")
+  rating                   Float?
+  reviewCount              Int                       @default(0) @map("review_count")
+  openingHours             Json?                     @map("opening_hours")
+  ticketPrice              Json?                     @map("ticket_price")
+  bestTimeToVisit          Json?                     @map("best_time_to_visit")
+  bestTimeReason           String?                   @map("best_time_reason")
+  hiddenGemScore           Float?                    @map("hidden_gem_score")
+  popularityScore          Float?                    @map("popularity_score")
+  verificationLevel        Int                       @default(0) @map("verification_level")
+  status                   PlaceStatus               @default(PENDING)
+  source                   PlaceSource               @default(HIDDEN_GEM)
+  externalId               String?                   @unique @map("external_id")
+  submittedById            String?
+  approvedById             String?
+  reviewedAt               DateTime?                 @map("reviewed_at")
+  createdAt                DateTime                  @default(now()) @map("created_at")
+  updatedAt                DateTime                  @updatedAt @map("updated_at")
+  location                 Unsupported("geometry")?
+  searchVector             Unsupported("tsvector")?  @map("search_vector")
+  rejectionReason          String?                   @map("rejection_reason")
+  accessibilityDetails     String?                   @map("accessibility_details")
+  emergencyContact         String?                   @map("emergency_contact")
+  hasParking               Boolean                   @default(false) @map("has_parking")
+  hasWashroom              Boolean                   @default(false) @map("has_washroom")
+  history                  String?
+  isAccessible             Boolean                   @default(false) @map("is_accessible")
+  isPetFriendly            Boolean                   @default(false) @map("is_pet_friendly")
+  parkingDetails           String?                   @map("parking_details")
+  recommendedDuration      String?                   @map("recommended_duration")
+  website                  String?
+  estimatedDurationMinutes Int?                      @map("estimated_duration_minutes")
+  district                 String                    @default("")
+  village                  String                    @default("")
+  fullAddress              String?                   @map("full_address")
+  subcategory              String?
+  highlights               Json?
+  searchKeywords           String[]                  @default([]) @map("search_keywords")
+  dataQuality              PlaceDataQuality          @default(DRAFT) @map("data_quality")
+  featuredScore            Float?                    @map("featured_score")
+  verificationScore        Float?                    @map("verification_score")
+  lastVerifiedAt           DateTime?                 @map("last_verified_at") @db.Timestamptz(6)
+  googleMapsUrl            String?                   @map("google_maps_url")
+  mergedIntoId             String?                   @map("merged_into_id")
+  publicPlaceId            String?                   @unique @map("public_place_id")
+  tehsil                   String                    @default("")
+  postalCode               String                    @default("") @map("postal_code")
+  elevationMeters          Float?                    @map("elevation_meters")
+  geohash                  String?
+  plusCode                 String?                   @map("plus_code")
+  unescoStatus             String?                   @map("unesco_status")
+  heritageStatus           String?                   @map("heritage_status")
+  religiousType            String?                   @map("religious_type")
+  naturalCultural          String?                   @map("natural_cultural")
+  qualityScore             Float?                    @map("quality_score")
+  confidenceScore          Float?                    @map("confidence_score")
+  trendingScore            Float?                    @map("trending_score")
+  bayesianRating           Float?                    @map("bayesian_rating")
+  lastVerifiedById         String?                   @map("last_verified_by_id")
+  embeddingStatus          PlaceEmbeddingStatus      @default(PENDING) @map("embedding_status")
+  embeddingVersion         String?                   @map("embedding_version")
+  embeddingUpdatedAt       DateTime?                 @map("embedding_updated_at")
+  editorialPriority        Int                       @default(3) @map("editorial_priority")
+  audits                   AuditLog[]
+  checkIns                 CheckIn[]
+  collections              CollectionPlace[]
+  aliases                  PlaceAlias[]
+  boundaryValidations      PlaceBoundaryValidation[]
+  changeHistory            PlaceChangeHistory[]
+  duplicateCandidatesA     PlaceDuplicateCandidate[] @relation("DupPlaceA")
+  duplicateCandidatesB     PlaceDuplicateCandidate[] @relation("DupPlaceB")
+  events                   PlaceEvent[]
+  fieldProvenance          PlaceFieldProvenance[]
+  placeImages              PlaceImage[]
+  mergeEventsAsCanonical   PlaceMergeLog[]           @relation("MergeCanonical")
+  mergeEventsAsMerged      PlaceMergeLog[]           @relation("MergeDuplicate")
+  offers                   PlaceOffer[]
+  qualityChecks            PlaceQualityCheck[]
+  relationshipsFrom        PlaceRelationship[]       @relation("PlaceRelFrom")
+  relationshipsTo          PlaceRelationship[]       @relation("PlaceRelTo")
+  searchEmbedding          PlaceSearchEmbedding?
+  stats                    PlaceStat[]
+  translations             PlaceTranslation[]
+  verificationLogs         PlaceVerificationLog[]
+  versions                 PlaceVersion[]
+  placeVideos              PlaceVideo[]
+  approvedBy               User?                     @relation("ApprovedPlaces", fields: [approvedById], references: [id])
+  lastVerifiedBy           User?                     @relation("PlaceLastVerifiedBy", fields: [lastVerifiedById], references: [id])
+  mergedInto               Place?                    @relation("PlaceCanonicalMerge", fields: [mergedIntoId], references: [id])
+  mergedDuplicates         Place[]                   @relation("PlaceCanonicalMerge")
+  submittedBy              User?                     @relation("SubmittedPlaces", fields: [submittedById], references: [id])
+  reels                    Reel[]
+  reviews                  Review[]
+  tripStops                TripPlanStop[]
+  userPlaceImages          UserPlaceImage[]
+
+  @@index([publicPlaceId])
+  @@index([embeddingStatus])
+  @@index([dataQuality])
+  @@index([mergedIntoId])
+  @@index([district])
+  @@index([category])
+  @@index([latitude, longitude])
+  @@index([submittedById])
+  @@index([source])
+  @@index([externalId])
+  @@index([city])
+  @@index([state])
+  @@index([city, state])
+  @@index([popularityScore])
+  @@index([hiddenGemScore])
+  @@index([rating])
+  @@index([createdAt])
+  @@index([status, category])
+  @@index([source, status])
+  @@index([status, latitude, longitude])
+  @@index([searchVector], type: Gin)
+  @@index([editorialPriority])
+  @@index([geohash])
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "places_name_trgm_idx", type: Gin)
+  @@index([searchVector], map: "places_search_idx", type: Gin)
+  @@index([status])
+  @@map("places")
+}
+
+model PlaceImage {
+  id                  String                  @id @default(cuid())
+  placeId             String                  @map("place_id")
+  url                 String
+  caption             String?
+  isPrimary           Boolean                 @default(false) @map("is_primary")
+  order               Int                     @default(0)
+  createdAt           DateTime                @default(now()) @map("created_at")
+  license             String?
+  licenseUrl          String?                 @map("license_url")
+  attribution         String?
+  photographer        String?
+  sourceUrl           String?                 @map("source_url")
+  verificationStatus  ImageVerificationStatus @default(UNVERIFIED) @map("verification_status")
+  owner               String?
+  copyrightNotice     String?                 @map("copyright_notice")
+  licenseExpiresAt    DateTime?               @map("license_expires_at") @db.Timestamptz(6)
+  commercialUse       Boolean?                @map("commercial_use")
+  modificationAllowed Boolean?                @map("modification_allowed")
+  perceptualHash      String?                 @map("perceptual_hash")
+  widthPx             Int?                    @map("width_px")
+  heightPx            Int?                    @map("height_px")
+  qualityScore        Float?                  @map("quality_score")
+  place               Place                   @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@index([placeId])
+  @@index([placeId, url])
+  @@map("place_images")
+}
+
+model PlaceAlias {
+  id              String         @id @default(cuid())
+  placeId         String         @map("place_id")
+  alias           String
+  normalizedAlias String         @map("normalized_alias")
+  locale          String?
+  aliasType       PlaceAliasType @default(SEARCH_KEYWORD) @map("alias_type")
+  source          String?
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  place           Place          @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@unique([placeId, normalizedAlias])
+  @@index([normalizedAlias])
+  @@index([placeId])
+  @@index([alias(ops: raw("gin_trgm_ops"))], map: "place_aliases_alias_trgm_idx", type: Gin)
+  @@map("place_aliases")
+}
+
+model PlaceMergeLog {
+  id               String   @id @default(cuid())
+  canonicalPlaceId String   @map("canonical_place_id")
+  mergedPlaceId    String   @map("merged_place_id")
+  mergedById       String?  @map("merged_by_id")
+  reason           String?
+  preservedAliases Json?    @map("preserved_aliases")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  canonicalPlace   Place    @relation("MergeCanonical", fields: [canonicalPlaceId], references: [id], onDelete: Cascade)
+  mergedPlace      Place    @relation("MergeDuplicate", fields: [mergedPlaceId], references: [id], onDelete: Cascade)
+
+  @@index([canonicalPlaceId])
+  @@index([mergedPlaceId])
+  @@map("place_merge_logs")
+}
+
+model PlacePublicIdSequence {
+  prefix    String @id
+  lastValue Int    @default(0) @map("last_value")
+
+  @@map("place_public_id_sequences")
+}
+
+model PlaceFieldProvenance {
+  id           String    @id @default(cuid())
+  placeId      String    @map("place_id")
+  fieldName    String    @map("field_name")
+  valueJson    Json?     @map("value_json")
+  sourceType   String    @map("source_type")
+  sourceUri    String?   @map("source_uri")
+  confidence   Float?
+  verifiedById String?   @map("verified_by_id")
+  verifiedAt   DateTime? @map("verified_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  place        Place     @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@index([placeId, fieldName])
+  @@map("place_field_provenance")
+}
+
+model PlaceVersion {
+  id            String   @id @default(cuid())
+  placeId       String   @map("place_id")
+  versionNumber Int      @map("version_number")
+  snapshot      Json
+  changeSummary String?  @map("change_summary")
+  createdById   String?  @map("created_by_id")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  place         Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@unique([placeId, versionNumber])
+  @@map("place_versions")
+}
+
+model PlaceRelationship {
+  id               String                @id @default(cuid())
+  fromPlaceId      String                @map("from_place_id")
+  toPlaceId        String                @map("to_place_id")
+  relationshipType PlaceRelationshipType @map("relationship_type")
+  metadata         Json?
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  fromPlace        Place                 @relation("PlaceRelFrom", fields: [fromPlaceId], references: [id], onDelete: Cascade)
+  toPlace          Place                 @relation("PlaceRelTo", fields: [toPlaceId], references: [id], onDelete: Cascade)
+
+  @@unique([fromPlaceId, toPlaceId, relationshipType], map: "place_relationships_from_to_type_key")
+  @@index([toPlaceId])
+  @@map("place_relationships")
+}
+
+model PlaceQualityCheck {
+  id        String   @id @default(cuid())
+  placeId   String   @map("place_id")
+  checkCode String   @map("check_code")
+  passed    Boolean
+  details   Json?
+  checkedAt DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
+  place     Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@index([placeId, checkCode])
+  @@map("place_quality_checks")
+}
+
+model PlaceDuplicateCandidate {
+  id              String                   @id @default(cuid())
+  placeAId        String                   @map("place_a_id")
+  placeBId        String                   @map("place_b_id")
+  confidenceScore Float                    @map("confidence_score")
+  status          DuplicateCandidateStatus @default(OPEN)
+  signals         Json?
+  createdAt       DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  resolvedAt      DateTime?                @map("resolved_at") @db.Timestamptz(6)
+  placeA          Place                    @relation("DupPlaceA", fields: [placeAId], references: [id], onDelete: Cascade)
+  placeB          Place                    @relation("DupPlaceB", fields: [placeBId], references: [id], onDelete: Cascade)
+
+  @@unique([placeAId, placeBId], map: "place_duplicate_candidates_a_b_key")
+  @@index([status, confidenceScore], map: "place_duplicate_candidates_status_score_idx")
+  @@map("place_duplicate_candidates")
+}
+
+model PlaceChangeHistory {
+  id        String   @id @default(cuid())
+  placeId   String   @map("place_id")
+  actorId   String?  @map("actor_id")
+  action    String
+  before    Json?
+  after     Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  place     Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@index([placeId, createdAt])
+  @@map("place_change_history")
+}
+
+model PlaceVerificationLog {
+  id                String   @id @default(cuid())
+  placeId           String   @map("place_id")
+  verifiedById      String?  @map("verified_by_id")
+  verificationScore Float?   @map("verification_score")
+  qualityScore      Float?   @map("quality_score")
+  notes             String?
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  place             Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@index([placeId])
+  @@map("place_verification_logs")
+}
+
+model PlaceTranslation {
+  id        String   @id @default(cuid())
+  placeId   String   @map("place_id")
+  locale    String
+  fieldName String   @map("field_name")
+  text      String
+  source    String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  place     Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@unique([placeId, locale, fieldName], map: "place_translations_place_locale_field_key")
+  @@index([locale])
+  @@map("place_translations")
+}
+
+model PlaceBoundaryValidation {
+  id            String   @id @default(cuid())
+  placeId       String   @map("place_id")
+  withinIndia   Boolean  @map("within_india")
+  stateValid    Boolean? @map("state_valid")
+  districtValid Boolean? @map("district_valid")
+  method        String   @default("bbox")
+  details       Json?
+  validatedAt   DateTime @default(now()) @map("validated_at") @db.Timestamptz(6)
+  place         Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@index([placeId, validatedAt])
+  @@map("place_boundary_validation")
+}
+
+model AdMobSsvEvent {
+  id            String   @id @default(cuid())
+  transactionId String   @unique @map("transaction_id")
+  userId        String   @map("user_id")
+  adUnit        String   @map("ad_unit")
+  rewardItem    String?  @map("reward_item")
+  rewardAmount  Int?     @map("reward_amount")
+  timestamp     String?  @map("timestamp")
+  processedAt   DateTime @default(now()) @map("processed_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("admob_ssv_events")
+}
+
+model PlaceSearchEmbedding {
+  placeId   String   @id @map("place_id")
+  model     String
+  embedding Float[]
+  updatedAt DateTime @updatedAt @map("updated_at")
+  place     Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@map("place_search_embeddings")
+}
+
+/// Tombstone so admin-deleted places are never recreated by seed/import.
+model DeletedPlaceRef {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  curatedId   String?  @map("curated_id")
+  name        String
+  city        String   @default("")
+  state       String   @default("")
+  externalId  String?  @map("external_id")
+  deletedById String?  @map("deleted_by_id")
+  deletedAt   DateTime @default(now()) @map("deleted_at")
+
+  @@index([curatedId])
+  @@index([name, city, state])
+  @@index([externalId])
+  @@map("deleted_place_refs")
+}
+
+model UserPlaceImage {
+  id            String    @id @default(cuid())
+  placeId       String    @map("place_id")
+  userId        String    @map("user_id")
+  url           String
+  status        String    @default("pending")
+  pointsAwarded Boolean   @default(false) @map("points_awarded")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  reviewedAt    DateTime? @map("reviewed_at")
+  reviewedBy    String?   @map("reviewed_by")
+  place         Place     @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  reviewer      User?     @relation("reviewer", fields: [reviewedBy], references: [id])
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([placeId])
+  @@index([userId])
+  @@index([status])
+  @@map("user_place_images")
+}
+
+model PlaceVideo {
+  id        String   @id @default(cuid())
+  placeId   String   @map("place_id")
+  url       String
+  thumbnail String?
+  title     String?
+  duration  Int?
+  order     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  place     Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@index([placeId])
+  @@map("place_videos")
+}
+
+model PlaceOffer {
+  id          String    @id @default(cuid())
+  placeId     String    @map("place_id")
+  title       String
+  description String?
+  discount    String?
+  validFrom   DateTime? @map("valid_from")
+  validUntil  DateTime? @map("valid_until")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  place       Place     @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@index([placeId])
+  @@map("place_offers")
+}
+
+model PlaceEvent {
+  id          String    @id @default(cuid())
+  placeId     String    @map("place_id")
+  title       String
+  description String?
+  imageUrl    String?   @map("image_url")
+  startDate   DateTime  @map("start_date")
+  endDate     DateTime? @map("end_date")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  place       Place     @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  reels       Reel[]
+
+  @@index([placeId])
+  @@index([startDate])
+  @@map("place_events")
+}
+
+model Review {
+  id           String                  @id @default(cuid())
+  placeId      String                  @map("place_id")
+  userId       String                  @map("user_id")
+  rating       Int
+  content      String?
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+  status       ContentModerationStatus @default(APPROVED)
+  helpfulVotes Int                     @default(0) @map("helpful_votes")
+  photos       String[]                @default([])
+  place        Place                   @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  user         User                    @relation("UserReviews", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([placeId, userId])
+  @@index([placeId])
+  @@index([userId])
+  @@index([rating])
+  @@index([createdAt])
+  @@map("reviews")
+}
+
+model VendorReview {
+  id           String                  @id @default(cuid())
+  vendorId     String                  @map("vendor_id")
+  userId       String                  @map("user_id")
+  rating       Int
+  content      String?
+  photos       String[]                @default([])
+  helpfulVotes Int                     @default(0) @map("helpful_votes")
+  status       ContentModerationStatus @default(APPROVED)
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+  user         User                    @relation("UserVendorReviews", fields: [userId], references: [id], onDelete: Cascade)
+  vendor       Vendor                  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, userId])
+  @@index([vendorId])
+  @@index([userId])
+  @@index([rating])
+  @@index([createdAt])
+  @@map("vendor_reviews")
+}
+
+model CheckIn {
+  id        String   @id @default(cuid())
+  placeId   String   @map("place_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  place     Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  user      User     @relation("UserCheckIns", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([placeId, userId])
+  @@index([placeId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([createdAt, userId])
+  @@index([placeId, userId])
+  @@map("check_ins")
+}
+
+model PlaceStat {
+  id        String   @id @default(cuid())
+  placeId   String
+  userId    String?
+  action    String   @default("view")
+  metadata  Json?    @map("metadata")
+  createdAt DateTime @default(now()) @map("created_at")
+  place     Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  user      User?    @relation("UserStats", fields: [userId], references: [id])
+
+  @@index([placeId])
+  @@index([action])
+  @@index([userId])
+  @@index([placeId, action])
+  @@index([createdAt])
+  @@map("place_stats")
+}
+
+model Collection {
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  isPublic    Boolean           @default(true) @map("is_public")
+  userId      String            @map("user_id")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  places      CollectionPlace[]
+  user        User              @relation("UserCollections", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("collections")
+}
+
+model CollectionPlace {
+  id           String     @id @default(cuid())
+  collectionId String     @map("collection_id")
+  placeId      String     @map("place_id")
+  note         String?
+  addedAt      DateTime   @default(now()) @map("added_at")
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  place        Place      @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, placeId])
+  @@map("collection_places")
+}
+
+model TripPlan {
+  id                 String             @id @default(cuid())
+  title              String
+  description        String?
+  userId             String             @map("user_id")
+  days               Int                @default(1)
+  isPublished        Boolean            @default(false) @map("is_published")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+  accommodation      String?
+  budget             String?
+  coverImage         String?            @map("cover_image")
+  destination        String?
+  endDate            DateTime?          @map("end_date")
+  interests          String[]           @default([])
+  startDate          DateTime?          @map("start_date")
+  status             TripStatus         @default(DRAFT)
+  totalDistance      Float?             @map("total_distance")
+  totalTravelTime    Int?               @map("total_travel_time")
+  transportation     String[]           @default([])
+  travelers          String?
+  completedAt        DateTime?          @map("completed_at")
+  currentDayIndex    Int?               @map("current_day_index")
+  currentStopIndex   Int?               @map("current_stop_index")
+  startedAt          DateTime?          @map("started_at")
+  pace               TravelPace         @default(BALANCED)
+  timePreference     TimePreference?    @map("time_preference")
+  avoid              AvoidOption[]      @default([])
+  estimatedBudget    Float?             @map("estimated_budget")
+  customBudgetAmount Float?             @map("custom_budget_amount")
+  generationSource   GenerationSource   @default(MANUAL) @map("generation_source")
+  aiPrompt           String?            @map("ai_prompt")
+  aiPreferences      Json?              @map("ai_preferences")
+  generatedAt        DateTime?          @map("generated_at")
+  aiGenerationLogs   AiGenerationLog[]
+  collaborators      TripCollaborator[]
+  tripDays           TripPlanDay[]
+  user               User               @relation("UserTrips", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, status])
+  @@map("trip_plans")
+}
+
+model TripPlanDay {
+  id         String         @id @default(cuid())
+  tripPlanId String         @map("trip_plan_id")
+  dayNumber  Int            @map("day_number")
+  theme      String?
+  date       DateTime?
+  tripPlan   TripPlan       @relation(fields: [tripPlanId], references: [id], onDelete: Cascade)
+  stops      TripPlanStop[]
+
+  @@unique([tripPlanId, dayNumber])
+  @@map("trip_plan_days")
+}
+
+model TripPlanStop {
+  id               String      @id @default(cuid())
+  tripPlanDayId    String      @map("trip_plan_day_id")
+  placeId          String      @map("place_id")
+  order            Int
+  timeSlot         TimeSlot?   @map("time_slot")
+  notes            String?
+  cost             Float?
+  endTime          String?     @map("end_time")
+  startTime        String?     @map("start_time")
+  transportMode    String?     @map("transport_mode")
+  distanceFromPrev Float?      @map("distance_from_prev")
+  duration         Int?
+  skippedAt        DateTime?   @map("skipped_at")
+  visitedAt        DateTime?   @map("visited_at")
+  entryFee         Float?      @map("entry_fee")
+  reason           String?
+  isPinned         Boolean     @default(false) @map("is_pinned")
+  place            Place       @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  tripPlanDay      TripPlanDay @relation(fields: [tripPlanDayId], references: [id], onDelete: Cascade)
+
+  @@unique([tripPlanDayId, placeId])
+  @@index([tripPlanDayId])
+  @@index([tripPlanDayId, order])
+  @@map("trip_plan_stops")
+}
+
+model TripCollaborator {
+  id         String   @id @default(cuid())
+  tripPlanId String   @map("trip_plan_id")
+  userId     String   @map("user_id")
+  role       String   @default("EDITOR")
+  tripPlan   TripPlan @relation(fields: [tripPlanId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tripPlanId, userId])
+  @@map("trip_collaborators")
+}
+
+/// Audit trail for AI itinerary generation requests — persists even for
+/// failed/ephemeral generations, and backs "regenerate history".
+model AiGenerationLog {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  tripPlanId    String?   @map("trip_plan_id")
+  prompt        Json
+  rawPromptText String?   @map("raw_prompt_text")
+  provider      String
+  success       Boolean
+  errorMessage  String?   @map("error_message")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  tripPlan      TripPlan? @relation(fields: [tripPlanId], references: [id])
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tripPlanId])
+  @@index([createdAt])
+  @@map("ai_generation_logs")
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  action     AuditAction
+  entityType String      @map("entity_type")
+  entityId   String      @map("entity_id")
+  actorId    String?     @map("actor_id")
+  placeId    String?
+  previous   Json?       @map("previous_values")
+  newValues  Json?       @map("new_values")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  actor      User?       @relation("AuditActor", fields: [actorId], references: [id])
+  place      Place?      @relation(fields: [placeId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([actorId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String    @map("user_id")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model SyncQueue {
+  id          String     @id @default(cuid())
+  userId      String     @map("user_id")
+  action      String
+  entityType  String     @map("entity_type")
+  payload     Json
+  status      SyncStatus @default(PENDING)
+  error       String?
+  retryCount  Int        @default(0) @map("retry_count")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  processedAt DateTime?  @map("processed_at")
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@map("sync_queue")
+}
+
+model DeviceToken {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  platform  String   @default("unknown")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("device_tokens")
+}
+
+model InAppNotification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  type      String
+  title     String
+  body      String?
+  data      Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@map("in_app_notifications")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
+}
+
+model CreatorProfile {
+  id                  String               @id @default(cuid())
+  userId              String               @unique @map("user_id")
+  username            String               @unique
+  bio                 String?
+  avatar              String?
+  followerCount       Int                  @default(0) @map("follower_count")
+  totalViews          Int                  @default(0) @map("total_views")
+  verified            Boolean              @default(false)
+  status              CreatorStatus        @default(PENDING)
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+  applicationReason   String?              @map("application_reason")
+  fullName            String?              @map("full_name")
+  instagramUrl        String?              @map("instagram_url")
+  sampleReelUrl       String?              @map("sample_reel_url")
+  travelCategories    String[]             @default([]) @map("travel_categories")
+  youtubeUrl          String?              @map("youtube_url")
+  facebookUrl         String?              @map("facebook_url")
+  languages           String[]             @default([])
+  governmentIdUrl     String?              @map("government_id_url")
+  portfolioLinks      String[]             @default([]) @map("portfolio_links")
+  rejectionReason     String?              @map("rejection_reason")
+  membershipPlanId    String?              @map("membership_plan_id")
+  membershipExpiresAt DateTime?            @map("membership_expires_at")
+  uploadLimit         Int?                 @map("upload_limit")
+  collaborations      Collaboration[]
+  dailyRewards        CreatorDailyReward[]
+  membershipPlan      SubscriptionPlan?    @relation("CreatorMembershipPlan", fields: [membershipPlanId], references: [id])
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reels               Reel[]
+
+  @@index([status])
+  @@index([verified])
+  @@index([followerCount])
+  @@index([membershipPlanId])
+  @@map("creator_profiles")
+}
+
+model Reel {
+  id              String                   @id @default(cuid())
+  creatorId       String                   @map("creator_id")
+  videoUrl        String                   @map("video_url")
+  thumbnail       String?
+  title           String?
+  description     String?
+  likes           Int                      @default(0)
+  views           Int                      @default(0)
+  shares          Int                      @default(0)
+  saves           Int                      @default(0)
+  featured        Boolean                  @default(false)
+  placeId         String?                  @map("place_id")
+  vendorId        String?                  @map("vendor_id")
+  eventId         String?                  @map("event_id")
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  updatedAt       DateTime                 @updatedAt @map("updated_at")
+  category        String?
+  searchVector    Unsupported("tsvector")? @map("search_vector")
+  status          ReelStatus               @default(APPROVED)
+  scheduledAt     DateTime?                @map("scheduled_at")
+  collaborationId String?                  @unique @map("collaboration_id")
+  isCollaboration Boolean                  @default(false) @map("is_collaboration")
+  dailyReward     CreatorDailyReward?
+  comments        ReelComment[]
+  likesList       ReelLike[]
+  reports         ReelReport[]
+  savesList       ReelSave[]
+  collaboration   Collaboration?           @relation(fields: [collaborationId], references: [id])
+  creator         CreatorProfile           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  event           PlaceEvent?              @relation(fields: [eventId], references: [id])
+  place           Place?                   @relation(fields: [placeId], references: [id])
+  vendor          Vendor?                  @relation(fields: [vendorId], references: [id])
+
+  @@index([creatorId])
+  @@index([placeId])
+  @@index([vendorId])
+  @@index([collaborationId])
+  @@index([isCollaboration])
+  @@index([eventId])
+  @@index([featured])
+  @@index([views])
+  @@index([likes])
+  @@index([searchVector], type: Gin)
+  @@index([status])
+  @@index([category])
+  @@index([createdAt])
+  @@map("reels")
+}
+
+model ReelReport {
+  id        String           @id @default(cuid())
+  reelId    String           @map("reel_id")
+  userId    String           @map("user_id")
+  reason    String
+  status    ReelReportStatus @default(PENDING)
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+  reel      Reel             @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([reelId])
+  @@index([userId])
+  @@index([status])
+  @@map("reel_reports")
+}
+
+model CreatorDailyReward {
+  id         String         @id @default(cuid())
+  creatorId  String         @map("creator_id")
+  userId     String         @map("user_id")
+  reelId     String         @unique @map("reel_id")
+  rewardDate String         @map("reward_date")
+  points     Int            @default(100)
+  createdAt  DateTime       @default(now()) @map("created_at")
+  creator    CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  reel       Reel           @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  @@unique([creatorId, rewardDate])
+  @@index([userId])
+  @@index([rewardDate])
+  @@map("creator_daily_rewards")
+}
+
+model ReelComment {
+  id        String   @id @default(cuid())
+  reelId    String   @map("reel_id")
+  userId    String   @map("user_id")
+  text      String
+  createdAt DateTime @default(now()) @map("created_at")
+  reel      Reel     @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([reelId])
+  @@index([userId])
+  @@map("reel_comments")
+}
+
+model ReelLike {
+  id        String   @id @default(cuid())
+  reelId    String   @map("reel_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  reel      Reel     @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reelId, userId])
+  @@index([reelId])
+  @@index([userId])
+  @@map("reel_likes")
+}
+
+model ReelSave {
+  id        String   @id @default(cuid())
+  reelId    String   @map("reel_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  reel      Reel     @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reelId, userId])
+  @@index([reelId])
+  @@index([userId])
+  @@map("reel_saves")
+}
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  category    String   @default("general")
+  key         String   @unique
+  value       Json
+  label       String
+  description String?
+  type        String   @default("string")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
+model NotificationTemplate {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  title     String
+  body      String?
+  type      String   @default("system")
+  category  String   @default("general")
+  variables Json     @default("[]")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("notification_templates")
+}
+
+model Riddle {
+  id               String             @id @default(cuid())
+  title            String
+  /// The riddle/clue text shown to user
+  clue             String
+  /// Optional image hint
+  hintImage        String?            @map("hint_image")
+  /// Admin-known answer (shown on reject)
+  correctPlaceName String             @map("correct_place_name")
+  correctLat       Float?             @map("correct_lat")
+  correctLng       Float?             @map("correct_lng")
+  /// City this riddle targets
+  city             String
+  rewardPoints     Int                @default(100) @map("reward_points")
+  isActive         Boolean            @default(true) @map("is_active")
+  startsAt         DateTime           @map("starts_at")
+  endsAt           DateTime?          @map("ends_at")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  submissions      RiddleSubmission[]
+
+  @@index([city, isActive])
+  @@index([isActive, startsAt, endsAt])
+  @@map("riddles")
+}
+
+/// A user's photo submission attempt for a Riddle.
+model RiddleSubmission {
+  id            String                 @id @default(cuid())
+  riddleId      String                 @map("riddle_id")
+  userId        String                 @map("user_id")
+  photoUrl      String                 @map("photo_url")
+  status        RiddleSubmissionStatus @default(PENDING)
+  /// Correct location text shown on reject
+  adminComment  String?                @map("admin_comment")
+  pointsAwarded Int                    @default(0) @map("points_awarded")
+  reviewedAt    DateTime?              @map("reviewed_at")
+  reviewedById  String?                @map("reviewed_by_id")
+  createdAt     DateTime               @default(now()) @map("created_at")
+  riddle        Riddle                 @relation(fields: [riddleId], references: [id], onDelete: Cascade)
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([riddleId, userId])
+  @@index([riddleId])
+  @@index([userId])
+  @@index([status])
+  @@map("riddle_submissions")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+model RewardCampaign {
+  id                   String         @id @default(cuid())
+  name                 String
+  description          String
+  imageUrl             String?        @map("image_url")
+  pointsRequired       Int            @map("points_required")
+  totalWinnerSlots     Int            @map("total_winner_slots")
+  remainingWinnerSlots Int            @map("remaining_winner_slots")
+  maxClaimsPerUser     Int            @default(1) @map("max_claims_per_user")
+  startDate            DateTime       @map("start_date")
+  endDate              DateTime       @map("end_date")
+  status               CampaignStatus @default(DRAFT)
+  termsAndConditions   String?        @map("terms_and_conditions")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+  claims               RewardClaim[]
+
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("reward_campaigns")
+}
+
+model RewardClaim {
+  id           String         @id @default(cuid())
+  userId       String         @map("user_id")
+  campaignId   String         @map("campaign_id")
+  redemptionId String         @unique @map("redemption_id")
+  pointsSpent  Int            @map("points_spent")
+  status       ClaimStatus    @default(PENDING)
+  notes        String?
+  claimedAt    DateTime       @default(now()) @map("claimed_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  campaign     RewardCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([campaignId])
+  @@index([status])
+  @@map("reward_claims")
+}
+
+model Challenge {
+  id               String                @id @default(cuid())
+  title            String
+  description      String
+  difficulty       ChallengeDifficulty
+  category         String
+  proofRequired    ChallengeProofType    @map("proof_required")
+  status           ChallengeStatus       @default(PENDING)
+  rejectionReason  String?               @map("rejection_reason")
+  creatorId        String?               @map("creator_id")
+  isFeatured       Boolean               @default(false) @map("is_featured")
+  isTrending       Boolean               @default(false) @map("is_trending")
+  completionsCount Int                   @default(0) @map("completions_count")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+  completions      ChallengeCompletion[]
+  creator          User?                 @relation(fields: [creatorId], references: [id])
+
+  @@index([status])
+  @@index([category])
+  @@index([difficulty])
+  @@index([creatorId])
+  @@map("challenges")
+}
+
+model ChallengeCompletion {
+  id          String    @id @default(cuid())
+  challengeId String    @map("challenge_id")
+  userId      String    @map("user_id")
+  proofUrl    String?   @map("proof_url")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, userId])
+  @@index([challengeId])
+  @@index([userId])
+  @@map("challenge_completions")
+}
+
+model SearchQueryLog {
+  id          String   @id @default(cuid())
+  query       String
+  resultCount Int      @default(0) @map("result_count")
+  userId      String?  @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([query])
+  @@index([createdAt])
+  @@map("search_query_logs")
+}
+
+/// One row per (document type, locale) — the addressable "slot" that always has
+/// at most one PUBLISHED version at a time. Content itself lives in LegalDocumentVersion
+/// so every edit is versioned and nothing is ever destructively overwritten.
+model LegalDocument {
+  id        String                 @id @default(cuid())
+  type      LegalDocumentType
+  locale    String                 @default("en")
+  createdAt DateTime               @default(now()) @map("created_at")
+  updatedAt DateTime               @updatedAt @map("updated_at")
+  versions  LegalDocumentVersion[]
+
+  @@unique([type, locale])
+  @@index([type])
+  @@map("legal_documents")
+}
+
+model LegalDocumentVersion {
+  id            String             @id @default(cuid())
+  documentId    String             @map("document_id")
+  versionNumber Int                @map("version_number")
+  title         String
+  content       String
+  format        LegalContentFormat @default(MARKDOWN)
+  status        LegalVersionStatus @default(DRAFT)
+  effectiveDate DateTime?          @map("effective_date")
+  changeSummary String?            @map("change_summary")
+  createdById   String?            @map("created_by_id")
+  publishedById String?            @map("published_by_id")
+  publishedAt   DateTime?          @map("published_at")
+  archivedAt    DateTime?          @map("archived_at")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  createdBy     User?              @relation("LegalVersionCreatedBy", fields: [createdById], references: [id])
+  document      LegalDocument      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  publishedBy   User?              @relation("LegalVersionPublishedBy", fields: [publishedById], references: [id])
+
+  @@unique([documentId, versionNumber])
+  @@index([documentId, status])
+  @@index([status])
+  @@map("legal_document_versions")
+}
+
+/// Admin-authored in-app banners/notices (separate from push notifications — these
+/// are pulled by clients on demand and shown while active, not delivered as events).
+model Announcement {
+  id          String               @id @default(cuid())
+  title       String
+  body        String
+  severity    AnnouncementSeverity @default(INFO)
+  audience    AnnouncementAudience @default(ALL)
+  isActive    Boolean              @default(true)
+  startsAt    DateTime?            @map("starts_at")
+  endsAt      DateTime?            @map("ends_at")
+  linkUrl     String?              @map("link_url")
+  linkLabel   String?              @map("link_label")
+  createdById String?              @map("created_by_id")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  createdBy   User?                @relation("AnnouncementCreatedBy", fields: [createdById], references: [id])
+
+  @@index([isActive])
+  @@index([audience])
+  @@index([startsAt, endsAt])
+  @@map("announcements")
+}
+
+model SubscriptionPlan {
+  id                     String                  @id @default(cuid())
+  audience               PlanAudience
+  name                   String
+  slug                   String                  @unique
+  description            String?
+  badge                  String?
+  color                  String?                 @default("#B9834B")
+  status                 PlanStatus              @default(DRAFT)
+  sortOrder              Int                     @default(0) @map("sort_order")
+  /// Legacy feature/limits JSON — synced from plan_limits / plan_permissions for clients
+  features               Json                    @default("{}")
+  trialDays              Int                     @default(0) @map("trial_days")
+  gracePeriodDays        Int                     @default(3) @map("grace_period_days")
+  googleProductIdMonthly String?                 @map("google_product_id_monthly")
+  googleProductIdYearly  String?                 @map("google_product_id_yearly")
+  appleProductIdMonthly  String?                 @map("apple_product_id_monthly")
+  appleProductIdYearly   String?                 @map("apple_product_id_yearly")
+  razorpayPlanIdMonthly  String?                 @map("razorpay_plan_id_monthly")
+  razorpayPlanIdYearly   String?                 @map("razorpay_plan_id_yearly")
+  createdAt              DateTime                @default(now()) @map("created_at")
+  updatedAt              DateTime                @updatedAt @map("updated_at")
+  iconUrl                String?                 @map("icon_url")
+  bannerUrl              String?                 @map("banner_url")
+  promoText              String?                 @map("promo_text")
+  isMostPopular          Boolean                 @default(false) @map("is_most_popular")
+  isBestValue            Boolean                 @default(false) @map("is_best_value")
+  isRecommended          Boolean                 @default(false) @map("is_recommended")
+  scheduledActivateAt    DateTime?               @map("scheduled_activate_at")
+  scheduledExpireAt      DateTime?               @map("scheduled_expire_at")
+  creatorProfiles        CreatorProfile[]        @relation("CreatorMembershipPlan")
+  faqs                   PlanFAQ[]
+  featureAssignments     PlanFeatureAssignment[]
+  highlights             PlanHighlight[]
+  limits                 PlanLimit[]
+  permissions            PlanPermission[]
+  prices                 PlanPrice[]
+  subscriptions          UserSubscription[]
+
+  @@index([audience, status])
+  @@index([sortOrder])
+  @@map("subscription_plans")
+}
+
+model PlanPrice {
+  id          String            @id @default(cuid())
+  planId      String            @map("plan_id")
+  period      PlanBillingPeriod
+  amountPaise Int               @map("amount_paise")
+  currency    String            @default("INR")
+  isActive    Boolean           @default(true) @map("is_active")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  plan        SubscriptionPlan  @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, period])
+  @@index([planId])
+  @@map("plan_prices")
+}
+
+model UserSubscription {
+  id                     String               @id @default(cuid())
+  userId                 String               @map("user_id")
+  planId                 String               @map("plan_id")
+  audience               PlanAudience
+  status                 SubscriptionStatus   @default(ACTIVE)
+  billingPeriod          PlanBillingPeriod    @map("billing_period")
+  provider               PaymentProvider
+  providerSubscriptionId String?              @map("provider_subscription_id")
+  providerCustomerId     String?              @map("provider_customer_id")
+  currentPeriodStart     DateTime             @map("current_period_start")
+  currentPeriodEnd       DateTime             @map("current_period_end")
+  graceEndsAt            DateTime?            @map("grace_ends_at")
+  cancelledAt            DateTime?            @map("cancelled_at")
+  cancelAtPeriodEnd      Boolean              @default(false) @map("cancel_at_period_end")
+  autoRenew              Boolean              @default(true) @map("auto_renew")
+  metadata               Json?
+  createdAt              DateTime             @default(now()) @map("created_at")
+  updatedAt              DateTime             @updatedAt @map("updated_at")
+  transactions           PaymentTransaction[]
+  plan                   SubscriptionPlan     @relation(fields: [planId], references: [id])
+  user                   User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, audience, status])
+  @@index([planId])
+  @@index([currentPeriodEnd])
+  @@index([providerSubscriptionId])
+  @@map("user_subscriptions")
+}
+
+model PaymentTransaction {
+  id                String            @id @default(cuid())
+  userId            String            @map("user_id")
+  subscriptionId    String?           @map("subscription_id")
+  provider          PaymentProvider
+  status            PaymentStatus     @default(CREATED)
+  amountPaise       Int               @map("amount_paise")
+  currency          String            @default("INR")
+  description       String?
+  providerPaymentId String?           @unique @map("provider_payment_id")
+  providerOrderId   String?           @unique @map("provider_order_id")
+  providerSignature String?           @map("provider_signature")
+  receiptNumber     String?           @unique @map("receipt_number")
+  failureReason     String?           @map("failure_reason")
+  rawPayload        Json?             @map("raw_payload")
+  paidAt            DateTime?         @map("paid_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  invoice           Invoice?
+  subscription      UserSubscription? @relation(fields: [subscriptionId], references: [id])
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refunds           Refund[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([providerOrderId])
+  @@map("payment_transactions")
+}
+
+model Invoice {
+  id             String             @id @default(cuid())
+  userId         String             @map("user_id")
+  transactionId  String             @unique @map("transaction_id")
+  invoiceNumber  String             @unique @map("invoice_number")
+  amountPaise    Int                @map("amount_paise")
+  taxPaise       Int                @default(0) @map("tax_paise")
+  currency       String             @default("INR")
+  gstNumber      String?            @map("gst_number")
+  billingName    String?            @map("billing_name")
+  billingAddress String?            @map("billing_address")
+  pdfUrl         String?            @map("pdf_url")
+  lineItems      Json               @default("[]") @map("line_items")
+  issuedAt       DateTime           @default(now()) @map("issued_at")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  transaction    PaymentTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([issuedAt])
+  @@map("invoices")
+}
+
+model Refund {
+  id               String             @id @default(cuid())
+  transactionId    String             @map("transaction_id")
+  requestedById    String?            @map("requested_by_id")
+  processedById    String?            @map("processed_by_id")
+  amountPaise      Int                @map("amount_paise")
+  reason           String?
+  status           String             @default("PENDING")
+  providerRefundId String?            @map("provider_refund_id")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  processedBy      User?              @relation("RefundProcessor", fields: [processedById], references: [id])
+  requestedBy      User?              @relation("RefundRequester", fields: [requestedById], references: [id])
+  transaction      PaymentTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([status])
+  @@map("refunds")
+}
+
+model Coupon {
+  id             String             @id @default(cuid())
+  code           String             @unique
+  type           CouponType
+  ownerType      CouponOwnerType    @default(ADMIN) @map("owner_type")
+  vendorId       String?            @map("vendor_id")
+  value          Float
+  maxDiscount    Float?             @map("max_discount")
+  minPurchase    Float?             @map("min_purchase")
+  usageLimit     Int?               @map("usage_limit")
+  usedCount      Int                @default(0) @map("used_count")
+  perUserLimit   Int                @default(1) @map("per_user_limit")
+  startsAt       DateTime?          @map("starts_at")
+  expiresAt      DateTime?          @map("expires_at")
+  isActive       Boolean            @default(true) @map("is_active")
+  description    String?
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+  recipientEmail String?            @map("recipient_email")
+  redemptions    CouponRedemption[]
+  vendor         Vendor?            @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
+  @@index([isActive, expiresAt])
+  @@map("coupons")
+}
+
+model CouponRedemption {
+  id        String   @id @default(cuid())
+  couponId  String   @map("coupon_id")
+  userId    String   @map("user_id")
+  orderRef  String?  @map("order_ref")
+  createdAt DateTime @default(now()) @map("created_at")
+  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([couponId])
+  @@index([userId])
+  @@map("coupon_redemptions")
+}
+
+model VendorDocument {
+  id              String               @id @default(cuid())
+  vendorId        String               @map("vendor_id")
+  type            VendorDocumentType
+  fileUrl         String               @map("file_url")
+  fileName        String?              @map("file_name")
+  status          VendorDocumentStatus @default(PENDING)
+  rejectionReason String?              @map("rejection_reason")
+  reviewedAt      DateTime?            @map("reviewed_at")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+  vendor          Vendor               @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId, type])
+  @@index([status])
+  @@map("vendor_documents")
+}
+
+model AdConfiguration {
+  id                          String   @id @default(cuid())
+  key                         String   @unique @default("default")
+  adsEnabled                  Boolean  @default(true) @map("ads_enabled")
+  killSwitch                  Boolean  @default(false) @map("kill_switch")
+  bannerEnabled               Boolean  @default(true) @map("banner_enabled")
+  interstitialEnabled         Boolean  @default(true) @map("interstitial_enabled")
+  rewardedEnabled             Boolean  @default(true) @map("rewarded_enabled")
+  nativeEnabled               Boolean  @default(true) @map("native_enabled")
+  interstitialCooldownSec     Int      @default(120) @map("interstitial_cooldown_sec")
+  rewardedPoints              Int      @default(10) @map("rewarded_points")
+  bannerAdUnitIdAndroid       String?  @map("banner_ad_unit_id_android")
+  bannerAdUnitIdIos           String?  @map("banner_ad_unit_id_ios")
+  interstitialAdUnitIdAndroid String?  @map("interstitial_ad_unit_id_android")
+  interstitialAdUnitIdIos     String?  @map("interstitial_ad_unit_id_ios")
+  rewardedAdUnitIdAndroid     String?  @map("rewarded_ad_unit_id_android")
+  rewardedAdUnitIdIos         String?  @map("rewarded_ad_unit_id_ios")
+  nativeAdUnitIdAndroid       String?  @map("native_ad_unit_id_android")
+  nativeAdUnitIdIos           String?  @map("native_ad_unit_id_ios")
+  /// ISO country codes; empty = all countries
+  enabledCountries            String[] @default([]) @map("enabled_countries")
+  /// Semver ranges or exact versions; empty = all
+  enabledAppVersions          String[] @default([]) @map("enabled_app_versions")
+  metadata                    Json?
+  updatedAt                   DateTime @updatedAt @map("updated_at")
+  createdAt                   DateTime @default(now()) @map("created_at")
+
+  @@map("ad_configurations")
+}
+
+model SubscriptionFeature {
+  id          String                  @id @default(cuid())
+  key         String                  @unique
+  name        String
+  description String?
+  audience    FeatureAudience         @default(ALL)
+  icon        String?
+  sortOrder   Int                     @default(0) @map("sort_order")
+  createdAt   DateTime                @default(now()) @map("created_at")
+  updatedAt   DateTime                @updatedAt @map("updated_at")
+  assignments PlanFeatureAssignment[]
+
+  @@index([audience, sortOrder])
+  @@map("subscription_features")
+}
+
+model PlanFeatureAssignment {
+  id           String              @id @default(cuid())
+  planId       String              @map("plan_id")
+  featureId    String              @map("feature_id")
+  displayValue String?             @map("display_value")
+  sortOrder    Int                 @default(0) @map("sort_order")
+  feature      SubscriptionFeature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  plan         SubscriptionPlan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, featureId])
+  @@index([planId, sortOrder])
+  @@map("plan_feature_assignments")
+}
+
+model PlanLimit {
+  id           String           @id @default(cuid())
+  planId       String           @map("plan_id")
+  limitKey     String           @map("limit_key")
+  limitValue   Int              @map("limit_value")
+  /// -1 = unlimited
+  displayLabel String?          @map("display_label")
+  sortOrder    Int              @default(0) @map("sort_order")
+  plan         SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, limitKey])
+  @@index([planId])
+  @@map("plan_limits")
+}
+
+model PlanPermission {
+  id            String           @id @default(cuid())
+  planId        String           @map("plan_id")
+  permissionKey String           @map("permission_key")
+  enabled       Boolean          @default(true)
+  plan          SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, permissionKey])
+  @@index([planId])
+  @@map("plan_permissions")
+}
+
+model PlanFAQ {
+  id        String           @id @default(cuid())
+  planId    String           @map("plan_id")
+  question  String
+  answer    String
+  sortOrder Int              @default(0) @map("sort_order")
+  plan      SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId, sortOrder])
+  @@map("plan_faqs")
+}
+
+model PlanHighlight {
+  id     String            @id @default(cuid())
+  planId String            @map("plan_id")
+  type   PlanHighlightType
+  label  String?
+  plan   SubscriptionPlan  @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, type])
+  @@map("plan_highlights")
+}
+
+model SubscriptionAuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?  @map("actor_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  before     Json?
+  after      Json?
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("subscription_audit_logs")
+}
+
+model PalPointsPartnerConfig {
+  id                    String   @id @default("default")
+  enabled               Boolean  @default(true)
+  defaultPointsRequired Int      @default(1000) @map("default_points_required")
+  defaultMaxDiscountPct Float    @default(10) @map("default_max_discount_pct")
+  diamondPlanSlug       String   @default("vendor-diamond") @map("diamond_plan_slug")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  @@map("pal_points_partner_config")
+}
+
+model VendorPalPointsPartner {
+  id              String                        @id @default(cuid())
+  vendorId        String                        @unique @map("vendor_id")
+  adminEnabled    Boolean                       @default(false) @map("admin_enabled")
+  vendorEnabled   Boolean                       @default(false) @map("vendor_enabled")
+  points_required Int?
+  maxDiscountPct  Float?                        @map("max_discount_pct")
+  terms           String?
+  createdAt       DateTime                      @default(now()) @map("created_at")
+  updatedAt       DateTime                      @updatedAt @map("updated_at")
+  offers          VendorPalPointsPartnerOffer[]
+  vendor          Vendor                        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@map("vendor_pal_points_partners")
+}
+
+model VendorPalPointsPartnerOffer {
+  id             String                 @id @default(cuid())
+  partnerId      String                 @map("partner_id")
+  vendorOfferId  String?                @map("vendor_offer_id")
+  title          String
+  discountPct    Float                  @map("discount_pct")
+  minSpend       Float?                 @map("min_spend")
+  maxRedemption  Float?                 @map("max_redemption")
+  pointsRequired Int                    @map("points_required")
+  dailyLimit     Int?                   @map("daily_limit")
+  monthlyLimit   Int?                   @map("monthly_limit")
+  validFrom      DateTime?              @map("valid_from")
+  validUntil     DateTime?              @map("valid_until")
+  terms          String?
+  isActive       Boolean                @default(true) @map("is_active")
+  createdAt      DateTime               @default(now()) @map("created_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
+  partner        VendorPalPointsPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId, isActive])
+  @@map("vendor_pal_points_partner_offers")
+}
+
+model RideProvider {
+  id               String                     @id
+  displayName      String                     @map("display_name")
+  icon             String?
+  color            String?
+  enabled          Boolean                    @default(true)
+  mode             RideProviderMode           @default(DEEPLINK)
+  deepLinkScheme   String?                    @map("deep_link_scheme")
+  playStoreUrl     String?                    @map("play_store_url")
+  appStoreUrl      String?                    @map("app_store_url")
+  supportsDeepLink Boolean                    @default(true) @map("supports_deep_link")
+  supportsApi      Boolean                    @default(false) @map("supports_api")
+  priority         Int                        @default(0)
+  createdAt        DateTime                   @default(now()) @map("created_at")
+  updatedAt        DateTime                   @updatedAt @map("updated_at")
+  favorites        RideFavorite[]
+  history          RideHistory[]
+  configuration    RideProviderConfiguration?
+  requests         RideRequest[]
+
+  @@index([enabled, priority])
+  @@map("ride_providers")
+}
+
+model RideProviderConfiguration {
+  id         String       @id @default(cuid())
+  providerId String       @unique @map("provider_id")
+  metadata   Json         @default("{}")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+  provider   RideProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@map("ride_provider_configurations")
+}
+
+model RideRequest {
+  id                   String            @id @default(cuid())
+  userId               String?           @map("user_id")
+  providerId           String            @map("provider_id")
+  pickupLatitude       Float             @map("pickup_latitude")
+  pickupLongitude      Float             @map("pickup_longitude")
+  pickupAddress        String?           @map("pickup_address")
+  destinationLatitude  Float             @map("destination_latitude")
+  destinationLongitude Float             @map("destination_longitude")
+  destinationAddress   String?           @map("destination_address")
+  vehicleType          String?           @map("vehicle_type")
+  status               RideRequestStatus @default(PENDING)
+  openedAt             DateTime?         @map("opened_at")
+  completedAt          DateTime?         @map("completed_at")
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+  history              RideHistory[]
+  provider             RideProvider      @relation(fields: [providerId], references: [id])
+  user                 User?             @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([providerId, status])
+  @@map("ride_requests")
+}
+
+model RideHistory {
+  id         String       @id @default(cuid())
+  userId     String?      @map("user_id")
+  requestId  String?      @map("request_id")
+  providerId String       @map("provider_id")
+  action     String
+  metadata   Json?
+  createdAt  DateTime     @default(now()) @map("created_at")
+  provider   RideProvider @relation(fields: [providerId], references: [id])
+  request    RideRequest? @relation(fields: [requestId], references: [id])
+  user       User?        @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("ride_history")
+}
+
+model RideDestination {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  name      String
+  address   String?
+  latitude  Float
+  longitude Float
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("ride_destinations")
+}
+
+model RideFavorite {
+  id         String       @id @default(cuid())
+  userId     String       @map("user_id")
+  providerId String       @map("provider_id")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  provider   RideProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, providerId])
+  @@index([userId])
+  @@map("ride_favorites")
+}
+
+model Collaboration {
+  id                   String                       @id @default(cuid())
+  vendorId             String                       @map("vendor_id")
+  creatorId            String                       @map("creator_id")
+  vendorUserId         String                       @map("vendor_user_id")
+  creatorUserId        String                       @map("creator_user_id")
+  campaignTitle        String                       @map("campaign_title")
+  campaignCategory     String                       @map("campaign_category")
+  businessName         String                       @map("business_name")
+  businessLocation     String?                      @map("business_location")
+  budgetPaise          Int                          @map("budget_paise")
+  campaignBrief        String                       @map("campaign_brief")
+  expectedShootDate    DateTime?                    @map("expected_shoot_date")
+  expectedUploadDate   DateTime?                    @map("expected_upload_date")
+  campaignDurationDays Int?                         @map("campaign_duration_days")
+  contactPerson        String                       @map("contact_person")
+  contactPhone         String                       @map("contact_phone")
+  contactWhatsApp      String?                      @map("contact_whatsapp")
+  contactEmail         String                       @map("contact_email")
+  notes                String?
+  attachments          Json?                        @default("[]")
+  status               CollaborationStatus          @default(PENDING)
+  expiresAt            DateTime?                    @map("expires_at")
+  acceptedAt           DateTime?                    @map("accepted_at")
+  rejectedAt           DateTime?                    @map("rejected_at")
+  cancelledAt          DateTime?                    @map("cancelled_at")
+  completedAt          DateTime?                    @map("completed_at")
+  rejectionReason      String?                      @map("rejection_reason")
+  cancellationReason   String?                      @map("cancellation_reason")
+  revisionFeedback     String?                      @map("revision_feedback")
+  reelId               String?                      @unique @map("reel_id")
+  deletedAt            DateTime?                    @map("deleted_at")
+  suspendedAt          DateTime?                    @map("suspended_at")
+  suspendedById        String?                      @map("suspended_by_id")
+  suspendReason        String?                      @map("suspend_reason")
+  disputeNotes         String?                      @map("dispute_notes")
+  createdAt            DateTime                     @default(now()) @map("created_at")
+  updatedAt            DateTime                     @updatedAt @map("updated_at")
+  analytics            CollaborationAnalytics?
+  deliverables         CollaborationDeliverable[]
+  revisions            CollaborationRevision[]
+  statusHistory        CollaborationStatusHistory[]
+  creator              CreatorProfile               @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  vendor               Vendor                       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  reel                 Reel?
+
+  @@index([vendorId, status])
+  @@index([creatorId, status])
+  @@index([vendorUserId])
+  @@index([creatorUserId])
+  @@index([status, createdAt])
+  @@index([deletedAt])
+  @@map("collaborations")
+}
+
+model CollaborationDeliverable {
+  id              String                       @id @default(cuid())
+  collaborationId String                       @map("collaboration_id")
+  type            CollaborationDeliverableType
+  quantity        Int                          @default(1)
+  createdAt       DateTime                     @default(now()) @map("created_at")
+  collaboration   Collaboration                @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
+
+  @@index([collaborationId])
+  @@map("collaboration_deliverables")
+}
+
+model CollaborationStatusHistory {
+  id              String               @id @default(cuid())
+  collaborationId String               @map("collaboration_id")
+  fromStatus      CollaborationStatus? @map("from_status")
+  toStatus        CollaborationStatus  @map("to_status")
+  changedById     String               @map("changed_by_id")
+  note            String?
+  createdAt       DateTime             @default(now()) @map("created_at")
+  collaboration   Collaboration        @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
+
+  @@index([collaborationId, createdAt])
+  @@map("collaboration_status_history")
+}
+
+model CollaborationRevision {
+  id              String        @id @default(cuid())
+  collaborationId String        @map("collaboration_id")
+  reelId          String?       @map("reel_id")
+  feedback        String
+  requestedById   String        @map("requested_by_id")
+  resolvedAt      DateTime?     @map("resolved_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  collaboration   Collaboration @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
+
+  @@index([collaborationId, createdAt])
+  @@map("collaboration_revisions")
+}
+
+model CollaborationAnalytics {
+  id                   String        @id @default(cuid())
+  collaborationId      String        @unique @map("collaboration_id")
+  views                Int           @default(0)
+  likes                Int           @default(0)
+  comments             Int           @default(0)
+  shares               Int           @default(0)
+  saves                Int           @default(0)
+  reach                Int           @default(0)
+  engagement           Float         @default(0)
+  clicks               Int           @default(0)
+  businessVisits       Int           @default(0) @map("business_visits")
+  offerRedemptions     Int           @default(0) @map("offer_redemptions")
+  followersGained      Int           @default(0) @map("followers_gained")
+  creatorEarningsPaise Int           @default(0) @map("creator_earnings_paise")
+  vendorSpendPaise     Int           @default(0) @map("vendor_spend_paise")
+  roi                  Float         @default(0)
+  lastSyncedAt         DateTime?     @map("last_synced_at")
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
+  collaboration        Collaboration @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
+
+  @@map("collaboration_analytics")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model places_meta_backup_20260804T074239 {
+  id          String?
+  city        String?
+  state       String?
+  district    String?
+  country     String?
+  tehsil      String?
+  geohash     String?
+  category    String?
+  updated_at  DateTime?
+  external_id String?
+  source      PlaceSource?
+  latitude    Float?
+  longitude   Float?
+
+  @@ignore
+}
+
+enum Role {
+  USER
+  VENDOR
+  CONTENT_CREATOR
+  ADMIN
+  SUPER_ADMIN
+  OPS_ADMIN
+  VENDOR_MANAGER
+  CONTENT_MODERATOR
+  FINANCE_MANAGER
+  SUPPORT_AGENT
+  MARKETING_ADMIN
+  ANALYTICS_VIEWER
+}
+
+enum RoleAssignmentStatus {
+  ACTIVE
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+  PAUSED
+  /// Voluntarily given up by the user (or superseded) when switching to the other professional role.
+  /// Distinct from REJECTED (admin-driven) and SUSPENDED (admin-driven).
+  RETIRED
+}
+
+enum RiddleSubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PlaceCategory {
+  TEMPLE
+  MONUMENT
+  FORT
+  LAKE
+  WATERFALL
+  PARK
+  PALACE
+  MUSEUM
+  BEACH
+  TREKKING
+  WILDLIFE
+  SHOPPING
+  RESTAURANT
+  HOTEL
+  GHAT
+  OTHER
+}
+
+enum PlaceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PlaceDataQuality {
+  DRAFT
+  PENDING_REVIEW
+  VERIFIED
+  REJECTED
+}
+
+enum PlaceAliasType {
+  OFFICIAL_VARIANT
+  NICKNAME
+  HISTORICAL
+  LOCAL_NAME
+  TRANSLITERATION
+  MISSPELLING
+  SEARCH_KEYWORD
+}
+
+enum ImageVerificationStatus {
+  UNVERIFIED
+  LICENSE_VERIFIED
+  REJECTED
+}
+
+enum PlaceRelationshipType {
+  NEARBY
+  PART_OF
+  ROUTE
+  SAME_COMPLEX
+  VIEWPOINT_OF
+  FESTIVAL_AT
+}
+
+enum DuplicateCandidateStatus {
+  OPEN
+  MERGED
+  DISMISSED
+}
+
+enum PlaceEmbeddingStatus {
+  PENDING
+  INDEXED
+  FAILED
+  SKIPPED
+}
+
+enum TravelPace {
+  QUICK
+  BALANCED
+  RELAXED
+  VERY_RELAXED
+}
+
+enum TripStatus {
+  DRAFT
+  UPCOMING
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum TimeSlot {
+  SUNRISE
+  MORNING
+  AFTERNOON
+  EVENING
+  SUNSET
+  NIGHT
+}
+
+enum TimePreference {
+  MORNING_FOCUSED
+  FULL_DAY
+  EVENING_FRIENDLY
+}
+
+enum AvoidOption {
+  CROWDED
+  LONG_TRAVEL
+  EXPENSIVE_ENTRY
+  NON_FAMILY_FRIENDLY
+}
+
+enum GenerationSource {
+  MANUAL
+  AI_PROMPT
+  HYBRID
+}
+
+enum AuditAction {
+  PLACE_CREATED
+  PLACE_APPROVED
+  PLACE_REJECTED
+  PLACE_DELETED
+  PLACE_UPDATED
+  USER_ROLE_CHANGED
+  VENDOR_REGISTERED
+  VENDOR_VERIFIED
+  VENDOR_REJECTED
+  POINTS_EARNED
+  POINTS_REDEEMED
+  ROLE_RETIRED
+  LEGAL_VERSION_CREATED
+  LEGAL_VERSION_PUBLISHED
+  LEGAL_VERSION_ARCHIVED
+  LEGAL_VERSION_ROLLED_BACK
+  ANNOUNCEMENT_CREATED
+  ANNOUNCEMENT_UPDATED
+  ANNOUNCEMENT_DELETED
+  COLLABORATION_CREATED
+  COLLABORATION_ACCEPTED
+  COLLABORATION_REJECTED
+  COLLABORATION_SUSPENDED
+  COLLABORATION_COMPLETED
+}
+
+enum TransactionType {
+  EARN
+  SPEND
+  REFUND
+}
+
+enum SyncStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum PlaceSource {
+  CURATED
+  OSM
+  ADMIN
+  HIDDEN_GEM
+  VENDOR
+  WIKIMEDIA
+}
+
+enum VerificationStatus {
+  NONE
+  CONTRIBUTOR
+  EXPLORER
+  EXPERT_GUIDE
+}
+
+enum VendorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+  SUSPENDED
+  PAUSED
+  /// Voluntarily retired by the user when switching to Content Creator.
+  RETIRED
+}
+
+enum RedemptionStatus {
+  PENDING
+  VERIFIED
+  CANCELLED
+  REFUNDED
+}
+
+enum CreatorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+  SUSPENDED
+  PAUSED
+  /// Voluntarily retired by the user when switching to Vendor.
+  RETIRED
+}
+
+enum ReelStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  HIDDEN
+  DRAFT
+  ARCHIVED
+  SCHEDULED
+}
+
+enum ReelReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum ClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SHIPPED
+  DELIVERED
+}
+
+enum ChallengeDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum ChallengeProofType {
+  PHOTO
+  VIDEO
+  QR
+  GPS
+}
+
+enum ChallengeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LegalDocumentType {
+  PRIVACY_POLICY
+  TERMS_CONDITIONS
+  REWARDS_POLICY
+  COMMUNITY_GUIDELINES
+  VENDOR_TERMS
+  CREATOR_TERMS
+  REFUND_POLICY
+  ABOUT_US
+  CONTACT_INFO
+  FAQ
+}
+
+enum LegalVersionStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum LegalContentFormat {
+  MARKDOWN
+  HTML
+  PLAIN
+}
+
+enum AnnouncementSeverity {
+  INFO
+  SUCCESS
+  WARNING
+  CRITICAL
+}
+
+enum AnnouncementAudience {
+  ALL
+  USER
+  VENDOR
+  CONTENT_CREATOR
+}
+
+enum PlanAudience {
+  USER_PREMIUM
+  VENDOR
+  CREATOR
+}
+
+enum PlanBillingPeriod {
+  MONTHLY
+  YEARLY
+  LIFETIME
+  SEMIANNUAL
+  QUARTERLY
+}
+
+enum PlanStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  GRACE
+  CANCELLED
+  EXPIRED
+  SUSPENDED
+}
+
+enum VendorSubscriptionStatus {
+  NONE
+  ACTIVE
+  GRACE
+  PAST_DUE
+  EXPIRED
+  SUSPENDED
+}
+
+enum PaymentProvider {
+  GOOGLE_PLAY
+  APPLE_IAP
+  RAZORPAY
+  ADMIN_GRANT
+}
+
+enum PaymentStatus {
+  CREATED
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  CANCELLED
+}
+
+enum CouponType {
+  PERCENTAGE
+  FLAT
+  BOGO
+}
+
+enum CouponOwnerType {
+  ADMIN
+  VENDOR
+}
+
+enum VendorDocumentType {
+  GST
+  PAN
+  BUSINESS_LICENSE
+  SHOP_PHOTO
+  OWNER_ID
+  BANK_DETAILS
+  OTHER
+}
+
+enum VendorDocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+}
+
+enum FeatureAudience {
+  USER_PREMIUM
+  VENDOR
+  CREATOR
+  ALL
+}
+
+enum PlanHighlightType {
+  MOST_POPULAR
+  BEST_VALUE
+  RECOMMENDED
+}
+
+enum RideProviderMode {
+  DEEPLINK
+  API
+}
+
+enum RideRequestStatus {
+  PENDING
+  OPENED
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum CollaborationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  EXPIRED
+  IN_PROGRESS
+  REEL_UPLOADED
+  REVISION_REQUESTED
+  APPROVED
+  COMPLETED
+  SUSPENDED
+}
+
+enum CollaborationDeliverableType {
+  REEL
+  STORY
+  CAROUSEL
+  STATIC_POST
+}
+
+model user_badges {
+  id        String   @id
+  user_id   String
+  badge     String
+  earned_at DateTime @default(now())
+  users     User     @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "user_badges_user_fkey")
+
+  @@unique([user_id, badge])
+}
+
+model user_levels {
+  id          String   @id
+  name        String
+  level       Int      @unique
+  xp_required Int
+  created_at  DateTime @default(now())
+}
+
+model user_streaks {
+  id             String    @id
+  user_id        String    @unique
+  current_streak Int       @default(0)
+  longest_streak Int       @default(0)
+  last_active_at DateTime?
+  updated_at     DateTime
+  users          User      @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "user_streaks_user_fkey")
+}
+
+model user_xp {
+  id         String   @id
+  user_id    String   @unique
+  total_xp   Int      @default(0)
+  level      Int      @default(1)
+  created_at DateTime @default(now())
+  updated_at DateTime
+  users      User     @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "user_xp_user_fkey")
+}
+
+model xp_transactions {
+  id           String   @id
+  user_id      String
+  amount       Int
+  reason       String
+  reference_id String?
+  created_at   DateTime @default(now())
+  users        User     @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "xp_transactions_user_fkey")
+
+  @@index([user_id])
+}
+
+enum ContentModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}

@@ -1,0 +1,9 @@
+node_modules/
+.env
+dist/
+
+# Local database recovery backups
+/prisma/migrations_history_20260809/
+/prisma/migrations_backup_20260809/
+/prisma/baseline/
+

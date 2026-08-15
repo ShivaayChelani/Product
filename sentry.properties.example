@@ -1,0 +1,11 @@
+defaults.url=https://sentry.io/
+defaults.org=YOUR_ORG_SLUG
+defaults.project=palsafar-mobile
+
+# Copy to sentry.properties and set auth.token, OR use CI env SENTRY_AUTH_TOKEN.
+# Required for Android mapping upload (sentry.gradle) and iOS dSYM upload (upload-dsym.sh).
+auth.token=
+
+# Release must match src/config/monitoringConfig.ts:
+#   com.palsasafar@1.0+1
+# dist examples: android-1, ios-1

@@ -1,0 +1,357 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy-api:
+    name: Deploy API to Render
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve deploy commit
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "commit=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+            echo "Deploying CI-validated commit: ${{ github.event.workflow_run.head_sha }}"
+          else
+            echo "commit=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+            echo "Deploying workflow_dispatch commit: ${{ github.sha }}"
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.meta.outputs.commit }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Trigger Render deploy
+        id: trigger
+        env:
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+          DEPLOY_COMMIT: ${{ steps.meta.outputs.commit }}
+          HEALTH_URL: https://palsafar-api-fh7i.onrender.com/api/v1/health
+        run: |
+          set -euo pipefail
+
+          if [ -z "${RENDER_SERVICE_ID:-}" ] || [ -z "${RENDER_API_KEY:-}" ]; then
+            if [ -z "${RENDER_DEPLOY_HOOK:-}" ]; then
+              echo "Configure RENDER_SERVICE_ID + RENDER_API_KEY, or RENDER_DEPLOY_HOOK."
+              exit 1
+            fi
+          fi
+
+          baseline_uptime="$(
+            curl --fail-with-body -sS "$HEALTH_URL" | jq -r '.meta.uptime // empty'
+          )"
+          echo "Baseline production uptime: ${baseline_uptime:-unknown}s"
+
+          post_render() {
+            local payload="$1"
+            local label="$2"
+            local response_file
+            response_file="$(mktemp)"
+
+            echo "Render trigger (${label})"
+            echo "POST https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys"
+            echo "Request body: ${payload}"
+
+            set +e
+            local http_code
+            http_code="$(
+              curl --fail-with-body -sS \
+                -o "$response_file" \
+                -w "%{http_code}" \
+                -X POST "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys" \
+                -H "Authorization: Bearer ${RENDER_API_KEY}" \
+                -H "Content-Type: application/json" \
+                -H "Accept: application/json" \
+                -d "$payload"
+            )"
+            local curl_exit=$?
+            set -e
+
+            echo "HTTP status: ${http_code} (curl exit ${curl_exit})"
+            echo "Response:"
+            cat "$response_file"
+            echo ""
+
+            TRIGGER_HTTP_CODE="$http_code"
+            TRIGGER_CURL_EXIT="$curl_exit"
+            TRIGGER_RESPONSE_FILE="$response_file"
+          }
+
+          resolve_deploy_id() {
+            local response_file="$1"
+            local deploy_id
+            deploy_id="$(jq -r '.id // .deploy.id // empty' "$response_file")"
+            if [ -n "$deploy_id" ]; then
+              echo "$deploy_id"
+              return 0
+            fi
+
+            echo "No deploy id in trigger response; listing recent deploys..."
+            local list_file
+            list_file="$(mktemp)"
+            set +e
+            local list_code
+            list_code="$(
+              curl --fail-with-body -sS \
+                -o "$list_file" \
+                -w "%{http_code}" \
+                -X GET "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys?limit=5" \
+                -H "Authorization: Bearer ${RENDER_API_KEY}" \
+                -H "Accept: application/json"
+            )"
+            set -e
+            echo "Recent deploys HTTP ${list_code}:"
+            cat "$list_file"
+            echo ""
+
+            jq -r --arg commit "$DEPLOY_COMMIT" '
+              [ .[]? | (.deploy // .) ] |
+              ( map(select(.commit.id == $commit or (.commit.id | startswith($commit[0:7])))) | first // empty | .id ) //
+              ( map(select(.status == "queued" or .status == "build_in_progress" or .status == "update_in_progress" or .status == "created")) | first // empty | .id ) //
+              ( .[0]? | .id // empty )
+            ' "$list_file"
+          }
+
+          deploy_id=""
+          if [ -n "${RENDER_SERVICE_ID:-}" ] && [ -n "${RENDER_API_KEY:-}" ]; then
+            payload_commit="$(jq -nc --arg commit "$DEPLOY_COMMIT" \
+              '{clearCache: "do_not_clear", commitId: $commit}')"
+            post_render "$payload_commit" "commit pin"
+
+            if [ "$TRIGGER_CURL_EXIT" -ne 0 ] || [ "$TRIGGER_HTTP_CODE" -lt 200 ] || [ "$TRIGGER_HTTP_CODE" -ge 300 ]; then
+              payload_latest='{"clearCache":"do_not_clear"}'
+              post_render "$payload_latest" "latest commit fallback"
+            fi
+
+            if [ "$TRIGGER_CURL_EXIT" -ne 0 ] || [ "$TRIGGER_HTTP_CODE" -lt 200 ] || [ "$TRIGGER_HTTP_CODE" -ge 300 ]; then
+              echo "Render API deploy trigger rejected with HTTP ${TRIGGER_HTTP_CODE}"
+              deploy_id=""
+            else
+              deploy_id="$(resolve_deploy_id "$TRIGGER_RESPONSE_FILE")"
+            fi
+          fi
+
+          if [ -z "$deploy_id" ] && [ -n "${RENDER_DEPLOY_HOOK:-}" ]; then
+            echo "Trying Render deploy hook..."
+            hook_file="$(mktemp)"
+            set +e
+            hook_code="$(
+              curl --fail-with-body -sS \
+                -o "$hook_file" \
+                -w "%{http_code}" \
+                -X POST "$RENDER_DEPLOY_HOOK"
+            )"
+            hook_exit=$?
+            set -e
+            echo "Deploy hook HTTP ${hook_code} (curl exit ${hook_exit})"
+            cat "$hook_file"
+            echo ""
+            if [ "$hook_exit" -ne 0 ] || [ "$hook_code" -lt 200 ] || [ "$hook_code" -ge 300 ]; then
+              echo "Render deploy hook rejected with HTTP ${hook_code}"
+              exit 1
+            fi
+          elif [ -z "$deploy_id" ]; then
+            echo "Unable to obtain a Render deploy id from API or deploy hook."
+            exit 1
+          fi
+
+          if [ -n "$deploy_id" ]; then
+            echo "deploy_id=${deploy_id}" >> "$GITHUB_OUTPUT"
+            echo "Triggered Render deploy ${deploy_id} for commit ${DEPLOY_COMMIT}"
+          fi
+          echo "baseline_uptime=${baseline_uptime:-}" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for Render deployment
+        if: steps.trigger.outputs.deploy_id != ''
+        env:
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          DEPLOY_ID: ${{ steps.trigger.outputs.deploy_id }}
+          DEPLOY_COMMIT: ${{ steps.meta.outputs.commit }}
+          BASELINE_UPTIME: ${{ steps.trigger.outputs.baseline_uptime }}
+          HEALTH_URL: https://palsafar-api-fh7i.onrender.com/api/v1/health
+        run: |
+          set -euo pipefail
+          echo "Waiting for Render deploy ${DEPLOY_ID} (commit ${DEPLOY_COMMIT})..."
+
+          commit_matches() {
+            local actual="$1"
+            local expected="$2"
+            [ -z "$actual" ] && return 0
+            [ "$actual" = "$expected" ] && return 0
+            [ "${actual:0:7}" = "${expected:0:7}" ] && return 0
+            return 1
+          }
+
+          for attempt in $(seq 1 90); do
+            response_file="$(mktemp)"
+            set +e
+            http_code="$(
+              curl --fail-with-body -sS \
+                -o "$response_file" \
+                -w "%{http_code}" \
+                -X GET "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys/${DEPLOY_ID}" \
+                -H "Authorization: Bearer ${RENDER_API_KEY}" \
+                -H "Accept: application/json"
+            )"
+            curl_exit=$?
+            set -e
+
+            echo "Poll ${attempt}: HTTP ${http_code} (curl exit ${curl_exit})"
+            cat "$response_file"
+            echo ""
+
+            if [ "$curl_exit" -ne 0 ] || [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+              echo "Failed to read deploy status (HTTP ${http_code})"
+              exit 1
+            fi
+
+            status="$(jq -r '.status // .deploy.status // empty' "$response_file")"
+            commit_id="$(jq -r '.commit.id // .deploy.commit.id // empty' "$response_file")"
+            echo "Status=${status} commit=${commit_id:-unknown}"
+
+            case "$status" in
+              live)
+                if ! commit_matches "$commit_id" "$DEPLOY_COMMIT"; then
+                  echo "Deploy is live but commit ${commit_id} != requested ${DEPLOY_COMMIT}"
+                  exit 1
+                fi
+                echo "Render deploy ${DEPLOY_ID} is live."
+                break
+                ;;
+              build_failed|update_failed|pre_deploy_failed|canceled|deactivated)
+                echo "Render deploy ${DEPLOY_ID} failed with status ${status}"
+                exit 1
+                ;;
+              *)
+                sleep 20
+                ;;
+            esac
+
+            if [ "$attempt" -eq 90 ]; then
+              echo "Timed out waiting for Render deploy ${DEPLOY_ID} to become live."
+              exit 1
+            fi
+          done
+
+          echo "Verifying production process restart via health uptime..."
+          for attempt in $(seq 1 30); do
+            health_file="$(mktemp)"
+            set +e
+            health_code="$(
+              curl --fail-with-body -sS \
+                -o "$health_file" \
+                -w "%{http_code}" \
+                "$HEALTH_URL"
+            )"
+            health_exit=$?
+            set -e
+
+            echo "Health poll ${attempt}: HTTP ${health_code} (curl exit ${health_exit})"
+            cat "$health_file"
+            echo ""
+
+            if [ "$health_exit" -ne 0 ] || [ "$health_code" -lt 200 ] || [ "$health_code" -ge 300 ]; then
+              sleep 10
+              continue
+            fi
+
+            uptime="$(jq -r '.meta.uptime // empty' "$health_file")"
+            db_status="$(jq -r '.data.database // empty' "$health_file")"
+            if [ "$db_status" != "up" ]; then
+              echo "Health database status is not up: ${db_status}"
+              exit 1
+            fi
+
+            if [ -n "$uptime" ] && [ -n "${BASELINE_UPTIME:-}" ]; then
+              if awk "BEGIN { exit !($uptime < $BASELINE_UPTIME - 30 || $uptime < 120) }"; then
+                echo "Process restart confirmed (uptime=${uptime}s, baseline=${BASELINE_UPTIME}s)."
+                exit 0
+              fi
+            elif [ -n "$uptime" ] && awk "BEGIN { exit !($uptime < 120) }"; then
+              echo "Process restart confirmed (uptime=${uptime}s)."
+              exit 0
+            fi
+
+            sleep 10
+          done
+
+          echo "Render deploy reported live but production uptime did not reset."
+          exit 1
+
+      - name: Wait for process restart (deploy hook path)
+        if: steps.trigger.outputs.deploy_id == ''
+        env:
+          BASELINE_UPTIME: ${{ steps.trigger.outputs.baseline_uptime }}
+          HEALTH_URL: https://palsafar-api-fh7i.onrender.com/api/v1/health
+        run: |
+          set -euo pipefail
+          echo "Waiting for production process restart after deploy hook..."
+          for attempt in $(seq 1 60); do
+            health_file="$(mktemp)"
+            health_code="$(
+              curl --fail-with-body -sS \
+                -o "$health_file" \
+                -w "%{http_code}" \
+                "$HEALTH_URL"
+            )"
+            echo "Health poll ${attempt}: HTTP ${health_code}"
+            cat "$health_file"
+            echo ""
+
+            uptime="$(jq -r '.meta.uptime // empty' "$health_file")"
+            db_status="$(jq -r '.data.database // empty' "$health_file")"
+            if [ "$db_status" != "up" ]; then
+              echo "Health database status is not up: ${db_status}"
+              exit 1
+            fi
+
+            if [ -n "$uptime" ] && [ -n "${BASELINE_UPTIME:-}" ]; then
+              if awk "BEGIN { exit !($uptime < $BASELINE_UPTIME - 30 || $uptime < 120) }"; then
+                echo "Process restart confirmed (uptime=${uptime}s, baseline=${BASELINE_UPTIME}s)."
+                exit 0
+              fi
+            elif [ -n "$uptime" ] && awk "BEGIN { exit !($uptime < 120) }"; then
+              echo "Process restart confirmed (uptime=${uptime}s)."
+              exit 0
+            fi
+
+            sleep 15
+          done
+
+          echo "Deploy hook accepted but production uptime did not reset."
+          exit 1
+
+  deploy-admin:
+    name: Deploy Admin to Vercel
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+      - name: Deploy to Vercel
+        run: cd admin && vercel --prod --yes 2>&1
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

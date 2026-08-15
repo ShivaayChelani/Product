@@ -1,0 +1,40 @@
+import { SERIF, SANS, SANS_BOLD, SANS_SEMI } from '../../features/myTrips/theme';
+
+/** Mockup palette — cream screen, white cards, dark brown + gold accents. */
+export const TripsColors = {
+  bg: '#FFFFFF',
+  card: '#FFFFFF',
+  cardAlt: '#FBF7F0',
+  cardBorder: '#E8DFD0',
+  dark: '#2D1B0B',
+  darkAlt: '#3C2A1E',
+  text: '#2D1B0B',
+  textSecondary: '#8B7355',
+  textMuted: '#A89478',
+  creamText: '#FFFFFF',
+  gold: '#B9834B',
+  goldBadge: '#C49A6C',
+  goldLight: '#F0E6D8',
+  border: '#D9CFC0',
+  tabInactiveBg: '#FFFFFF',
+  iconMuted: '#8B7355',
+  itineraryBtnBg: '#FFFFFF',
+  itineraryBtnText: '#2D1B0B',
+  coinCircleBg: '#FDECBF',
+  confirmedBg: '#E8F5E9',
+  confirmedText: '#3D6B4F',
+  upcomingBg: '#FFF3E0',
+  upcomingText: '#C67B2E',
+  pendingBg: '#E8F0F8',
+  pendingText: '#3D6B9E',
+  overlayBg: 'rgba(45, 27, 11, 0.82)',
+  shadow: '#2D1B0B',
+  progressTrack: '#F0E6D8',
+  progressFill: '#B9834B',
+  brandBlue: '#13354E',
+  brandBlueLight: '#E8EDF2',
+  brandOrangeLight: '#F3E5D4',
+  brandBrownButton: '#915822',
+} as const;
+
+export { SERIF, SANS, SANS_BOLD, SANS_SEMI };

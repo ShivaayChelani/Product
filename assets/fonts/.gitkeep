@@ -1,0 +1,3 @@
+# Place custom app fonts (PlayfairDisplay-*.ttf, Inter-*.ttf) here, then run:
+#   npx react-native-asset
+# Vector icon fonts ship via react-native-vector-icons CocoaPods / Android gradle.
