@@ -8,14 +8,13 @@ import {
   Modal,
   Pressable,
   Alert,
-  Share,
 } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { useUserContext } from '../context/UserContext';
 import { Reel } from '../types';
-import { getReelsFeed, trackReelView, incrementReelShares } from '../services/reelService';
+import { getReelsFeed, trackReelView } from '../services/reelService';
 import { commitReelLikeToggle, applyReelLikeResult, mergeLikedIds, isReelCurrentlyLiked } from '../services/reels/reelLike';
-import { buildReelShareMessage } from '../services/sharing/shareLinks';
+import { shareReelAndRecord } from '../services/sharing/shareReel';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ReelFeed } from '../components/reels/ReelFeed';
 import { ReelCommentsBottomSheet } from '../components/reels/ReelCommentsBottomSheet';
@@ -205,21 +204,15 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
   }, [savedReelIds, persistSaved, isGuest, user, promptGuestAuth]);
 
   const handleShare = useCallback(async (reel: Reel) => {
-    const message = buildReelShareMessage(reel);
-    if (!message) {
+    const result = await shareReelAndRecord(reel);
+    if (result === 'unavailable') {
       Alert.alert('Unavailable', 'This reel cannot be shared.');
       return;
     }
-    try {
-      await Share.share({
-        message,
-        title: 'PalSafar Reel',
-      });
-      setReels(prev => prev.map(r =>
-        r.id === reel.id ? { ...r, shares: (r.shares || 0) + 1 } : r,
-      ));
-      void incrementReelShares(reel.id);
-    } catch { /* cancelled */ }
+    if (result !== 'shared') return;
+    setReels(prev => prev.map(r =>
+      r.id === reel.id ? { ...r, shares: (r.shares || 0) + 1 } : r,
+    ));
   }, []);
 
   const handleReelViewed = useCallback((reelId: string) => {

@@ -97,9 +97,17 @@ export const couponsService = {
     return { deleted: true };
   },
 
-  async validate(code: string, userId: string, purchaseAmount = 0) {
+  async validate(
+    code: string,
+    userId: string,
+    purchaseAmount = 0,
+    opts?: { platformCheckout?: boolean },
+  ) {
     const coupon = await prisma.coupon.findUnique({ where: { code: code.toUpperCase() } });
     if (!coupon || !coupon.isActive) throw new ApiError(404, 'Invalid coupon');
+    if (opts?.platformCheckout && coupon.ownerType !== CouponOwnerType.ADMIN) {
+      throw new ApiError(400, 'This coupon cannot be applied to PalSafar subscriptions');
+    }
 
     if (coupon.recipientEmail) {
       const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });

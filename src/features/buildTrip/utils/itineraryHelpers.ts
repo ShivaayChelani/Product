@@ -1,6 +1,6 @@
 import type { TripPlan, TripPlanStop } from '../../../services/api/trips';
 import { getMapMarkerConfig, normalizeCategory } from '../../../utils/mapMarkerUtils';
-import { computeTripBudget } from '../../../utils/tripBudget';
+import { computeTripBudget, formatBudgetApprox } from '../../../utils/tripBudget';
 
 export type SortMode =
   | 'default'
@@ -93,10 +93,10 @@ export function formatTotalDuration(visitMins: number, travelMins: number): stri
   return `${h}h ${m > 0 ? `${m}m ` : ''}(approx.)`;
 }
 
-export function tripBudgetLabel(trip: TripPlan): string {
-  const summary = computeTripBudget(trip);
+export function tripBudgetLabel(trip: TripPlan, travelerCity?: string | null): string {
+  const summary = computeTripBudget(trip, { travelerCity });
   if (summary.grandTotal > 0) {
-    return `₹ ${Math.round(summary.grandTotal).toLocaleString('en-IN')} est.`;
+    return `${formatBudgetApprox(summary.grandTotal)}`;
   }
   switch ((trip.budget || '').toUpperCase()) {
     case 'LOW':

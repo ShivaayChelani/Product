@@ -4,6 +4,7 @@ import { socialApi, uploadApi, vendorsApi } from '../api';
 import { creatorApi } from '../../features/creator/api/creatorApi';
 import { mapReelUploadError } from './reelUploadErrors';
 import { mapReelUrls } from '../reelService';
+import { unwrapReelRewardPoints } from '../../utils/reelRewardPoints';
 import { detectReelMediaKind, type ReelMediaKind } from '../reels/reelMediaKind';
 import type { Reel } from '../../types';
 
@@ -79,9 +80,77 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+const IN_FLIGHT: ReelUploadStatus[] = ['QUEUED', 'UPLOADING', 'PROCESSING'];
+const DEDUPE_POSTED_MS = 5 * 60 * 1000;
+/** Brief “Reel posted” flash, then the Uploading Reels card disappears. */
+export const AUTO_HIDE_POSTED_MS = 2500;
+
+const hideTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+export function isUploadJobVisible(job: ReelUploadJob, now = Date.now()): boolean {
+  if (job.status === 'CANCELLED') return false;
+  if (job.status === 'POSTED') {
+    const t = new Date(job.updatedAt).getTime();
+    return Number.isFinite(t) && now - t < AUTO_HIDE_POSTED_MS;
+  }
+  return true;
+}
+
+function uploadFingerprint(job: {
+  userId: string;
+  videoUri: string;
+  caption: string;
+  kind?: ReelUploadKind;
+  vendorId?: string;
+  editReelId?: string;
+}): string {
+  return [
+    job.userId,
+    job.kind || 'CREATOR',
+    job.videoUri,
+    job.caption,
+    job.vendorId || '',
+    job.editReelId || '',
+  ].join('\u0000');
+}
+
+function findDuplicateUpload(input: StartReelUploadInput): ReelUploadJob | undefined {
+  const key = uploadFingerprint(input);
+  const now = Date.now();
+  return jobs.find((job) => {
+    if (uploadFingerprint(job) !== key) return false;
+    if (IN_FLIGHT.includes(job.status)) return true;
+    if (job.status !== 'POSTED') return false;
+    const created = new Date(job.createdAt).getTime();
+    return Number.isFinite(created) && now - created < DEDUPE_POSTED_MS;
+  });
+}
+
 function notify(): void {
   const snapshot = [...jobs];
   listeners.forEach((fn) => fn(snapshot));
+}
+
+function remainingPostedHideMs(job: ReelUploadJob, now = Date.now()): number {
+  const t = new Date(job.updatedAt).getTime();
+  if (!Number.isFinite(t)) return 0;
+  return Math.max(0, AUTO_HIDE_POSTED_MS - (now - t));
+}
+
+function scheduleHidePosted(localUploadId: string, delay = AUTO_HIDE_POSTED_MS): void {
+  const existing = hideTimers.get(localUploadId);
+  if (existing) clearTimeout(existing);
+  if (delay <= 0) {
+    hideTimers.delete(localUploadId);
+    notify();
+    return;
+  }
+  const timer = setTimeout(() => {
+    hideTimers.delete(localUploadId);
+    const job = jobs.find((j) => j.localUploadId === localUploadId);
+    if (job?.status === 'POSTED') notify();
+  }, delay);
+  hideTimers.set(localUploadId, timer);
 }
 
 async function persist(): Promise<void> {
@@ -195,6 +264,7 @@ async function runUploadJob(localUploadId: string): Promise<void> {
     updateJob(localUploadId, { status: 'PROCESSING', progress: 90 });
 
     let reel: Reel;
+    let rewardPoints = 0;
     if (job.kind === 'VENDOR') {
       const vendorReel = await vendorsApi.createVendorReel({
         videoUrl: uploadedUrl,
@@ -213,9 +283,12 @@ async function runUploadJob(localUploadId: string): Promise<void> {
         placeId: job.spotId || undefined,
         vendorId: job.vendorId || undefined,
       });
-      await creatorApi.publishDraft(job.editReelId);
+      const published = await creatorApi.publishDraft(job.editReelId);
+      rewardPoints = unwrapReelRewardPoints(published);
       const res = await socialApi.getReelById(job.editReelId);
-      reel = mapReelUrls(res.data);
+      const payload = (res as { data?: Reel })?.data ?? (res as unknown as Reel);
+      reel = mapReelUrls({ ...payload, rewardPoints: rewardPoints || unwrapReelRewardPoints(payload) });
+      rewardPoints = unwrapReelRewardPoints(reel) || rewardPoints;
     } else {
       const res = await socialApi.createReel({
         videoUrl: uploadedUrl,
@@ -225,7 +298,9 @@ async function runUploadJob(localUploadId: string): Promise<void> {
         placeId: job.spotId || undefined,
         vendorId: job.vendorId || undefined,
       });
-      reel = mapReelUrls(res.data);
+      const payload = (res as { data?: Reel })?.data ?? (res as unknown as Reel);
+      rewardPoints = unwrapReelRewardPoints(res) || unwrapReelRewardPoints(payload);
+      reel = mapReelUrls({ ...payload, rewardPoints });
     }
 
     const finished = updateJob(localUploadId, {
@@ -234,11 +309,12 @@ async function runUploadJob(localUploadId: string): Promise<void> {
       reelId: reel.id,
       videoUrl: uploadedUrl,
       thumbnail: mediaKind === 'image' ? uploadedUrl : job.thumbnail,
-      rewardPoints: reel.rewardPoints || 0,
+      rewardPoints,
       error: undefined,
     });
     if (finished) {
       postedListeners.forEach((fn) => fn(finished, reel));
+      scheduleHidePosted(localUploadId);
     }
   } catch (err: unknown) {
     await discardUnpublishedMedia(uploadedPublicId, mediaKind);
@@ -270,6 +346,9 @@ async function ensureHydrated(): Promise<void> {
   for (const job of jobs) {
     if (job.status === 'QUEUED' || job.status === 'UPLOADING' || job.status === 'PROCESSING') {
       void enqueueRun(job.localUploadId);
+    } else if (job.status === 'POSTED') {
+      const wait = remainingPostedHideMs(job);
+      if (wait > 0) scheduleHidePosted(job.localUploadId, wait);
     }
   }
 }
@@ -301,6 +380,10 @@ export const creatorUploadManager = {
     );
   },
 
+  getVisibleJobs(now = Date.now()): ReelUploadJob[] {
+    return jobs.filter((j) => isUploadJobVisible(j, now));
+  },
+
   subscribe(listener: UploadListener): () => void {
     listeners.add(listener);
     listener([...jobs]);
@@ -315,6 +398,8 @@ export const creatorUploadManager = {
 
   async startReelUpload(input: StartReelUploadInput): Promise<string> {
     await ensureHydrated();
+    const duplicate = findDuplicateUpload(input);
+    if (duplicate) return duplicate.localUploadId;
     const localUploadId = createLocalUploadId();
     const job: ReelUploadJob = {
       localUploadId,
@@ -372,6 +457,8 @@ export const creatorUploadManager = {
 
   /** @internal test helper */
   __resetForTests(): void {
+    hideTimers.forEach((timer) => clearTimeout(timer));
+    hideTimers.clear();
     jobs = [];
     hydrated = false;
     running.clear();

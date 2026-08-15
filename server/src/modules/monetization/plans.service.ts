@@ -146,6 +146,17 @@ export const plansService = {
     return plans.map((p) => planCatalogService.formatPlanForClient(p as any));
   },
 
+  async getPublicById(id: string) {
+    const plan = await this.getById(id);
+    const launchSlugs = PUBLIC_LAUNCH_SLUGS[plan.audience];
+    const hidden =
+      plan.status !== PlanStatus.ACTIVE
+      || (LEGACY_PLAN_SLUGS as readonly string[]).includes(plan.slug)
+      || Boolean(launchSlugs && !launchSlugs.includes(plan.slug));
+    if (hidden) throw new ApiError(404, 'Subscription plan not found');
+    return planCatalogService.formatPlanForClient(plan as any);
+  },
+
   async getById(id: string) {
     const plan = await prisma.subscriptionPlan.findUnique({
       where: { id },

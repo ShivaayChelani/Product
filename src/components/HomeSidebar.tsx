@@ -28,6 +28,7 @@ import { DrawerDivider } from './sidebar/DrawerDivider';
 import { DrawerFooter } from './sidebar/DrawerFooter';
 import { SB, EXPLORE_ITEMS } from './sidebar/sidebarTheme';
 import { useSidebarWidth } from '../design/responsive';
+import { runAfterDrawerClose } from '../utils/runAfterDrawerClose';
 
 type Props = {
   visible: boolean;
@@ -165,7 +166,7 @@ export default function HomeSidebar({
 
   const withClose = (action?: () => void) => () => {
     onClose();
-    action?.();
+    runAfterDrawerClose(action);
   };
 
   const switchWorkspace = (mode: UserActiveMode) => async () => {

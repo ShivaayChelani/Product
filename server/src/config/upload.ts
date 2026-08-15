@@ -96,13 +96,18 @@ export function validateVideoMagicBytes(buffer: Buffer): boolean {
   return false;
 }
 
-export const uploadToCloudinary = (buffer: Buffer, folder: string): Promise<{ url: string; publicId: string; width: number; height: number }> => {
+export const uploadToCloudinary = (
+  buffer: Buffer,
+  folder: string,
+  ownerUserId?: string,
+): Promise<{ url: string; publicId: string; width: number; height: number }> => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder,
         allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
         transformation: [{ width: 1200, height: 900, crop: 'limit', quality: 'auto' }],
+        ...(ownerUserId ? { context: { owner: ownerUserId } } : {}),
       },
       (error, result) => {
         if (error || !result) return reject(error || new Error('Upload failed'));
@@ -122,7 +127,11 @@ export const uploadToCloudinary = (buffer: Buffer, folder: string): Promise<{ ur
   });
 };
 
-export const uploadVideoToCloudinary = (buffer: Buffer, folder: string): Promise<{ url: string; publicId: string; duration: number }> => {
+export const uploadVideoToCloudinary = (
+  buffer: Buffer,
+  folder: string,
+  ownerUserId?: string,
+): Promise<{ url: string; publicId: string; duration: number }> => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
@@ -130,8 +139,9 @@ export const uploadVideoToCloudinary = (buffer: Buffer, folder: string): Promise
         resource_type: 'video',
         allowed_formats: ['mp4', 'mov', 'webm'],
         transformation: [
-          { width: 720, height: 1280, crop: 'limit', quality: 'auto' }, // Compress to 720p HD portrait
+          { width: 720, height: 1280, crop: 'limit', quality: 'auto' },
         ],
+        ...(ownerUserId ? { context: { owner: ownerUserId } } : {}),
       },
       (error, result) => {
         if (error || !result) return reject(error || new Error('Video upload failed'));

@@ -264,6 +264,11 @@ export const rewardsService = {
             subscriptionStatus: true,
             suspendedAt: true,
             operatingHours: true,
+            phone: true,
+            website: true,
+            showContact: true,
+            showWebsite: true,
+            showNavigation: true,
           },
         },
       },
@@ -271,9 +276,25 @@ export const rewardsService = {
     if (!offer || !isPublicVendorOfferEligible(offer, offer.vendor, now)) {
       throw new ApiError(404, 'Offer not found or no longer available');
     }
+    const vendor = offer.vendor;
     return {
       ...offer,
       remainingRedemptions: remainingRedemptionCount(offer),
+      vendor: vendor
+        ? {
+            id: vendor.id,
+            businessName: vendor.businessName,
+            city: vendor.city,
+            state: vendor.state,
+            address: vendor.address,
+            imageUrl: vendor.imageUrl,
+            operatingHours: vendor.operatingHours,
+            phone: vendor.showContact === false ? null : vendor.phone,
+            website: vendor.showWebsite === false ? null : vendor.website,
+            latitude: vendor.showNavigation === false ? null : vendor.latitude,
+            longitude: vendor.showNavigation === false ? null : vendor.longitude,
+          }
+        : null,
     };
   },
 

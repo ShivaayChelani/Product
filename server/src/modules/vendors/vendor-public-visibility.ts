@@ -42,17 +42,15 @@ function liveVendorSubscriptionSome(now = new Date()) {
 }
 
 /**
- * Approved vendors with an active (or live UserSubscription) plan.
- * Used for public listing, details, and map pins.
+ * Approved vendors with a live UserSubscription (period not ended).
+ * Denormalized vendor.subscriptionStatus is not enough — expired rows can stay ACTIVE
+ * until reconcile runs.
  */
 export function getPublicVendorListingWhere(now = new Date()) {
   return {
     status: APPROVED,
     suspendedAt: null,
-    OR: [
-      { subscriptionStatus: ACTIVE_SUB },
-      liveVendorSubscriptionSome(now),
-    ],
+    ...liveVendorSubscriptionSome(now),
   };
 }
 
@@ -81,7 +79,8 @@ export function isPublicVendorListingVisible(vendor: {
   hasLiveSubscription?: boolean;
 }): boolean {
   const subscribed =
-    vendor.subscriptionStatus === ACTIVE_SUB || vendor.hasLiveSubscription === true;
+    vendor.hasLiveSubscription === true
+    || (vendor.hasLiveSubscription === undefined && vendor.subscriptionStatus === ACTIVE_SUB);
   return (
     vendor.status === APPROVED &&
     subscribed &&
@@ -156,14 +155,11 @@ export function deriveVendorListingStatus(input: {
 export const publicVendorListingSql = `
   status = 'APPROVED'
   AND suspended_at IS NULL
-  AND (
-    subscription_status = 'ACTIVE'
-    OR EXISTS (
-      SELECT 1 FROM user_subscriptions us
-      WHERE us.user_id = vendors.user_id
-        AND us.audience = 'VENDOR'
-        AND us.status IN ('ACTIVE', 'TRIALING')
-        AND us.current_period_end >= NOW()
-    )
+  AND EXISTS (
+    SELECT 1 FROM user_subscriptions us
+    WHERE us.user_id = vendors.user_id
+      AND us.audience = 'VENDOR'
+      AND us.status IN ('ACTIVE', 'TRIALING')
+      AND us.current_period_end >= NOW()
   )
 `;

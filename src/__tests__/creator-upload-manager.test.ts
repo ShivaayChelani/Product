@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { creatorUploadManager, type ReelUploadJob } from '../services/creator/creatorUploadManager';
+import { creatorUploadManager, isUploadJobVisible, AUTO_HIDE_POSTED_MS, type ReelUploadJob } from '../services/creator/creatorUploadManager';
 import { mapReelUploadError } from '../services/creator/reelUploadErrors';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -83,7 +83,23 @@ describe('creatorUploadManager', () => {
     const jobs = creatorUploadManager.getJobs();
     expect(jobs[0]?.status).toBe('POSTED');
     expect(jobs[0]?.reelId).toBe('reel_1');
+    expect(jobs[0]?.rewardPoints).toBe(50);
     expect(uploadApi.deleteMedia).not.toHaveBeenCalled();
+  });
+
+  it('does not queue a second job when the same reel is posted twice', async () => {
+    uploadApi.uploadVideo.mockReturnValue(new Promise(() => { /* hang in-flight */ }));
+    const payload = {
+      videoUri: 'file:///tmp/same.mp4',
+      caption: 'Same reel',
+      tags: [] as string[],
+      userId: 'user_1',
+      userName: 'Creator',
+    };
+    const first = await creatorUploadManager.startReelUpload(payload);
+    const second = await creatorUploadManager.startReelUpload(payload);
+    expect(second).toBe(first);
+    expect(creatorUploadManager.getJobs().filter((j) => j.videoUri === payload.videoUri)).toHaveLength(1);
   });
 
   it('deletes Cloudinary media when publish fails and re-uploads on retry', async () => {
@@ -235,7 +251,9 @@ describe('creatorUploadManager', () => {
       url: 'https://cdn.example/draft.mp4',
       publicId: 'palsasafar/reels/draft',
     });
-    creatorApi.publishDraft.mockResolvedValue(undefined);
+    creatorApi.publishDraft.mockResolvedValue({
+      data: { id: 'draft_1', videoUrl: 'https://cdn.example/draft.mp4', rewardPoints: 50 },
+    });
     socialApi.getReelById.mockResolvedValue({
       data: { id: 'draft_1', videoUrl: 'https://cdn.example/draft.mp4' },
     });
@@ -253,6 +271,66 @@ describe('creatorUploadManager', () => {
     await wait(80);
     expect(creatorApi.publishDraft).toHaveBeenCalledWith('draft_1');
     expect(socialApi.createReel).not.toHaveBeenCalled();
+    expect(creatorUploadManager.getJobs()[0]?.rewardPoints).toBe(50);
+  });
+
+  it('hides posted jobs from Uploading Reels after a short success flash', () => {
+    const now = Date.now();
+    const posted: ReelUploadJob = {
+      localUploadId: 'reel_upload_1',
+      status: 'POSTED',
+      progress: 100,
+      videoUri: 'file:///tmp/video.mp4',
+      caption: 'Test reel',
+      tags: [],
+      userId: 'user_1',
+      userName: 'Creator',
+      createdAt: new Date(now).toISOString(),
+      updatedAt: new Date(now).toISOString(),
+    };
+    expect(isUploadJobVisible(posted, now)).toBe(true);
+    expect(isUploadJobVisible(posted, now + AUTO_HIDE_POSTED_MS)).toBe(false);
+    expect(isUploadJobVisible({ ...posted, status: 'FAILED' }, now + AUTO_HIDE_POSTED_MS)).toBe(true);
+    expect(isUploadJobVisible({
+      ...posted,
+      updatedAt: new Date(now - 60_000).toISOString(),
+    }, now)).toBe(false);
+  });
+
+  it('notifies subscribers so posted cards drop without tapping dismiss', async () => {
+    jest.useFakeTimers();
+    try {
+      uploadApi.uploadVideo.mockResolvedValue({
+        url: 'https://cdn.example/v.mp4',
+        publicId: 'palsasafar/reels/v',
+      });
+      socialApi.createReel.mockResolvedValue({
+        data: { id: 'reel_autohide', videoUrl: 'https://cdn.example/v.mp4' },
+      });
+
+      await creatorUploadManager.startReelUpload({
+        videoUri: 'file:///tmp/video.mp4',
+        caption: 'Test reel',
+        tags: [],
+        userId: 'user_1',
+        userName: 'Creator',
+      });
+
+      for (let i = 0; i < 30; i++) {
+        if (creatorUploadManager.getJobs()[0]?.status === 'POSTED') break;
+        await Promise.resolve();
+      }
+
+      expect(creatorUploadManager.getJobs()[0]?.status).toBe('POSTED');
+      expect(creatorUploadManager.getVisibleJobs()).toHaveLength(1);
+
+      jest.advanceTimersByTime(AUTO_HIDE_POSTED_MS);
+      expect(creatorUploadManager.getJobs()[0]?.status).toBe('POSTED');
+      expect(creatorUploadManager.getVisibleJobs()).toHaveLength(0);
+    } finally {
+      creatorUploadManager.__resetForTests();
+      jest.useRealTimers();
+    }
   });
 });
 
@@ -277,6 +355,8 @@ describe('CreateReel background upload wiring', () => {
     const src = fs.readFileSync(path.join(__dirname, '../screens/CreateReelScreen.tsx'), 'utf8');
     expect(src).toMatch(/creatorUploadManager\.startReelUpload/);
     expect(src).toMatch(/navigateToWorkspaceHome\(navigation, 'CREATOR'\)/);
+    expect(src).toMatch(/submitLockRef/);
+    expect(src).toMatch(/if \(submitLockRef\.current\) return;/);
     expect(src).toMatch(/mediaType: 'mixed'/);
     expect(src).not.toMatch(/uploadReelVideo/);
   });
@@ -289,6 +369,7 @@ describe('CreateVendorReel background upload wiring', () => {
     const src = fs.readFileSync(path.join(__dirname, '../screens/CreateVendorReelScreen.tsx'), 'utf8');
     expect(src).toMatch(/creatorUploadManager\.startReelUpload/);
     expect(src).toMatch(/kind: 'VENDOR'/);
+    expect(src).toMatch(/submitLockRef/);
     expect(src).toMatch(/navigateToWorkspaceHome\(navigation, 'VENDOR'\)/);
     expect(src).not.toMatch(/uploadApi\.uploadVideo/);
   });

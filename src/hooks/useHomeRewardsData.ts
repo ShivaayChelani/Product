@@ -9,6 +9,8 @@ import {
   isRewardCampaignLive,
 } from '../utils/rewardCampaignUtils';
 import type { Campaign } from '../services/api/campaigns';
+import type { NearbyVendorOfferItem } from '../components/home/VendorOffersNearYouSection';
+import { mapPublicOffersToNearbyCards } from '../utils/homeVendorOffers';
 import {
   pickFeaturedLiveOffer,
   unwrapRewardsOffersList,
@@ -24,6 +26,7 @@ type Options = {
 
 type HomeRewardsState = {
   homeOffer: HomeOfferItem | null;
+  nearbyVendorOffers: NearbyVendorOfferItem[];
   loading: boolean;
   refresh: () => Promise<void>;
   nextCampaign: Campaign | null;
@@ -51,6 +54,7 @@ export function useHomeRewardsData({
   longitude,
 }: Options): HomeRewardsState {
   const [homeOffer, setHomeOffer] = useState<HomeOfferItem | null>(null);
+  const [nearbyVendorOffers, setNearbyVendorOffers] = useState<NearbyVendorOfferItem[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [userClaims, setUserClaims] = useState<UserCampaignClaim[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,8 +91,14 @@ export function useHomeRewardsData({
         const list = unwrapRewardsOffersList(raw);
         const featured = pickFeaturedLiveOffer(list);
         setHomeOffer(featured ? vendorOfferItemToHomeOffer(featured) : null);
+        const origin =
+          latitude != null && longitude != null && !Number.isNaN(latitude) && !Number.isNaN(longitude)
+            ? { latitude, longitude }
+            : null;
+        setNearbyVendorOffers(mapPublicOffersToNearbyCards(list, origin, 6));
       } else {
         setHomeOffer(null);
+        setNearbyVendorOffers([]);
       }
 
       if (claimsRes?.status === 'fulfilled') {
@@ -116,6 +126,7 @@ export function useHomeRewardsData({
 
   return {
     homeOffer,
+    nearbyVendorOffers,
     loading,
     refresh: load,
     nextCampaign,

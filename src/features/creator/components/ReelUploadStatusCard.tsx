@@ -75,6 +75,9 @@ export function ReelUploadStatusCard({ job, onRetry, onDismiss, onViewReel }: Pr
             </>
           )}
 
+          {job.status === 'POSTED' && (job.rewardPoints || 0) > 0 ? (
+            <Text style={styles.rewardText}>+{job.rewardPoints} PalPoints (first reel today)</Text>
+          ) : null}
           {job.status === 'POSTED' && job.reelId && (
             <TouchableOpacity style={styles.linkBtn} onPress={() => onViewReel?.(job.reelId!)}>
               <Icon name="checkmark-circle" size={16} color={C.green} />
@@ -156,5 +159,6 @@ const styles = StyleSheet.create({
   retryText: { marginLeft: 4, color: C.gold, fontWeight: '700', fontSize: 13 },
   linkBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
   linkText: { marginLeft: 4, color: C.green, fontWeight: '700', fontSize: 13 },
+  rewardText: { fontSize: 12, fontWeight: '700', color: C.gold, marginTop: 4 },
   dismissBtn: { padding: 4, marginLeft: 4 },
 });

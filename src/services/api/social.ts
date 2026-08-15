@@ -130,7 +130,7 @@ export const socialApi = {
   },
 
   async incrementShares(reelId: string) {
-    return apiClient.patch<{ id: string; shares: number }>(`/social/reels/${reelId}/shares`);
+    return apiClient.patch<{ id: string; shares: number }>(`/social/reels/${reelId}/shares`, {});
   },
 
   async updateReel(

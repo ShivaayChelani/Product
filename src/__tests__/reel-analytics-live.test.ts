@@ -47,7 +47,7 @@ describe('My Reels live analytics', () => {
 
   it('persists shares to the server instead of only bumping local state', () => {
     expect(reelService).toMatch(/incrementReelShares/);
-    expect(feedScreen).toMatch(/incrementReelShares/);
-    expect(detailScreen).toMatch(/incrementReelShares/);
+    expect(feedScreen).toMatch(/shareReelAndRecord/);
+    expect(detailScreen).toMatch(/shareReelAndRecord/);
   });
 });

@@ -16,6 +16,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserContext } from '../context/UserContext';
 import CreatorStudioSidebar from '../components/CreatorStudioSidebar';
+import { applyWalletPalPoints } from '../utils/syncPalPoints';
 import { useCreatorDashboard, creatorDashboardKey } from '../features/creator/hooks/useCreatorDashboard';
 import { useCreatorAnalytics } from '../features/creator/hooks/useCreatorAnalytics';
 import { compactNumber } from '../features/creator/utils/format';
@@ -32,7 +33,7 @@ import {
 } from '../features/creator/components/DashboardWidgets';
 import { CollaborationCard } from '../features/creator/components/CollaborationCard';
 import { ReelUploadStatusCard } from '../features/creator/components/ReelUploadStatusCard';
-import { creatorUploadManager, type ReelUploadJob } from '../services/creator/creatorUploadManager';
+import { creatorUploadManager, isUploadJobVisible, type ReelUploadJob } from '../services/creator/creatorUploadManager';
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 import { useWindowDimensions } from 'react-native';
 
@@ -108,7 +109,7 @@ function PerformanceChart({ data, height = 160 }: { data: number[]; height?: num
 
 export default function CreatorDashboardScreen() {
   const navigation = useNavigation<any>();
-  const { user, setActiveMode, onLogout } = useUserContext();
+  const { user, setUser, setActiveMode, onLogout } = useUserContext();
   const insets = useSafeAreaInsets();
   const contentPadBottom = useBottomSafePadding(100);
   const queryClient = useQueryClient();
@@ -117,21 +118,41 @@ export default function CreatorDashboardScreen() {
   const [period, setPeriod] = useState<Period>('30d');
   const [unreadCount, setUnreadCount] = useState(getUnreadBadgeCount());
   const [uploadJobs, setUploadJobs] = useState<ReelUploadJob[]>([]);
+  const [palPoints, setPalPoints] = useState(Number(user?.totalPoints) || 0);
 
   useEffect(() => {
     void creatorUploadManager.init();
     return creatorUploadManager.subscribe(setUploadJobs);
   }, []);
 
+  const dashboardQuery = useCreatorDashboard();
+  const analyticsQuery = useCreatorAnalytics(period);
+  const refetchDashboard = dashboardQuery.refetch;
+  const refetchAnalytics = analyticsQuery.refetch;
+
+  useEffect(() => {
+    setPalPoints(Number(user?.totalPoints) || 0);
+  }, [user?.totalPoints]);
+
+  const refreshPalPoints = useCallback(async () => {
+    const pts = await applyWalletPalPoints(setUser);
+    if (pts != null) setPalPoints(pts);
+  }, [setUser]);
+
   useFocusEffect(
     useCallback(() => {
       setUnreadCount(getUnreadBadgeCount());
-      return subscribeUnreadBadge(setUnreadCount);
-    }, []),
+      const unsub = subscribeUnreadBadge(setUnreadCount);
+      void refetchDashboard();
+      void refetchAnalytics();
+      void refreshPalPoints();
+      return unsub;
+    }, [refetchDashboard, refetchAnalytics, refreshPalPoints]),
   );
 
-  const dashboardQuery = useCreatorDashboard();
-  const analyticsQuery = useCreatorAnalytics(period);
+  useEffect(() => {
+    if (sidebarOpen) void refreshPalPoints();
+  }, [sidebarOpen, refreshPalPoints]);
 
   const { data: recentCollabs, refetch: refetchCollabs } = useQuery({
     queryKey: ['creator-dashboard-recent'],
@@ -161,7 +182,7 @@ export default function CreatorDashboardScreen() {
     refetchCollabs();
   }, [queryClient, dashboardQuery, analyticsQuery, refetchCollabs]);
 
-  const visibleUploadJobs = uploadJobs.filter((j) => j.status !== 'CANCELLED');
+  const visibleUploadJobs = uploadJobs.filter((j) => isUploadJobVisible(j));
 
   const handleRetryUpload = useCallback((localUploadId: string) => {
     void creatorUploadManager.retryUpload(localUploadId);
@@ -197,7 +218,18 @@ export default function CreatorDashboardScreen() {
 
   const o = dashboard.overview;
   const completedCollabsCount = collabCount ?? 0;
-  const chartData = analyticsQuery.data?.dailySeries?.map(d => d.views) ?? [100, 320, 210, 480, 720, 340, 560];
+  const series = analyticsQuery.data?.dailySeries || [];
+  const chartData = series.length ? series.map(d => d.views) : [0, 0, 0, 0, 0, 0, 0];
+  const chartLabels = (() => {
+    if (series.length < 2) return [] as string[];
+    const fmt = (iso: string) => {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+    };
+    const picks = [0, Math.floor(series.length * 0.25), Math.floor(series.length * 0.5), Math.floor(series.length * 0.75), series.length - 1];
+    return picks.map(i => fmt(series[i].date));
+  })();
 
   return (
     <View style={styles.root}>
@@ -240,7 +272,7 @@ export default function CreatorDashboardScreen() {
               <Text style={styles.sectionTitle}>Performance Overview</Text>
               <Icon name="information-circle-outline" size={16} color={COLORS.textSecondary} style={{ marginLeft: 6 }} />
             </View>
-            <TouchableOpacity style={styles.viewAllBtn} onPress={() => navigation.navigate('CreatorAnalyticsScreen')}>
+            <TouchableOpacity style={styles.viewAllBtn} onPress={() => navigation.navigate('CreatorAnalytics')}>
               <Text style={styles.viewAllText}>View All</Text>
               <Icon name="chevron-forward" size={14} color={COLORS.gold} />
             </TouchableOpacity>
@@ -263,11 +295,9 @@ export default function CreatorDashboardScreen() {
           <View style={styles.chartWrap}>
             <PerformanceChart data={chartData} />
             <View style={styles.xLabels}>
-              <Text style={styles.xLabelText}>20 Apr</Text>
-              <Text style={styles.xLabelText}>27 Apr</Text>
-              <Text style={styles.xLabelText}>04 May</Text>
-              <Text style={styles.xLabelText}>11 May</Text>
-              <Text style={styles.xLabelText}>18 May</Text>
+              {(chartLabels.length ? chartLabels : ['', '', '', '', '']).map((label, i) => (
+                <Text key={`${label}-${i}`} style={styles.xLabelText}>{label}</Text>
+              ))}
             </View>
           </View>
 
@@ -311,7 +341,7 @@ export default function CreatorDashboardScreen() {
                     dateStr={new Date(c.updatedAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                     earningsStr="Collaboration Offer"
                     avatarUrl={c.vendor?.avatar || c.vendor?.imageUrl || undefined}
-                    onViewDetails={() => navigation.navigate('CollaborationDetailScreen', { collaborationId: c.id })}
+                    onViewDetails={() => navigation.navigate('CollaborationDetail', { collaborationId: c.id })}
                   />
                 );
               })}
@@ -333,22 +363,23 @@ export default function CreatorDashboardScreen() {
         onClose={() => setSidebarOpen(false)}
         user={user!}
         creatorName={dashboard.profile.fullName || dashboard.profile.username || 'Creator'}
-        creatorHandle={dashboard.profile.username || ''}
+        creatorHandle={dashboard.profile.username || user?.creatorProfile?.username || ''}
         creatorAvatar={dashboard.profile.avatar || null}
         verified={dashboard.profile.verified}
-
+        palPoints={palPoints}
         reelCount={o.reels}
         onNavigateReels={() => navigation.navigate('Reels')}
         onNavigateCreateReel={() => navigation.navigate('CreateReel')}
-        onNavigateAnalytics={() => navigation.navigate('CreatorAnalyticsScreen')}
+        onNavigateAnalytics={() => navigation.navigate('CreatorAnalytics')}
         onNavigateCollaborations={() => navigation.navigate('Collaboration')}
         onNavigateProfile={() => navigation.navigate('Profile')}
         onNavigateNotifications={() => navigation.navigate('Notifications')}
         onNavigateSettings={() => navigation.navigate('Settings')}
         onNavigateLegal={() => navigation.navigate('LegalDocument', { type: 'CREATOR_TERMS', title: 'Creator Terms & Conditions' })}
+        onNavigateSubscription={() => navigation.navigate('CreatorSubscription')}
+        onNavigateWallet={() => navigation.navigate('PalPointsScreen')}
         onSwitchToUser={() => {
-          setActiveMode('USER');
-          navigation.navigate('MainTabs');
+          void setActiveMode('USER');
         }}
         onLogout={onLogout}
       />

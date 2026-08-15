@@ -1429,8 +1429,18 @@ export default function MapScreen({
     const uri = result.assets[0].uri;
     try {
       const uploadRes = await uploadApi.uploadImage(uri);
-      await userPlaceImagesApi.contribute(marker.id, uploadRes.url);
-      Alert.alert('Submitted', 'Your photo has been submitted for admin review. You will earn points if approved (place image rule).');
+      const contributed = await userPlaceImagesApi.contribute(marker.id, uploadRes.url);
+      const points =
+        typeof (contributed as { points?: number })?.points === 'number' &&
+        (contributed as { points: number }).points > 0
+          ? (contributed as { points: number }).points
+          : 0;
+      Alert.alert(
+        points > 0 ? 'PalPoints earned' : 'Submitted',
+        points > 0
+          ? `+${points} PalPoints added. Your photo is under review.`
+          : 'Your photo has been submitted for admin review. You will get a notification when it is reviewed.',
+      );
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || 'Failed to submit photo';
       Alert.alert('Error', msg);
@@ -1688,28 +1698,70 @@ export default function MapScreen({
 
   const handleVendorAddToTrip = useCallback(async () => {
     if (!selectedMarker || selectedMarker.type !== 'vendor') return;
-    const spotId = selectedMarker.linkedSpotIds?.[0];
-    if (!spotId) {
-      navigation.navigate('VendorProfile', { vendorId: selectedMarker.id, initialTab: 'offers' });
-      return;
-    }
+    const id = selectedMarker.id;
+
+    if (isPlaceInItinerary(id, addedPlaceIds)) return;
+    if (pendingItineraryAddsRef.current.has(id)) return;
+
     if (isGuest) {
-      Alert.alert('Sign In Required', 'Create an account or sign in to save stops to your trip.');
+      Alert.alert('Sign In Required', 'Create an account or sign in to save places to your itinerary.');
       return;
     }
+
+    const place: TouristSpot = {
+      id,
+      name: selectedMarker.name,
+      city: selectedMarker.city || '',
+      state: selectedMarker.state || 'Madhya Pradesh',
+      latitude: selectedMarker.lat,
+      longitude: selectedMarker.lng,
+      category: selectedMarker.category || 'local_experience',
+      difficulty: 'easy',
+      description: selectedMarker.description || '',
+      shortDescription: selectedMarker.description || '',
+      imageUri: selectedMarker.image || null,
+      rating: selectedMarker.rating,
+    };
+    cacheItineraryPlace(place);
+
+    pendingItineraryAddsRef.current.add(id);
+    setAddingPlaceId(id);
+    setAddedPlaceIds(prev => new Set(prev).add(id));
+    setUser(prev => {
+      const list = prev.currentItinerary || [];
+      if (list.includes(id)) return prev;
+      return { ...prev, currentItinerary: [...list, id] };
+    });
+    showSuccess('Added to your itinerary');
+
     try {
       const draftTripId = await AsyncStorage.getItem(DRAFT_TRIP_ID_KEY);
-      await quickAddPlaceToTrip(spotId, {
+      const result = await quickAddPlaceToTrip(id, {
         name: selectedMarker.name,
         city: selectedMarker.city,
         tripId: draftTripId || undefined,
       });
-      showSuccess('Added to your trip');
-    } catch (err: unknown) {
-      const msg = (err as { message?: string })?.message || 'Could not add to trip';
-      showError(msg);
+      tripsApi.getById(result.tripId).then(seedDraftTripCache).catch(() => {});
+    } catch (err: any) {
+      setAddedPlaceIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      setUser(prev => ({
+        ...prev,
+        currentItinerary: (prev.currentItinerary || []).filter(placeId => placeId !== id),
+      }));
+      if (err?.status === 401) {
+        Alert.alert('Sign In Required', 'Create an account or sign in to save places to your itinerary.');
+      } else {
+        showError(err?.message || 'Could not add this place to your itinerary.');
+      }
+    } finally {
+      pendingItineraryAddsRef.current.delete(id);
+      setAddingPlaceId(current => (current === id ? null : current));
     }
-  }, [selectedMarker, navigation, isGuest, showSuccess, showError]);
+  }, [selectedMarker, setUser, isGuest, addedPlaceIds, showSuccess, showError]);
 
   const handleWriteVendorReview = useCallback((vendorId: string) => {
     if (isGuest) {
@@ -2019,6 +2071,8 @@ export default function MapScreen({
           onClose={closeSheet}
           onBookRide={handleBookRide}
           onAddToTrip={handleVendorAddToTrip}
+          inItinerary={isPlaceInItinerary(selectedMarker.id, addedPlaceIds)}
+          addingToItinerary={addingPlaceId === selectedMarker.id}
           onNavigate={handleNavigate}
           onOpenProfile={() => {
             closeSheet();

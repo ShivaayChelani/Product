@@ -200,26 +200,47 @@ export const adsService = {
     if (String(reward_amount) !== String(expectedPoints)) {
       throw new ApiError(400, 'Unexpected reward amount');
     }
+    if (String(reward_item || '') !== 'PalPoints') {
+      throw new ApiError(400, 'Unexpected reward item');
+    }
 
     if (expectedPoints <= 0) {
       throw new ApiError(400, 'Rewarded ad points are not configured');
     }
 
-    // Rate limits (cooldown/daily limit) using existing logic
-    const onCooldown = await pointRulesService.checkCooldown(userId, 'rewarded_ad');
-    if (onCooldown) {
-      throw new ApiError(429, 'Please wait before claiming another ad reward');
-    }
-    const limitReached = await pointRulesService.checkDailyLimit(userId, 'rewarded_ad');
-    if (limitReached) {
-      throw new ApiError(429, 'Daily ad reward limit reached');
+    const entitlements = await entitlementsService.getForUser(userId);
+    if (entitlements.isPremium) {
+      throw new ApiError(400, 'Premium members cannot earn PalPoints from ads');
     }
 
+    const cooldownSec = rule?.cooldownSec ?? 0;
+    const maxDaily = rule?.maxDaily ?? 0;
+
     // 4. Exactly-Once Processing via Database Idempotency
-    // We use Prisma transaction to insert AdMobSsvEvent and credit points atomically.
+    // Cooldown/daily caps live in the same transaction as the credit to close TOCTOU races.
     try {
       await prisma.$transaction(async (tx) => {
-        // Attempt insertion. If transaction_id already exists, it throws PrismaClientKnownRequestError
+        if (cooldownSec > 0) {
+          const since = new Date(Date.now() - cooldownSec * 1000);
+          const recent = await tx.walletTransaction.findFirst({
+            where: { userId, reason: 'rewarded_ad', createdAt: { gte: since } },
+            orderBy: { createdAt: 'desc' },
+          });
+          if (recent) {
+            throw new ApiError(429, 'Please wait before claiming another ad reward');
+          }
+        }
+        if (maxDaily > 0) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const count = await tx.walletTransaction.count({
+            where: { userId, reason: 'rewarded_ad', createdAt: { gte: today } },
+          });
+          if (count >= maxDaily) {
+            throw new ApiError(429, 'Daily ad reward limit reached');
+          }
+        }
+
         await tx.adMobSsvEvent.create({
           data: {
             transactionId: String(transaction_id),

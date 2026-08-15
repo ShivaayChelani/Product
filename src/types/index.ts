@@ -376,13 +376,15 @@ export interface CreatorDashboard {
   reelCount: number;
   totalLikes: number;
   totalComments: number;
+  totalShares?: number;
+  totalSaves?: number;
   dailyReward: { claimedToday: boolean; pointsIfClaimed: number };
   recentReels: Reel[];
 }
 
 export interface CreatorAnalytics {
   period: '7d' | '30d' | 'all';
-  kpis: { views: number; likes: number; comments: number; saves: number; engagementRate: number };
+  kpis: { views: number; likes: number; comments: number; shares?: number; saves: number; engagementRate: number };
   topReels: Reel[];
   note: string;
 }

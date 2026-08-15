@@ -16,6 +16,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { UserProfile } from '../types';
 import { useSidebarWidth } from '../design/responsive';
 import { useUserContext } from '../context/UserContext';
+import { runAfterDrawerClose } from '../utils/runAfterDrawerClose';
+import { formatCreatorHandle } from '../utils/creatorHandle';
 
 const C = {
   bg: '#FFFFFF',
@@ -62,6 +64,7 @@ export type CreatorStudioSidebarProps = {
   onNavigateSettings?: () => void;
   onNavigateLegal?: () => void;
   onNavigateSubscription?: () => void;
+  onNavigateWallet?: () => void;
   onSwitchToUser?: () => void;
   onLogout?: () => void;
 };
@@ -74,7 +77,7 @@ function MenuRow({ item, onClose }: { item: MenuItem; onClose: () => void }) {
       activeOpacity={0.72}
       onPress={() => {
         onClose();
-        item.onPress?.();
+        runAfterDrawerClose(item.onPress);
       }}
     >
       <View style={[styles.rowIcon, item.danger && styles.rowIconDanger]}>
@@ -113,6 +116,7 @@ export default function CreatorStudioSidebar({
   onNavigateSettings,
   onNavigateLegal,
   onNavigateSubscription,
+  onNavigateWallet,
   onSwitchToUser,
   onLogout,
 }: CreatorStudioSidebarProps) {
@@ -131,7 +135,9 @@ export default function CreatorStudioSidebar({
   }, [visible, sidebarW, slideAnim]);
 
   const displayName = creatorName || user.displayName || 'Creator';
-  const handle = creatorHandle || user.creatorProfile?.username || user.displayName?.toLowerCase().replace(/\s+/g, '') || 'creator';
+  const handle = formatCreatorHandle(
+    creatorHandle || user.creatorProfile?.username || user.displayName,
+  );
   const initial = (displayName[0] || 'C').toUpperCase();
 
   const sections: MenuSection[] = [
@@ -234,10 +240,17 @@ export default function CreatorStudioSidebar({
                   </View>
                   <Text style={styles.handle}>@{handle}</Text>
                   <View style={styles.statsRow}>
-                    <View style={styles.statChip}>
+                    <TouchableOpacity
+                      style={styles.statChip}
+                      activeOpacity={0.75}
+                      onPress={() => {
+                        onClose();
+                        runAfterDrawerClose(onNavigateWallet);
+                      }}
+                    >
                       <MaterialCommunityIcons name="circle-multiple" size={13} color={C.bronze} />
-                      <Text style={styles.statText}>{palPoints.toLocaleString()} pts</Text>
-                    </View>
+                      <Text style={styles.statText}>{Number(palPoints || 0).toLocaleString()} pts</Text>
+                    </TouchableOpacity>
                     <View style={styles.statChip}>
                       <Icon name="play-outline" size={13} color={C.bronze} />
                       <Text style={styles.statText}>{reelCount} reels</Text>

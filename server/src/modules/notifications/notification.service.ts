@@ -127,10 +127,13 @@ function isTransactionalType(type: string): boolean {
     t.startsWith('redemption_') ||
     t.startsWith('collab_') ||
     t.startsWith('hidden_gem_') ||
+    t.startsWith('place_image_') ||
     t.startsWith('vendor_tagged_reel') ||
     t === 'fraud_alert' ||
     t === 'vendor_code_reset' ||
-    t === 'points_spent'
+    t === 'points_spent' ||
+    t === 'review_write' ||
+    t === 'vendor_review'
   );
 }
 

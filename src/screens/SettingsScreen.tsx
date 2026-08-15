@@ -29,7 +29,7 @@ export default function SettingsScreen({
   const navigation = useNavigation<any>();
   const nav = navigationProp || navigation;
   const insets = useSafeAreaInsets();
-  const { isAuthenticated, onLogout: contextLogout, confirmLogout } = useUserContext();
+  const { isAuthenticated, isGuest, onLogout: contextLogout, confirmLogout } = useUserContext();
   const { data: appSettings } = useUserAppSettings(isAuthenticated);
 
   const openLegal = useCallback(
@@ -85,8 +85,33 @@ export default function SettingsScreen({
         {/* SECTION 1: ACCOUNT */}
         <Text style={styles.sectionTitle}>ACCOUNT</Text>
         <View style={styles.card}>
+          {!isGuest ? (
+            <>
+              <TouchableOpacity style={styles.row} onPress={() => nav.navigate('ChangePassword')}>
+                <View style={[styles.iconBox, { backgroundColor: '#FFF5E1' }]}>
+                  <Icon name="lock-closed-outline" size={20} color="#C79A4B" />
+                </View>
+                <View style={styles.rowContent}>
+                  <Text style={styles.rowTitle}>Change Password</Text>
+                  <Text style={styles.rowSubtitle}>Update your account password</Text>
+                </View>
+                <Icon name="chevron-forward" size={18} color="#C4A484" />
+              </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]} onPress={() => nav.navigate('NotificationSettings')}>
+              <TouchableOpacity style={styles.row} onPress={() => nav.navigate('PrivacySettings')}>
+                <View style={[styles.iconBox, { backgroundColor: '#ECFDF5' }]}>
+                  <Icon name="shield-checkmark-outline" size={20} color="#059669" />
+                </View>
+                <View style={styles.rowContent}>
+                  <Text style={styles.rowTitle}>Privacy Settings</Text>
+                  <Text style={styles.rowSubtitle}>Manage your privacy preferences</Text>
+                </View>
+                <Icon name="chevron-forward" size={18} color="#C4A484" />
+              </TouchableOpacity>
+            </>
+          ) : null}
+
+          <TouchableOpacity style={[styles.row, isGuest && { borderBottomWidth: 0 }]} onPress={() => nav.navigate('NotificationSettings')}>
             <View style={[styles.iconBox, { backgroundColor: '#FFF5E1' }]}>
               <Icon name="notifications-outline" size={20} color="#C79A4B" />
             </View>
@@ -96,6 +121,19 @@ export default function SettingsScreen({
             </View>
             <Icon name="chevron-forward" size={18} color="#C4A484" />
           </TouchableOpacity>
+
+          {!isGuest ? (
+            <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]} onPress={() => nav.navigate('DeleteAccount')}>
+              <View style={[styles.iconBox, { backgroundColor: '#FEF2F2' }]}>
+                <Icon name="trash-outline" size={20} color="#DC2626" />
+              </View>
+              <View style={styles.rowContent}>
+                <Text style={[styles.rowTitle, { color: '#DC2626' }]}>Delete Account</Text>
+                <Text style={styles.rowSubtitle}>Permanently delete your account</Text>
+              </View>
+              <Icon name="chevron-forward" size={18} color="#C4A484" />
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         {/* SECTION 3: SUPPORT */}

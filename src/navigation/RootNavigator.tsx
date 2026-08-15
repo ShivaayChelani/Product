@@ -628,6 +628,13 @@ function VendorReelsWrapper({ route, navigation }: { route: RouteProp<RootStackP
       vendorId={route.params.vendorId}
       vendorName={route.params.vendorName}
       onBack={() => navigation.goBack()}
+      onOpenReel={(reelId: string, extras?: { reels?: any[]; initialIndex?: number }) => {
+        navigation.navigate('ReelDetail', {
+          reelId,
+          reels: extras?.reels,
+          initialIndex: extras?.initialIndex,
+        });
+      }}
     />
   );
 }
@@ -915,7 +922,10 @@ function SearchWrapper({ navigation, route }: any) {
 
   return (
     <Screen
-      onBack={() => navigation.goBack()}
+      onBack={() => {
+        if (navigation.canGoBack()) navigation.goBack();
+        else navigation.navigate('MainTabs');
+      }}
       initialQuery={route.params?.initialQuery}
       categoryId={route.params?.categoryId}
       mode={mode}

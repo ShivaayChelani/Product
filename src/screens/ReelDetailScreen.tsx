@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, StatusBar, TouchableOpacity, BackHandler, Share, Alert } from 'react-native';
+import { View, StyleSheet, StatusBar, TouchableOpacity, BackHandler, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,8 +8,8 @@ import { ReelFeed } from '../components/reels/ReelFeed';
 import { ReelCommentsBottomSheet } from '../components/reels/ReelCommentsBottomSheet';
 import { useUserContext } from '../context/UserContext';
 import { commitReelLikeToggle, applyReelLikeResult, mergeLikedIds, isReelCurrentlyLiked } from '../services/reels/reelLike';
-import { buildReelShareMessage } from '../services/sharing/shareLinks';
-import { trackReelView, incrementReelShares } from '../services/reelService';
+import { shareReelAndRecord } from '../services/sharing/shareReel';
+import { trackReelView } from '../services/reelService';
 
 interface ReelDetailScreenProps {
   reel: Reel;
@@ -84,18 +84,15 @@ export default function ReelDetailScreen({
   }, [isGuest, user, promptGuestAuth, feedData, likedReelIds, setUser]);
 
   const handleShare = useCallback(async (target: Reel) => {
-    const message = buildReelShareMessage(target);
-    if (!message) {
+    const result = await shareReelAndRecord(target);
+    if (result === 'unavailable') {
       Alert.alert('Unavailable', 'This reel cannot be shared.');
       return;
     }
-    try {
-      await Share.share({ message, title: 'PalSafar Reel' });
-      setFeedData(prev => prev.map(r =>
-        r.id === target.id ? { ...r, shares: (r.shares || 0) + 1 } : r,
-      ));
-      void incrementReelShares(target.id);
-    } catch { /* cancelled */ }
+    if (result !== 'shared') return;
+    setFeedData(prev => prev.map(r =>
+      r.id === target.id ? { ...r, shares: (r.shares || 0) + 1 } : r,
+    ));
   }, []);
 
   const handleReelViewed = useCallback((reelId: string) => {

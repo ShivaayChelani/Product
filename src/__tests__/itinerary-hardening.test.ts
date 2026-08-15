@@ -125,6 +125,8 @@ describe('itinerary hardening wiring', () => {
     expect(list).toMatch(/from 'react-native-gesture-handler'/);
     expect(list).toMatch(/onLongPress=\{drag\}/);
     expect(list).toMatch(/delayLongPress=\{180\}/);
+    expect(list).not.toMatch(/formatVisitDuration/);
+    expect(list).not.toMatch(/time-outline/);
     const loaded = read('features/buildTrip/components/TripBuilderLoadedView.tsx');
     expect(loaded).toMatch(/tripsApi\.reorderStops/);
     expect(loaded).toMatch(/seedDraftTripCache\(nextTrip\)/);
@@ -145,6 +147,17 @@ describe('itinerary hardening wiring', () => {
     const src = read('screens/SearchScreen.tsx');
     expect(src).toMatch(/isReplaceMode && cityFilterActive/);
     expect(src).not.toMatch(/if \(cityFilterActive && !placeMatchesKnownCity/);
+  });
+
+  it('vendor Add to Trip quick-adds the business into the draft itinerary', () => {
+    const src = read('screens/MapScreen.tsx');
+    const start = src.indexOf('const handleVendorAddToTrip');
+    const fn = src.slice(start, src.indexOf('const handleWriteVendorReview'));
+    expect(fn).toMatch(/quickAddPlaceToTrip\(id,/);
+    expect(fn).toMatch(/seedDraftTripCache/);
+    expect(fn).toMatch(/Added to your itinerary/);
+    expect(fn).not.toMatch(/linkedSpotIds/);
+    expect(fn).not.toMatch(/VendorProfile/);
   });
 });
 

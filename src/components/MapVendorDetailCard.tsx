@@ -19,6 +19,7 @@ import { useVendorMapDetail } from '../features/mapExplore/hooks/useVendorMapDet
 import { vendorsApi } from '../services/api/vendors';
 import TaggedReelReviewRow from './TaggedReelReviewRow';
 import { mapVendorReelsToFeed } from '../features/mapExplore/utils/mapVendorReelToFeed';
+import { formatOfferDiscount } from '../features/mapExplore/utils/vendorFilters';
 import type { Reel } from '../types';
 
 type Props = {
@@ -26,6 +27,8 @@ type Props = {
   distanceLabel?: string;
   bottomInset: number;
   navPreview?: { etaMin?: number; distanceKm?: string } | null;
+  inItinerary?: boolean;
+  addingToItinerary?: boolean;
   onClose: () => void;
   onNavigate: () => void;
   onAddToTrip: () => void;
@@ -64,6 +67,8 @@ export default function MapVendorDetailCard({
   distanceLabel,
   bottomInset,
   navPreview,
+  inItinerary,
+  addingToItinerary,
   onClose,
   onNavigate,
   onAddToTrip,
@@ -315,7 +320,7 @@ export default function MapVendorDetailCard({
                 </View>
                 <Icon name="chevron-forward" size={16} color={T.textSecondary} />
               </View>
-              <Text style={styles.tileTitle}>Creator Reels</Text>
+              <Text style={styles.tileTitle}>Reels</Text>
               <Text style={styles.tileSubtitle}>
                 {vendor.reelCount === 0 ? 'No Reels yet' : `${vendor.reelCount} Reels`}
               </Text>
@@ -334,11 +339,40 @@ export default function MapVendorDetailCard({
                 <Icon name="chevron-forward" size={16} color={T.textSecondary} />
               </View>
               <Text style={styles.tileTitle}>Offers & Deals</Text>
-              <Text style={styles.tileSubtitle}>
-                {vendor.offerCount === 0 ? 'No active offers' : `${vendor.offerCount} Offers`}
+              <Text style={styles.tileSubtitle} numberOfLines={1}>
+                {vendor.offerCount === 0
+                  ? 'No active offers'
+                  : vendor.offers[0]?.title
+                    ? vendor.offers[0].title
+                    : `${vendor.offerCount} Offers`}
               </Text>
             </TouchableOpacity>
           </View>
+
+          {vendor.offers.length > 0 ? (
+            <View style={styles.offersPreviewWrap}>
+              {vendor.offers.slice(0, 3).map((offer) => (
+                <TouchableOpacity
+                  key={offer.id}
+                  style={styles.offerPreviewRow}
+                  onPress={() => onOpenOffer(offer.id)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.offerPreviewIcon}>
+                    <Icon name="pricetag" size={16} color="#9D65C9" />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={styles.offerPreviewTitle} numberOfLines={1}>{offer.title}</Text>
+                    <Text style={styles.offerPreviewSub} numberOfLines={1}>
+                      {formatOfferDiscount(offer)}
+                      {offer.pointsRequired ? ` · ${offer.pointsRequired} PalPoints` : ''}
+                    </Text>
+                  </View>
+                  <Icon name="chevron-forward" size={16} color={T.textSecondary} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : null}
 
           {/* Bottom Actions */}
           {onWriteReview ? (
@@ -352,9 +386,22 @@ export default function MapVendorDetailCard({
               <Icon name="navigate-outline" size={24} color="#3D2A1D" />
               <Text style={styles.actionTileText}>Navigate</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionTile} onPress={onAddToTrip} activeOpacity={0.8}>
-              <Icon name="briefcase-outline" size={24} color="#3D2A1D" />
-              <Text style={styles.actionTileText}>Add to Trip</Text>
+            <TouchableOpacity
+              style={[styles.actionTile, inItinerary && styles.actionTileDisabled]}
+              onPress={onAddToTrip}
+              disabled={inItinerary || addingToItinerary}
+              activeOpacity={0.8}
+            >
+              {addingToItinerary ? (
+                <ActivityIndicator size="small" color="#3D2A1D" />
+              ) : (
+                <Icon
+                  name={inItinerary ? 'checkmark-circle-outline' : 'briefcase-outline'}
+                  size={24}
+                  color="#3D2A1D"
+                />
+              )}
+              <Text style={styles.actionTileText}>{inItinerary ? 'Added' : 'Add to Trip'}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionTile} onPress={onBookRide} activeOpacity={0.8}>
               <Icon name="car-outline" size={24} color="#3D2A1D" />
@@ -535,6 +582,30 @@ const styles = StyleSheet.create({
   offersIconWrap: { backgroundColor: '#EADAF5' },
   tileTitle: { fontSize: 14, fontWeight: '800', color: '#3D2A1D' },
   tileSubtitle: { fontSize: 12, color: '#8C7B6F', marginTop: 4, fontWeight: '600' },
+  offersPreviewWrap: {
+    marginTop: 12,
+    marginHorizontal: 16,
+    gap: 8,
+  },
+  offerPreviewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#F6F0FF',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  offerPreviewIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#EADAF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  offerPreviewTitle: { fontSize: 13, fontWeight: '800', color: '#3D2A1D' },
+  offerPreviewSub: { fontSize: 11, fontWeight: '600', color: '#8C7B6F', marginTop: 2 },
   reviewBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -566,6 +637,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     gap: 8,
   },
+  actionTileDisabled: { opacity: 0.7 },
   actionTileText: {
     fontSize: 13,
     fontWeight: '800',

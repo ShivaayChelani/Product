@@ -14,13 +14,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import type { TripPlan, TripPlanStop } from '../../services/api/trips';
-import { computeTripBudget, formatInr } from '../../utils/tripBudget';
+import { computeTripBudget, formatBudgetApprox } from '../../utils/tripBudget';
 import { computeTripPalPoints, formatDurationOnly, formatTravellerGroup, resolveTravellerCount } from '../../utils/tripSummary';
 import {
   normalizeTripDays,
   stopListKey,
 } from '../../utils/normalizeTripPlan';
 import { hasValidImageUrl } from '../../utils/imageUrl';
+import { useUserContext } from '../../context/UserContext';
 
 const C = {
   bg: '#FDFCF6', // lighter warm background
@@ -140,6 +141,7 @@ export default function TripItineraryView({
 }: Props) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const { user } = useUserContext();
   const isWide = width > 768;
 
   const days = useMemo(() => normalizeTripDays(trip.tripDays), [trip.tripDays]);
@@ -167,8 +169,8 @@ export default function TripItineraryView({
   }, [days]);
 
   const budgetSummary = useMemo(
-    () => computeTripBudget({ ...trip, tripDays: days }),
-    [trip, days],
+    () => computeTripBudget({ ...trip, tripDays: days }, { travelerCity: user?.city }),
+    [trip, days, user?.city],
   );
 
   const showAiBanner = true; // Hardcoded based on request to match screenshot
@@ -352,8 +354,10 @@ export default function TripItineraryView({
                   <View style={styles.heroStatItem}>
                     <Icon name="wallet-outline" size={20} color={C.goldText} style={styles.heroStatIcon} />
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.heroStatVal}>{budgetSummary.grandTotal > 0 ? formatInr(budgetSummary.grandTotal) : 'No cost yet'}</Text>
-                      <Text style={styles.heroStatLbl}>Entry + food + travel</Text>
+                      <Text style={styles.heroStatVal}>
+                        {budgetSummary.grandTotal > 0 ? formatBudgetApprox(budgetSummary.grandTotal) : 'No cost yet'}
+                      </Text>
+                      <Text style={styles.heroStatLbl}>{budgetSummary.scopeLabel}</Text>
                     </View>
                   </View>
                   

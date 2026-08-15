@@ -3,6 +3,7 @@ import { Reel, ReelComment } from '../types';
 import { DEV_FLAGS } from '../config/devFlags';
 import { socialApi, uploadApi } from './api';
 import { API_CONFIG } from '../config/api';
+import { CREATOR_DAILY_REEL_POINTS } from '../utils/reelRewardPoints';
 
 const apiOrigin = API_CONFIG.baseUrl.replace(/\/api\/v1\/?$/, '');
 
@@ -64,7 +65,6 @@ export interface ReelUploadData {
   eventId?: string;
 }
 
-const CREATOR_DAILY_REEL_POINTS = 100;
 const localCreatorRewardDates = new Set<string>();
 
 function getLocalRewardDate(): string {

@@ -350,7 +350,7 @@ export const vendorsService = {
 
     const entitlements = await entitlementsService.getForUser(userId);
     const listing = entitlements.vendorListing;
-    const live = isPublicVendorListingVisible(vendor);
+    const live = Boolean(entitlements.vendorListing?.visible);
     const reels = await prisma.vendorReel.findMany({
       where: { vendorId: vendor.id },
       orderBy: { createdAt: 'desc' },
@@ -752,7 +752,7 @@ export const vendorsService = {
         linkedSpotIds: true,
         rating: true,
         reviewCount: true,
-        user: { select: { id: true, name: true, email: true } },
+        user: { select: { id: true, name: true } },
         offers: {
           where: {
             isActive: true,
@@ -883,7 +883,7 @@ export const vendorsService = {
         linkedSpotIds: true,
         rating: true,
         reviewCount: true,
-        user: { select: { id: true, name: true, email: true } },
+        user: { select: { id: true, name: true } },
         offers: {
           where: { isActive: true, isApproved: true, pausedAt: null },
           orderBy: { discountValue: 'desc' },
@@ -1001,7 +1001,7 @@ export const vendorsService = {
   async addReview(vendorId: string, userId: string, input: VendorReviewInput) {
     const vendor = await prisma.vendor.findFirst({
       where: { id: vendorId, ...getPublicVendorListingWhere() },
-      select: { id: true, status: true, userId: true },
+      select: { id: true, status: true, userId: true, businessName: true },
     });
     if (!vendor) {
       throw new ApiError(404, 'Vendor not found');
@@ -1044,13 +1044,48 @@ export const vendorsService = {
       if (points > 0) {
         const limitReached = await pointRulesService.checkDailyLimit(userId, 'review_write');
         if (!limitReached) {
-          await walletService.earn(userId, points, 'review_write', review.id, 'VENDOR_REVIEW');
+          await walletService.earn(userId, points, 'review_write', review.id, 'VENDOR_REVIEW', {
+            notify: false,
+          });
           pointsAwarded = points;
         }
       }
     } catch (error) {
       logger.warn({ error, reviewId: review.id, vendorId, userId }, 'Failed to award vendor review PalPoints');
     }
+
+    const shopName = vendor.businessName || 'this shop';
+    try {
+      await notificationService.sendToUser(
+        userId,
+        pointsAwarded > 0 ? `+${pointsAwarded} PalPoints` : 'Review posted',
+        pointsAwarded > 0
+          ? `Thanks for reviewing ${shopName}.`
+          : `Your review of ${shopName} was posted.`,
+        {
+          type: 'review_write',
+          vendorId,
+          reviewId: review.id,
+          amount: pointsAwarded,
+          screen: 'Wallet',
+        },
+        'review_write',
+      );
+    } catch (error) {
+      logger.warn({ error, reviewId: review.id, userId }, 'Failed to send review PalPoints notification');
+    }
+
+    notificationService
+      .sendToUser(
+        vendor.userId,
+        'New review',
+        `Someone rated ${shopName} ${input.rating} stars.`,
+        { type: 'vendor_review', vendorId, reviewId: review.id },
+        'vendor_review',
+      )
+      .catch((error) => {
+        logger.warn({ error, reviewId: review.id, vendorId }, 'Failed to notify vendor of new review');
+      });
 
     return { ...review, pointsAwarded, updated: false };
   },
@@ -1097,8 +1132,12 @@ export const vendorsService = {
     });
     if (!vendor) throw new ApiError(404, 'Vendor not found');
     const isOwner = Boolean(viewerUserId && vendor.userId === viewerUserId);
-    if (!isOwner && !isPublicVendorListingVisible(vendor)) {
-      throw new ApiError(404, 'Vendor not found');
+    if (!isOwner) {
+      const visible = await prisma.vendor.findFirst({
+        where: { id: vendorId, ...getPublicVendorListingWhere() },
+        select: { id: true },
+      });
+      if (!visible) throw new ApiError(404, 'Vendor not found');
     }
     return prisma.vendorReel.findMany({
       where: { vendorId },

@@ -163,6 +163,14 @@ describe('stale universal search generation guard', () => {
     expect(src).toMatch(/fetchGenRef\.current !== gen/);
     expect(src).toMatch(/const gen = \+\+fetchGenRef\.current/);
   });
+
+  it('Search PalSafar has a working back control and no Hidden Gems filter chip', () => {
+    const src = read('screens/SearchScreen.tsx');
+    expect(src).toMatch(/const FILTERS = \['All', 'Places', 'Vendors'/);
+    expect(src).not.toMatch(/FILTERS = \['All', 'Places', 'Hidden Gems'/);
+    expect(src).toMatch(/accessibilityLabel="Back"/);
+    expect(src).toMatch(/navigation\.canGoBack\(\)/);
+  });
 });
 
 describe('tripId navigation wiring', () => {

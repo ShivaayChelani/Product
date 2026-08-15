@@ -1359,7 +1359,7 @@ model CreatorDailyReward {
   userId     String         @map("user_id")
   reelId     String         @unique @map("reel_id")
   rewardDate String         @map("reward_date")
-  points     Int            @default(100)
+  points     Int            @default(50)
   createdAt  DateTime       @default(now()) @map("created_at")
   creator    CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   reel       Reel           @relation(fields: [reelId], references: [id], onDelete: Cascade)

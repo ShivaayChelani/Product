@@ -1,4 +1,4 @@
-import { VendorSubscriptionStatus, type VendorOffer, type Vendor } from '@prisma/client';
+import { VendorSubscriptionStatus, PlanAudience, SubscriptionStatus, type VendorOffer, type Vendor } from '@prisma/client';
 
 export type OfferWithVendor = VendorOffer & {
   vendor?: Pick<Vendor, 'id' | 'businessName' | 'city' | 'state' | 'status' | 'suspendedAt' | 'latitude' | 'longitude' | 'subscriptionStatus'>;
@@ -77,7 +77,15 @@ export function publicVendorOffersWhere(now = new Date()) {
     vendor: {
       status: LIVE_VENDOR_STATUS,
       suspendedAt: null,
-      subscriptionStatus: VendorSubscriptionStatus.ACTIVE,
+      user: {
+        subscriptions: {
+          some: {
+            audience: PlanAudience.VENDOR,
+            status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING] },
+            currentPeriodEnd: { gte: now },
+          },
+        },
+      },
     },
   };
 }

@@ -7,6 +7,11 @@ function formatOpeningHours(hours: unknown): string {
   return h[today] || h.daily || h.all || '';
 }
 
+function formatCategory(raw?: string | null): string {
+  if (!raw) return '';
+  return raw.replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 /** Build a shareable plain-text itinerary (PDF apps can import from share sheet). */
 export function buildTripExportText(trip: TripPlan): string {
   const lines: string[] = [
@@ -27,17 +32,14 @@ export function buildTripExportText(trip: TripPlan): string {
     }
     for (const stop of stops) {
       const p = stop.place;
-      const time = stop.startTime && stop.endTime ? `${stop.startTime}–${stop.endTime}` : '';
       const fee = stop.entryFee != null ? (stop.entryFee <= 0 ? 'Free' : `₹${stop.entryFee}`) : '';
       const hours = formatOpeningHours(p?.openingHours);
+      const category = formatCategory(p?.category);
       lines.push(`  ${stop.order + 1}. ${p?.name || 'Place'}`);
-      if (time) lines.push(`     Time: ${time} (${stop.duration || '?'} min)`);
-      if (p?.category) lines.push(`     Category: ${p.category}`);
+      if (category) lines.push(`     Category: ${category}`);
       if (p?.rating) lines.push(`     Rating: ${p.rating}/5`);
       if (fee) lines.push(`     Entry: ${fee}`);
       if (hours) lines.push(`     Hours: ${hours}`);
-      if (stop.distanceFromPrev) lines.push(`     From prev: ${stop.distanceFromPrev.toFixed(1)} km`);
-      if (stop.reason) lines.push(`     Why: ${stop.reason}`);
       lines.push('');
     }
   }

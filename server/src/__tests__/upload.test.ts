@@ -134,14 +134,39 @@ describe('Upload API', () => {
       expect(res.status).toBe(401);
     });
 
-    it('removes a palsasafar Cloudinary asset', async () => {
+    it('removes a palsasafar Cloudinary asset the uploader owns', async () => {
       mockDestroy.mockClear();
+      const uploaded = await request(app)
+        .post('/api/v1/upload/single')
+        .set('Authorization', `Bearer ${userToken}`)
+        .attach('image', Buffer.from('fake-image-data'), 'test.jpg');
+      expect(uploaded.status).toBe(201);
+      const publicId = uploaded.body.data.publicId;
+
       const res = await request(app)
         .delete('/api/v1/upload')
         .set('Authorization', `Bearer ${userToken}`)
-        .send({ publicId: 'palsasafar/reels/test', resourceType: 'video' });
+        .send({ publicId, resourceType: 'image' });
       expect(res.status).toBe(200);
-      expect(mockDestroy).toHaveBeenCalledWith('palsasafar/reels/test', { resource_type: 'video' });
+      expect(mockDestroy).toHaveBeenCalledWith(publicId, { resource_type: 'image' });
+    });
+
+    it('rejects deleting another user\'s Cloudinary asset', async () => {
+      mockDestroy.mockClear();
+      const vendorToken = await getAuthToken('VENDOR');
+      const uploaded = await request(app)
+        .post('/api/v1/upload/single')
+        .set('Authorization', `Bearer ${userToken}`)
+        .attach('image', Buffer.from('fake-image-data'), 'owned.jpg');
+      expect(uploaded.status).toBe(201);
+      const publicId = uploaded.body.data.publicId;
+
+      const res = await request(app)
+        .delete('/api/v1/upload')
+        .set('Authorization', `Bearer ${vendorToken}`)
+        .send({ publicId, resourceType: 'image' });
+      expect(res.status).toBe(403);
+      expect(mockDestroy).not.toHaveBeenCalled();
     });
 
     it('rejects public ids outside the app folder', async () => {

@@ -11,16 +11,16 @@ import { useUserContext } from '../context/UserContext';
 import { useBottomSafePadding } from '../design/responsive';
 
 const C = {
-  bg: '#F4F9FC',
-  navy: '#0B1F3A',
-  sky: '#0284C7',
-  lagoon: '#0E7490',
+  bg: '#FDF9F2',
+  navy: '#5D3A1B',
+  sky: '#AD762E',
+  lagoon: '#B8895A',
   white: '#FFFFFF',
-  text: '#0F2744',
-  muted: '#5B7A92',
-  border: '#C5DCE8',
-  success: '#047857',
-  successBg: '#ECFDF5',
+  text: '#2D241D',
+  muted: '#7A7068',
+  border: '#EAE1D5',
+  success: '#5F8A55',
+  successBg: '#F3F7F0',
 };
 
 function formatExpiry(value?: string | null) {
@@ -179,14 +179,14 @@ const styles = StyleSheet.create({
   hero: { backgroundColor: C.white, borderRadius: 18, borderWidth: 1, borderColor: C.border, padding: 20, gap: 6 },
   heroTitle: { fontSize: 13, fontWeight: '800', letterSpacing: 1.2, color: C.lagoon },
   heroPrice: { fontSize: 32, fontWeight: '800', color: C.navy },
-  activeCard: { backgroundColor: C.successBg, borderRadius: 16, borderWidth: 1, borderColor: '#A7F3D0', padding: 16, gap: 6, alignItems: 'center' },
-  expiredCard: { backgroundColor: '#FFF7ED', borderRadius: 16, borderWidth: 1, borderColor: '#FED7AA', padding: 16, gap: 6 },
+  activeCard: { backgroundColor: C.successBg, borderRadius: 16, borderWidth: 1, borderColor: '#D5E4CF', padding: 16, gap: 6, alignItems: 'center' },
+  expiredCard: { backgroundColor: '#FBF3E8', borderRadius: 16, borderWidth: 1, borderColor: '#E8D4B8', padding: 16, gap: 6 },
   activeTitle: { fontSize: 18, fontWeight: '800', color: C.navy },
   activeSub: { fontSize: 13, color: C.success, fontWeight: '600' },
   perk: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.white, borderRadius: 12, borderWidth: 1, borderColor: C.border, padding: 14 },
   perkText: { fontSize: 15, fontWeight: '600', color: C.text, flex: 1 },
   muted: { fontSize: 13, color: C.muted, textAlign: 'center' },
   btn: { backgroundColor: C.sky, borderRadius: 16, paddingVertical: 14, alignItems: 'center', marginTop: 8, minHeight: 48, justifyContent: 'center' },
-  btnDisabled: { backgroundColor: '#94A3B8' },
+  btnDisabled: { backgroundColor: '#D4C4B0' },
   btnText: { color: C.white, fontWeight: '800', fontSize: 15 },
 });

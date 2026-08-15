@@ -18,8 +18,9 @@ export const pointsController = {
   }),
 
   history: catchAsync(async (req: any, res: Response) => {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const parsedLimit = parseInt(req.query.limit as string) || 20;
+    const limit = Math.min(100, Math.max(1, parsedLimit));
     const result = await pointsService.getTransactionHistory(req.user.id, page, limit);
     sendSuccess(res, result.data, { pagination: result.pagination });
   }),

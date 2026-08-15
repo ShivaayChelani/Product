@@ -138,7 +138,10 @@ export const entitlementsService = {
         hasPendingPayment: Boolean(pendingVendorPayment) && !vendor,
         latestSubscriptionStatus: latestVendorSub?.status ?? null,
       });
-      const listingVisible = isPublicVendorListingVisible(vendorRow);
+      const listingVisible = isPublicVendorListingVisible({
+        ...vendorRow,
+        hasLiveSubscription: Boolean(vendor),
+      });
       vendorListing = {
         status: listingStatus,
         visible: listingVisible,

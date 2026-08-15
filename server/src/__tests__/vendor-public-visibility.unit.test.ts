@@ -24,6 +24,15 @@ describe('vendor public visibility', () => {
     })).toBe(true);
   });
 
+  it('hides denormalized ACTIVE when a live UserSubscription is known to be missing', () => {
+    expect(isPublicVendorListingVisible({
+      status: 'APPROVED',
+      subscriptionStatus: 'ACTIVE',
+      suspendedAt: null,
+      hasLiveSubscription: false,
+    })).toBe(false);
+  });
+
   it('hides expired, cancelled-equivalent, grace, and suspended vendors', () => {
     for (const subscriptionStatus of ['EXPIRED', 'GRACE', 'PAST_DUE', 'SUSPENDED']) {
       expect(isPublicVendorListingVisible({
@@ -81,12 +90,19 @@ describe('vendor public visibility', () => {
     expect(deriveVendorListingStatus({ vendorStatus: 'SUSPENDED', subscriptionStatus: 'ACTIVE' })).toBe('SUSPENDED');
   });
 
-  it('uses ACTIVE subscription or a live UserSubscription in the public prisma where clause', () => {
+  it('requires a live UserSubscription in the public prisma where clause', () => {
     const listing = getPublicVendorListingWhere();
     expect(listing.status).toBe('APPROVED');
-    expect(listing.OR).toEqual(expect.arrayContaining([
-      { subscriptionStatus: 'ACTIVE' },
-    ]));
+    expect(listing.suspendedAt).toBeNull();
+    expect(listing).not.toHaveProperty('OR');
+    expect(listing.user).toEqual(expect.objectContaining({
+      subscriptions: expect.objectContaining({
+        some: expect.objectContaining({
+          audience: 'VENDOR',
+          currentPeriodEnd: expect.objectContaining({ gte: expect.any(Date) }),
+        }),
+      }),
+    }));
     const mapWhere = getPublicVendorMapWhere();
     expect(mapWhere).not.toHaveProperty('showOnMap');
     expect(mapWhere.latitude).toEqual({ not: null });

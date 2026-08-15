@@ -284,6 +284,24 @@ describe('Monetization / Payment Integration', () => {
       createdIds.invoices.push(res.body.data.invoice.id);
     });
 
+    it('rejects vendor-created coupons on subscription checkout', async () => {
+      const code = `VSELF${Date.now().toString(36).toUpperCase()}`;
+      const created = await request(app)
+        .post('/api/v1/monetization/vendor/coupons')
+        .set('Authorization', `Bearer ${vendorToken}`)
+        .send({ code, type: 'PERCENTAGE', value: 100, maxDiscount: 9999999 });
+      expect(created.status).toBe(201);
+      if (created.body.data?.id) createdIds.coupons.push(created.body.data.id);
+
+      const res = await request(app)
+        .post('/api/v1/monetization/razorpay/order')
+        .set('Authorization', `Bearer ${vendorToken}`)
+        .send({ planId: vendorPlanId, period: 'MONTHLY', couponCode: code });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/cannot be applied|coupon/i);
+    });
+
     it('rejects expired coupon', async () => {
       await createCoupon({
         type: 'PERCENTAGE', value: 10,

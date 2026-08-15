@@ -747,8 +747,14 @@ export const placesGeoService = {
              ) as distance
       FROM vendors v
       WHERE v.status = 'APPROVED'
-        AND v.subscription_status = 'ACTIVE'
         AND v.suspended_at IS NULL
+        AND EXISTS (
+          SELECT 1 FROM user_subscriptions us
+          WHERE us.user_id = v.user_id
+            AND us.audience = 'VENDOR'
+            AND us.status IN ('ACTIVE', 'TRIALING')
+            AND us.current_period_end >= NOW()
+        )
         AND ST_DWithin(
           v.location::geography,
           ST_SetSRID(ST_MakePoint(${place.longitude}, ${place.latitude}), 4326)::geography,

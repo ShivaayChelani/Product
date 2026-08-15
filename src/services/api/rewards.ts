@@ -52,6 +52,8 @@ export interface VendorOfferItem {
     longitude: number | null;
     address?: string;
     operatingHours?: string | null;
+    phone?: string | null;
+    website?: string | null;
   };
 }
 

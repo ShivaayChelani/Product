@@ -183,10 +183,18 @@ export default function UploadPlacePhotoScreen() {
       }
 
       const uploadRes = await uploadApi.uploadImage(imageUri);
-      await userPlaceImagesApi.contribute(selectedPlace.id, uploadRes.url);
+      const contributed = await userPlaceImagesApi.contribute(selectedPlace.id, uploadRes.url);
+      const points =
+        typeof contributed?.points === 'number' && contributed.points > 0
+          ? contributed.points
+          : contributed?.pointsAwarded
+            ? rewardPoints
+            : 0;
       Alert.alert(
-        'Submitted',
-        `Your photo was submitted for admin review. You'll earn +${rewardPoints} PalPoints if approved.`,
+        points > 0 ? 'PalPoints earned' : 'Submitted',
+        points > 0
+          ? `+${points} PalPoints added. Your photo of ${selectedPlace.name} is under review.`
+          : `Your photo was submitted for admin review. You'll get a notification when it's reviewed.`,
         [{ text: 'OK', onPress: () => navigation.goBack() }],
       );
     } catch (err: any) {
@@ -215,7 +223,7 @@ export default function UploadPlacePhotoScreen() {
     locationStatus === 'ok'
       ? `You are near ${selectedPlace?.name || 'the place'}.`
       : locationStatus === 'far'
-        ? 'You can still upload. Admin approval is required for PalPoints.'
+        ? 'You can still upload. PalPoints are awarded when the photo is submitted.'
         : locationStatus === 'denied'
           ? 'Location permission is required to verify this visit.'
           : selectedPlace
@@ -227,7 +235,7 @@ export default function UploadPlacePhotoScreen() {
       ? 'Your location has been verified.'
       : locationStatus === 'denied'
         ? 'Enable location in Settings if you want proximity checks.'
-        : 'PalPoints are awarded only after admin approval.';
+        : 'PalPoints are awarded when your photo is submitted.';
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
@@ -433,7 +441,7 @@ export default function UploadPlacePhotoScreen() {
           <View style={{ marginLeft: 8 }}>
             <Text style={styles.footerEarnLabel}>You will earn</Text>
             <Text style={styles.footerEarnValue}>
-              <Text style={styles.footerEarnHighlight}>+{rewardPoints} PalPoints</Text> after approval.
+              <Text style={styles.footerEarnHighlight}>+{rewardPoints} PalPoints</Text> when you upload.
             </Text>
           </View>
         </View>

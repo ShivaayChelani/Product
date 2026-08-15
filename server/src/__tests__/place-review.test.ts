@@ -11,6 +11,38 @@ describe('Place reviews blocked; vendor reviews accepted', () => {
   let placeId: string;
   let vendorId: string;
   let vendorOwnerId: string;
+  const extraOwnerIds: string[] = [];
+
+  async function grantLiveVendorSub(userId: string) {
+    let plan = await prisma.subscriptionPlan.findFirst({
+      where: { audience: 'VENDOR' },
+      select: { id: true },
+    });
+    if (!plan) {
+      plan = await prisma.subscriptionPlan.create({
+        data: {
+          audience: 'VENDOR',
+          name: `Review vis ${testRunId}`,
+          slug: `vendor-review-${testRunId}`.slice(0, 40),
+          status: 'ACTIVE',
+          prices: { create: [{ period: 'MONTHLY', amountPaise: 9900, currency: 'INR', isActive: true }] },
+        },
+        select: { id: true },
+      });
+    }
+    await prisma.userSubscription.create({
+      data: {
+        userId,
+        planId: plan.id,
+        audience: 'VENDOR',
+        status: 'ACTIVE',
+        billingPeriod: 'MONTHLY',
+        provider: 'ADMIN_GRANT',
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
+  }
 
   beforeAll(async () => {
     token = await getAuthToken('USER');
@@ -58,6 +90,7 @@ describe('Place reviews blocked; vendor reviews accepted', () => {
       },
     });
     vendorId = vendor.id;
+    await grantLiveVendorSub(owner.id);
   });
 
   afterAll(async () => {
@@ -66,7 +99,12 @@ describe('Place reviews blocked; vendor reviews accepted', () => {
       await prisma.vendor.delete({ where: { id: vendorId } }).catch(() => {});
     }
     if (vendorOwnerId) {
+      await prisma.userSubscription.deleteMany({ where: { userId: vendorOwnerId } }).catch(() => {});
       await prisma.user.delete({ where: { id: vendorOwnerId } }).catch(() => {});
+    }
+    for (const id of extraOwnerIds) {
+      await prisma.userSubscription.deleteMany({ where: { userId: id } }).catch(() => {});
+      await prisma.user.delete({ where: { id } }).catch(() => {});
     }
     if (placeId) {
       await prisma.review.deleteMany({ where: { placeId } });
@@ -190,6 +228,9 @@ describe('Place reviews blocked; vendor reviews accepted', () => {
       },
     });
 
+    extraOwnerIds.push(owner.id);
+    await grantLiveVendorSub(owner.id);
+
     const walletBefore = await prisma.wallet.findUnique({ where: { userId: reviewerId } });
     const pointsBefore = walletBefore?.palPoints ?? 0;
 
@@ -217,6 +258,23 @@ describe('Place reviews blocked; vendor reviews accepted', () => {
       },
     });
     expect(tx).toBeTruthy();
+
+    const reviewerNotif = await prisma.inAppNotification.findFirst({
+      where: {
+        userId: reviewerId,
+        type: 'review_write',
+        createdAt: { gte: new Date(Date.now() - 30_000) },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(reviewerNotif).toBeTruthy();
+    expect(`${reviewerNotif?.title} ${reviewerNotif?.body || ''}`).toMatch(/review/i);
+
+    const vendorNotif = await prisma.inAppNotification.findFirst({
+      where: { userId: owner.id, type: 'vendor_review' },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(vendorNotif).toBeTruthy();
 
     const second = await request(app)
       .post(`/api/v1/vendors/${vendor.id}/review`)

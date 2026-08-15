@@ -3,7 +3,7 @@ import { walletController } from './wallet.controller';
 import { authenticate, requireAdmin, optionalAuth } from '../../middleware/auth';
 import { requireFinanceOps } from '../../middleware/adminCapabilities';
 import { validate } from '../../middleware/validate';
-import { leaderboardLimiter } from '../../config/rateLimit';
+import { leaderboardLimiter, gameCompletionLimiter } from '../../config/rateLimit';
 import { earnPointsSchema, adjustWalletSchema, walletQuerySchema, walletBatchQuerySchema } from './wallet.validation';
 
 const router = Router();
@@ -20,7 +20,7 @@ router.get('/admin/batch', authenticate, requireAdmin, validate(walletBatchQuery
 router.get('/admin/:userId', authenticate, requireAdmin, walletController.getByUserId);
 router.get('/leaderboard', leaderboardLimiter, walletController.getLeaderboard);
 router.get('/leaderboard/regional', leaderboardLimiter, optionalAuth, walletController.getRegionalLeaderboard);
-router.post('/game-completion', authenticate, walletController.completeGame);
+router.post('/game-completion', authenticate, gameCompletionLimiter, walletController.completeGame);
 router.get('/daily-login/status', authenticate, walletController.dailyLoginStatus);
 router.post('/daily-login/claim', authenticate, walletController.claimDailyLogin);
 

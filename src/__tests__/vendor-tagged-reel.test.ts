@@ -21,8 +21,9 @@ describe('Creator reel tagged to a business', () => {
     const card = read('components/MapVendorDetailCard.tsx');
     const row = read('components/TaggedReelReviewRow.tsx');
     const hook = read('features/mapExplore/hooks/useVendorMapDetail.ts');
+    const assembled = read('features/mapExplore/utils/vendorMapDetail.ts');
 
-    expect(hook).toMatch(/pendingTaggedReels/);
+    expect(assembled).toMatch(/pendingTaggedReels/);
     expect(hook).toMatch(/getTaggedCreatorReels/);
     expect(card).toMatch(/TaggedReelReviewRow/);
     expect(card).toMatch(/pendingTaggedReels/);
@@ -49,17 +50,19 @@ describe('Creator reel tagged to a business', () => {
   it('shows vendor-uploaded reels on the map vendor card only', () => {
     const card = read('components/MapVendorDetailCard.tsx');
     const hook = read('features/mapExplore/hooks/useVendorMapDetail.ts');
+    const assembled = read('features/mapExplore/utils/vendorMapDetail.ts');
     const profile = read('screens/VendorProfileScreen.tsx');
     const publicList = read('screens/VendorReelsScreen.tsx');
 
     expect(hook).toMatch(/vendorReels/);
-    expect(hook).toMatch(/reelCount: taggedApproved.length/);
+    expect(hook).toMatch(/assembleVendorMapDetail/);
+    expect(assembled).toMatch(/reelCount: visibleVendorReels.length \+ taggedApproved.length/);
     expect(card).toMatch(/Business reels/);
     expect(card).toMatch(/vendorPromoReels/);
     expect(card).toMatch(/mapVendorReelsToFeed/);
     expect(profile).toMatch(/getTaggedCreatorReels/);
     expect(profile).not.toMatch(/getVendorReels/);
     expect(publicList).toMatch(/getTaggedCreatorReels/);
-    expect(publicList).not.toMatch(/getVendorReels/);
+    expect(publicList).toMatch(/getVendorReels/);
   });
 });

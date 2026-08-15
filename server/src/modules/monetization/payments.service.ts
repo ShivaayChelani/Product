@@ -30,6 +30,28 @@ function razorpayConfigured() {
   return Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
 }
 
+function assertPurchasablePlan(plan: { slug: string; audience: PlanAudience; status: string }) {
+  if (plan.status !== 'ACTIVE') throw new ApiError(400, 'This plan is not available for purchase');
+  const allowedSlugs = PUBLIC_LAUNCH_SLUGS[plan.audience];
+  const isLegacy = (LEGACY_PLAN_SLUGS as readonly string[]).includes(plan.slug);
+  const outsideLaunchCatalog = Boolean(allowedSlugs && !allowedSlugs.includes(plan.slug));
+  if (isLegacy || (outsideLaunchCatalog && process.env.NODE_ENV !== 'test')) {
+    throw new ApiError(400, 'This plan is not available for purchase');
+  }
+}
+
+function serverCheckoutFromPayload(rawPayload: unknown, fallbackUserId?: string) {
+  const raw = (rawPayload || {}) as Record<string, any>;
+  const checkout = (raw.serverCheckout || {}) as Record<string, string>;
+  const notes = (raw.notes || {}) as Record<string, string>;
+  return {
+    userId: checkout.userId || notes.userId || fallbackUserId,
+    planId: checkout.planId || notes.planId,
+    period: checkout.period || notes.period,
+    audience: checkout.audience || notes.audience,
+  };
+}
+
 function getRazorpay() {
   if (_razorpayMock) return _razorpayMock;
   if (!razorpayConfigured()) {
@@ -82,13 +104,7 @@ function isVendorAccount(user: {
 export const paymentsService = {
   async createRazorpayOrder(userId: string, planId: string, period: PlanBillingPeriod, couponCode?: string) {
     const plan = await plansService.getById(planId);
-    if (plan.status !== 'ACTIVE') throw new ApiError(400, 'This plan is not available for purchase');
-    const allowedSlugs = PUBLIC_LAUNCH_SLUGS[plan.audience];
-    const isLegacy = (LEGACY_PLAN_SLUGS as readonly string[]).includes(plan.slug);
-    const outsideLaunchCatalog = Boolean(allowedSlugs && !allowedSlugs.includes(plan.slug));
-    if (isLegacy || (outsideLaunchCatalog && process.env.NODE_ENV !== 'test')) {
-      throw new ApiError(400, 'This plan is not available for purchase');
-    }
+    assertPurchasablePlan(plan);
 
     const price = plan.prices.find((p) => p.period === period && p.isActive);
     if (!price) throw new ApiError(400, 'Selected billing period is not available for this plan');
@@ -98,7 +114,9 @@ export const paymentsService = {
     let discountPaise = 0;
 
     if (couponCode) {
-      const { coupon, discount } = await couponsService.validate(couponCode, userId, price.amountPaise);
+      const { coupon, discount } = await couponsService.validate(couponCode, userId, price.amountPaise, {
+        platformCheckout: true,
+      });
       discountPaise = Math.round(discount);
       amountPaise = Math.max(0, price.amountPaise - discountPaise);
       couponId = coupon.id;
@@ -193,6 +211,7 @@ export const paymentsService = {
           ...order,
           appliedCouponCode: couponCode,
           discountPaise,
+          serverCheckout: { userId, planId, period, audience: plan.audience },
         } as any,
       },
     });
@@ -251,18 +270,21 @@ export const paymentsService = {
     });
     if (!pending) throw new ApiError(404, 'Payment order not found');
 
-    const notes = ((pending.rawPayload as any)?.notes || {}) as Record<string, string>;
-    const planId = notes.planId || input.planId;
-    const period = (notes.period || input.period) as PlanBillingPeriod;
-    if (notes.userId && notes.userId !== userId) {
+    const checkout = serverCheckoutFromPayload(pending.rawPayload, pending.userId);
+    if (!checkout.planId || !checkout.period) {
+      throw new ApiError(400, 'Payment order is missing server plan metadata.');
+    }
+    if (checkout.userId && checkout.userId !== userId) {
       throw new ApiError(403, 'Payment order does not belong to this user');
     }
-    if (notes.planId && notes.planId !== input.planId) {
+    if (checkout.planId !== input.planId) {
       throw new ApiError(400, 'Plan mismatch. Amount is determined by the server order, not the client.');
     }
-    if (notes.period && notes.period !== input.period) {
+    if (checkout.period !== input.period) {
       throw new ApiError(400, 'Billing period mismatch.');
     }
+    const planId = checkout.planId;
+    const period = checkout.period as PlanBillingPeriod;
 
     // Fetch authoritative payment details from Razorpay
     const razorpay = getRazorpay();
@@ -346,6 +368,7 @@ export const paymentsService = {
     },
   ) {
     const plan = await plansService.getById(params.planId);
+    assertPurchasablePlan(plan);
     const start = new Date();
     const days = periodDays(params.period);
     const end = new Date(start.getTime() + days * 24 * 60 * 60 * 1000);
@@ -876,14 +899,17 @@ export const paymentsService = {
         throw new ApiError(400, 'Currency mismatch');
       }
 
-      const notes = {
-        ...((pending.rawPayload as any)?.notes || {}),
-        ...(payment.notes || {}),
-      } as Record<string, string>;
-      if (!notes.userId || !notes.planId || !notes.period) {
+      const checkout = serverCheckoutFromPayload(
+        { ...(pending.rawPayload as any), notes: {
+          ...((pending.rawPayload as any)?.notes || {}),
+          ...(payment.notes || {}),
+        } },
+        pending.userId,
+      );
+      if (!checkout.userId || !checkout.planId || !checkout.period) {
         return { ignored: true, reason: 'missing_notes' };
       }
-      if (notes.userId !== pending.userId) {
+      if (checkout.userId !== pending.userId) {
         throw new ApiError(403, 'Payment user mismatch');
       }
 
@@ -892,9 +918,9 @@ export const paymentsService = {
       try {
         const result = await prisma.$transaction(async (tx) => {
           return this.processSuccessfulPayment(tx, {
-            userId: String(notes.userId),
-            planId: String(notes.planId),
-            period: notes.period as PlanBillingPeriod,
+            userId: String(checkout.userId),
+            planId: String(checkout.planId),
+            period: checkout.period as PlanBillingPeriod,
             provider: PaymentProvider.RAZORPAY,
             providerPaymentId: payment.id,
             pendingId: pending.id,
@@ -912,7 +938,7 @@ export const paymentsService = {
         throw err;
       }
 
-      await this.createInvoice(String(notes.userId), transaction.id);
+      await this.createInvoice(String(checkout.userId), transaction.id);
       return { processed: true, subscription, transaction };
     }
 

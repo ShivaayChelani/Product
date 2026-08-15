@@ -22,6 +22,13 @@ import VendorCodeRedeemModal from '../components/VendorCodeRedeemModal';
 import { useDataContext } from '../context/DataContext';
 import { useUserContext } from '../context/UserContext';
 import { walletApi } from '../services/api/wallet';
+import {
+  openVendorCall,
+  openVendorDirections,
+  openVendorWebsite,
+  openVendorWhatsApp,
+} from '../utils/vendorContactActions';
+import { loadSavedOfferIds, toggleSavedOfferId } from '../utils/savedOffers';
 
 const COLORS = {
   background: '#FFFFFF',
@@ -46,9 +53,10 @@ export default function VendorOfferDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [redeemOpen, setRedeemOpen] = useState(false);
   const [redeemLoading, setRedeemLoading] = useState(false);
-  const [walletPoints, setWalletPoints] = useState(0);
+  const [walletPoints, setWalletPoints] = useState<number | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
   const { handleRedeemOffer } = useDataContext();
-  const { user, setUser } = useUserContext();
+  const { user, setUser, isGuest } = useUserContext();
 
   const refreshWalletPoints = useCallback(async () => {
     try {
@@ -67,6 +75,18 @@ export default function VendorOfferDetailScreen() {
   useEffect(() => {
     void refreshWalletPoints();
   }, [refreshWalletPoints]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const ids = await loadSavedOfferIds();
+      if (!cancelled) setIsSaved(ids.includes(offerId));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [offerId]);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -101,6 +121,28 @@ export default function VendorOfferDetailScreen() {
     loadData();
   }, [loadData]);
 
+  const onSaveOffer = useCallback(async () => {
+    const next = await toggleSavedOfferId(offerId);
+    setIsSaved(next.includes(offerId));
+  }, [offerId]);
+
+  const onRedeemSubmit = useCallback(async (vendorCode: string) => {
+    setRedeemLoading(true);
+    try {
+      const result = await handleRedeemOffer(offerId, vendorCode);
+      if (result) {
+        setRedeemOpen(false);
+        await refreshWalletPoints();
+        Alert.alert(
+          'Redemption Successful',
+          `Your offer has been redeemed. Receipt: ${result.verificationCode || 'confirmed'}`,
+        );
+      }
+    } finally {
+      setRedeemLoading(false);
+    }
+  }, [handleRedeemOffer, offerId, refreshWalletPoints]);
+
   if (loading) {
     return (
       <View style={[styles.root, styles.center]}>
@@ -121,6 +163,12 @@ export default function VendorOfferDetailScreen() {
   }
 
   const v = offer.vendor;
+  const vendorName = v?.businessName || 'Vendor';
+  const vendorPhone = v?.phone;
+  const vendorWebsite = v?.website;
+  const vendorLat = v?.latitude;
+  const vendorLng = v?.longitude;
+
   const discountLabel = offer.discountType === 'flat' 
     ? `₹${offer.discountValue} OFF` 
     : offer.discountType === 'percentage' 
@@ -131,29 +179,31 @@ export default function VendorOfferDetailScreen() {
     ? new Date(offer.validTill).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     : 'Ongoing';
 
-  const userPoints = walletPoints > 0 ? walletPoints : (user?.totalPoints || 0);
-  const canRedeem = userPoints >= offer.pointsRequired;
+  const userPoints = walletPoints ?? Number(user?.totalPoints || 0);
+  const canRedeem = userPoints >= (offer.pointsRequired || 0);
 
-  const onRedeemSubmit = async (vendorCode: string) => {
-    setRedeemLoading(true);
-    try {
-      const result = await handleRedeemOffer(offerId, vendorCode);
-      if (result) {
-        setRedeemOpen(false);
-        await refreshWalletPoints();
-        Alert.alert(
-          'Redemption Successful',
-          `Your offer has been redeemed. Receipt: ${result.verificationCode || 'confirmed'}`,
-        );
-      }
-    } finally {
-      setRedeemLoading(false);
+  const openDirections = () => {
+    void openVendorDirections(vendorLat, vendorLng, vendorName);
+  };
+
+  const onRedeemPress = () => {
+    if (isGuest || user?.uid === 'guest-user') {
+      Alert.alert('Sign In Required', 'Create an account or sign in to redeem offers.');
+      return;
     }
+    if (!canRedeem) {
+      Alert.alert('Insufficient Points', `You need ${offer.pointsRequired} PalPoints to redeem this offer.`);
+      return;
+    }
+    setRedeemOpen(true);
   };
 
   return (
     <View style={styles.root}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 140 + insets.bottom }}
+      >
         
         {/* Cover Image */}
         <View style={styles.coverContainer}>
@@ -175,14 +225,14 @@ export default function VendorOfferDetailScreen() {
         {/* Vendor Header Overlap */}
         <View style={styles.headerOverlap}>
           <View style={styles.vendorLogoWrap}>
-            {v.imageUrl ? (
+            {v?.imageUrl ? (
               <Image source={{ uri: v.imageUrl }} style={styles.vendorLogo} />
             ) : (
               <Icon name="storefront-outline" size={32} color={COLORS.textMuted} />
             )}
           </View>
           <View style={styles.headerInfo}>
-            <Text style={styles.vendorName}>{v.businessName}</Text>
+            <Text style={styles.vendorName}>{vendorName}</Text>
             <Text style={styles.categoryText}>{offer.category || 'Special Offer'}</Text>
             <View style={styles.metaRow}>
               <Icon name="star" size={14} color={COLORS.gold} />
@@ -214,36 +264,51 @@ export default function VendorOfferDetailScreen() {
           {/* Vendor Details */}
           <View style={styles.vendorDetailsCard}>
             <Text style={styles.sectionTitle}>Vendor Details</Text>
-            <Text style={styles.vBusinessName}>{v.businessName}</Text>
-            <Text style={styles.vAddress}>{v.address || `${v.city}, ${v.state}`}</Text>
-            {v.operatingHours && (
+            <Text style={styles.vBusinessName}>{vendorName}</Text>
+            <Text style={styles.vAddress}>{v?.address || [v?.city, v?.state].filter(Boolean).join(', ') || 'Address not listed'}</Text>
+            {v?.operatingHours && (
               <View style={styles.vDetailRow}>
                 <Icon name="time-outline" size={16} color={COLORS.textMuted} />
                 <Text style={styles.vDetailText}>{v.operatingHours}</Text>
               </View>
             )}
             
-            {/* Map Placeholder */}
-            <View style={styles.mapPlaceholder}>
+            <TouchableOpacity style={styles.mapPlaceholder} onPress={openDirections} activeOpacity={0.8}>
               <Icon name="map-outline" size={32} color={COLORS.textMuted} />
-              <Text style={styles.mapText}>Map Preview Available Here</Text>
-            </View>
+              <Text style={styles.mapText}>Tap for directions</Text>
+            </TouchableOpacity>
 
             {/* Contact Actions */}
             <View style={styles.contactActions}>
-              <TouchableOpacity style={styles.contactBtn}>
+              <TouchableOpacity
+                style={styles.contactBtn}
+                onPress={() => void openVendorCall(vendorPhone)}
+                activeOpacity={0.7}
+              >
                 <Icon name="call-outline" size={20} color={COLORS.text} />
                 <Text style={styles.contactBtnText}>Call</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.contactBtn}>
+              <TouchableOpacity
+                style={styles.contactBtn}
+                onPress={() => void openVendorWhatsApp(vendorPhone)}
+                activeOpacity={0.7}
+              >
                 <Icon name="logo-whatsapp" size={20} color={'#25D366'} />
                 <Text style={styles.contactBtnText}>WhatsApp</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.contactBtn}>
+              <TouchableOpacity
+                style={styles.contactBtn}
+                onPress={() => void openVendorWebsite(vendorWebsite)}
+                activeOpacity={0.7}
+              >
                 <Icon name="globe-outline" size={20} color={COLORS.text} />
                 <Text style={styles.contactBtnText}>Website</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.contactBtn, { backgroundColor: COLORS.gold }]}>
+              <TouchableOpacity
+                style={[styles.contactBtn, { backgroundColor: COLORS.gold }]}
+                onPress={openDirections}
+                activeOpacity={0.7}
+              >
                 <Icon name="navigate-outline" size={20} color={COLORS.text} />
                 <Text style={styles.contactBtnText}>Directions</Text>
               </TouchableOpacity>
@@ -270,15 +335,10 @@ export default function VendorOfferDetailScreen() {
 
       {/* Sticky Bottom Actions */}
       <StickyActionBar 
-        onSave={() => {}} 
-        onPrimaryAction={() => {
-          if (!canRedeem) {
-            Alert.alert('Insufficient Points', `You need ${offer.pointsRequired} PalPoints to redeem this offer.`);
-            return;
-          }
-          setRedeemOpen(true);
-        }} 
-        primaryActionLabel={canRedeem ? 'Redeem Offer' : `Need ${offer.pointsRequired - userPoints} pts`}
+        onSave={() => { void onSaveOffer(); }}
+        isSaved={isSaved}
+        onPrimaryAction={onRedeemPress}
+        primaryActionLabel={canRedeem ? 'Redeem Offer' : `Need ${Math.max(0, offer.pointsRequired - userPoints)} pts`}
         primaryActionIcon="gift-outline"
       />
 

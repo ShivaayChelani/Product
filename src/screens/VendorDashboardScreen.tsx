@@ -26,10 +26,11 @@ import VendorWorkspaceSidebar from '../components/VendorWorkspaceSidebar';
 import { PalPointsIcon } from '../components/PalPointsIcon';
 import OfferStatsModal from '../components/vendor/OfferStatsModal';
 import { ReelUploadStatusCard } from '../features/creator/components/ReelUploadStatusCard';
-import { creatorUploadManager, type ReelUploadJob } from '../services/creator/creatorUploadManager';
+import { creatorUploadManager, isUploadJobVisible, type ReelUploadJob } from '../services/creator/creatorUploadManager';
 import { useQueryClient } from '@tanstack/react-query';
 import TaggedReelReviewRow from '../components/TaggedReelReviewRow';
-import type { TaggedCreatorReel } from '../services/api/vendors';
+import type { TaggedCreatorReel, VendorReel } from '../services/api/vendors';
+import { buildVendorRecentActivity } from '../features/vendor/vendorRecentActivity';
 import {
   getUnreadBadgeCount,
   subscribeUnreadBadge,
@@ -1016,6 +1017,10 @@ export default function VendorDashboardScreen({
   const [showSidebar, setShowSidebar] = useState(false);
   const [unreadCount, setUnreadCount] = useState(getUnreadBadgeCount());
   const [uploadJobs, setUploadJobs] = useState<ReelUploadJob[]>([]);
+  const visibleVendorUploadJobs = useMemo(
+    () => uploadJobs.filter((j) => j.kind === 'VENDOR' && isUploadJobVisible(j)),
+    [uploadJobs],
+  );
 
   useEffect(() => {
     void creatorUploadManager.init();
@@ -1023,6 +1028,7 @@ export default function VendorDashboardScreen({
     const unsubPosted = creatorUploadManager.onPosted((job) => {
       if (job.kind !== 'VENDOR') return;
       queryClient.invalidateQueries({ queryKey: ['vendor-reels'] });
+      queryClient.invalidateQueries({ queryKey: ['vendor-map-detail'] });
       queryClient.invalidateQueries({ queryKey: ['vendor-stats'] });
       queryClient.invalidateQueries({ queryKey: ['map-feed'] });
     });
@@ -1055,6 +1061,7 @@ export default function VendorDashboardScreen({
   } | null>(null);
   const [pendingTaggedReels, setPendingTaggedReels] = useState<TaggedCreatorReel[]>([]);
   const [reviewingTaggedId, setReviewingTaggedId] = useState<string | null>(null);
+  const [vendorPromoReels, setVendorPromoReels] = useState<VendorReel[]>([]);
 
   const visibleTab = forcedTab || activeTab;
 
@@ -1156,6 +1163,31 @@ export default function VendorDashboardScreen({
     if (!currentVendor) return [];
     return redemptions.filter(r => r.vendorId === currentVendor.id);
   }, [currentVendor, redemptions]);
+
+  useEffect(() => {
+    if (!currentVendor?.id || visibleTab !== 'Home' || !DEV_FLAGS.USE_SERVER_API) return;
+    let cancelled = false;
+    vendorsApi.getVendorReels(currentVendor.id)
+      .then((reelsRes) => {
+        if (cancelled) return;
+        const list = (reelsRes as any)?.data ?? reelsRes;
+        setVendorPromoReels(Array.isArray(list) ? list : []);
+      })
+      .catch(() => {
+        if (!cancelled) setVendorPromoReels([]);
+      });
+    return () => { cancelled = true; };
+  }, [currentVendor?.id, visibleTab]);
+
+  const recentActivity = useMemo(
+    () => buildVendorRecentActivity({
+      redemptions: myRedemptions,
+      offers: myOffers,
+      reels: vendorPromoReels,
+      limit: 8,
+    }),
+    [myRedemptions, myOffers, vendorPromoReels],
+  );
 
   const verifiedRedemptions = useMemo(() => myRedemptions.filter(r => r.status === 'verified'), [myRedemptions]);
   const activeOffers = useMemo(
@@ -1459,12 +1491,10 @@ export default function VendorDashboardScreen({
             </View>
           )}
 
-          {visibleTab === 'Home' && uploadJobs.filter((j) => j.status !== 'CANCELLED' && j.kind === 'VENDOR').length > 0 ? (
+          {visibleTab === 'Home' && visibleVendorUploadJobs.length > 0 ? (
             <View style={{ marginBottom: 16 }}>
               <Text style={s.sectionTitle}>Uploading Reels</Text>
-              {uploadJobs
-                .filter((j) => j.status !== 'CANCELLED' && j.kind === 'VENDOR')
-                .map((job) => (
+              {visibleVendorUploadJobs.map((job) => (
                   <ReelUploadStatusCard
                     key={job.localUploadId}
                     job={job}
@@ -1728,65 +1758,48 @@ export default function VendorDashboardScreen({
               </TouchableOpacity>
             </View>
 
-            {myRedemptions.length === 0 ? (
+            {recentActivity.length === 0 ? (
               <View style={s.recentActivityListCard}>
-                <View style={s.activityItemRow}>
-                  <View style={[s.activityItemIcon, { backgroundColor: 'rgba(5,150,105,0.12)' }]}>
-                    <MaterialCommunityIcons name="gift-outline" size={16} color="#059669" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.activityItemTitle}>A traveler redeemed 250 PalPoints</Text>
-                    <Text style={s.activityItemSub}>₹50 off on Bill • Today, 11:24 AM</Text>
-                  </View>
-                  <View style={[s.activityBadgePill, { backgroundColor: '#E6F4EA' }]}>
-                    <Text style={[s.activityBadgeText, { color: '#137333' }]}>Completed</Text>
-                  </View>
-                </View>
-
-                <View style={s.activityItemRow}>
-                  <View style={[s.activityItemIcon, { backgroundColor: 'rgba(139,107,181,0.12)' }]}>
-                    <Ionicons name="pricetag-outline" size={16} color="#8B6BB5" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.activityItemTitle}>20% OFF on All Pizzas</Text>
-                    <Text style={s.activityItemSub}>Offer activated • Today, 10:15 AM</Text>
-                  </View>
-                  <View style={[s.activityBadgePill, { backgroundColor: '#E6F4EA' }]}>
-                    <Text style={[s.activityBadgeText, { color: '#137333' }]}>Active</Text>
-                  </View>
-                </View>
-
-                <View style={s.activityItemRow}>
-                  <View style={[s.activityItemIcon, { backgroundColor: 'rgba(224,122,154,0.12)' }]}>
-                    <Ionicons name="film-outline" size={16} color="#E07A9A" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.activityItemTitle}>Weekend Special Reel</Text>
-                    <Text style={s.activityItemSub}>Published successfully • Yesterday, 05:30 PM</Text>
-                  </View>
-                  <View style={[s.activityBadgePill, { backgroundColor: '#E6F4EA' }]}>
-                    <Text style={[s.activityBadgeText, { color: '#137333' }]}>Published</Text>
-                  </View>
-                </View>
+                <Text style={s.activityEmptyText}>
+                  No recent activity yet. PalPoints redemptions, offers you create, and reels you publish will show up here.
+                </Text>
               </View>
             ) : (
               <View style={s.recentActivityListCard}>
-                {myRedemptions.slice(0, 6).map((r) => (
-                  <View key={r.id} style={s.activityItemRow}>
-                    <View style={[s.activityItemIcon, { backgroundColor: 'rgba(5,150,105,0.12)' }]}>
-                      <Ionicons name="arrow-down" size={14} color="#059669" />
+                {recentActivity.map((item, index) => {
+                  const iconWrap =
+                    item.kind === 'redemption'
+                      ? { bg: 'rgba(5,150,105,0.12)', color: '#059669', name: 'gift-outline' as const }
+                      : item.kind === 'offer'
+                        ? { bg: 'rgba(139,107,181,0.12)', color: '#8B6BB5', name: 'pricetag-outline' as const }
+                        : { bg: 'rgba(224,122,154,0.12)', color: '#E07A9A', name: 'film-outline' as const };
+                  const badge =
+                    item.badge === 'Paused' || item.badge === 'Cancelled'
+                      ? { bg: '#FEF3C7', color: '#92400E' }
+                      : item.badge === 'Pending'
+                        ? { bg: '#EEF2FF', color: '#4338CA' }
+                        : { bg: '#E6F4EA', color: '#137333' };
+                  return (
+                    <View
+                      key={item.id}
+                      style={[
+                        s.activityItemRow,
+                        index === recentActivity.length - 1 && { borderBottomWidth: 0 },
+                      ]}
+                    >
+                      <View style={[s.activityItemIcon, { backgroundColor: iconWrap.bg }]}>
+                        <Ionicons name={iconWrap.name} size={16} color={iconWrap.color} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.activityItemTitle} numberOfLines={1}>{item.title}</Text>
+                        <Text style={s.activityItemSub} numberOfLines={1}>{item.subtitle}</Text>
+                      </View>
+                      <View style={[s.activityBadgePill, { backgroundColor: badge.bg }]}>
+                        <Text style={[s.activityBadgeText, { color: badge.color }]}>{item.badge}</Text>
+                      </View>
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.activityItemTitle} numberOfLines={1}>
-                        {(r as any).userName || 'Tourist'} sent you +{r.pointsSpent || 0} pts
-                      </Text>
-                      <Text style={s.activityItemSub}>{r.offerTitle || 'Points transfer'}</Text>
-                    </View>
-                    <View style={[s.activityBadgePill, { backgroundColor: '#E6F4EA' }]}>
-                      <Text style={[s.activityBadgeText, { color: '#137333' }]}>Completed</Text>
-                    </View>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             )}
           </View>
@@ -2389,6 +2402,14 @@ const s = StyleSheet.create({
   activityBadgeText: {
     fontSize: 10,
     fontWeight: '700',
+  },
+  activityEmptyText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#8B7355',
+    lineHeight: 19,
+    paddingVertical: 16,
+    textAlign: 'center',
   },
   eyebrow: {
     fontSize: 11,

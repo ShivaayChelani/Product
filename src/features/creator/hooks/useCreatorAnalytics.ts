@@ -9,7 +9,7 @@ export function useCreatorAnalytics(period: '7d' | '30d' | '90d' | 'all' | 'cust
       if (!res?.data) throw new Error('Failed to load analytics');
       return res.data;
     },
-    staleTime: 60_000,
+    staleTime: 15_000,
     retry: 2,
   });
 }

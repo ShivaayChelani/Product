@@ -252,6 +252,26 @@ export const challengeCompleteLimiter = createLimiter({
   message: { success: false, data: null, message: 'Too many challenge completions. Please try again later.' },
 });
 
+export const gameCompletionLimiter = createLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const { userId } = peekAuth(req);
+    return userId ? `game-complete:${userId}` : `ip:${req.ip || 'anonymous'}`;
+  },
+  message: { success: false, data: null, message: 'Too many game reward claims. Please try again later.' },
+});
+
+export const ssvCallbackLimiter = createLimiter({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, data: null, message: 'Too many ad verification callbacks. Slow down.' },
+});
+
 export const usernameCheckLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
   max: 60,

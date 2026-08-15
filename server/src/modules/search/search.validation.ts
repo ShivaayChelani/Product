@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const universalSearchSchema = z.object({
   q: z.string().min(1, 'Search query cannot be empty'),
   page: z.string().optional(),
-  limit: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(50).optional(),
   sort: z.enum(['relevance', 'distance', 'popularity', 'newest', 'highest_rated', 'trending']).optional(),
   lat: z.string().optional(),
   lng: z.string().optional(),

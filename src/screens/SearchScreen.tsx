@@ -14,6 +14,7 @@ import { searchHomeCategory, type CityCategorySearchResult } from '../services/h
 import { getHomeCategoryById, getHomeCategoryForQuery } from '../components/home/constants';
 import { recordSearchedPlace } from '../utils/passportPlaces';
 import { useHeaderSafePadding, useBottomSafePadding, useResponsive } from '../design/responsive';
+import { useNavigation } from '@react-navigation/native';
 import { isGenericDestination, placeBelongsToDestination } from '../utils/destination';
 import {
   buildNearbyRenderableRows,
@@ -46,8 +47,17 @@ const C = {
   cardShadow: 'rgba(185, 131, 75, 0.15)',
 } as const;
 
-const FILTERS = ['All', 'Places', 'Hidden Gems', 'Vendors', 'Offers', 'Events'] as const;
+const FILTERS = ['All', 'Places', 'Vendors', 'Offers', 'Events'] as const;
 type SearchFilter = typeof FILTERS[number];
+
+/**
+ * Hidden Gems is a universal-search result category (`Hidden Gem` rows),
+ * not a Search PalSafar filter chip. Empty-query browse used to key off a
+ * removed chip; SearchFilter cannot represent that chip, so browse stays off.
+ */
+function isHiddenGemBrowseActive(_filter: SearchFilter): boolean {
+  return false;
+}
 
 type NearbyPlaceResult = {
   id: string;
@@ -86,19 +96,19 @@ function resolveCityCategoryId(categoryId?: string, query?: string): string | nu
 // Small reusable UI pieces
 // -----------------------------------------------------------------------------
 
-function SearchHeader({ onBack, title }: { onBack?: () => void; title: string }) {
+function SearchHeader({ onBack, title }: { onBack: () => void; title: string }) {
   return (
     <View style={styles.headerRow}>
-      {onBack ? (
-        <TouchableOpacity
-          onPress={onBack}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={styles.backBtn}
-          activeOpacity={0.8}
-        >
-          <Icon name="arrow-back-outline" size={22} color={C.text} />
-        </TouchableOpacity>
-      ) : null}
+      <TouchableOpacity
+        onPress={onBack}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        style={styles.backBtn}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel="Back"
+      >
+        <Icon name="arrow-back-outline" size={22} color={C.text} />
+      </TouchableOpacity>
       <Text style={styles.screenTitle} numberOfLines={1}>
         {title}
       </Text>
@@ -321,6 +331,18 @@ export default function SearchScreen({
 }) {
   const isReplaceMode = mode === 'replace';
   const isItineraryMode = mode === 'itinerary';
+  const navigation = useNavigation<any>();
+  const handleBack = useCallback(() => {
+    if (typeof navigation?.canGoBack === 'function' && navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    if (onBack) {
+      onBack();
+      return;
+    }
+    navigation.navigate('MainTabs');
+  }, [navigation, onBack]);
   const excluded = useMemo(() => new Set(excludePlaceIds), [excludePlaceIds]);
   const { theme } = useTheme();
   const { effectivePosition, requestPermission, openLocationSettings } = useLocationContext();
@@ -538,7 +560,7 @@ export default function SearchScreen({
   useEffect(() => {
     if (
       normalizeSearchQuery(query) ||
-      activeFilter !== 'Hidden Gems' ||
+      !isHiddenGemBrowseActive(activeFilter) ||
       isItineraryMode ||
       isReplaceMode
     ) {
@@ -716,7 +738,11 @@ export default function SearchScreen({
   const nearbyCount = nearbyResults?.length ?? 0;
   const isSavedQuery = normalizeSearchQuery(query).toLowerCase() === 'saved';
   const renderableCount = activeRenderableRows.length;
-  const isHiddenGemBrowse = activeFilter === 'Hidden Gems' && !normalizeSearchQuery(query) && !isItineraryMode && !isReplaceMode;
+  const isHiddenGemBrowse =
+    isHiddenGemBrowseActive(activeFilter)
+    && !normalizeSearchQuery(query)
+    && !isItineraryMode
+    && !isReplaceMode;
 
   const resultsListHeader = (
     <>
@@ -783,7 +809,7 @@ export default function SearchScreen({
 
   return (
     <View style={[styles.screen, { backgroundColor: C.background, paddingTop: headerPadTop, paddingHorizontal: screenPad }]}>
-      <SearchHeader onBack={onBack} title="Search PalSafar" />
+      <SearchHeader onBack={handleBack} title="Search PalSafar" />
 
       <View style={styles.searchBar}>
         <Icon name="search-outline" size={20} color={C.textMuted} />
@@ -982,11 +1008,8 @@ const styles = StyleSheet.create({
     borderColor: C.border,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: C.cardShadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 6,
-    elevation: 2,
+    zIndex: 20,
+    elevation: 4,
   },
   screenTitle: {
     flex: 1,

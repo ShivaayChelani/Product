@@ -117,8 +117,12 @@ function adaptSocialDashboard(base: CreatorDashboard): CreatorDashboardPayload {
       reels: base.reelCount,
       likes: base.totalLikes,
       comments: base.totalComments,
-      shares: (base.recentReels || []).reduce((sum, reel) => sum + (reel.shares || 0), 0),
-      saved: 0,
+      shares: typeof (base as { totalShares?: number }).totalShares === 'number'
+        ? (base as { totalShares: number }).totalShares
+        : (base.recentReels || []).reduce((sum, reel) => sum + (reel.shares || 0), 0),
+      saved: typeof (base as { totalSaves?: number }).totalSaves === 'number'
+        ? (base as { totalSaves: number }).totalSaves
+        : 0,
       reach: views,
     },
     reelCount: base.reelCount,
@@ -139,7 +143,9 @@ function adaptSocialAnalytics(base: CreatorAnalytics, period: string): CreatorAn
       views: base.kpis.views,
       likes: base.kpis.likes,
       comments: base.kpis.comments,
-      shares: (base.topReels || []).reduce((sum, reel) => sum + (reel.shares || 0), 0),
+      shares: typeof base.kpis?.shares === 'number'
+        ? base.kpis.shares
+        : (base.topReels || []).reduce((sum, reel) => sum + (reel.shares || 0), 0),
       saves: base.kpis.saves,
       engagementRate: base.kpis.engagementRate,
     },

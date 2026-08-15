@@ -14,5 +14,7 @@ describe('PalPoints default point rules', () => {
     expect(byKey('rewarded_ad')?.points).toBe(10);
     expect(byKey('daily_login')?.points).toBe(5);
     expect(byKey('review_write')?.points).toBe(10);
+    expect(byKey('reel_upload')?.points).toBe(50);
+    expect(byKey('reel_upload')?.maxDaily).toBe(1);
   });
 });

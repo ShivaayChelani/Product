@@ -4,18 +4,20 @@ import { ApiError, ErrorCodes } from '../../shared/utils/ApiError';
 import { mapCreatorStatusToRoleStatus } from '../../shared/utils/specialtyRoles';
 import { roleTransitionService } from '../../shared/services/roleTransition.service';
 import { notificationService } from '../notifications/notification.service';
-import { pointRulesService } from '../point-rules/pointRules.service';
 import { planEnforcementService } from '../monetization/plan-enforcement.service';
 import { getPublicVendorListingWhere } from '../vendors/vendor-public-visibility';
 import { notifyVendorOfTaggedReel } from '../vendors/vendor-tagged-reels';
+import {
+  awardCreatorDailyReelInTx,
+  CREATOR_DAILY_REEL_FALLBACK_POINTS,
+  getIndiaRewardDate,
+  resolveDailyReelPoints,
+} from './creatorDailyReelReward';
 import type {
   ApplyCreatorInput,
   UpdateCreatorProfileInput,
   CreateReelInput,
 } from './social.validation';
-
-const CREATOR_DAILY_REEL_FALLBACK_POINTS = 50;
-const IST_OFFSET_MS = 330 * 60 * 1000;
 
 // Simple haversine formula helper in case external import is missing
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -38,11 +40,6 @@ async function getFollowingUserIdSet(followerId: string): Promise<Set<string>> {
     select: { followingId: true },
   });
   return new Set(rows.map((row) => row.followingId));
-}
-
-function getIndiaRewardDate(now = new Date()): string {
-  const istDate = new Date(now.getTime() + IST_OFFSET_MS);
-  return istDate.toISOString().slice(0, 10);
 }
 
 const reelResponseInclude = {
@@ -72,21 +69,31 @@ const reelResponseInclude = {
   },
 };
 
-function applyLiveEngagement<T extends {
+type LiveEngagementCounts = {
   likes: number;
   views: number;
   shares: number;
   saves: number;
   _count?: { comments?: number; likesList?: number; savesList?: number } | null;
-}>(item: T) {
+};
+
+type LiveEngagement<T extends LiveEngagementCounts> = Omit<T, '_count'> & {
+  likes: number;
+  commentsCount: number;
+  saves: number;
+  views: number;
+  shares: number;
+};
+
+function applyLiveEngagement<T extends LiveEngagementCounts>(item: T): LiveEngagement<T> {
+  const { _count, ...rest } = item;
   return {
-    ...item,
-    likes: item._count?.likesList ?? item.likes ?? 0,
-    commentsCount: item._count?.comments ?? 0,
-    saves: item._count?.savesList ?? item.saves ?? 0,
+    ...rest,
+    likes: _count?.likesList ?? item.likes ?? 0,
+    commentsCount: _count?.comments ?? 0,
+    saves: _count?.savesList ?? item.saves ?? 0,
     views: item.views ?? 0,
     shares: item.shares ?? 0,
-    _count: undefined,
   };
 }
 
@@ -406,7 +413,7 @@ export const socialService = {
       prisma.reel.count({ where: { creatorId: profile.id } }),
       prisma.reel.aggregate({
         where: { creatorId: profile.id },
-        _sum: { likes: true },
+        _sum: { likes: true, shares: true, views: true, saves: true },
       }),
       prisma.reelComment.count({ where: { reel: { creatorId: profile.id } } }),
       prisma.reel.findMany({
@@ -439,7 +446,9 @@ export const socialService = {
         claimedToday: Boolean(reward),
         pointsIfClaimed: reward?.points ?? CREATOR_DAILY_REEL_FALLBACK_POINTS,
       },
-      recentReels,
+      recentReels: recentReels.map((item) => applyLiveEngagement(item)),
+      totalShares: totals._sum.shares ?? 0,
+      totalSaves: totals._sum.saves ?? 0,
     };
   },
 
@@ -451,7 +460,7 @@ export const socialService = {
     const [totals, comments, topReels] = await Promise.all([
       prisma.reel.aggregate({
         where: { creatorId: profile.id },
-        _sum: { views: true, likes: true, saves: true },
+        _sum: { views: true, likes: true, saves: true, shares: true },
       }),
       prisma.reelComment.count({ where: { reel: { creatorId: profile.id } } }),
       prisma.reel.findMany({
@@ -464,12 +473,14 @@ export const socialService = {
     const views = totals._sum.views ?? 0;
     const likes = totals._sum.likes ?? 0;
     const saves = totals._sum.saves ?? 0;
+    const shares = totals._sum.shares ?? 0;
     return {
       period,
       kpis: {
         views,
         likes,
         comments,
+        shares,
         saves,
         engagementRate: views ? Number((((likes + comments + saves) / views) * 100).toFixed(2)) : 0,
       },
@@ -735,8 +746,7 @@ export const socialService = {
     await planEnforcementService.assertCreatorCanUploadReel(userId);
 
     const rewardDate = getIndiaRewardDate();
-    const reelRule = await pointRulesService.getPointsForAction('reel_upload');
-    const dailyReelPoints = reelRule?.points ?? CREATOR_DAILY_REEL_FALLBACK_POINTS;
+    const dailyReelPoints = await resolveDailyReelPoints();
 
     let resolvedPlaceId: string | null = null;
     if (input.placeId?.trim()) {
@@ -801,44 +811,13 @@ export const socialService = {
         include: reelResponseInclude,
       });
 
-      const reward = await tx.creatorDailyReward.createMany({
-        data: [{
-          creatorId: profile.id,
-          userId,
-          reelId: reel.id,
-          rewardDate,
-          points: dailyReelPoints,
-        }],
-        skipDuplicates: true,
+      const rewardPoints = await awardCreatorDailyReelInTx(tx, {
+        creatorId: profile.id,
+        userId,
+        reelId: reel.id,
+        rewardDate,
+        points: dailyReelPoints,
       });
-
-      const rewardPoints = reward.count > 0 ? dailyReelPoints : 0;
-      if (rewardPoints > 0) {
-        const wallet = await tx.wallet.upsert({
-          where: { userId },
-          update: {
-            palPoints: { increment: rewardPoints },
-            lifetimeEarned: { increment: rewardPoints },
-          },
-          create: {
-            userId,
-            palPoints: rewardPoints,
-            lifetimeEarned: rewardPoints,
-          },
-        });
-
-        await tx.walletTransaction.create({
-          data: {
-            walletId: wallet.id,
-            userId,
-            amount: rewardPoints,
-            type: 'EARN',
-            reason: 'reel_upload',
-            referenceId: reel.id,
-            referenceType: 'CREATOR_DAILY_REEL',
-          },
-        });
-      }
 
       return { reel, rewardPoints };
     });
@@ -863,51 +842,17 @@ export const socialService = {
 
   async awardDailyReelUploadReward(userId: string, profileId: string, reelId: string) {
     const rewardDate = getIndiaRewardDate();
-    const reelRule = await pointRulesService.getPointsForAction('reel_upload');
-    const dailyReelPoints = reelRule?.points ?? CREATOR_DAILY_REEL_FALLBACK_POINTS;
+    const dailyReelPoints = await resolveDailyReelPoints();
 
-    const rewardPoints = await prisma.$transaction(async (tx) => {
-      const reward = await tx.creatorDailyReward.createMany({
-        data: [{
-          creatorId: profileId,
-          userId,
-          reelId,
-          rewardDate,
-          points: dailyReelPoints,
-        }],
-        skipDuplicates: true,
-      });
-
-      const points = reward.count > 0 ? dailyReelPoints : 0;
-      if (points > 0) {
-        const wallet = await tx.wallet.upsert({
-          where: { userId },
-          update: {
-            palPoints: { increment: points },
-            lifetimeEarned: { increment: points },
-          },
-          create: {
-            userId,
-            palPoints: points,
-            lifetimeEarned: points,
-          },
-        });
-
-        await tx.walletTransaction.create({
-          data: {
-            walletId: wallet.id,
-            userId,
-            amount: points,
-            type: 'EARN',
-            reason: 'reel_upload',
-            referenceId: reelId,
-            referenceType: 'CREATOR_DAILY_REEL',
-          },
-        });
-      }
-
-      return points;
-    });
+    const rewardPoints = await prisma.$transaction(async (tx) =>
+      awardCreatorDailyReelInTx(tx, {
+        creatorId: profileId,
+        userId,
+        reelId,
+        rewardDate,
+        points: dailyReelPoints,
+      }),
+    );
 
     return {
       rewardPoints,

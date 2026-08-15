@@ -9,8 +9,47 @@ interface UploadResult {
   duration?: number;
 }
 
+interface MediaActor {
+  userId: string;
+  isAdmin: boolean;
+}
+
+/** Same-process ownership for freshly uploaded assets (tests + single-instance). */
+const uploadOwners = new Map<string, string>();
+
+function rememberOwner(publicId: string, userId: string) {
+  uploadOwners.set(publicId, userId);
+}
+
+async function assertCanDelete(
+  publicId: string,
+  resourceType: 'image' | 'video',
+  actor: MediaActor,
+): Promise<void> {
+  if (actor.isAdmin) return;
+
+  const mapped = uploadOwners.get(publicId);
+  if (mapped === actor.userId) return;
+  if (mapped && mapped !== actor.userId) {
+    throw new ApiError(403, 'You cannot remove this media.');
+  }
+
+  let owner: string | undefined;
+  try {
+    const resource = await cloudinary.api.resource(publicId, { resource_type: resourceType });
+    const context = resource?.context as { custom?: { owner?: string }; owner?: string } | undefined;
+    owner = context?.custom?.owner || context?.owner;
+  } catch {
+    owner = undefined;
+  }
+
+  if (!owner || owner !== actor.userId) {
+    throw new ApiError(403, 'You cannot remove this media.');
+  }
+}
+
 export const uploadService = {
-  async uploadImage(file: Express.Multer.File): Promise<UploadResult> {
+  async uploadImage(file: Express.Multer.File, userId: string): Promise<UploadResult> {
     if (!file) {
       throw new ApiError(400, 'No image file provided.');
     }
@@ -19,11 +58,12 @@ export const uploadService = {
       throw new ApiError(400, 'Invalid image file. Only JPEG, PNG, and WebP are allowed.');
     }
 
-    const result = await uploadToCloudinary(file.buffer, 'palsasafar/places');
+    const result = await uploadToCloudinary(file.buffer, 'palsasafar/places', userId);
+    rememberOwner(result.publicId, userId);
     return result;
   },
 
-  async uploadVideo(file: Express.Multer.File): Promise<UploadResult> {
+  async uploadVideo(file: Express.Multer.File, userId: string): Promise<UploadResult> {
     if (!file) {
       throw new ApiError(400, 'No video file provided.');
     }
@@ -32,11 +72,9 @@ export const uploadService = {
       throw new ApiError(400, 'Invalid video file. Only MP4, MOV, and WebM are allowed.');
     }
 
-    // This offloads the compression to Cloudinary which will handle it synchronously 
-    // up to 100MB limit per request (Cloudinary allows up to 100MB synchronous upload on paid plans, 
-    // but typically we should chunk it for larger files. We'll use the default stream for now).
     try {
-      const result = await uploadVideoToCloudinary(file.buffer, 'palsasafar/reels');
+      const result = await uploadVideoToCloudinary(file.buffer, 'palsasafar/reels', userId);
+      rememberOwner(result.publicId, userId);
       return result;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Video storage upload failed';
@@ -50,11 +88,15 @@ export const uploadService = {
     }
   },
 
-  async deleteImage(publicId: string): Promise<void> {
-    await this.deleteMedia(publicId, 'image');
+  async deleteImage(publicId: string, actor: MediaActor): Promise<void> {
+    await this.deleteMedia(publicId, 'image', actor);
   },
 
-  async deleteMedia(publicId: string, resourceType: 'image' | 'video' = 'image'): Promise<void> {
+  async deleteMedia(
+    publicId: string,
+    resourceType: 'image' | 'video' = 'image',
+    actor?: MediaActor,
+  ): Promise<void> {
     const id = String(publicId || '').trim();
     if (!id) {
       throw new ApiError(400, 'Media id is required.');
@@ -62,6 +104,10 @@ export const uploadService = {
     if (!id.startsWith('palsasafar/')) {
       throw new ApiError(400, 'Invalid media id.');
     }
+    if (!actor?.userId) {
+      throw new ApiError(401, 'Authentication required');
+    }
+    await assertCanDelete(id, resourceType, actor);
     await cloudinary.uploader.destroy(id, { resource_type: resourceType });
   },
 };

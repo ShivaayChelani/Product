@@ -27,6 +27,7 @@ import {
   getItineraryMaxTravelSpeedKmh,
   isItineraryGpsRewardsEnabled,
 } from './itinerary-rewards.config';
+import { resolvePlaceForQuickAdd } from './vendorItineraryPlace';
 
 const prismaTrip = prisma.tripPlan;
 const prismaDay = prisma.tripPlanDay;
@@ -1343,19 +1344,7 @@ export const tripsService = {
   },
 
   async quickAdd(userId: string, placeIdOrSlug: string, explicitTripId?: string) {
-    const place = await prisma.place.findFirst({
-      where: { OR: [{ id: placeIdOrSlug }, { slug: placeIdOrSlug }] },
-      select: {
-        id: true,
-        city: true,
-        state: true,
-        name: true,
-        estimatedDurationMinutes: true,
-        recommendedDuration: true,
-        category: true,
-        ticketPrice: true,
-      },
-    });
+    const place = await resolvePlaceForQuickAdd(placeIdOrSlug);
     if (!place) throw new ApiError(404, 'Place not found.');
 
     const cityKey = cityKeyFromPlace(place);

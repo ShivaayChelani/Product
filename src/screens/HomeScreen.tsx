@@ -237,6 +237,18 @@ export default function HomeScreen({
   const [nextStopRouteLabel, setNextStopRouteLabel] = useState('');
   const [vendorOfferDistanceLabels, setVendorOfferDistanceLabels] = useState<Record<string, string>>({});
 
+  const {
+    homeOffer: featuredOffer,
+    nearbyVendorOffers: publicNearbyOffers,
+    nextCampaign,
+    refresh: refreshHomeRewards,
+  } = useHomeRewardsData({
+    palPointsBalance: palPoints,
+    isGuest,
+    latitude: position?.latitude,
+    longitude: position?.longitude,
+  });
+
   // Simulated AI Generating State (State 2)
   const [aiGenerating, setAiGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -326,9 +338,11 @@ export default function HomeScreen({
       setVendorOfferDistanceLabels({});
       return;
     }
-    const offers = buildNearbyVendorOffers(vendorOffers, vendors, position, 3)
+    const offers = (publicNearbyOffers.length
+      ? publicNearbyOffers
+      : buildNearbyVendorOffers(vendorOffers, vendors, position, 6))
       .filter(offer => offer.latitude != null && offer.longitude != null)
-      .slice(0, 3);
+      .slice(0, 6);
     if (!offers.length) {
       setVendorOfferDistanceLabels({});
       return;
@@ -356,7 +370,7 @@ export default function HomeScreen({
     return () => {
       cancelled = true;
     };
-  }, [vendorOffers, vendors, position]);
+  }, [publicNearbyOffers, vendorOffers, vendors, position]);
 
   useEffect(() => {
     if (hasNearbyCoords) return;
@@ -379,7 +393,10 @@ export default function HomeScreen({
           const res = await walletApi.getProfile();
           const profile: any = res?.data ?? res;
           const pts = Number(profile?.palPoints ?? user?.totalPoints ?? 0);
-          if (!cancelled && !Number.isNaN(pts)) setPalPoints(pts);
+          if (!cancelled && !Number.isNaN(pts)) {
+            setPalPoints(pts);
+            setUser(prev => (prev.totalPoints === pts ? prev : { ...prev, totalPoints: pts }));
+          }
         } catch { /* keep fallback */ }
 
         try {
@@ -387,7 +404,7 @@ export default function HomeScreen({
         } catch { /* offline */ }
       })();
       return () => { cancelled = true; };
-    }, [isGuest, user?.totalPoints]),
+    }, [isGuest, user?.totalPoints, setUser]),
   );
 
   const openRewards = onNavigateToRewards || onNavigateToLeaderboard;
@@ -496,17 +513,6 @@ export default function HomeScreen({
       getSwitchableModes(ctxUser || user, currentVendor?.verificationStatus),
     [ctxUser, user, currentVendor?.verificationStatus],
   );
-
-  const {
-    homeOffer: featuredOffer,
-    nextCampaign,
-    refresh: refreshHomeRewards,
-  } = useHomeRewardsData({
-    palPointsBalance: palPoints,
-    isGuest,
-    latitude: position?.latitude,
-    longitude: position?.longitude,
-  });
 
   const refreshWalletBalance = useCallback(async () => {
     if (isGuest || !DEV_FLAGS.USE_SERVER_API) return;
@@ -665,12 +671,14 @@ export default function HomeScreen({
   );
 
   const nearbyVendorOffers = useMemo(() => {
-    const offers = buildNearbyVendorOffers(vendorOffers, vendors, position, 3);
-    return offers.map(offer => ({
+    const source = publicNearbyOffers.length
+      ? publicNearbyOffers
+      : buildNearbyVendorOffers(vendorOffers, vendors, position, 6);
+    return source.map(offer => ({
       ...offer,
       distanceLabel: vendorOfferDistanceLabels[offer.id] || offer.distanceLabel,
     }));
-  }, [vendorOffers, vendors, position, vendorOfferDistanceLabels]);
+  }, [publicNearbyOffers, vendorOffers, vendors, position, vendorOfferDistanceLabels]);
 
   return (
     <View style={styles.root}>
@@ -893,20 +901,11 @@ export default function HomeScreen({
               </TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trendingScroll}>
-              <TouchableOpacity style={styles.promoOfferCard} onPress={openVendorOffers} activeOpacity={0.9}>
-                <Icon name="gift-outline" size={24} color="#B9834B" style={{ marginBottom: 12 }} />
-                <Text style={styles.promoOfferTitle}>Exciting offers</Text>
-                <Text style={styles.promoOfferSub}>from top local{'\n'}vendors!</Text>
-                <View style={styles.promoArrowBtn}>
-                  <Icon name="arrow-forward" size={16} color="#FFFFFF" />
-                </View>
-              </TouchableOpacity>
-              
-              {nearbyVendorOffers.slice(0, 3).map((offer, idx) => (
+              {nearbyVendorOffers.slice(0, 6).map((offer, idx) => (
                 <TouchableOpacity key={offer.id || idx} style={styles.vendorOfferCard} onPress={() => openOfferDetail(offer.id)} activeOpacity={0.9}>
                   <Image source={{ uri: offer.imageUri || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=400' }} style={styles.vendorOfferImage} />
                   <View style={styles.vendorOfferDiscountBadge}>
-                    <Text style={styles.vendorOfferDiscountText}>{offer.headline.includes('%') ? offer.headline.split(' ')[0] : '20% OFF'}</Text>
+                    <Text style={styles.vendorOfferDiscountText}>{offer.headline}</Text>
                   </View>
                   <TouchableOpacity style={styles.offerHeartBtn}>
                     <Icon name="heart-outline" size={18} color="#FFFFFF" />
@@ -920,6 +919,16 @@ export default function HomeScreen({
                   </View>
                 </TouchableOpacity>
               ))}
+              <TouchableOpacity style={styles.promoOfferCard} onPress={openVendorOffers} activeOpacity={0.9}>
+                <Icon name="gift-outline" size={24} color="#B9834B" style={{ marginBottom: 12 }} />
+                <Text style={styles.promoOfferTitle}>
+                  {nearbyVendorOffers.length ? 'More offers' : 'Exciting offers'}
+                </Text>
+                <Text style={styles.promoOfferSub}>from top local{'\n'}vendors!</Text>
+                <View style={styles.promoArrowBtn}>
+                  <Icon name="arrow-forward" size={16} color="#FFFFFF" />
+                </View>
+              </TouchableOpacity>
             </ScrollView>
           </View>
 
@@ -956,7 +965,7 @@ export default function HomeScreen({
         visible={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         user={ctxUser || (user as any)}
-        palPoints={palPoints}
+        palPoints={isGuest ? palPoints : Number(ctxUser?.totalPoints ?? palPoints)}
         activeMode={ctxUser?.activeMode || 'USER'}
         switchableModes={switchableModes}
         onSwitchMode={onSwitchMode}

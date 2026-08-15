@@ -12,7 +12,7 @@ export function useCreatorDashboard(enabled = true) {
       return res.data;
     },
     enabled,
-    staleTime: 60_000,
+    staleTime: 15_000,
     retry: 2,
   });
 }

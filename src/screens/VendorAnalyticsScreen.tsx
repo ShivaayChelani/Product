@@ -595,55 +595,9 @@ export default function VendorAnalyticsScreen({ onBack: _onBack, vendorId, vendo
 
               <View style={styles.palPointsHistoryCard}>
                 {redemptions.length === 0 ? (
-                  <>
-                    <View style={styles.historyItemRow}>
-                      <View style={[styles.historyIconCircle, { backgroundColor: '#EAF7F0' }]}>
-                        <MaterialCommunityIcons name="gift-outline" size={18} color="#059669" />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.historyItemTitle}>A traveler redeemed 250 PalPoints</Text>
-                        <Text style={styles.historyItemSub}>₹50 off on Bill • Today, 11:24 AM</Text>
-                      </View>
-                      <View style={styles.historyRightCol}>
-                        <Text style={styles.historyPointsBadge}>+250 pts</Text>
-                        <View style={styles.completedStatusPill}>
-                          <Text style={styles.completedStatusText}>Completed</Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    <View style={styles.historyItemRow}>
-                      <View style={[styles.historyIconCircle, { backgroundColor: '#F3EEF8' }]}>
-                        <Ionicons name="pricetag-outline" size={18} color="#8B6BB5" />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.historyItemTitle}>20% OFF on All Pizzas</Text>
-                        <Text style={styles.historyItemSub}>Offer activated • Today, 10:15 AM</Text>
-                      </View>
-                      <View style={styles.historyRightCol}>
-                        <Text style={styles.historyPointsBadge}>+180 pts</Text>
-                        <View style={styles.completedStatusPill}>
-                          <Text style={styles.completedStatusText}>Completed</Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    <View style={styles.historyItemRow}>
-                      <View style={[styles.historyIconCircle, { backgroundColor: '#FEF9E7' }]}>
-                        <PalPointsIcon size={18} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.historyItemTitle}>A traveler redeemed 300 PalPoints</Text>
-                        <Text style={styles.historyItemSub}>₹75 off on Bill • Yesterday, 02:45 PM</Text>
-                      </View>
-                      <View style={styles.historyRightCol}>
-                        <Text style={styles.historyPointsBadge}>+300 pts</Text>
-                        <View style={styles.completedStatusPill}>
-                          <Text style={styles.completedStatusText}>Completed</Text>
-                        </View>
-                      </View>
-                    </View>
-                  </>
+                  <Text style={styles.historyEmptyText}>
+                    No PalPoints redemptions yet. When a traveler redeems at your shop, it will show up here.
+                  </Text>
                 ) : (
                   redemptions.slice(0, 8).map((r) => (
                     <View key={r.id} style={styles.historyItemRow}>
@@ -978,6 +932,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: C.textSecondary,
     marginTop: 2,
+  },
+  historyEmptyText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: C.textSecondary,
+    lineHeight: 19,
+    textAlign: 'center',
+    paddingVertical: 12,
   },
   historyRightCol: {
     alignItems: 'flex-end',

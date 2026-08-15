@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -61,6 +61,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
   const [showOnHome, setShowOnHome] = useState(true);
   
   const [uploading, setUploading] = useState(false);
+  const submitLockRef = useRef(false);
 
   const handlePickVideo = useCallback(async (source: 'gallery' | 'camera') => {
     try {
@@ -86,6 +87,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
 
 
   const handlePublish = useCallback(async () => {
+    if (submitLockRef.current) return;
     if (!videoUri) {
       Alert.alert('Validation Error', 'Please select a video for your promotion.');
       return;
@@ -103,6 +105,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
       return;
     }
 
+    submitLockRef.current = true;
     setUploading(true);
     try {
       if (!user?.uid) {
@@ -132,6 +135,8 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
 
       navigateToWorkspaceHome(navigation, 'VENDOR');
     } catch (e: any) {
+      submitLockRef.current = false;
+      setUploading(false);
       if (e?.status === 403 || e?.code === 'PLAN_LIMIT_REACHED') {
         Alert.alert('Upgrade plan', e?.message || 'Your plan does not allow more reels this month.', [
           { text: 'Not now', style: 'cancel' },

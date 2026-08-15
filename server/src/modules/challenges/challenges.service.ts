@@ -281,10 +281,12 @@ export const challengesService = {
 
     // Fetch all users with approved challenge creations
     const users = await prisma.user.findMany({
+      where: {
+        createdChallenges: { some: { status: ChallengeStatus.APPROVED } },
+      },
       select: {
         id: true,
         name: true,
-        email: true,
         avatar: true,
         badges: true,
         createdChallenges: {
@@ -292,6 +294,7 @@ export const challengesService = {
           select: { id: true },
         },
       },
+      take: 200,
     });
 
     // Map and count
@@ -299,7 +302,6 @@ export const challengesService = {
       .map((u) => ({
         id: u.id,
         name: u.name || 'Anonymous',
-        email: u.email,
         avatar: u.avatar,
         badges: u.badges,
         approvedChallengesCount: u.createdChallenges.length,

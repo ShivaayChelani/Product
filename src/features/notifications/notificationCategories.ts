@@ -48,7 +48,7 @@ export function matchesNotificationTab(
       return /offer|coupon|discount|deal|vendor.?promo|nearby.?deal/.test(t) || /offer/.test(type);
     case 'Rewards':
       return /palpoints|points|reward|redeem|campaign|challenge|referral|leaderboard|badge/.test(t)
-        || /points_earned|reward|campaign|challenge/.test(type);
+        || /points_earned|reward|campaign|challenge|review_write|place_image/.test(type);
     case 'Bookings':
       return /book|hotel|ride|reservation|check.?in|invoice/.test(t) || /booking/.test(type);
     case 'Trips':
@@ -59,7 +59,7 @@ export function matchesNotificationTab(
     case 'Creator':
       return /creator|reel|trending|approved|audience/.test(t) || /creator|reel/.test(type);
     case 'Vendor':
-      return /vendor|redemption|scanner|tagged.?reel|map profile/.test(t) || /vendor|redemption|tagged_reel/.test(type);
+      return /vendor|redemption|scanner|tagged.?reel|map profile/.test(t) || /vendor|redemption|tagged_reel|vendor_review/.test(type);
     case 'Community':
       return /review|comment|follow|liked/.test(t) || /comment|follow/.test(type);
     case 'System':

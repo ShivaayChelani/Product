@@ -32,7 +32,7 @@ import {
   resolveTripOriginDisplay,
   tripLocationsLabel,
 } from '../features/myTrips/utils/tripFormatting';
-import { computeTripBudget, formatInr } from '../utils/tripBudget';
+import { computeTripBudget, formatBudgetApprox } from '../utils/tripBudget';
 import { resolveTravellerCount, resolveTripDayCount } from '../utils/tripSummary';
 import { TripEmptySection } from '../features/myTrips/components/TripEmptySection';
 
@@ -55,7 +55,7 @@ export default function MyTripsScreen({
 }) {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
-  const { isGuest } = useUserContext();
+  const { isGuest, user } = useUserContext();
   const { showSuccess, showError } = useToast();
   const apiEnabled = !isGuest && DEV_FLAGS.USE_SERVER_API;
   const { trips, isLoading, refresh } = useMyTripsData(apiEnabled);
@@ -194,7 +194,7 @@ export default function MyTripsScreen({
     (trip: TripPlan) => {
       const palPoints = estimateTripPalPoints(trip);
       const travellerCount = resolveTravellerCount(trip);
-      const budget = computeTripBudget(trip);
+      const budget = computeTripBudget(trip, { travelerCity: user?.city });
       const hasStops = trip.tripDays?.some(d => (d.stops?.length ?? 0) > 0) ?? false;
       const showResume =
         activeTab === 'UPCOMING' ||
@@ -207,7 +207,7 @@ export default function MyTripsScreen({
           id={trip.id}
           title={trip.title || 'Untitled Trip'}
           palPoints={palPoints}
-          budgetStr={budget.grandTotal > 0 ? `${formatInr(budget.grandTotal)} est. budget` : undefined}
+          budgetStr={budget.grandTotal > 0 ? `${formatBudgetApprox(budget.grandTotal)}` : undefined}
           datesStr=""
           daysCount={resolveTripDayCount(trip)}
           locationsStr={tripLocationsLabel(trip)}
@@ -222,7 +222,7 @@ export default function MyTripsScreen({
         />
       );
     },
-    [activeTab, handleOpenTrip, handleResumeTrip, handleTripMenu],
+    [activeTab, handleOpenTrip, handleResumeTrip, handleTripMenu, user?.city],
   );
 
   const emptyVariant = activeTab === 'DRAFT' ? 'draft' : activeTab === 'COMPLETED' ? 'completed' : 'upcoming';

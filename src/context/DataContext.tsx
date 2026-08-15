@@ -20,6 +20,7 @@ import { useUserContext } from './UserContext';
 import { checkInPlace } from '../services/placesService';
 import { syncService } from '../services/syncService';
 import { creatorUploadManager } from '../services/creator/creatorUploadManager';
+import { applyWalletPalPoints } from '../utils/syncPalPoints';
 
 interface DataContextType {
   vendors: VendorBusiness[];
@@ -139,6 +140,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const pendingHiddenGemRef = useRef<Set<string>>(new Set());
   const userRef = useRef(user);
   userRef.current = user;
+  const createReelLockRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -177,14 +179,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (prev.some((r) => r.id === reel.id)) return prev;
         return [reel, ...prev];
       });
-      const rewardPoints = job.rewardPoints ?? reel.rewardPoints ?? 0;
-      if (rewardPoints > 0) {
+      if (job.kind !== 'VENDOR') {
+        const rewardPoints = job.rewardPoints ?? reel.rewardPoints ?? 0;
         setUser((prev) => ({
           ...prev,
-          createdReels: [...(prev.createdReels || []), reel.id],
+          createdReels: prev.createdReels?.includes(reel.id)
+            ? prev.createdReels
+            : [...(prev.createdReels || []), reel.id],
           totalPoints: (prev.totalPoints || 0) + rewardPoints,
         }));
+        if (rewardPoints > 0) {
+          Alert.alert(
+            'PalPoints earned',
+            `+${rewardPoints} PalPoints for your first reel today. Extra reels today won't add more.`,
+          );
+        }
       }
+      void applyWalletPalPoints(setUser);
     });
   }, [setUser]);
 
@@ -922,6 +933,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     data: { videoUri: string; caption: string; spotId: string; spotName?: string; tags: string[] },
     onProgress?: (p: number) => void,
   ) => {
+    if (createReelLockRef.current) return;
+    createReelLockRef.current = true;
     const u = userRef.current;
     const vendorId =
       currentVendor?.verificationStatus === 'approved' ? currentVendor.id : undefined;
@@ -952,7 +965,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       Alert.alert(
         'Reel Posted!',
         rewardPoints > 0
-          ? `You earned ${rewardPoints} Pal Points for your first reel today!`
+          ? `You earned ${rewardPoints} PalPoints for your first reel today. Extra reels today won't add more.`
           : vendorId
             ? 'Your vendor reel is live on your business profile.'
             : 'Your reel is live.',
@@ -961,6 +974,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setReelsUploadProgress(0);
       Alert.alert('Upload Failed', err?.message || 'Could not upload your reel. Please try again.');
       throw err;
+    } finally {
+      createReelLockRef.current = false;
     }
   }, [currentVendor, setUser]);
 

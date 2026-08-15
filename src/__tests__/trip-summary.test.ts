@@ -139,6 +139,28 @@ describe('trip summary calculations', () => {
     expect(budget.foodTotal).toBe(3600);
     expect(budget.transportTotal).toBe(40);
     expect(budget.grandTotal).toBe(4090);
+    expect(budget.includesTravel).toBe(true);
+    expect(budget.scopeLabel).toBe('Entry + food + travel');
+  });
+
+  it('omits travel for a local traveller and keeps entry plus food only', () => {
+    const local = computeTripBudget(
+      makeTrip({ destination: 'Jabalpur', transportation: ['CAR'] }),
+      { travelerCity: 'Jabalpur' },
+    );
+    expect(local.isLocal).toBe(true);
+    expect(local.includesTravel).toBe(false);
+    expect(local.transportTotal).toBe(0);
+    expect(local.entryTotal).toBe(450);
+    expect(local.foodTotal).toBe(3600);
+    expect(local.grandTotal).toBe(4050);
+    expect(local.scopeLabel).toBe('Entry + food');
+  });
+
+  it('treats walking-only trips as local even without a home city', () => {
+    const walking = computeTripBudget(makeTrip({ transportation: ['WALKING'] }));
+    expect(walking.isLocal).toBe(true);
+    expect(walking.grandTotal).toBe(4050);
   });
 
   it('formats duration without requiring calendar dates', () => {

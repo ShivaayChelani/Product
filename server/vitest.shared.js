@@ -96,6 +96,8 @@ export const UNIT_TEST_FILES = [
   'src/__tests__/budget-filter.unit.test.ts',
   'src/__tests__/admin-places-query.unit.test.ts',
   'src/__tests__/admin-grant-subscription.unit.test.ts',
+  'src/__tests__/palpoints-earn-message.unit.test.ts',
+  'src/__tests__/vendor-itinerary-place.unit.test.ts',
 ];
 
 export const E2E_TEST_GLOB = 'src/__tests__/**/*.integration.test.ts';

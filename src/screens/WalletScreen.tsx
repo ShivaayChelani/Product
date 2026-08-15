@@ -98,6 +98,7 @@ export default function WalletScreen({
     completion: 100,
     hiddenGem: 50,
     hiddenGemMerge: 25,
+    reel: 50,
   });
 
   const assertOnline = useCallback(async () => {
@@ -221,6 +222,7 @@ export default function WalletScreen({
             completion: byKey("itinerary_completion", 100),
             hiddenGem: byKey("hidden_gem", 50),
             hiddenGemMerge: byKey("hidden_gem_merge", 25),
+            reel: byKey("reel_upload", 50),
           });
         } catch {
           /* keep defaults aligned with product rules */
@@ -536,6 +538,19 @@ export default function WalletScreen({
         </View>
 
         {renderEarnTask(
+          "videocam-outline",
+          "#388E3C",
+          "#E8F5E9",
+          "First creator reel of the day",
+          "Upload your first reel today. Extra reels the same day don't add more.",
+          `+${rewardPoints.reel}`,
+          "PalPoints",
+          "Upload now",
+          "#388E3C",
+          undefined,
+          () => navigation.navigate("CreateReel"),
+        )}
+        {renderEarnTask(
           "diamond-outline",
           "#388E3C",
           "#E8F5E9",
@@ -552,7 +567,7 @@ export default function WalletScreen({
           "pencil-outline",
           "#388E3C",
           "#E8F5E9",
-          "Earn by submitting Review",
+          "Earn by Submitting Business Review",
           "Write reviews and help others",
           `+${rewardPoints.review}`,
           "PalPoints",

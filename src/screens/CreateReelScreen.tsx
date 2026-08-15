@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -107,11 +107,16 @@ export default function CreateReelScreen({
   const [_videoThumbnail, setVideoThumbnail] = useState<string | null>(editReel?.thumbnail || null);
   const [videoMime, setVideoMime] = useState<string | null>(null);
   const [videoFileName, setVideoFileName] = useState<string | null>(null);
-  const [caption, setCaption] = useState(editReel?.description || captionHint?.trim() || '');
+  const [caption, setCaption] = useState<string>(
+    (typeof editReel?.description === 'string' ? editReel.description : '')
+      || captionHint?.trim()
+      || '',
+  );
   const [captionSelection, setCaptionSelection] = useState({ start: 0, end: 0 });
   const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>(editReel?.tags || []);
   const [uploading, setUploading] = useState(false);
+  const submitLockRef = useRef(false);
 
   // Settings State
   const [audience, setAudience] = useState<'Everyone' | 'Followers' | 'Only Me'>('Everyone');
@@ -226,6 +231,7 @@ export default function CreateReelScreen({
   }, []);
 
   const handlePost = useCallback(async () => {
+    if (submitLockRef.current) return;
     if (!videoUri) {
       Alert.alert('Error', 'Please select a video.');
       return;
@@ -234,6 +240,7 @@ export default function CreateReelScreen({
       Alert.alert('Error', 'Please add a caption.');
       return;
     }
+    submitLockRef.current = true;
     setUploading(true);
     try {
       let finalSpotId = spotId;
@@ -287,9 +294,9 @@ export default function CreateReelScreen({
         onBack();
       }
     } catch (err: unknown) {
-      Alert.alert('Error', caughtErrorMessage(err, 'Failed to post reel. Please try again.'));
-    } finally {
+      submitLockRef.current = false;
       setUploading(false);
+      Alert.alert('Error', caughtErrorMessage(err, 'Failed to post reel. Please try again.'));
     }
   }, [
     videoUri,
@@ -316,10 +323,12 @@ export default function CreateReelScreen({
   }, [navigation]);
 
   const handleSaveDraft = useCallback(async () => {
+    if (submitLockRef.current) return;
     if (!videoUri) {
       Alert.alert('Video required', 'Select a video before saving a draft.');
       return;
     }
+    submitLockRef.current = true;
     setUploading(true);
     try {
       let finalSpotId = spotId;
@@ -367,6 +376,7 @@ export default function CreateReelScreen({
     } catch (err: unknown) {
       Alert.alert('Could not save draft', caughtErrorMessage(err, 'Draft save failed. Please try again.'));
     } finally {
+      submitLockRef.current = false;
       setUploading(false);
     }
   }, [videoUri, caption, spotId, vendorId, locationName, selectedTags, isDraftEdit, editReel, onBack, videoMime, videoFileName]);

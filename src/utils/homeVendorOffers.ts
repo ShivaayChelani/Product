@@ -1,7 +1,9 @@
 import type { VendorBusiness, VendorOffer, UserPosition } from '../types';
 import type { NearbyVendorOfferItem } from '../components/home/VendorOffersNearYouSection';
+import type { VendorOfferItem } from '../services/api/rewards';
 import { haversineDistance } from '../services/location/distance';
 import { hasValidImageUrl } from './imageUrl';
+import { isLiveVendorOffer, offerDiscountLabel } from './vendorOfferEligibility';
 
 function formatOfferHeadline(offer: VendorOffer): string {
   if (offer.discountType === 'percentage') return `${offer.discountValue}% OFF`;
@@ -36,9 +38,10 @@ export function buildNearbyVendorOffers(
 
   return vendorOffers
     .filter(offer => {
-      if (!offer.isActive) return false;
+      if (offer.isActive === false) return false;
       const vendor = vendorById.get(offer.vendorId);
-      return vendor?.verificationStatus === 'approved';
+      if (!vendor) return true;
+      return !vendor.verificationStatus || vendor.verificationStatus === 'approved';
     })
     .map(offer => {
       const vendor = vendorById.get(offer.vendorId);
@@ -74,3 +77,48 @@ export function buildNearbyVendorOffers(
       longitude: vendor?.longitude ?? null,
     }));
 }
+
+export function mapPublicOffersToNearbyCards(
+  items: VendorOfferItem[],
+  position: UserPosition | null,
+  limit = 6,
+): NearbyVendorOfferItem[] {
+  return items
+    .filter(item => isLiveVendorOffer(item))
+    .map(item => {
+      const vendor = item.vendor;
+      const distanceMeters =
+        position &&
+        vendor?.latitude != null &&
+        vendor?.longitude != null
+          ? haversineDistance(
+              position.latitude,
+              position.longitude,
+              vendor.latitude,
+              vendor.longitude,
+            )
+          : Number.POSITIVE_INFINITY;
+      return { item, distanceMeters };
+    })
+    .sort((a, b) => a.distanceMeters - b.distanceMeters)
+    .slice(0, limit)
+    .map(({ item }) => {
+      const image = hasValidImageUrl(item.imageUrl)
+        ? item.imageUrl
+        : hasValidImageUrl(item.vendor?.imageUrl)
+          ? item.vendor?.imageUrl
+          : undefined;
+      return {
+        id: item.id,
+        vendorName: (item.vendor?.businessName || 'LOCAL VENDOR').toUpperCase(),
+        headline: offerDiscountLabel(item),
+        subtitle: (item.description || item.title || 'on selected items').trim(),
+        promoCode: item.couponCode || '',
+        distanceLabel: '',
+        imageUri: image,
+        latitude: item.vendor?.latitude ?? null,
+        longitude: item.vendor?.longitude ?? null,
+      };
+    });
+}
+

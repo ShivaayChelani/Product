@@ -11,6 +11,7 @@ import { apiClient } from '../services/api/client';
 import { clearMonitoringUser, setMonitoringUser, trackAuthEvent, trackRoleSwitch } from '../services/monitoring';
 import { LogoutModal } from '../components/ui/LogoutModal';
 import { clearAppCaches } from '../features/settings/utils/storageManager';
+import { applyWalletPalPoints } from '../utils/syncPalPoints';
 
 interface UserContextType {
   user: UserProfile;
@@ -154,6 +155,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         trackAuthEvent('session_restored', { mode: sessionUser.activeMode || sessionUser.activeRole });
         notificationService.syncDeviceAfterSessionRestore().catch((err) => {
         });
+        void applyWalletPalPoints(setUser);
       }
       if (cancelled) return;
       setIsInitializing(false);
@@ -197,6 +199,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         setUser(prev => ({ ...prev, ...result.user }));
         setIsAuthenticated(true);
         trackAuthEvent('login', { mode: result.user.activeMode || result.user.activeRole });
+        void applyWalletPalPoints(setUser);
 
         notificationService.requestPermission().then((granted) => {
           if (granted) {
@@ -242,6 +245,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setUser(prev => ({ ...prev, ...result.user }));
       setIsAuthenticated(true);
       trackAuthEvent('signup', { mode: result.user.activeMode || result.user.activeRole });
+      void applyWalletPalPoints(setUser);
 
       notificationService.requestPermission().then((granted) => {
         if (granted) {
@@ -265,6 +269,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setUser(prev => ({ ...prev, ...result.user }));
       setIsAuthenticated(true);
       trackAuthEvent('signup', { mode: result.user.activeMode || result.user.activeRole });
+      void applyWalletPalPoints(setUser);
       notificationService.requestPermission().then((granted) => {
         if (granted) {
           notificationService.registerDeviceToken().catch(() => {});
@@ -325,6 +330,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const onChange = (state: AppStateStatus) => {
       if (state === 'active') {
         refreshSession().catch(() => undefined);
+        void applyWalletPalPoints(setUser);
       }
     };
     const sub = AppState.addEventListener('change', onChange);

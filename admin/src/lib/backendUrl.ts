@@ -12,10 +12,39 @@ export function normalizeBackendApiBaseUrl(raw: string): string {
   return base;
 }
 
+export const PRODUCTION_API_HOST = "palsafar-api-fh7i.onrender.com";
+
+export function isProductionApiUrl(url: string): boolean {
+  try {
+    const host = new URL(url.includes("://") ? url : `https://${url}`).hostname;
+    return host === PRODUCTION_API_HOST;
+  } catch {
+    return url.includes(PRODUCTION_API_HOST);
+  }
+}
+
+export function assertPreviewApiIsolation(
+  vercelEnv: string | undefined,
+  apiUrl: string | undefined,
+): void {
+  if (vercelEnv !== "preview") return;
+  if (!apiUrl?.trim()) {
+    throw new Error(
+      "Vercel preview requires API_URL pointing at a non-production API.",
+    );
+  }
+  if (isProductionApiUrl(apiUrl)) {
+    throw new Error(
+      "Vercel preview must not use the production PalSafar API.",
+    );
+  }
+}
+
 export function getBackendApiBaseUrl(): string {
   const fromEnv =
     process.env.API_URL?.trim() ||
     process.env.NEXT_PUBLIC_API_URL?.trim();
+  assertPreviewApiIsolation(process.env.VERCEL_ENV, fromEnv);
   if (fromEnv) return normalizeBackendApiBaseUrl(fromEnv);
 
   const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";

@@ -22,12 +22,14 @@ interface VendorReelsScreenProps {
   vendorId: string;
   vendorName: string;
   onBack: () => void;
+  onOpenReel?: (reelId: string, extras?: { reels?: any[]; initialIndex?: number }) => void;
 }
 
 export default function VendorReelsScreen({
   vendorId,
   vendorName,
   onBack,
+  onOpenReel,
 }: VendorReelsScreenProps) {
   // Stack screen (RootNavigator) — not a VendorTabs child; use safe bottom only
   const listPadBottom = useBottomSafePadding(24);
@@ -39,10 +41,23 @@ export default function VendorReelsScreen({
   const load = useCallback(async () => {
     try {
       setError(null);
-      const tagged = await vendorsApi.getTaggedCreatorReels(vendorId).catch(() => ({
-        reels: [],
-        pending: [],
-        isOwner: false,
+      const [vendorReels, tagged] = await Promise.all([
+        vendorsApi.getVendorReels(vendorId).catch(() => []),
+        vendorsApi.getTaggedCreatorReels(vendorId).catch(() => ({
+          reels: [],
+          pending: [],
+          isOwner: false,
+        })),
+      ]);
+      const promoItems: VendorReelItem[] = (Array.isArray(vendorReels) ? vendorReels : []).map((r) => ({
+        id: r.id,
+        videoUrl: r.videoUrl,
+        thumbnail: r.thumbnail,
+        title: r.title,
+        description: r.description,
+        likes: r.likes,
+        views: r.views,
+        createdAt: r.createdAt,
       }));
       const taggedItems: VendorReelItem[] = (tagged.reels || []).map((r) => ({
         id: r.id,
@@ -52,7 +67,13 @@ export default function VendorReelsScreen({
         description: r.description,
         createdAt: r.createdAt,
       }));
-      setReels(taggedItems);
+      const seen = new Set<string>();
+      const combined = [...promoItems, ...taggedItems].filter((item) => {
+        if (!item.id || seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      });
+      setReels(combined);
     } catch {
       setError('Failed to load vendor reels');
     } finally {
@@ -107,12 +128,16 @@ export default function VendorReelsScreen({
           ListEmptyComponent={
             <View style={styles.centered}>
               <Icon name="videocam-outline" size={48} color="#B8A88A" />
-              <Text style={styles.emptyTitle}>No creator reels yet</Text>
-              <Text style={styles.emptyText}>Allowed creator reels for this business will show up here.</Text>
+              <Text style={styles.emptyTitle}>No reels yet</Text>
+              <Text style={styles.emptyText}>Published business reels and allowed creator reels will show up here.</Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <View style={styles.card}>
+          renderItem={({ item, index }) => (
+            <TouchableOpacity
+              style={styles.card}
+              activeOpacity={0.85}
+              onPress={() => onOpenReel?.(item.id, { reels: reels as any, initialIndex: index })}
+            >
               {item.thumbnail ? (
                 <Image source={{ uri: item.thumbnail }} style={styles.thumb} />
               ) : (
@@ -128,7 +153,7 @@ export default function VendorReelsScreen({
                   {(item.views || 0).toLocaleString()} views · {(item.likes || 0).toLocaleString()} likes
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
           )}
         />
       )}

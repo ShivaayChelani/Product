@@ -11,7 +11,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import type { TripPlanStop } from '../../../services/api/trips';
 import type { RouteLeg } from '../hooks/useOsrmLegs';
 import { BT, SERIF, SANS, SANS_SEMI, SANS_BOLD } from '../theme';
-import { categoryBadge, formatVisitDuration } from '../utils/itineraryHelpers';
+import { categoryBadge } from '../utils/itineraryHelpers';
 import { getMapMarkerConfig, normalizeCategory } from '../../../utils/mapMarkerUtils';
 import { PressableScale } from '../../../components/home/PressableScale';
 
@@ -122,10 +122,6 @@ function StopCard({
                   <Text style={styles.metaText} numberOfLines={1}>
                     {location}
                   </Text>
-                </View>
-                <View style={styles.metaRow}>
-                  <Icon name="time-outline" size={12} color={BT.textSecondary} />
-                  <Text style={styles.metaText}>{formatVisitDuration(stop)}</Text>
                 </View>
                 <View style={[styles.catBadge, { backgroundColor: `${badge.color}18` }]}>
                   <Icon

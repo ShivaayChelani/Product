@@ -43,7 +43,7 @@ export const monetizationController = {
   }),
 
   getPlan: catchAsync(async (req: Request, res: Response) => {
-    const data = await plansService.getById(String(req.params.id));
+    const data = await plansService.getPublicById(String(req.params.id));
     res.json({ success: true, data });
   }),
 

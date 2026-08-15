@@ -2,6 +2,13 @@ import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/ApiError';
 import { notificationService } from '../notifications/notification.service';
 import { logger } from '../../config/logger';
+import { palPointsEarnMessage } from './walletEarnMessages';
+
+export type EarnNotifyOptions = {
+  notify?: boolean;
+  title?: string;
+  body?: string;
+};
 
 export const walletService = {
   async getOrCreateWallet(userId: string) {
@@ -86,7 +93,14 @@ export const walletService = {
     return map;
   },
 
-  async earn(userId: string, amount: number, reason: string, referenceId?: string, referenceType?: string) {
+  async earn(
+    userId: string,
+    amount: number,
+    reason: string,
+    referenceId?: string,
+    referenceType?: string,
+    notifyOptions?: EarnNotifyOptions,
+  ) {
     if (amount <= 0) throw new ApiError(400, 'Amount must be positive');
 
     await this.getOrCreateWallet(userId);
@@ -134,10 +148,12 @@ export const walletService = {
       return wallet;
     });
 
-    if (awarded) {
+    if (awarded && notifyOptions?.notify !== false) {
+      const title = notifyOptions?.title || `+${amount} PalPoints`;
+      const body = notifyOptions?.body || palPointsEarnMessage(reason);
       setImmediate(() => {
         notificationService
-          .sendToUser(userId, `+${amount} Pal Points`, reason, { type: 'points_earned', amount }, 'points_earned')
+          .sendToUser(userId, title, body, { type: 'points_earned', amount, reason }, 'points_earned')
           .catch((err: any) => logger.error({ err, userId, amount, reason }, 'Failed to send points notification'));
       });
     }
@@ -207,7 +223,13 @@ export const walletService = {
 
     setImmediate(() => {
       notificationService
-        .sendToUser(userId, `+${amount} Pal Points`, reason, { type: 'points_earned', amount }, 'points_earned')
+        .sendToUser(
+          userId,
+          `+${amount} PalPoints`,
+          palPointsEarnMessage(reason),
+          { type: 'points_earned', amount, reason },
+          'points_earned',
+        )
         .catch((err: any) => logger.error({ err, userId, amount, reason }, 'Failed to send points notification'));
     });
 
@@ -346,7 +368,6 @@ export const walletService = {
             select: {
               id: true,
               name: true,
-              email: true,
               permission: true,
               userRoles: {
                 where: { status: 'APPROVED' },
@@ -376,7 +397,6 @@ export const walletService = {
         rank: skip + i + 1,
         userId: w.userId,
         name: w.user.name || 'Unknown',
-        email: w.user.email,
         palPoints: w.palPoints,
         lifetimeEarned: w.lifetimeEarned,
         roleLabel,
@@ -404,57 +424,42 @@ export const walletService = {
   },
 
   async getRegionalLeaderboard(city: string, page = 1, limit = 50) {
-    const skip = (page - 1) * limit;
+    const take = Math.min(Math.max(limit, 1), 100);
+    const skip = (page - 1) * take;
 
-    // Find all check-ins in the specified city
-    const checkIns = await prisma.checkIn.findMany({
+    const grouped = await prisma.checkIn.groupBy({
+      by: ['userId'],
       where: {
         place: {
           city: { equals: city, mode: 'insensitive' },
         },
       },
-      include: {
-        user: { select: { id: true, name: true, email: true, avatar: true } },
-      },
+      _count: { userId: true },
+      orderBy: { _count: { userId: 'desc' } },
+      take: skip + take,
     });
 
-    // Group check-ins by user to calculate regional exploration activity
-    const userMap = new Map<string, { userId: string; name: string; email: string; avatar: string | null; checkInCount: number }>();
-    for (const c of checkIns) {
-      if (!c.user) continue;
-      const existing = userMap.get(c.userId);
-      if (existing) {
-        existing.checkInCount += 1;
-      } else {
-        userMap.set(c.userId, {
-          userId: c.userId,
-          name: c.user.name || 'Unknown',
-          email: c.user.email,
-          avatar: c.user.avatar,
-          checkInCount: 1,
-        });
-      }
-    }
+    const pageGroups = grouped.slice(skip, skip + take);
+    const users = await prisma.user.findMany({
+      where: { id: { in: pageGroups.map((g) => g.userId) } },
+      select: { id: true, name: true, avatar: true },
+    });
+    const userById = new Map(users.map((u) => [u.id, u]));
 
-    // Sort users by check-in count
-    const sorted = Array.from(userMap.values())
-      .sort((a, b) => b.checkInCount - a.checkInCount);
-
-    const paginatedData = sorted.slice(skip, skip + limit);
-    const total = sorted.length;
-
-    const ranks = paginatedData.map((item, index) => ({
-      rank: skip + index + 1,
-      userId: item.userId,
-      name: item.name,
-      email: item.email,
-      avatar: item.avatar,
-      checkInCount: item.checkInCount,
-    }));
+    const ranks = pageGroups.map((item, index) => {
+      const user = userById.get(item.userId);
+      return {
+        rank: skip + index + 1,
+        userId: item.userId,
+        name: user?.name || 'Unknown',
+        avatar: user?.avatar ?? null,
+        checkInCount: item._count.userId,
+      };
+    });
 
     return {
       data: ranks,
-      total,
+      total: grouped.length,
     };
   },
 };

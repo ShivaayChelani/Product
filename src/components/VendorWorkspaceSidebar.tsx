@@ -17,6 +17,7 @@ import { PalPointsIcon } from './PalPointsIcon';
 import type { UserProfile, VendorBusiness } from '../types';
 import { useSidebarWidth } from '../design/responsive';
 import { useUserContext } from '../context/UserContext';
+import { runAfterDrawerClose } from '../utils/runAfterDrawerClose';
 
 const C = {
   bg: '#FDFBF8',
@@ -79,7 +80,7 @@ function MenuRow({ item, onClose }: { item: MenuItem; onClose: () => void }) {
       activeOpacity={0.72}
       onPress={() => {
         onClose();
-        item.onPress?.();
+        runAfterDrawerClose(item.onPress);
       }}
     >
       <View style={[styles.rowIcon, item.danger && styles.rowIconDanger]}>
@@ -268,7 +269,7 @@ export default function VendorWorkspaceSidebar({
               activeOpacity={0.88}
               onPress={() => {
                 onClose();
-                onNavigateCreateOffer?.();
+                runAfterDrawerClose(onNavigateCreateOffer);
               }}
             >
               <Icon name="add" size={20} color="#fff" />

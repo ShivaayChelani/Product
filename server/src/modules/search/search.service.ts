@@ -108,7 +108,8 @@ export const searchService = {
       };
     }
 
-    const limit = parseInt(query.limit || '10');
+    const parsed = parseInt(query.limit || '10', 10);
+    const limit = Number.isFinite(parsed) ? Math.min(50, Math.max(1, parsed)) : 10;
     const qCollapsed = collapseRepeats(q);
     // Fuzzy threshold: allow near-misses like nidaan ↔ Nidan without matching unrelated names
     const fuzzyMin = q.length <= 4 ? 0.45 : 0.32;
@@ -154,15 +155,12 @@ export const searchService = {
             FROM vendors
             WHERE status = 'APPROVED'
               AND suspended_at IS NULL
-              AND (
-                subscription_status = 'ACTIVE'
-                OR EXISTS (
-                  SELECT 1 FROM user_subscriptions us
-                  WHERE us.user_id = vendors.user_id
-                    AND us.audience = 'VENDOR'
-                    AND us.status IN ('ACTIVE', 'TRIALING')
-                    AND us.current_period_end >= NOW()
-                )
+              AND EXISTS (
+                SELECT 1 FROM user_subscriptions us
+                WHERE us.user_id = vendors.user_id
+                  AND us.audience = 'VENDOR'
+                  AND us.status IN ('ACTIVE', 'TRIALING')
+                  AND us.current_period_end >= NOW()
               )
               AND (
                 business_name ILIKE '%' || $1 || '%'

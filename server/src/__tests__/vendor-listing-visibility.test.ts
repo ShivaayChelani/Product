@@ -9,10 +9,57 @@ describe('Public vendor listing entitlement', () => {
   const stamp = `vlist-${testRunId}`;
   let hiddenId = '';
   let liveId = '';
+  let staleId = '';
   let vendorToken = '';
   let userToken = '';
   let originalStatus: string | null = null;
   let seededVendorId = '';
+  let seededUserId = '';
+  let liveUserId = '';
+  let staleUserId = '';
+  let hiddenUserId = '';
+  let liveSubId = '';
+  let vendorPlanId = '';
+
+  async function vendorPlan(): Promise<string> {
+    if (vendorPlanId) return vendorPlanId;
+    const existing = await prisma.subscriptionPlan.findFirst({
+      where: { audience: 'VENDOR' },
+      select: { id: true },
+    });
+    if (existing) {
+      vendorPlanId = existing.id;
+      return vendorPlanId;
+    }
+    const created = await prisma.subscriptionPlan.create({
+      data: {
+        audience: 'VENDOR',
+        name: `${stamp} Plan`,
+        slug: `vendor-vis-${testRunId}`.slice(0, 40),
+        status: 'ACTIVE',
+        prices: { create: [{ period: 'MONTHLY', amountPaise: 9900, currency: 'INR', isActive: true }] },
+      },
+      select: { id: true },
+    });
+    vendorPlanId = created.id;
+    return vendorPlanId;
+  }
+
+  async function grantLiveVendorSub(userId: string) {
+    const planId = await vendorPlan();
+    return prisma.userSubscription.create({
+      data: {
+        userId,
+        planId,
+        audience: 'VENDOR',
+        status: 'ACTIVE',
+        billingPeriod: 'MONTHLY',
+        provider: 'ADMIN_GRANT',
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
+  }
 
   beforeAll(async () => {
     [vendorToken, userToken] = await Promise.all([
@@ -23,6 +70,10 @@ describe('Public vendor listing entitlement', () => {
     const me = await request(app).get('/api/v1/vendors/me').set('Authorization', `Bearer ${vendorToken}`);
     seededVendorId = me.body.data?.id;
     originalStatus = me.body.data?.subscriptionStatus ?? null;
+    if (seededVendorId) {
+      const row = await prisma.vendor.findUnique({ where: { id: seededVendorId }, select: { userId: true } });
+      seededUserId = row?.userId || '';
+    }
 
     const hiddenUser = await prisma.user.create({
       data: { email: `${stamp}-hidden@example.test`, password: 'hash', name: 'Hidden Vendor' },
@@ -44,10 +95,12 @@ describe('Public vendor listing entitlement', () => {
       },
     });
     hiddenId = hidden.id;
+    hiddenUserId = hiddenUser.id;
 
     const liveUser = await prisma.user.create({
       data: { email: `${stamp}-live@example.test`, password: 'hash', name: 'Live Vendor' },
     });
+    liveUserId = liveUser.id;
     const live = await prisma.vendor.create({
       data: {
         userId: liveUser.id,
@@ -65,6 +118,30 @@ describe('Public vendor listing entitlement', () => {
       },
     });
     liveId = live.id;
+    const liveSub = await grantLiveVendorSub(liveUser.id);
+    liveSubId = liveSub.id;
+
+    const staleUser = await prisma.user.create({
+      data: { email: `${stamp}-stale@example.test`, password: 'hash', name: 'Stale Vendor' },
+    });
+    staleUserId = staleUser.id;
+    const stale = await prisma.vendor.create({
+      data: {
+        userId: staleUser.id,
+        businessName: `${stamp} Stale Cafe`,
+        businessType: 'cafe',
+        phone: '+910000000013',
+        address: 'Stale Street',
+        city: 'Jabalpur',
+        state: 'MP',
+        status: 'APPROVED',
+        showOnMap: true,
+        latitude: 23.1835,
+        longitude: 79.9884,
+        subscriptionStatus: 'ACTIVE',
+      },
+    });
+    staleId = stale.id;
   }, 60000);
 
   afterAll(async () => {
@@ -74,7 +151,19 @@ describe('Public vendor listing entitlement', () => {
         data: { subscriptionStatus: originalStatus as any },
       }).catch(() => undefined);
     }
-    await prisma.vendor.deleteMany({ where: { id: { in: [hiddenId, liveId].filter(Boolean) } } });
+    if (seededUserId) {
+      await prisma.userSubscription.updateMany({
+        where: { userId: seededUserId, audience: 'VENDOR' },
+        data: {
+          status: 'ACTIVE',
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+      }).catch(() => undefined);
+    }
+    await prisma.userSubscription.deleteMany({
+      where: { userId: { in: [liveUserId, staleUserId, hiddenUserId].filter(Boolean) } },
+    });
+    await prisma.vendor.deleteMany({ where: { id: { in: [hiddenId, liveId, staleId].filter(Boolean) } } });
     await prisma.user.deleteMany({ where: { email: { contains: `${stamp}-` } } });
   });
 
@@ -83,7 +172,16 @@ describe('Public vendor listing entitlement', () => {
     expect(res.status).toBe(200);
     const ids = (res.body.data || []).map((v: { id: string }) => v.id);
     expect(ids).not.toContain(hiddenId);
+    expect(ids).not.toContain(staleId);
     expect(ids).toContain(liveId);
+  });
+
+  it('hides vendors whose denormalized status is ACTIVE without a live UserSubscription', async () => {
+    const details = await request(app).get(`/api/v1/vendors/${staleId}/details`);
+    expect(details.status).toBe(404);
+    const map = await request(app).get('/api/v1/vendors/map-list');
+    const ids = (map.body.data || []).map((v: { id: string }) => v.id);
+    expect(ids).not.toContain(staleId);
   });
 
   it('keeps an actively subscribed vendor on the map even if showOnMap is false', async () => {
@@ -136,6 +234,14 @@ describe('Public vendor listing entitlement', () => {
 
   it('lets the vendor preview their own listing while remaining hidden', async () => {
     if (seededVendorId) {
+      const me = await request(app).get('/api/v1/vendors/me').set('Authorization', `Bearer ${vendorToken}`);
+      const ownerId = me.body.data?.userId || me.body.data?.user?.id;
+      if (ownerId) {
+        await prisma.userSubscription.updateMany({
+          where: { userId: ownerId, audience: 'VENDOR' },
+          data: { status: 'EXPIRED', currentPeriodEnd: new Date(Date.now() - 60_000) },
+        });
+      }
       await prisma.vendor.update({
         where: { id: seededVendorId },
         data: { subscriptionStatus: 'NONE' },
@@ -154,20 +260,21 @@ describe('Public vendor listing entitlement', () => {
     expect(other.status).toBeGreaterThanOrEqual(400);
   });
 
-  it('hides the seeded vendor from public details after expiry and shows them after ACTIVE', async () => {
+  it('hides the seeded vendor from public details after subscription expiry', async () => {
     if (!seededVendorId) return;
+    const me = await request(app).get('/api/v1/vendors/me').set('Authorization', `Bearer ${vendorToken}`);
+    const ownerId = me.body.data?.userId || me.body.data?.user?.id;
+    if (ownerId) {
+      await prisma.userSubscription.updateMany({
+        where: { userId: ownerId, audience: 'VENDOR' },
+        data: { status: 'EXPIRED', currentPeriodEnd: new Date(Date.now() - 60_000) },
+      });
+    }
     await prisma.vendor.update({
       where: { id: seededVendorId },
       data: { subscriptionStatus: 'EXPIRED' },
     });
     const expired = await request(app).get(`/api/v1/vendors/${seededVendorId}/details`);
     expect(expired.status).toBe(404);
-
-    await prisma.vendor.update({
-      where: { id: seededVendorId },
-      data: { subscriptionStatus: 'ACTIVE' },
-    });
-    const active = await request(app).get(`/api/v1/vendors/${seededVendorId}/details`);
-    expect(active.status).toBe(200);
   });
 });

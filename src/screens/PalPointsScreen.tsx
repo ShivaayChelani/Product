@@ -227,7 +227,7 @@ export default function PalPointsScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.waysRow}>
               <TouchableOpacity style={styles.wayCard} onPress={() => navigation.navigate('CreateReel')}>
                 <Text style={styles.wayPoints}>+{rewardPoints.reel}</Text>
-                <Text style={styles.wayTitle}>Publish a Reel</Text>
+                <Text style={styles.wayTitle}>First reel today</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.wayCard} onPress={() => navigation.navigate('CreatorTabs', { screen: 'Collaboration' })}>
                 <Text style={styles.wayPoints}>+{rewardPoints.collab}</Text>

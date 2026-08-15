@@ -381,9 +381,11 @@ export const vendorsApi = {
   },
 
   async getVendorReels(id: string) {
-    return apiClient.get<VendorReel[]>(
+    const res = await apiClient.get<VendorReel[]>(
       API_CONFIG.endpoints.vendors.reels(id),
     );
+    const data = (res as { data?: VendorReel[] })?.data ?? res;
+    return Array.isArray(data) ? data : [];
   },
 
   async getTaggedCreatorReels(id: string) {

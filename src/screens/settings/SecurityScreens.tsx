@@ -58,6 +58,13 @@ export function SecuritySettingsScreen() {
 
   const rows: SettingsRowModel[] = [
     {
+      key: 'password',
+      icon: 'lock-closed-outline',
+      title: 'Change Password',
+      subtitle: 'Update your account password',
+      onPress: () => nav.navigate('ChangePassword'),
+    },
+    {
       key: 'bio',
       icon: 'finger-print-outline',
       title: 'Biometric Login',

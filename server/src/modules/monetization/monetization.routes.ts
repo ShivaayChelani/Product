@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authenticate, optionalAuth, requireAdmin, requireVendorRole } from '../../middleware/auth';
 import { requireFinanceOps, requireContentOps } from '../../middleware/adminCapabilities';
 import { monetizationController } from './monetization.controller';
-import { adClaimLimiter, partnerRedeemLimiter } from '../../config/rateLimit';
+import { adClaimLimiter, partnerRedeemLimiter, ssvCallbackLimiter } from '../../config/rateLimit';
 
 const router = Router();
 
@@ -11,7 +11,7 @@ router.get('/plans', monetizationController.listPlansPublic);
 router.get('/plans/:id', monetizationController.getPlan);
 router.get('/ads/config', optionalAuth, monetizationController.getAdConfigClient);
 router.post('/ads/claim-reward', authenticate, adClaimLimiter, monetizationController.claimRewardedAd);
-router.get('/ads/ssv', monetizationController.adMobSsvCallback);
+router.get('/ads/ssv', ssvCallbackLimiter, monetizationController.adMobSsvCallback);
 
 // ── Authenticated user ───────────────────────────────────────────
 router.get('/entitlements/me', authenticate, monetizationController.getMyEntitlements);

@@ -25,6 +25,7 @@ import type { UserProfile } from '../types';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { uploadApi } from '../services/api/upload';
 import { caughtErrorMessage } from '../utils/caughtError';
+import { extractCreatorHandle } from '../utils/creatorHandle';
 import { SelectModal } from '../components/ui/SelectModal';
 import {
   assertSupportedUploadMime,
@@ -74,8 +75,8 @@ function parsePhone(raw?: string): { code: string; number: string } {
 }
 
 function deriveCreatorUsername(instagram: string, fullName: string): string {
-  const fromIg = instagram.replace(/^@/, '').replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
-  if (fromIg.length >= 3) return fromIg.slice(0, 30);
+  const fromIg = extractCreatorHandle(instagram);
+  if (fromIg && fromIg.length >= 3) return fromIg.slice(0, 30);
   const fromName = fullName.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
   if (fromName.length >= 3) return fromName.slice(0, 30);
   return `cr_${Date.now().toString(36)}`.slice(0, 30);

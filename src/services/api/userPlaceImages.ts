@@ -15,6 +15,7 @@ export interface UserPlaceImage {
   url: string;
   status: 'pending' | 'approved' | 'rejected';
   pointsAwarded: boolean;
+  points?: number;
   createdAt: string;
   reviewedAt: string | null;
 }

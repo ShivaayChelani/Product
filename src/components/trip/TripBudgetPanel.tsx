@@ -2,8 +2,10 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import type { TripPlan } from '../../services/api/trips';
+import { useUserContext } from '../../context/UserContext';
 import {
   computeTripBudget,
+  formatBudgetApprox,
   formatInr,
   getStopEntryFee,
   TRANSPORT_COST_PER_KM,
@@ -37,8 +39,9 @@ type Props = {
 };
 
 export default function TripBudgetPanel({ trip }: Props) {
+  const { user } = useUserContext();
   const days = normalizeTripDays(trip.tripDays);
-  const budget = computeTripBudget({ ...trip, tripDays: days });
+  const budget = computeTripBudget({ ...trip, tripDays: days }, { travelerCity: user?.city });
   const hasStops = budget.lineItems.length > 0;
 
   if (!hasStops) {
@@ -55,15 +58,18 @@ export default function TripBudgetPanel({ trip }: Props) {
     <View style={styles.wrap}>
       <View style={styles.totalCard}>
         <Text style={styles.totalLabel}>Estimated trip cost</Text>
-        <Text style={styles.totalValue}>{formatInr(budget.grandTotal)}</Text>
+        <Text style={styles.totalValue}>{formatBudgetApprox(budget.grandTotal)}</Text>
         <Text style={styles.totalSub}>
-          {budget.travellerCount} traveller{budget.travellerCount !== 1 ? 's' : ''} · {budget.paidStops} paid · {budget.freeStops} free · {budget.totalDistanceKm.toFixed(1)} km
+          {budget.scopeLabel} · {budget.travellerCount} traveller{budget.travellerCount !== 1 ? 's' : ''}
+          {budget.includesTravel ? ` · ${budget.totalDistanceKm.toFixed(1)} km` : ''}
         </Text>
       </View>
 
       <View style={styles.breakdownRow}>
         <BreakdownChip icon="ticket-outline" label="Entry fees" value={formatInr(budget.entryTotal)} color="#7C3AED" bg="#EDE9FE" />
-        <BreakdownChip icon="car-outline" label="Transport" value={formatInr(budget.transportTotal)} color="#B9834B" bg="rgba(185,131,75,0.12)" />
+        {budget.includesTravel ? (
+          <BreakdownChip icon="car-outline" label="Transport" value={formatInr(budget.transportTotal)} color="#B9834B" bg="rgba(185,131,75,0.12)" />
+        ) : null}
         <BreakdownChip icon="restaurant-outline" label="Food est." value={formatInr(budget.foodTotal)} color="#EA580C" bg="#FFEDD5" />
       </View>
 
@@ -100,7 +106,9 @@ export default function TripBudgetPanel({ trip }: Props) {
       ))}
 
       <Text style={styles.note}>
-        Entry fees and food are multiplied by traveller count. Transport is estimated once for the route at ₹{TRANSPORT_COST_PER_KM}/km.
+        {budget.includesTravel
+          ? `Entry fees and food are multiplied by traveller count. Transport is estimated once for the route at ₹${TRANSPORT_COST_PER_KM}/km. Totals are approximate.`
+          : 'Local trip: this estimate includes ticket prices and food only. Travel cost is not added. Totals are approximate.'}
       </Text>
     </View>
   );
