@@ -1,7 +1,7 @@
 {
   "name": "PalSafar",
   "displayName": "PalSafar",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "react-native-google-mobile-ads": {
     "android_app_id": "ca-app-pub-8325735283795010~7841348028",
     "ios_app_id": "ca-app-pub-8325735283795010~7920259135"
