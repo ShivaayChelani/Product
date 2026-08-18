@@ -118,8 +118,8 @@ android {
         applicationId "com.palsasafar"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 3
-        versionName "1.1.1"
+        versionCode 4
+        versionName "1.1.2"
         // Keep versionName/versionCode in sync with src/config/monitoringConfig.ts (Sentry release).
         // Defaults to the production app ID; override via ADMOB_APP_ID env or gradle.properties.
         manifestPlaceholders += [
@@ -165,6 +165,8 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+    // Backported Android Photo Picker for minSdk 24 (react-native-image-picker).
+    implementation("androidx.activity:activity:1.9.3")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
