@@ -54,8 +54,8 @@ export default function Breadcrumbs({ pathname }: { pathname: string }) {
   const crumbs = useMemo(() => {
     const parts = pathname.split("/").filter(Boolean);
     if (parts[0] !== "dashboard") return [];
-    const trail = parts.slice(1).map((segment, index) => {
-      const href = `/dashboard/${parts.slice(1, index + 2).join("/")}`;
+    const trail = (parts || []).slice(1).map((segment, index) => {
+      const href = `/dashboard/${(parts || []).slice(1, index + 2).join("/")}`;
       return { href, label: segmentLabel(segment) };
     });
     return [{ href: "/dashboard", label: "Dashboard" }, ...trail];
@@ -72,8 +72,8 @@ export default function Breadcrumbs({ pathname }: { pathname: string }) {
       >
         <Home size={14} />
       </Link>
-      {crumbs.slice(1).map((crumb, i) => {
-        const isLast = i === crumbs.length - 2;
+      {(crumbs || []).slice(1).map((crumb, i) => {
+        const isLast = i === (crumbs || []).length - 2;
         return (
           <span key={crumb.href} className="flex min-w-0 items-center gap-1">
             <ChevronRight size={14} className="shrink-0 opacity-50" aria-hidden />

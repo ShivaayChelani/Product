@@ -106,7 +106,7 @@ export default function AuditLogsPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `audit-logs-${new Date().toISOString().slice?.(0, 10) || ""}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch {
@@ -126,7 +126,7 @@ export default function AuditLogsPage() {
       if (toDate) params.to = toDate;
       const blob = await exportAuditLogsCSV(params);
       const text = await blob.text();
-      downloadTextFile(text, `audit-logs-${new Date().toISOString().slice(0, 10)}.xls`, "text/csv;charset=utf-8;", true);
+      downloadTextFile(text, `audit-logs-${new Date().toISOString().slice?.(0, 10) || ""}.xls`, "text/csv;charset=utf-8;", true);
     } catch {
       setError("Excel export failed");
     } finally {
@@ -164,7 +164,7 @@ export default function AuditLogsPage() {
             className="text-left hover:text-primary"
           >
             <span className="capitalize">{item.entityType}</span>
-            <span className="block font-mono text-xs text-muted-foreground">{item.entityId.slice(0, 12)}…</span>
+            <span className="block font-mono text-xs text-muted-foreground">{item.entityId ? String(item.entityId).slice(0, 12) + "…" : "—"}</span>
           </button>
         ),
         exportValue: (item) => `${item.entityType}:${item.entityId}`,
@@ -172,7 +172,7 @@ export default function AuditLogsPage() {
       {
         key: "actor",
         header: "Actor",
-        render: (item) => item.actor?.name || item.actor?.email || item.actorId.slice(0, 8),
+        render: (item) => item.actor?.name || item.actor?.email || (item.actorId ? String(item.actorId).slice(0, 8) : "System"),
         exportValue: (item) => item.actor?.email || item.actorId,
       },
       {
@@ -181,7 +181,7 @@ export default function AuditLogsPage() {
         render: (item) => {
           const prev = item.previousValues;
           const next = item.newValues;
-          const keys = Object.keys(prev || {}).slice(0, 2);
+          const keys = Object.keys(prev || {})?.slice?.(0, 2) || [];
           if (keys.length === 0) return <span className="text-muted-foreground">—</span>;
           return (
             <div className="space-y-0.5 text-xs">
