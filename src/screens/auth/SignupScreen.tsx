@@ -22,6 +22,7 @@ const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@
 
 interface SignupScreenProps {
   onSignup: (name: string, email: string, pass: string) => Promise<boolean>;
+  onGoogleLogin: () => Promise<boolean>;
   onLogin: () => void;
   onBack: () => void;
   onGuestContinue: () => void;
@@ -31,24 +32,16 @@ interface SignupScreenProps {
 function signupErrorMessage(err: unknown): string {
   if (err && typeof err === 'object') {
     const status = (err as { status?: number }).status;
-    const message = (err as { message?: string }).message?.trim();
-    const url = (err as { url?: string }).url;
-    if (status === 404) {
-      return message && message.includes('POST ')
-        ? message
-        : `Not Found — registration endpoint missing: POST ${url || '(unknown URL)'}`;
-    }
-    if (message) return message;
-    if (status === 409) return 'An account with this email already exists.';
-    if (status === 400) return 'Invalid registration details. Please check and try again.';
-    if (status === 500) return 'Something went wrong on our side. Please try again later.';
+    if (status === 409) return 'That email is already registered. Try logging in.';
+    if (status === 429) return 'Too many attempts. Please try again later.';
   }
-  if (err instanceof Error && err.message) return err.message;
-  return 'Signup failed. Please try again.';
+  const e = err as Error;
+  return e.message || 'Registration failed. Please try again.';
 }
 
 export default function SignupScreen({
   onSignup,
+  onGoogleLogin,
   onLogin,
   onBack,
   onGuestContinue,
@@ -81,14 +74,7 @@ export default function SignupScreen({
     if (!validate()) return;
 
     try {
-      // Email + password only. On success, AuthNavigator opens Email Verification
-      // (or authenticates immediately for legacy responses).
-      const success = await onSignup(name.trim(), email.trim(), password);
-      if (!success) {
-        setErrors({
-          email: 'An account with this email already exists. Try Sign In, or finish email verification.',
-        });
-      }
+      await onSignup(name.trim(), email.trim(), password);
     } catch (err: unknown) {
       const message = signupErrorMessage(err);
       const status = err && typeof err === 'object' ? (err as { status?: number }).status : undefined;
@@ -100,8 +86,12 @@ export default function SignupScreen({
     }
   }, [name, email, password, onSignup, validate]);
 
-  const handleGoogle = () => {
-    Alert.alert('Coming soon', 'Google sign-in will be available in a future update.');
+  const handleGoogle = async () => {
+    try {
+      await onGoogleLogin();
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Google Sign-Up failed.');
+    }
   };
 
   return (

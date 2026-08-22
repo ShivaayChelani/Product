@@ -121,6 +121,22 @@ export const authApi = {
     return data;
   },
 
+  async googleLogin(idToken: string) {
+    const res = await apiClient.post<LoginResponse>(
+      API_CONFIG.endpoints.auth.google,
+      { idToken },
+    );
+    const data = res.data;
+    if (!data?.accessToken) {
+      throw new Error('Google Login succeeded but no access token was returned.');
+    }
+    await apiClient.setToken(data.accessToken);
+    if (data.refreshToken) {
+      await apiClient.setRefreshToken(data.refreshToken);
+    }
+    return data;
+  },
+
   async getProfile() {
     const res = await apiClient.get<LoginResponse['user']>(
       API_CONFIG.endpoints.auth.me,

@@ -9,6 +9,7 @@ import {
   generateItineraryPlan, estimateDurationMinutes, parseEntryFee, isPlaceOpenAt,
   nearestNeighborOrder, twoOptImprove, TimeSlotKey,
 } from './itineraryEngine';
+import { parseTripIntent, hasGlobalIntentSignals } from './tripIntentParser';
 import { getCachedPlan, setCachedPlan, buildPlannerCacheKey } from './plannerCache';
 import {
   canonicalizeDestination,
@@ -935,32 +936,87 @@ export const tripsService = {
     const avoid = Array.isArray(input.avoid) ? input.avoid : [];
     const manualPlaceIds = Array.isArray(input.manualPlaceIds) ? input.manualPlaceIds : [];
 
+    // Natural-language intent ("Make Day 2 less busy", "Start after 10 AM",
+    // "Add more nature", "Remove Bhedaghat") -> structured engine params.
+    // Deterministic parsing; explicit API fields still apply, text refines them.
+    const intent = parseTripIntent(input.prompt);
+    const effectivePace: TravelPace = intent.pace ?? input.pace;
+    const mergedInterests = Array.from(new Set([...interests, ...intent.interests]));
+    // "Make this trip cheaper" must actually bias selection toward lower-cost
+    // places — even when the trip was created with a CUSTOM budget amount
+    // (the amount keeps acting as a hard cap independently).
+    const wantsCheaper = intent.budgetTier === 'LOW';
+    const effectiveBudgetTier =
+      input.budget === 'CUSTOM'
+        ? (wantsCheaper ? ('LOW' as const) : null)
+        : (intent.budgetTier ?? budgetTier);
+    const effectiveTimePreference: TimePreference | null | undefined = intent.timePreference ?? input.timePreference;
+
     let existingTrip: { id: string } | null = null;
     let pinnedPlaceIds = [...manualPlaceIds];
     let excludePlaceIds: string[] = [];
     let avoidHubIds: string[] = [];
     let previousPlaceIds: string[] = [];
     const regenerateDayNumber = input.regenerateDayNumber;
+    // Day-scoped NL request ("Make Day 2 less busy"): scope regeneration to
+    // that day only when no explicit day was passed and no global intent
+    // signal (pace/budget/time/interests) would be lost by scoping.
+    let effectiveRegenerateDay = regenerateDayNumber;
+    // Pace actually handed to the engine — equals the trip pace unless a
+    // day-scoped NL pace overrides it for a single-day rebuild.
+    let enginePace = effectivePace;
 
     if (input.tripId) {
       existingTrip = await assertTripAccess(input.tripId, userId, 'edit');
       const existingStops = await prismaStop.findMany({
         where: { tripPlanDay: { tripPlanId: input.tripId } },
-        include: { tripPlanDay: { select: { dayNumber: true } } },
+        include: {
+          tripPlanDay: { select: { dayNumber: true } },
+          place: { select: { name: true } },
+        },
       });
       previousPlaceIds = existingStops.map((s) => s.placeId);
 
-      if (regenerateDayNumber) {
-        const dayStops = existingStops.filter((s) => s.tripPlanDay.dayNumber === regenerateDayNumber);
+      // "Remove X" / "Replace X" — resolve name hints against the user's own
+      // trip stops so those places are dropped from the regenerated plan.
+      const hintExcludedIds = new Set<string>();
+      if (intent.removeHints.length > 0) {
+        for (const stop of existingStops) {
+          const name = (stop.place?.name || '').toLowerCase();
+          if (!name) continue;
+          if (intent.removeHints.some((hint) => name.includes(hint) || hint.includes(name))) {
+            hintExcludedIds.add(stop.placeId);
+          }
+        }
+        if (hintExcludedIds.size > 0) {
+          excludePlaceIds = Array.from(new Set([...excludePlaceIds, ...hintExcludedIds]));
+        }
+      }
+
+      // Day-scoped NL request ("Make Day 2 less busy"): scope regeneration to
+      // that day only when no explicit day was passed and no global intent
+      // signal (pace/budget/time/interests) would be lost by scoping.
+      if (!effectiveRegenerateDay && intent.targetDayNumber && !hasGlobalIntentSignals(intent)) {
+        effectiveRegenerateDay = intent.targetDayNumber;
+        if (intent.dayScopedPace) {
+          enginePace = intent.dayScopedPace;
+        }
+      }
+
+      if (effectiveRegenerateDay) {
+        const dayStops = existingStops.filter((s) => s.tripPlanDay.dayNumber === effectiveRegenerateDay);
         pinnedPlaceIds = Array.from(new Set([
           ...pinnedPlaceIds,
-          ...dayStops.filter((s) => s.isPinned).map((s) => s.placeId),
+          ...dayStops.filter((s) => s.isPinned && !hintExcludedIds.has(s.placeId)).map((s) => s.placeId),
         ]));
-        excludePlaceIds = existingStops
-          .filter((s) => s.tripPlanDay.dayNumber !== regenerateDayNumber || !s.isPinned)
-          .map((s) => s.placeId);
+        excludePlaceIds = Array.from(new Set([
+          ...existingStops
+            .filter((s) => s.tripPlanDay.dayNumber !== effectiveRegenerateDay || !s.isPinned)
+            .map((s) => s.placeId),
+          ...hintExcludedIds,
+        ]));
       } else {
-        const existingPinned = existingStops.filter((s) => s.isPinned);
+        const existingPinned = existingStops.filter((s) => s.isPinned && !hintExcludedIds.has(s.placeId));
         pinnedPlaceIds = Array.from(new Set([...pinnedPlaceIds, ...existingPinned.map((s) => s.placeId)]));
         if (isRefresh) {
           avoidHubIds = existingStops
@@ -987,7 +1043,7 @@ export const tripsService = {
 
     // If the user selected many places, expand days so every pick can fit
     // without silently dropping pins under the pace cap.
-    const paceStops = ({ QUICK: 7, BALANCED: 6, RELAXED: 5, VERY_RELAXED: 4 } as Record<string, number>)[input.pace] || 6;
+    const paceStops = ({ QUICK: 7, BALANCED: 6, RELAXED: 5, VERY_RELAXED: 4 } as Record<string, number>)[effectivePace] || 6;
     const daysNeeded = resolvedPinned.length > 0
       ? Math.max(input.days, Math.ceil(resolvedPinned.length / paceStops))
       : input.days;
@@ -1014,22 +1070,23 @@ export const tripsService = {
       plan = await generateItineraryPlan({
         destination,
         days: effectiveDays,
-        pace: input.pace,
+        pace: enginePace,
         travelers: input.travelers,
-        budgetTier,
+        budgetTier: effectiveBudgetTier,
         customBudgetAmount: input.budget === 'CUSTOM' ? input.customBudgetAmount ?? null : null,
-        interests,
-        timePreference: input.timePreference,
+        interests: mergedInterests,
+        timePreference: effectiveTimePreference,
         avoid,
         manualPlaceIds: resolvedPinned,
-        fillWithAi: !!input.fillWithAi || !!regenerateDayNumber,
+        fillWithAi: !!input.fillWithAi || !!effectiveRegenerateDay,
         prompt: input.prompt,
         startDate,
         transportation: input.transportation,
-        regenerateDayNumber,
+        regenerateDayNumber: effectiveRegenerateDay,
         excludePlaceIds,
         variationSeed,
         avoidHubIds,
+        earliestStartMinutes: intent.earliestStartMinutes ?? null,
       });
       const samePlaces = (a: string[], b: string[]) => {
         if (a.length === 0 || a.length !== b.length) return false;
@@ -1039,7 +1096,7 @@ export const tripsService = {
       };
       if (
         isRefresh
-        && !regenerateDayNumber
+        && !effectiveRegenerateDay
         && previousPlaceIds.length > 0
         && samePlaces(previousPlaceIds, plan.stops.map((s) => s.placeId))
         && variationSeed < 8
@@ -1047,12 +1104,12 @@ export const tripsService = {
         plan = await generateItineraryPlan({
           destination,
           days: effectiveDays,
-          pace: input.pace,
+          pace: enginePace,
           travelers: input.travelers,
-          budgetTier,
+          budgetTier: effectiveBudgetTier,
           customBudgetAmount: input.budget === 'CUSTOM' ? input.customBudgetAmount ?? null : null,
-          interests,
-          timePreference: input.timePreference,
+          interests: mergedInterests,
+          timePreference: effectiveTimePreference,
           avoid,
           manualPlaceIds: resolvedPinned,
           fillWithAi: true,
@@ -1062,6 +1119,7 @@ export const tripsService = {
           excludePlaceIds,
           variationSeed: variationSeed + 1,
           avoidHubIds: [...avoidHubIds, ...previousPlaceIds],
+          earliestStartMinutes: intent.earliestStartMinutes ?? null,
         });
         variationSeed += 1;
       }
@@ -1119,8 +1177,8 @@ export const tripsService = {
           data: {
             destination,
             days: effectiveDays,
-            pace: input.pace,
-            timePreference: input.timePreference,
+            pace: effectivePace,
+            timePreference: effectiveTimePreference ?? undefined,
             avoid,
             estimatedBudget: plan.estimatedBudget,
             customBudgetAmount: input.budget === 'CUSTOM' ? input.customBudgetAmount ?? null : null,
@@ -1147,9 +1205,9 @@ export const tripsService = {
           });
         }
 
-        if (regenerateDayNumber) {
-          const targetDay = existingDays.find((d) => d.dayNumber === regenerateDayNumber)
-            || (await tx.tripPlanDay.findFirst({ where: { tripPlanId: trip.id, dayNumber: regenerateDayNumber } }));
+        if (effectiveRegenerateDay) {
+          const targetDay = existingDays.find((d) => d.dayNumber === effectiveRegenerateDay)
+            || (await tx.tripPlanDay.findFirst({ where: { tripPlanId: trip.id, dayNumber: effectiveRegenerateDay } }));
           if (targetDay) {
             await tx.tripPlanStop.deleteMany({
               where: { tripPlanDayId: targetDay.id, isPinned: false },
@@ -1166,11 +1224,11 @@ export const tripsService = {
             userId,
             days: effectiveDays,
             travelers: input.travelers,
-            interests,
+            interests: mergedInterests,
             transportation: input.transportation || [],
             budget: input.budget,
-            pace: input.pace,
-            timePreference: input.timePreference,
+            pace: effectivePace,
+            timePreference: effectiveTimePreference ?? null,
             avoid,
             estimatedBudget: plan.estimatedBudget,
             customBudgetAmount: input.budget === 'CUSTOM' ? input.customBudgetAmount ?? null : null,
@@ -1262,7 +1320,25 @@ export const tripsService = {
     }
 
     const trip = await this.getById(tripId, userId);
-    const result = { trip, dayInfo: plan.dayInfo, warnings: plan.warnings, note: plan.note, nearbyDestinations: plan.nearbyDestinations };
+
+    // P1 honesty rule: a "cheaper" request that could not change anything must
+    // say so instead of silently returning an identical itinerary.
+    const sameStopSet =
+      previousPlaceIds.length > 0
+      && plan.stops.length === previousPlaceIds.length
+      && [...plan.stops.map((s) => s.placeId)].sort().join('|') === [...previousPlaceIds].sort().join('|');
+    const cheaperExplainedNoOp = wantsCheaper && sameStopSet;
+    const CHEAPER_NO_OP_MESSAGE =
+      'This itinerary is already close to the lowest-cost option for your selected preferences, so nothing needed to change.';
+    const finalWarnings = cheaperExplainedNoOp ? [...plan.warnings, CHEAPER_NO_OP_MESSAGE] : plan.warnings;
+
+    const result = {
+      trip,
+      dayInfo: plan.dayInfo,
+      warnings: finalWarnings,
+      note: cheaperExplainedNoOp ? CHEAPER_NO_OP_MESSAGE : plan.note,
+      nearbyDestinations: plan.nearbyDestinations,
+    };
     if (!isRefresh) setCachedPlan(cacheKey, result);
     return result;
   },
@@ -1947,15 +2023,31 @@ export const tripsService = {
   },
 
   async adminGetById(id: string) {
-    const trip = await prismaTrip.findUnique({
-      where: { id },
-      include: {
-        ...TRIP_INCLUDE,
-        user: { select: { id: true, name: true, email: true, avatar: true, avatarStyle: true } },
-      },
-    });
+    const [trip, generationLog] = await Promise.all([
+      prismaTrip.findUnique({
+        where: { id },
+        include: {
+          ...TRIP_INCLUDE,
+          user: { select: { id: true, name: true, email: true, avatar: true, avatarStyle: true } },
+        },
+      }),
+      // Generation forensics: let admins see WHY this itinerary looks the way
+      // it does (prompt, provider, failure reason) without raw DB access.
+      prisma.aiGenerationLog.findFirst({
+        where: { tripPlanId: id },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          provider: true,
+          success: true,
+          errorMessage: true,
+          rawPromptText: true,
+          createdAt: true,
+        },
+      }),
+    ]);
     if (!trip) throw new ApiError(404, 'Trip not found');
-    return trip;
+    return { ...trip, generationLog };
   },
 
   async adminDelete(id: string) {

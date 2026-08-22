@@ -1,5 +1,81 @@
 import { z } from 'zod';
 
+/**
+ * Structural opening-hours validation (write path).
+ *
+ * Accepts the production shape { "Monday": [{ open: "09:00", close: "18:00" }] }
+ * plus explicit closed days as empty arrays and legacy per-key range strings.
+ * Hard-rejects the corruption classes found in the 2026 audit:
+ *   - zero-length windows ("07:00" -> "07:00")
+ *   - unparseable time tokens ("garbage", "25:99")
+ *   - unknown day keys that the itinerary normalizer would ignore
+ */
+const TIME_TOKEN_RE = /^\d{1,2}(?::\d{2})?\s*(am|pm)?$/i;
+const VALID_DAY_KEYS = new Set([
+  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+  'daily', 'all', 'everyday', 'every_day',
+]);
+
+function toMinutesLoose(raw: string): number | null {
+  const m = raw.trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  const min = m[2] ? parseInt(m[2], 10) : 0;
+  if (Number.isNaN(h) || Number.isNaN(min) || min > 59 || h > 23 || (m[3] && h > 12)) return null;
+  if (m[3] === 'pm' && h < 12) h += 12;
+  if (m[3] === 'am' && h === 12) h = 0;
+  return h * 60 + min;
+}
+
+const hoursWindowSchema = z.object({
+  open: z.string().min(1).max(12).regex(TIME_TOKEN_RE, 'Invalid opening time'),
+  close: z.string().min(1).max(12).regex(TIME_TOKEN_RE, 'Invalid closing time'),
+});
+
+export const openingHoursWriteSchema = z
+  .record(z.string(), z.union([z.array(hoursWindowSchema), z.string().max(60)]))
+  .optional()
+  .superRefine((hours, ctx) => {
+    if (!hours) return;
+    for (const [dayKey, value] of Object.entries(hours)) {
+      if (!VALID_DAY_KEYS.has(dayKey.toLowerCase())) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: [dayKey], message: `Unknown day key "${dayKey}"` });
+        continue;
+      }
+      if (typeof value === 'string') continue; // legacy freeform range/closed — engine normalizer judges
+      for (let i = 0; i < value.length; i++) {
+        const w = value[i];
+        const open = toMinutesLoose(w.open);
+        const close = toMinutesLoose(w.close);
+        if (open == null || close == null) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, path: [dayKey], message: `Unparseable time in window ${i + 1}` });
+        } else if (open === close) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [dayKey],
+            message: `Window ${i + 1} has identical open/close times — mark the day closed instead`,
+          });
+        }
+      }
+    }
+  });
+
+const DURATION_FIELD = z.coerce.number().int().min(5, 'Minimum 5 minutes').max(600, 'Maximum 10 hours').nullable().optional();
+
+/**
+ * Ticket cost basis. Persisted inside ticketPrice JSON as `basis` so no
+ * migration is needed and legacy rows simply lack it (treated as UNKNOWN
+ * unless adult/child/foreigner amounts imply PER_PERSON).
+ */
+export const FEE_BASIS_VALUES = ['FREE', 'PER_PERSON', 'PER_VEHICLE', 'PER_GROUP', 'FLAT_RATE', 'UNKNOWN'] as const;
+const ticketPriceShape = {
+  currency: z.string().default('INR'),
+  adult: z.number().optional(),
+  child: z.number().optional(),
+  foreigner: z.number().optional(),
+  basis: z.enum(FEE_BASIS_VALUES).optional(),
+};
+
 export const createPlaceSchema = z.object({
   name: z.string().min(1, 'Name is required').max(200),
   description: z.string().min(1, 'Description is required').max(5000),
@@ -12,13 +88,9 @@ export const createPlaceSchema = z.object({
   city: z.string().max(100).optional(),
   state: z.string().max(100).optional(),
   country: z.string().max(100).optional(),
-  openingHours: z.record(z.string(), z.any()).optional(),
-  ticketPrice: z.object({
-    currency: z.string().default('INR'),
-    adult: z.number().optional(),
-    child: z.number().optional(),
-    foreigner: z.number().optional(),
-  }).optional(),
+  openingHours: openingHoursWriteSchema,
+  estimatedDurationMinutes: DURATION_FIELD,
+  ticketPrice: z.object(ticketPriceShape).optional(),
   history: z.string().max(10000).optional(),
   recommendedDuration: z.string().max(100).optional(),
   hasParking: z.boolean().optional(),
@@ -47,13 +119,9 @@ export const updatePlaceSchema = z.object({
   city: z.string().max(100).optional(),
   state: z.string().max(100).optional(),
   country: z.string().max(100).optional(),
-  openingHours: z.record(z.string(), z.any()).optional(),
-  ticketPrice: z.object({
-    currency: z.string().default('INR'),
-    adult: z.number().optional(),
-    child: z.number().optional(),
-    foreigner: z.number().optional(),
-  }).optional(),
+  openingHours: openingHoursWriteSchema,
+  estimatedDurationMinutes: DURATION_FIELD,
+  ticketPrice: z.object(ticketPriceShape).optional(),
   history: z.string().max(10000).optional(),
   recommendedDuration: z.string().max(100).optional(),
   hasParking: z.boolean().optional(),
@@ -69,16 +137,16 @@ export const updatePlaceSchema = z.object({
   editorialPriority: z.coerce.number().int().min(1).max(5).optional(),
 });
 
+export const bulkPlaceStatusSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1, 'Select at least one place').max(200, 'Maximum 200 places per batch'),
+  status: z.enum(['APPROVED', 'REJECTED']),
+});
+
 export const vendorUpdatePlaceSchema = z.object({
   images: z.array(z.string().url()).optional(),
   tags: z.array(z.string()).optional(),
-  openingHours: z.record(z.string(), z.any()).optional(),
-  ticketPrice: z.object({
-    currency: z.string().default('INR'),
-    adult: z.number().optional(),
-    child: z.number().optional(),
-    foreigner: z.number().optional(),
-  }).optional(),
+  openingHours: openingHoursWriteSchema,
+  ticketPrice: z.object(ticketPriceShape).optional(),
   thumbnail: z.string().url().optional(),
   history: z.string().max(10000).optional(),
   recommendedDuration: z.string().max(100).optional(),

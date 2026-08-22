@@ -1,3 +1,4 @@
+import { OAuth2Client } from 'google-auth-library';
 import bcrypt from 'bcryptjs';
 import jwt, { type SignOptions } from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -458,6 +459,56 @@ export const authService = {
     await prisma.passwordResetToken.delete({ where: { email: storageKey } }).catch(() => {});
 
     return createLoginSession(user.id);
+  },
+
+  async googleLogin(idToken: string) {
+    const client = new OAuth2Client();
+    let payload;
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken,
+        // Using multiple possible client IDs across platforms
+        audience: [
+          '27219212015-kocrm1ig6vs0nkar7mjjial0gctbd1nj.apps.googleusercontent.com', // Web client ID
+          '27219212015-65ift40sfsoimib2b208rrtet1cjh3gs.apps.googleusercontent.com', // Android dev
+          '27219212015-tnmd3127e6ha25idhdctcc7fhiopnhs8.apps.googleusercontent.com', // Android release
+        ],
+      });
+      payload = ticket.getPayload();
+    } catch (error) {
+      logger.error({ err: error }, 'Google token verification failed');
+      throw new ApiError(401, 'Invalid Google token.');
+    }
+
+    if (!payload || !payload.email) {
+      throw new ApiError(400, 'Google token missing email.');
+    }
+
+    const email = normalizeEmail(payload.email);
+    const existing = await findUserByEmail(email);
+
+    if (existing) {
+      // User exists, just log them in
+      if (!existing.emailVerified) {
+        await prisma.user.update({
+          where: { id: existing.id },
+          data: { emailVerified: true },
+        });
+      }
+      return createLoginSession(existing.id);
+    }
+
+    // Auto-register user
+    const newUser = await prisma.user.create({
+      data: {
+        email,
+        name: payload.name || 'Google User',
+        emailVerified: true, // Google emails are pre-verified
+      },
+    });
+
+    eventBus.emit(AppEvents.USER_CREATED, { userId: newUser.id });
+    return createLoginSession(newUser.id);
   },
 
   async refresh(refreshTokenStr: string) {

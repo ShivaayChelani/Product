@@ -3,6 +3,7 @@ import { AuditAction } from '@prisma/client';
 import { auditService } from '../modules/audit/audit.service';
 import { notificationService } from '../modules/notifications/notification.service';
 import { cache, cacheKey } from './cache';
+import { prisma } from './database';
 import { logger } from './logger';
 import { withRetry } from '../utils/retry';
 
@@ -30,6 +31,7 @@ export enum AppEvents {
   FRAUD_ALERT = 'FRAUD_ALERT',
   VENDOR_CODE_RESET = 'VENDOR_CODE_RESET',
   HIDDEN_GEM_MERGED = 'HIDDEN_GEM_MERGED',
+  USER_CREATED = 'USER_CREATED',
 }
 
 // ── Event Handlers ──────────────────────────────────────────
@@ -150,6 +152,20 @@ eventBus.on(AppEvents.PLACE_DELETED, async (payload: {
 
 eventBus.on(AppEvents.USER_LOGIN, async () => {
   // handled directly in auth.service.ts
+});
+
+eventBus.on(AppEvents.USER_CREATED, async (payload: { userId: string }) => {
+  try {
+    // Ensure every newly created user has a wallet (mirrors register() flow;
+    // wallet is otherwise created lazily on first points operation).
+    await prisma.wallet.upsert({
+      where: { userId: payload.userId },
+      update: {},
+      create: { userId: payload.userId, palPoints: 0, lifetimeEarned: 0, lifetimeSpent: 0 },
+    });
+  } catch (err) {
+    logger.error({ err, payload }, 'Failed to handle USER_CREATED event');
+  }
 });
 
 eventBus.on(AppEvents.USER_ROLE_CHANGED, async (payload: {

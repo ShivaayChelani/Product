@@ -1,0 +1,328 @@
+[
+  {
+    "seed": 0,
+    "names": [
+      [
+        "Maa Tirupur Sundari Temple",
+        "Bhedaghat Boating Point / Nauka Vihar",
+        "Bhedaghat Marble Rocks",
+        "Dhuandhar Falls",
+        "Lamheta Ghat",
+        "Ghughra Falls"
+      ],
+      [
+        "Pisanhari Ki Madiya",
+        "Sangram Sagar Lake",
+        "Madan Mahal Fort",
+        "Gupteshwar Mahadev Temple",
+        "Bhawartal Garden",
+        "Rani Durgavati Museum"
+      ]
+    ],
+    "analysis": {
+      "scenario": "R-seed-0",
+      "durationMs": 3581,
+      "note": null,
+      "warnings": [],
+      "engineEstimatedBudget": 347,
+      "recomputedEntryFeesX1": 120,
+      "recomputedEntryFeesX2": 240,
+      "recomputedTransportCost": 107,
+      "totalKm": 13.4,
+      "stops": 12,
+      "days": [
+        {
+          "dayNumber": 1,
+          "stopCount": 6,
+          "firstStart": "09:10",
+          "lastEnd": "15:22",
+          "totalVisitMinutes": 345,
+          "totalKm": 7.1,
+          "segments": 5,
+          "maxSegmentKm": 3.8,
+          "maxTravelMinutes": 7,
+          "detourIndex": 1.42,
+          "overlaps": [],
+          "closedByStart": false
+        },
+        {
+          "dayNumber": 2,
+          "stopCount": 6,
+          "firstStart": "09:10",
+          "lastEnd": "15:50",
+          "totalVisitMinutes": 375,
+          "totalKm": 6.3,
+          "segments": 5,
+          "maxSegmentKm": 2.5,
+          "maxTravelMinutes": 5,
+          "detourIndex": 1.2,
+          "overlaps": [],
+          "closedByStart": false
+        }
+      ],
+      "stopNames": {
+        "1": [
+          "Maa Tirupur Sundari Temple",
+          "Bhedaghat Boating Point / Nauka Vihar",
+          "Bhedaghat Marble Rocks",
+          "Dhuandhar Falls",
+          "Lamheta Ghat",
+          "Ghughra Falls"
+        ],
+        "2": [
+          "Pisanhari Ki Madiya",
+          "Sangram Sagar Lake",
+          "Madan Mahal Fort",
+          "Gupteshwar Mahadev Temple",
+          "Bhawartal Garden",
+          "Rani Durgavati Museum"
+        ]
+      }
+    }
+  },
+  {
+    "seed": 1,
+    "names": [
+      [
+        "Pisanhari Ki Madiya",
+        "Sangram Sagar Lake",
+        "Madan Mahal Fort",
+        "Gupteshwar Mahadev Temple",
+        "Bhawartal Garden",
+        "Rani Durgavati Museum"
+      ],
+      [
+        "Bhedaghat Boating Point / Nauka Vihar",
+        "Bhedaghat Marble Rocks",
+        "Dhuandhar Falls",
+        "Maa Tirupur Sundari Temple",
+        "Lamheta Ghat",
+        "Ghughra Falls"
+      ]
+    ],
+    "analysis": {
+      "scenario": "R-seed-1",
+      "durationMs": 3583,
+      "note": null,
+      "warnings": [],
+      "engineEstimatedBudget": 353,
+      "recomputedEntryFeesX1": 120,
+      "recomputedEntryFeesX2": 240,
+      "recomputedTransportCost": 113,
+      "totalKm": 14.1,
+      "stops": 12,
+      "days": [
+        {
+          "dayNumber": 1,
+          "stopCount": 6,
+          "firstStart": "09:10",
+          "lastEnd": "15:50",
+          "totalVisitMinutes": 375,
+          "totalKm": 6.3,
+          "segments": 5,
+          "maxSegmentKm": 2.5,
+          "maxTravelMinutes": 5,
+          "detourIndex": 1.2,
+          "overlaps": [],
+          "closedByStart": false
+        },
+        {
+          "dayNumber": 2,
+          "stopCount": 6,
+          "firstStart": "09:10",
+          "lastEnd": "15:23",
+          "totalVisitMinutes": 345,
+          "totalKm": 7.9,
+          "segments": 5,
+          "maxSegmentKm": 4.4,
+          "maxTravelMinutes": 8,
+          "detourIndex": 1.77,
+          "overlaps": [],
+          "closedByStart": false
+        }
+      ],
+      "stopNames": {
+        "1": [
+          "Pisanhari Ki Madiya",
+          "Sangram Sagar Lake",
+          "Madan Mahal Fort",
+          "Gupteshwar Mahadev Temple",
+          "Bhawartal Garden",
+          "Rani Durgavati Museum"
+        ],
+        "2": [
+          "Bhedaghat Boating Point / Nauka Vihar",
+          "Bhedaghat Marble Rocks",
+          "Dhuandhar Falls",
+          "Maa Tirupur Sundari Temple",
+          "Lamheta Ghat",
+          "Ghughra Falls"
+        ]
+      }
+    }
+  },
+  {
+    "seed": 2,
+    "names": [
+      [
+        "Patbaba Mandir",
+        "Hanumantal Bada Jain Mandir",
+        "Kachnar City Shiv Temple",
+        "Gupteshwar Mahadev Temple",
+        "Madan Mahal Fort",
+        "Pisanhari Ki Madiya",
+        "Sangram Sagar Lake"
+      ],
+      [
+        "Bhedaghat Marble Rocks",
+        "Dhuandhar Falls",
+        "Bhedaghat Boating Point / Nauka Vihar",
+        "Maa Tirupur Sundari Temple",
+        "Lamheta Ghat",
+        "Ghughra Falls"
+      ]
+    ],
+    "analysis": {
+      "scenario": "R-seed-2",
+      "durationMs": 4095,
+      "note": null,
+      "warnings": [],
+      "engineEstimatedBudget": 375,
+      "recomputedEntryFeesX1": 100,
+      "recomputedEntryFeesX2": 200,
+      "recomputedTransportCost": 175,
+      "totalKm": 21.9,
+      "stops": 13,
+      "days": [
+        {
+          "dayNumber": 1,
+          "stopCount": 7,
+          "firstStart": "09:10",
+          "lastEnd": "16:00",
+          "totalVisitMinutes": 375,
+          "totalKm": 14.1,
+          "segments": 6,
+          "maxSegmentKm": 5.6,
+          "maxTravelMinutes": 10,
+          "detourIndex": 2.37,
+          "overlaps": [],
+          "closedByStart": false
+        },
+        {
+          "dayNumber": 2,
+          "stopCount": 6,
+          "firstStart": "09:10",
+          "lastEnd": "15:23",
+          "totalVisitMinutes": 345,
+          "totalKm": 7.7,
+          "segments": 5,
+          "maxSegmentKm": 4.4,
+          "maxTravelMinutes": 8,
+          "detourIndex": 1.74,
+          "overlaps": [],
+          "closedByStart": false
+        }
+      ],
+      "stopNames": {
+        "1": [
+          "Patbaba Mandir",
+          "Hanumantal Bada Jain Mandir",
+          "Kachnar City Shiv Temple",
+          "Gupteshwar Mahadev Temple",
+          "Madan Mahal Fort",
+          "Pisanhari Ki Madiya",
+          "Sangram Sagar Lake"
+        ],
+        "2": [
+          "Bhedaghat Marble Rocks",
+          "Dhuandhar Falls",
+          "Bhedaghat Boating Point / Nauka Vihar",
+          "Maa Tirupur Sundari Temple",
+          "Lamheta Ghat",
+          "Ghughra Falls"
+        ]
+      }
+    }
+  },
+  {
+    "seed": 3,
+    "names": [
+      [
+        "Gupteshwar Mahadev Temple",
+        "Madan Mahal Fort",
+        "Tilwara Ghat",
+        "Bhedaghat Boating Point / Nauka Vihar",
+        "Bhedaghat Marble Rocks",
+        "Dhuandhar Falls"
+      ],
+      [
+        "Ghughra Falls",
+        "Lamheta Ghat",
+        "Kalyanika Tapovan",
+        "Maa Tirupur Sundari Temple",
+        "Chausath Yogini Temple",
+        "Bhadbhada  waterfall"
+      ]
+    ],
+    "analysis": {
+      "scenario": "R-seed-3",
+      "durationMs": 3888,
+      "note": null,
+      "warnings": [],
+      "engineEstimatedBudget": 388,
+      "recomputedEntryFeesX1": 100,
+      "recomputedEntryFeesX2": 200,
+      "recomputedTransportCost": 188,
+      "totalKm": 23.5,
+      "stops": 12,
+      "days": [
+        {
+          "dayNumber": 1,
+          "stopCount": 6,
+          "firstStart": "09:10",
+          "lastEnd": "15:47",
+          "totalVisitMinutes": 360,
+          "totalKm": 14.5,
+          "segments": 5,
+          "maxSegmentKm": 7.1,
+          "maxTravelMinutes": 12,
+          "detourIndex": 1.21,
+          "overlaps": [],
+          "closedByStart": false
+        },
+        {
+          "dayNumber": 2,
+          "stopCount": 6,
+          "firstStart": "09:10",
+          "lastEnd": "15:05",
+          "totalVisitMinutes": 330,
+          "totalKm": 9,
+          "segments": 5,
+          "maxSegmentKm": 2.9,
+          "maxTravelMinutes": 5,
+          "detourIndex": 1.92,
+          "overlaps": [],
+          "closedByStart": false
+        }
+      ],
+      "stopNames": {
+        "1": [
+          "Gupteshwar Mahadev Temple",
+          "Madan Mahal Fort",
+          "Tilwara Ghat",
+          "Bhedaghat Boating Point / Nauka Vihar",
+          "Bhedaghat Marble Rocks",
+          "Dhuandhar Falls"
+        ],
+        "2": [
+          "Ghughra Falls",
+          "Lamheta Ghat",
+          "Kalyanika Tapovan",
+          "Maa Tirupur Sundari Temple",
+          "Chausath Yogini Temple",
+          "Bhadbhada  waterfall"
+        ]
+      }
+    }
+  }
+]

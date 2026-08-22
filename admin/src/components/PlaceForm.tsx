@@ -76,90 +76,145 @@ const DAYS_OF_WEEK = [
 
 type OpeningShift = { open: string; close: string };
 
+const emptyHours = (): Record<string, OpeningShift[]> =>
+  Object.fromEntries(DAYS_OF_WEEK.map((d) => [d, [] as OpeningShift[]]));
+const allOpen = (): Record<string, boolean> =>
+  Object.fromEntries(DAYS_OF_WEEK.map((d) => [d, false]));
+
 function parseTicketPrice(raw: unknown): {
   adult: string;
   child: string;
   foreigner: string;
   isFree: boolean;
+  basis: string;
 } {
   if (!raw || typeof raw !== "object") {
-    return { adult: "", child: "", foreigner: "", isFree: false };
+    return { adult: "", child: "", foreigner: "", isFree: false, basis: "" };
   }
-  const tp = raw as { adult?: number; child?: number; foreigner?: number };
+  const tp = raw as { adult?: number; child?: number; foreigner?: number; basis?: string };
   const adult = tp.adult != null && !Number.isNaN(Number(tp.adult)) ? String(tp.adult) : "";
   const child = tp.child != null && !Number.isNaN(Number(tp.child)) ? String(tp.child) : "";
   const foreigner = tp.foreigner != null && !Number.isNaN(Number(tp.foreigner)) ? String(tp.foreigner) : "";
-  const isFree =
-    (adult === "" || Number(adult) === 0) &&
+  const isFree = tp.basis === "FREE" ||
+    ((adult === "" || Number(adult) === 0) &&
     (child === "" || Number(child) === 0) &&
     (foreigner === "" || Number(foreigner) === 0) &&
-    (adult !== "" || child !== "" || foreigner !== "");
-  return { adult, child, foreigner, isFree };
+    (adult !== "" || child !== "" || foreigner !== ""));
+  return { adult, child, foreigner, isFree, basis: tp.basis || "" };
 }
 
-function parseOpeningHours(raw: unknown): { closedDays: string[]; shifts: OpeningShift[] } {
-  const defaultShifts: OpeningShift[] = [{ open: "", close: "" }];
-  if (!raw || typeof raw !== "object") {
-    return { closedDays: [], shifts: defaultShifts };
-  }
+function normalizeTimeText(raw: unknown): string {
+  return String(raw ?? "").trim();
+}
+
+/** Legacy freeform range ("9 AM - 5 PM") -> one window with raw text ends. */
+function parseLegacyRange(text: string): OpeningShift | null {
+  const parts = text.split(/\s*[-–—]|to\s+/i).map((p) => p.trim()).filter(Boolean);
+  if (!parts.length) return null;
+  return { open: parts[0] || "", close: parts[1] || "" };
+}
+
+/**
+ * Parse ANY stored openingHours shape into a faithful per-day structure.
+ * Unlike the previous editor this PRESERVES per-day variation instead of
+ * flattening every day to the first day's windows.
+ */
+function parseOpeningHours(raw: unknown): {
+  hoursByDay: Record<string, OpeningShift[]>;
+  dayClosed: Record<string, boolean>;
+} {
+  const hoursByDay = emptyHours();
+  const dayClosed = allOpen();
+  if (!raw || typeof raw !== "object") return { hoursByDay, dayClosed };
   const obj = raw as Record<string, unknown>;
-
-  // Legacy admin shape: { from, to } / { from, till }
-  if ("from" in obj || "to" in obj || "till" in obj) {
-    return {
-      closedDays: [],
-      shifts: [{
-        open: String(obj.from || ""),
-        close: String(obj.to || obj.till || ""),
-      }],
-    };
-  }
-
-  const closedDays: string[] = [];
-  let shifts = defaultShifts;
-  let foundShifts = false;
 
   for (const day of DAYS_OF_WEEK) {
     const val = obj[day] ?? obj[day.toLowerCase()];
+    if (val == null) continue;
+
     if (Array.isArray(val)) {
       if (val.length === 0) {
-        closedDays.push(day);
-      } else if (!foundShifts) {
-        shifts = val.map((s) => {
-          const row = s as { open?: string; close?: string };
-          return { open: String(row.open || ""), close: String(row.close || "") };
-        });
-        foundShifts = true;
+        dayClosed[day] = true; // explicit closed marker
+        continue;
       }
+      hoursByDay[day] = val
+        .filter((w): w is Record<string, unknown> => !!w && typeof w === "object")
+        .map((w) => ({ open: normalizeTimeText(w.open), close: normalizeTimeText(w.close) }));
+    } else if (typeof val === "object") {
+      const w = val as Record<string, unknown>;
+      hoursByDay[day] = [{ open: normalizeTimeText(w.from ?? w.open), close: normalizeTimeText(w.till ?? w.to ?? w.close) }];
     } else if (typeof val === "string") {
       const text = val.trim();
       if (!text || /^closed$/i.test(text)) {
-        closedDays.push(day);
-      } else if (!foundShifts) {
-        const parts = text.split(/\s*[-–—]|to\s+/i).map((p) => p.trim()).filter(Boolean);
-        shifts = [{ open: parts[0] || "", close: parts[1] || "" }];
-        foundShifts = true;
+        dayClosed[day] = true;
+      } else {
+        const win = parseLegacyRange(text);
+        if (win) hoursByDay[day] = [win];
       }
     }
   }
-
-  return { closedDays, shifts };
+  return { hoursByDay, dayClosed };
 }
 
+/**
+ * Build the write payload from the per-day editor. Writes EXACTLY what the
+ * admin saw — no template copying. Returns undefined only when the place has
+ * no schedule information at all (leave stored data untouched).
+ */
 function buildOpeningHoursPayload(
-  shifts: OpeningShift[],
-  closedDays: string[],
+  hoursByDay: Record<string, OpeningShift[]> | undefined,
+  dayClosed: Record<string, boolean> | undefined,
 ): Record<string, OpeningShift[]> | undefined {
-  const cleaned = shifts
-    .map((s) => ({ open: s.open.trim(), close: s.close.trim() }))
-    .filter((s) => s.open || s.close);
-  if (cleaned.length === 0 && closedDays.length === 0) return undefined;
-
+  if (!hoursByDay && !dayClosed) return undefined;
   const payload: Record<string, OpeningShift[]> = {};
+  let anyEntry = false;
   for (const day of DAYS_OF_WEEK) {
-    payload[day] = closedDays.includes(day) ? [] : (cleaned.length ? cleaned : []);
+    const closed = dayClosed?.[day] === true;
+    const windows = closed
+      ? []
+      : (hoursByDay?.[day] || [])
+          .map((w) => ({ open: w.open.trim(), close: w.close.trim() }))
+          .filter((w) => w.open || w.close);
+    payload[day] = windows;
+    if (closed || windows.length > 0) anyEntry = true;
   }
-  return payload;
+  return anyEntry ? payload : undefined;
+}
+
+/** Client-side guard mirroring the server's openingHoursWriteSchema rules. */
+function validateHours(
+  hoursByDay: Record<string, OpeningShift[]> | undefined,
+  dayClosed: Record<string, boolean> | undefined,
+): string | null {
+  for (const day of DAYS_OF_WEEK) {
+    if (dayClosed?.[day]) continue;
+    const wins = (hoursByDay?.[day] || []).filter((w) => w.open.trim() || w.close.trim());
+    for (let i = 0; i < wins.length; i++) {
+      const w = wins[i];
+      if (!w.open.trim() || !w.close.trim()) {
+        return `${day}: window ${i + 1} needs both an opening and a closing time.`;
+      }
+      const toMin = (t: string): number | null => {
+        const m = t.trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+        if (!m) return null;
+        let h = parseInt(m[1], 10);
+        const min = m[2] ? parseInt(m[2], 10) : 0;
+        if (min > 59 || h > 23 || h < 1) return null;
+        if (m[3] === "pm" && h < 12) h += 12;
+        if (m[3] === "am" && h === 12) h = 0;
+        return h * 60 + min;
+      };
+      const open = toMin(w.open);
+      const close = toMin(w.close);
+      if (open == null || close == null) {
+        return `${day}: window ${i + 1} has invalid times — use formats like 9:00 AM or 17:30.`;
+      }
+      if (open === close) {
+        return `${day}: opening and closing times are identical — tick the day as Closed instead.`;
+      }
+    }
+  }
+  return null;
 }
 
 const PRIORITY_OPTIONS = [
@@ -169,6 +224,16 @@ const PRIORITY_OPTIONS = [
   { value: 2, label: "2 — Low" },
   { value: 1, label: "1 — Lowest" },
 ];
+
+/** How the ticket price should be charged — drives itinerary budget math. */
+const FEE_BASIS_OPTIONS = [
+  { value: "PER_PERSON", label: "Per person" },
+  { value: "PER_VEHICLE", label: "Per vehicle" },
+  { value: "PER_GROUP", label: "Per group (once)" },
+  { value: "FLAT_RATE", label: "Flat rate (once)" },
+  { value: "FREE", label: "Free" },
+  { value: "UNKNOWN", label: "Unknown — exclude from budget" },
+] as const;
 
 interface Props {
   open: boolean;
@@ -202,13 +267,13 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
     bestTimeTo: "",
     bestTimeMonths: "",
     bestTimeReason: "",
-    openingFrom: "",
-    openingTo: "",
-    openingShifts: [{ open: "", close: "" }],
-    closedDays: [],
+    hoursByDay: emptyHours(),
+    dayClosed: allOpen(),
+    estimatedDurationMinutes: "",
     ticketAdult: "",
     ticketChild: "",
     ticketForeigner: "",
+    ticketBasis: "",
     isFreeEntry: false,
   });
   const [tagInput, setTagInput] = useState("");
@@ -245,13 +310,16 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
       bestTimeTo: (place?.bestTimeToVisit as { to?: string })?.to || "",
       bestTimeMonths: (place?.bestTimeToVisit as { bestMonths?: string })?.bestMonths || "",
       bestTimeReason: place?.bestTimeReason || "",
-      openingFrom: hours.shifts[0]?.open || "",
-      openingTo: hours.shifts[0]?.close || "",
-      openingShifts: hours.shifts,
-      closedDays: hours.closedDays,
+      hoursByDay: hours.hoursByDay,
+      dayClosed: hours.dayClosed,
+      estimatedDurationMinutes:
+        (place as unknown as { estimatedDurationMinutes?: number | null })?.estimatedDurationMinutes != null
+          ? String((place as unknown as { estimatedDurationMinutes?: number }).estimatedDurationMinutes)
+          : "",
       ticketAdult: fees.adult,
       ticketChild: fees.child,
       ticketForeigner: fees.foreigner,
+      ticketBasis: fees.basis,
       isFreeEntry: fees.isFree,
     });
     setError("");
@@ -375,20 +443,34 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
         ? { bestMonths: form.bestTimeMonths }
         : undefined;
 
-      const openingHours = buildOpeningHoursPayload(
-        form.openingShifts || [{ open: form.openingFrom || "", close: form.openingTo || "" }],
-        form.closedDays || [],
-      );
+      const hoursError = validateHours(form.hoursByDay, form.dayClosed);
+      if (hoursError) {
+        setError(hoursError);
+        setSaving(false);
+        return;
+      }
+
+      const openingHours = buildOpeningHoursPayload(form.hoursByDay, form.dayClosed);
+
+      const durationRaw = form.estimatedDurationMinutes?.trim();
+      const estimatedDurationMinutes =
+        durationRaw && !Number.isNaN(Number(durationRaw)) && Number(durationRaw) > 0
+          ? Math.round(Number(durationRaw))
+          : undefined;
 
       const ticketPrice = form.isFreeEntry
-        ? { currency: "INR", adult: 0, child: 0, foreigner: 0 }
+        ? { currency: "INR", adult: 0, child: 0, foreigner: 0, basis: "FREE" as const }
         : (() => {
             const adult = form.ticketAdult?.trim() ? Number(form.ticketAdult) : undefined;
             const child = form.ticketChild?.trim() ? Number(form.ticketChild) : undefined;
             const foreigner = form.ticketForeigner?.trim() ? Number(form.ticketForeigner) : undefined;
-            if (adult == null && child == null && foreigner == null) return undefined;
+            // Explicit basis wins; entering amounts without choosing one keeps
+            // the historical per-person assumption.
+            const basis = (form.ticketBasis || (adult != null || child != null || foreigner != null ? "PER_PERSON" : "")) || undefined;
+            if (adult == null && child == null && foreigner == null && !basis) return undefined;
             return {
               currency: "INR",
+              ...(basis ? { basis } : {}),
               ...(adult != null && !Number.isNaN(adult) ? { adult } : {}),
               ...(child != null && !Number.isNaN(child) ? { child } : {}),
               ...(foreigner != null && !Number.isNaN(foreigner) ? { foreigner } : {}),
@@ -411,6 +493,7 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
         bestTimeToVisit,
         bestTimeReason: form.bestTimeReason || undefined,
         openingHours,
+        estimatedDurationMinutes,
         ticketPrice,
       };
       if (isEdit && place) {
@@ -795,127 +878,195 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                   />
                 </div>
               </div>
-            </div>
-
-            <div>
-              <h3 className="mb-2 text-sm font-semibold text-gray-800">Closed days</h3>
-              <p className="mb-3 text-xs text-gray-500">Tick days when the place is closed (e.g. Sunday).</p>
-              <div className="flex flex-wrap gap-2">
-                {DAYS_OF_WEEK.map((day) => {
-                  const checked = (form.closedDays || []).includes(day);
-                  return (
-                    <label
-                      key={day}
-                      className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                        checked
-                          ? "border-red-300 bg-red-50 text-red-700"
-                          : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() =>
-                          setForm((p) => {
-                            const prev = p.closedDays || [];
-                            return {
-                              ...p,
-                              closedDays: checked
-                                ? prev.filter((d) => d !== day)
-                                : [...prev, day],
-                            };
-                          })
-                        }
-                        className="h-3.5 w-3.5 rounded border-gray-300 text-red-600 focus:ring-red-500"
-                      />
-                      {day}
-                    </label>
-                  );
-                })}
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                    Fee basis
+                  </label>
+                  <select
+                    value={form.ticketBasis || (form.isFreeEntry ? "FREE" : "")}
+                    disabled={!!form.isFreeEntry}
+                    onChange={(e) => setForm((p) => ({ ...p, ticketBasis: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 disabled:bg-gray-50"
+                  >
+                    <option value="">Auto (amounts = per person)</option>
+                    {FEE_BASIS_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-[11px] text-gray-400">
+                    Trip budgets charge per-person tickets × travellers; vehicle/group/flat are charged once; Unknown is excluded and flagged.
+                  </p>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                    Typical visit duration (minutes)
+                  </label>
+                <input
+                  type="number"
+                  min={5}
+                  max={600}
+                  value={form.estimatedDurationMinutes || ""}
+                  onChange={(e) => setForm((p) => ({ ...p, estimatedDurationMinutes: e.target.value }))}
+                  placeholder="e.g. 90"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 sm:w-56"
+                />
+                <p className="mt-1 text-[11px] text-gray-400">
+                  Used by the trip scheduler for stop timing and day capacity (5–600).
+                </p>
+                </div>
               </div>
             </div>
 
             <div>
-              <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="mb-2 flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-800">Opening hours</h3>
                   <p className="text-xs text-gray-500">
-                    Add morning and evening shifts if the place opens twice a day.
+                    Set each day separately — the itinerary scheduler uses these times. Close to open (e.g. 9:00 PM → 2:00 AM) is saved as an overnight window.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setForm((p) => ({
-                      ...p,
-                      openingShifts: [...(p.openingShifts || []), { open: "", close: "" }],
-                    }))
-                  }
-                  className="shrink-0 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
-                >
-                  + Add shift
-                </button>
               </div>
               <div className="space-y-3">
-                {(form.openingShifts || [{ open: "", close: "" }]).map((shift, index) => (
-                  <div key={`shift-${index}`} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] items-end">
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-600">
-                        {index === 0 ? "Open from (morning / first)" : `Shift ${index + 1} from`}
-                      </label>
-                      <input
-                        value={shift.open}
-                        onChange={(e) =>
-                          setForm((p) => {
-                            const next = [...(p.openingShifts || [])];
-                            next[index] = { ...next[index], open: e.target.value };
-                            return { ...p, openingShifts: next, openingFrom: next[0]?.open || "" };
-                          })
-                        }
-                        placeholder={index === 0 ? "e.g. 8:00 AM" : "e.g. 4:00 PM"}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-                      />
+                {DAYS_OF_WEEK.map((day) => {
+                  const closed = form.dayClosed?.[day] === true;
+                  return (
+                    <div key={day} className={`rounded-lg border p-3 ${closed ? "border-red-200 bg-red-50/40" : "border-gray-200"}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <label className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                          <input
+                            type="checkbox"
+                            checked={closed}
+                            onChange={() =>
+                              setForm((p) => ({
+                                ...p,
+                                dayClosed: { ...(p.dayClosed || allOpen()), [day]: !closed },
+                              }))
+                            }
+                            className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                          />
+                          {day}
+                          {closed && <span className="text-xs font-normal text-red-600">Closed</span>}
+                        </label>
+                        {!closed && (
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setForm((p) => {
+                                  const first = (p.hoursByDay?.[day] || []).find((w) => w.open && w.close);
+                                  if (!first) return p;
+                                  const next: Record<string, OpeningShift[]> = { ...(p.hoursByDay || emptyHours()) };
+                                  for (const d of DAYS_OF_WEEK) next[d] = [{ ...first }];
+                                  return { ...p, hoursByDay: next, dayClosed: allOpen() };
+                                })
+                              }
+                              className="rounded-lg border border-gray-200 px-2 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-50"
+                              title="Copy this day's first window to every day"
+                            >
+                              Copy to all days
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setForm((p) => ({
+                                  ...p,
+                                  hoursByDay: {
+                                    ...(p.hoursByDay || emptyHours()),
+                                    [day]: [...(p.hoursByDay?.[day] || []), { open: "", close: "" }],
+                                  },
+                                }))
+                              }
+                              className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100"
+                            >
+                              + Window
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {!closed && (
+                        <div className="mt-3 space-y-2">
+                          {(form.hoursByDay?.[day] || []).length === 0 && (
+                            <p className="text-xs text-gray-400">No windows — treated as closed. Add a window or tick Closed.</p>
+                          )}
+                          {(form.hoursByDay?.[day] || []).map((w, wi) => {
+                            const overnight =
+                              w.open.trim() && w.close.trim() &&
+                              (() => {
+                                const toMin = (t: string): number | null => {
+                                  const m = t.trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+                                  if (!m) return null;
+                                  let h = parseInt(m[1], 10);
+                                  const min = m[2] ? parseInt(m[2], 10) : 0;
+                                  if (m[3] === "pm" && h < 12) h += 12;
+                                  if (m[3] === "am" && h === 12) h = 0;
+                                  return h * 60 + min;
+                                };
+                                const o = toMin(w.open); const c = toMin(w.close);
+                                return o != null && c != null && c <= o;
+                              })();
+                            return (
+                              <div key={`${day}-${wi}`} className="grid grid-cols-[1fr_1fr_auto_auto] items-end gap-2">
+                                <div>
+                                  <label className="mb-0.5 block text-[11px] font-medium text-gray-500">Opens</label>
+                                  <input
+                                    value={w.open}
+                                    onChange={(e) =>
+                                      setForm((p) => {
+                                        const dayWins = [...(p.hoursByDay?.[day] || [])];
+                                        dayWins[wi] = { ...dayWins[wi], open: e.target.value };
+                                        return { ...p, hoursByDay: { ...(p.hoursByDay || emptyHours()), [day]: dayWins } };
+                                      })
+                                    }
+                                    placeholder="9:00 AM"
+                                    className="w-full rounded-md border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="mb-0.5 block text-[11px] font-medium text-gray-500">
+                                    Closes{overnight ? " (next day)" : ""}
+                                  </label>
+                                  <input
+                                    value={w.close}
+                                    onChange={(e) =>
+                                      setForm((p) => {
+                                        const dayWins = [...(p.hoursByDay?.[day] || [])];
+                                        dayWins[wi] = { ...dayWins[wi], close: e.target.value };
+                                        return { ...p, hoursByDay: { ...(p.hoursByDay || emptyHours()), [day]: dayWins } };
+                                      })
+                                    }
+                                    placeholder={overnight ? "2:00 AM" : "6:00 PM"}
+                                    className="w-full rounded-md border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                  />
+                                </div>
+                                {overnight ? (
+                                  <span className="mb-2 rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700">
+                                    Overnight
+                                  </span>
+                                ) : (
+                                  <span />
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setForm((p) => {
+                                      const dayWins = (p.hoursByDay?.[day] || []).filter((_, i) => i !== wi);
+                                      return { ...p, hoursByDay: { ...(p.hoursByDay || emptyHours()), [day]: dayWins } };
+                                    })
+                                  }
+                                  className="mb-0.5 rounded-md border border-red-200 px-2 py-1.5 text-[11px] font-medium text-red-600 hover:bg-red-50"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-600">
-                        {index === 0 ? "Open till" : `Shift ${index + 1} till`}
-                      </label>
-                      <input
-                        value={shift.close}
-                        onChange={(e) =>
-                          setForm((p) => {
-                            const next = [...(p.openingShifts || [])];
-                            next[index] = { ...next[index], close: e.target.value };
-                            return { ...p, openingShifts: next, openingTo: next[0]?.close || "" };
-                          })
-                        }
-                        placeholder={index === 0 ? "e.g. 12:00 PM" : "e.g. 8:00 PM"}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-                      />
-                    </div>
-                    {(form.openingShifts || []).length > 1 ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setForm((p) => {
-                            const next = (p.openingShifts || []).filter((_, i) => i !== index);
-                            return {
-                              ...p,
-                              openingShifts: next.length ? next : [{ open: "", close: "" }],
-                              openingFrom: next[0]?.open || "",
-                              openingTo: next[0]?.close || "",
-                            };
-                          })
-                        }
-                        className="mb-0.5 rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50"
-                      >
-                        Remove
-                      </button>
-                    ) : (
-                      <div className="hidden sm:block" />
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

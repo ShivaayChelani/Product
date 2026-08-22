@@ -11,7 +11,7 @@ export const DEV_FLAGS = {
    * iOS Simulator → leave LOCAL_API_HOST empty (defaults to localhost) or set LAN IP
    * Physical iPhone → LOCAL_API_HOST (LAN IP of your Mac/PC) — never localhost
    */
-  USE_LOCAL_API: false,
+  USE_LOCAL_API: true,
   /**
    * Host for local API when USE_LOCAL_API is true.
    * Android emulator: '10.0.2.2'

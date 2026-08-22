@@ -122,6 +122,25 @@ export const placesController = {
     sendSuccess(res, place, { message: 'Place approved successfully' });
   }),
 
+  bulkStatus: catchAsync(async (req: any, res: Response) => {
+    const { ids, status } = req.body as { ids: string[]; status: 'APPROVED' | 'REJECTED' };
+    // Reuses the single-place status service so every per-place side effect
+    // (reviewer fields, events -> central audit log) stays identical.
+    const succeeded: string[] = [];
+    const failed: Array<{ id: string; error: string }> = [];
+    for (const id of ids) {
+      try {
+        await placesService.updateStatus(id, { status }, req.user.id);
+        succeeded.push(id);
+      } catch (err) {
+        failed.push({ id, error: (err as Error)?.message || 'Failed' });
+      }
+    }
+    sendSuccess(res, { succeeded, failed }, {
+      message: `Bulk ${status.toLowerCase()}: ${succeeded.length} succeeded${failed.length ? `, ${failed.length} failed` : ''}`,
+    });
+  }),
+
   rejectPlace: catchAsync(async (req: any, res: Response) => {
     const place = await placesService.updateStatus(
       req.params.id as string,

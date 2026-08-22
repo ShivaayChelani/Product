@@ -59,6 +59,12 @@ export const authController = {
     sendSuccess(res, result, { message: 'Login successful' });
   }),
 
+  googleLogin: catchAsync(async (req: Request, res: Response) => {
+    const result = await authService.googleLogin(req.body.idToken);
+    setAccessTokenCookie(res, result.accessToken);
+    sendSuccess(res, result, { message: 'Google Login successful' });
+  }),
+
   refresh: catchAsync(async (req: Request, res: Response) => {
     const { refreshToken } = req.body;
     const result = await authService.refresh(refreshToken);

@@ -26,6 +26,15 @@ import {
 
 let _razorpayMock: any = null;
 
+/** Constant-time comparison for HMAC signatures (length-safe). */
+function timingSafeHmacEqual(expected: string, received: string | undefined): boolean {
+  if (!received) return false;
+  const a = Buffer.from(expected, 'utf8');
+  const b = Buffer.from(received, 'utf8');
+  if (a.length !== b.length || a.length === 0) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
 function razorpayConfigured() {
   return Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
 }
@@ -231,7 +240,7 @@ export const paymentsService = {
     if (!secret) throw new ApiError(503, 'Razorpay is not configured');
     const body = `${orderId}|${paymentId}`;
     const expected = crypto.createHmac('sha256', secret).update(body).digest('hex');
-    if (expected !== signature) {
+    if (!timingSafeHmacEqual(expected, signature)) {
       throw new ApiError(400, 'Invalid payment signature');
     }
   },
@@ -867,7 +876,7 @@ export const paymentsService = {
 
     const body = typeof rawBody === 'string' ? rawBody : rawBody.toString('utf8');
     const expected = crypto.createHmac('sha256', secret).update(body).digest('hex');
-    if (expected !== signature) throw new ApiError(401, 'Invalid webhook signature');
+    if (!timingSafeHmacEqual(expected, signature)) throw new ApiError(401, 'Invalid webhook signature');
 
     const payload = JSON.parse(body) as {
       event: string;

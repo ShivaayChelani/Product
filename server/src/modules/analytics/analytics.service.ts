@@ -17,18 +17,22 @@ export const analyticsService = {
     const thirtyDaysAgo = new Date(today.getTime() - 30 * 86400000);
     const sixtyDaysAgo = new Date(today.getTime() - 60 * 86400000);
 
-    // CTE 1: All scalar KPIs in a single query using FILTER clauses
+    // CTE 1: All scalar KPIs in a single query using FILTER clauses.
+    // *_prev_30d = count inside the PRIOR 30-day window [60d ago, 30d ago) so
+    // the dashboard's "vs last 30 days" labels are truthful period-over-period.
     const kpis = await safeQuery(async () => {
       const r = await prisma.$queryRaw<any[]>`
         WITH
           user_c AS (SELECT
             COUNT(*)::int AS total,
-            COUNT(*) FILTER (WHERE created_at < ${today})::int AS total_prev,
+            COUNT(*) FILTER (WHERE created_at >= ${thirtyDaysAgo})::int AS total_last30,
+            COUNT(*) FILTER (WHERE created_at >= ${sixtyDaysAgo} AND created_at < ${thirtyDaysAgo})::int AS total_prev,
             COUNT(*) FILTER (WHERE created_at >= ${today})::int AS new_today
           FROM users),
           vendor_c AS (SELECT
             COUNT(*) FILTER (WHERE status = 'APPROVED')::int AS approved,
-            COUNT(*) FILTER (WHERE status = 'APPROVED' AND created_at < ${today})::int AS approved_prev,
+            COUNT(*) FILTER (WHERE status = 'APPROVED' AND created_at >= ${thirtyDaysAgo})::int AS approved_last30,
+            COUNT(*) FILTER (WHERE status = 'APPROVED' AND created_at >= ${sixtyDaysAgo} AND created_at < ${thirtyDaysAgo})::int AS approved_prev,
             COUNT(*) FILTER (WHERE status = 'PENDING')::int AS pending
           FROM vendors),
           checkin_c AS (SELECT
@@ -40,13 +44,16 @@ export const analyticsService = {
           FROM check_ins),
           redemption_c AS (SELECT
             COUNT(*) FILTER (WHERE status = 'VERIFIED')::int AS total,
-            COUNT(*) FILTER (WHERE status = 'VERIFIED' AND created_at < ${today})::int AS total_prev,
+            COUNT(*) FILTER (WHERE status = 'VERIFIED' AND created_at >= ${thirtyDaysAgo})::int AS last30,
+            COUNT(*) FILTER (WHERE status = 'VERIFIED' AND created_at >= ${sixtyDaysAgo} AND created_at < ${thirtyDaysAgo})::int AS prev,
             COUNT(*) FILTER (WHERE status = 'VERIFIED' AND created_at >= ${today})::int AS today_qty
           FROM redemptions),
           place_c AS (SELECT COUNT(*)::int AS cnt FROM places WHERE source = 'HIDDEN_GEM' AND status = 'PENDING'),
           reel_c AS (SELECT
-            COUNT(*)::int AS total,
-            COUNT(*) FILTER (WHERE created_at < ${today})::int AS prev
+            COUNT(*)::int AS reel_total,
+            COUNT(*) FILTER (WHERE created_at >= ${thirtyDaysAgo})::int AS reel_last30,
+            COUNT(*) FILTER (WHERE created_at >= ${sixtyDaysAgo} AND created_at < ${thirtyDaysAgo})::int AS reel_prev,
+            COUNT(*) FILTER (WHERE created_at >= ${today})::int AS reel_today
           FROM reels),
           review_c AS (SELECT COUNT(*) FILTER (WHERE created_at >= ${today})::int AS reviews_today FROM reviews)
         SELECT * FROM user_c, vendor_c, checkin_c, redemption_c, place_c, reel_c, review_c
@@ -96,9 +103,12 @@ export const analyticsService = {
         dau: { value: kpis.dau || 0, prev: kpis.dau_prev || 0 },
         mau: { value: kpis.mau || 0, prev: kpis.mau_prev || 0 },
         activeVendors: { value: kpis.approved || 0, prev: kpis.approved_prev || 0 },
-        qrRedemptions: { value: kpis.total || 0, prev: kpis.total_prev || 0 },
+        qrRedemptions: { value: kpis.total || 0, prev: kpis.prev || 0 },
         hiddenGems: { value: kpis.cnt || 0 },
-        reelsUploaded: { value: kpis.total || 0, prev: kpis.prev || 0 },
+        // NOTE: reel_* aliases — the old query aliased both redemptions and
+        // reels to "total"/"prev", so SELECT * made the Reels KPI show the
+        // redemptions count. Kept quickStats.reelsUploaded on reel_last30.
+        reelsUploaded: { value: kpis.reel_total || 0, prev: kpis.reel_prev || 0 },
       },
       charts: {
         userGrowth: (userGrowthRaw as any[]).map((r: any) => ({
@@ -125,7 +135,7 @@ export const analyticsService = {
       })),
       quickStats: {
         newUsers: kpis.new_today || 0,
-        reelsUploaded: Math.max(0, (kpis.total || 0) - (kpis.prev || 0)),
+        reelsUploaded: kpis.reel_today || 0,
         reviews: kpis.reviews_today || 0,
         checkIns: kpis.checkins_today || 0,
         qrRedeemed: kpis.today_qty || 0,

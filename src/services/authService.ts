@@ -1,4 +1,9 @@
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+GoogleSignin.configure({
+  webClientId: '27219212015-kocrm1ig6vs0nkar7mjjial0gctbd1nj.apps.googleusercontent.com',
+});
 import { UserActiveMode, UserPermission, UserProfile } from '../types';
 import { DEV_FLAGS } from '../config/devFlags';
 import { apiClient, authApi } from './api';
@@ -174,6 +179,47 @@ export async function login(
       throw networkError;
     }
     throw e;
+  }
+}
+
+export async function googleLogin(): Promise<{ user: UserProfile; session: Session } | null> {
+  if (!DEV_FLAGS.USE_SERVER_API) {
+    throw new Error('Server API is required. Set USE_SERVER_API=true in devFlags.');
+  }
+
+  try {
+    await GoogleSignin.hasPlayServices();
+    const response = await GoogleSignin.signIn();
+    if (response.type !== 'success') {
+      // User cancelled the sign-in flow.
+      return null;
+    }
+    const idToken = response.data.idToken;
+    if (!idToken) {
+      throw new Error('Google Sign-In failed: No ID token returned.');
+    }
+
+    const result = await authApi.googleLogin(idToken);
+    await apiClient.setToken(result.accessToken);
+
+    const profile = buildProfileFromApiUser(result.user);
+    await persistAuthUser(profile);
+    return {
+      user: profile,
+      session: {
+        userId: profile.uid,
+        email: result.user.email,
+        role: profile.role,
+        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      }
+    };
+  } catch (e: any) {
+    const msg = e?.message || '';
+    if (msg.includes('SIGN_IN_CANCELLED') || e.code === 'SIGN_IN_CANCELLED') {
+      return null;
+    }
+    // eslint-disable-next-line preserve-caught-error
+    throw new Error(msg || 'Google Sign-In failed.');
   }
 }
 

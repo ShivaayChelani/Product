@@ -222,7 +222,7 @@ export const AiRefineModal = ({
                   }}
                   value={notes}
                   onChangeText={setNotes}
-                  placeholder="e.g. Prefer quieter spots, less walking..."
+                  placeholder={'Try: "Make Day 2 less busy", "Start after 10 AM", "Add more nature", or "Remove a place"'}
                   placeholderTextColor="#94A3B8"
                   multiline
                 />

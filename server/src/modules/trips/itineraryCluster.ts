@@ -117,6 +117,8 @@ export interface ClusterPlannerOptions {
   debug?: boolean;
   variationSeed?: number;
   avoidHubIds?: string[];
+  /** Pace-gated: false for RELAXED/VERY_RELAXED so day density is a hard cap. */
+  allowCompactBonus?: boolean;
 }
 
 export interface DayClusterResult {
@@ -942,7 +944,7 @@ export function buildDayCluster(
   anchor: ClusterPlace,
   pool: ClusterPlace[],
   usedIds: Set<string>,
-  options: Pick<ClusterPlannerOptions, 'days' | 'maxStopsPerDay' | 'maxMinutesPerDay' | 'speedKmh' | 'debug'> & {
+  options: Pick<ClusterPlannerOptions, 'days' | 'maxStopsPerDay' | 'maxMinutesPerDay' | 'speedKmh' | 'debug' | 'allowCompactBonus'> & {
     allowedPlaceIds?: Set<string>;
     lockToAllowedSet?: boolean;
   },
@@ -982,7 +984,7 @@ export function buildDayCluster(
     maxMinutesPerDay: options.maxMinutesPerDay,
     speedKmh: options.speedKmh ?? 30,
     tierFloor: membershipMinTier(options.days),
-    allowCompactBonus: true,
+    allowCompactBonus: options.allowCompactBonus !== false,
     seedId: anchor.id,
     debug,
   };
@@ -1028,6 +1030,7 @@ export function assignDaysByClusterValue(
     speedKmh: options.speedKmh,
     hotelBaseByDay: options.hotelBaseByDay,
     debug: options.debug,
+    allowCompactBonus: options.allowCompactBonus,
     variationSeed: options.variationSeed,
     avoidHubIds: options.avoidHubIds,
   });

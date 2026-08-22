@@ -78,14 +78,30 @@ describe('budget range control', () => {
 });
 
 describe('budget range wiring', () => {
-  it('AI planner slider is interactive and sends buildAiBudgetPayload, not a hardcoded amount', () => {
+  it('AI planner budget input is interactive and sends the entered amount, not a hardcoded value', () => {
     const screen = read('screens/AITripPlannerScreen.tsx');
-    expect(screen).toMatch(/BudgetRangeSlider/);
-    expect(screen).toMatch(/budgetTierFromSliderPosition/);
-    expect(screen).toMatch(/buildAiBudgetPayload\(selectedBudget\)/);
+    expect(screen).toMatch(/keyboardType="numeric"/);
+    expect(screen).toMatch(/value=\{customBudgetAmount\}/);
+    expect(screen).toMatch(/setCustomBudgetAmount\(text\.replace\(\/\[\^0-9\]\/g, ''\)\)/);
+    expect(screen).toMatch(/customBudgetAmount: Number\(customBudgetAmount\)/);
     expect(screen).not.toMatch(/85000/);
-    expect(screen).toMatch(/onSelectPosition/);
     expect(screen).toMatch(/persistDraft/);
+  });
+
+  it('generation is blocked until a positive budget amount is entered', () => {
+    const screen = read('screens/AITripPlannerScreen.tsx');
+    expect(screen).toMatch(
+      /!!customBudgetAmount && !isNaN\(Number\(customBudgetAmount\)\) && Number\(customBudgetAmount\) > 0/,
+    );
+  });
+
+  it('server requires customBudgetAmount when budget is CUSTOM', () => {
+    const validation = fs.readFileSync(
+      path.join(root, '../server/src/modules/trips/trips.validation.ts'),
+      'utf8',
+    );
+    expect(validation).toMatch(/z\.enum\(\['LOW', 'MEDIUM', 'HIGH', 'CUSTOM'\]\)/);
+    expect(validation).toMatch(/customBudgetAmount is required when budget is CUSTOM/);
   });
 
   it('BudgetRangeSlider uses PanResponder so the track is not visual-only', () => {

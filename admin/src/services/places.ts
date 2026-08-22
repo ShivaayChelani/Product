@@ -83,6 +83,14 @@ export async function rejectPlace(id: string): Promise<Place> {
   return res.data.data;
 }
 
+export async function bulkPlaceStatus(
+  ids: string[],
+  status: 'APPROVED' | 'REJECTED',
+): Promise<{ succeeded: string[]; failed: Array<{ id: string; error: string }> }> {
+  const res = await client.post('/admin/places/bulk-status', { ids, status });
+  return res.data?.data ?? { succeeded: [], failed: [] };
+}
+
 export async function deletePlace(id: string): Promise<void> {
   await client.delete(`/admin/places/${id}`);
 }

@@ -25,6 +25,7 @@ interface LoginScreenProps {
     email: string,
     pass: string,
   ) => Promise<boolean | { requiresEmailVerification: true; email: string }>;
+  onGoogleLogin: () => Promise<boolean>;
   onSignup: () => void;
   onBack: () => void;
   onForgotPassword: () => void;
@@ -34,6 +35,7 @@ interface LoginScreenProps {
 
 export default function LoginScreen({ 
   onLogin, 
+  onGoogleLogin,
   onSignup, 
   onBack,
   onForgotPassword, 
@@ -73,8 +75,12 @@ export default function LoginScreen({
     }
   }, [email, password, onLogin, validate]);
 
-  const handleGoogle = () => {
-    Alert.alert('Coming soon', 'Google sign-in will be available in a future update.');
+  const handleGoogle = async () => {
+    try {
+      await onGoogleLogin();
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Google Sign-In failed.');
+    }
   };
 
   return (

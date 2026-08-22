@@ -120,7 +120,13 @@ export default function DashboardPage() {
   const d = data;
 
   const renderTrend = (current: number, prev: number) => {
-    if (prev === 0) return <span className="text-emerald-500 text-xs font-semibold flex items-center"><TrendingUp size={12} className="mr-1"/> +100%</span>;
+    if (prev === 0) {
+      // Honest fallback: with no prior-period baseline a percentage is
+      // meaningless — show "New" instead of fabricating +100%.
+      return current > 0 ? (
+        <span className="text-emerald-500 text-xs font-semibold flex items-center"><TrendingUp size={12} className="mr-1"/> New</span>
+      ) : null;
+    }
     const diff = current - prev;
     const pct = (diff / prev) * 100;
     if (pct >= 0) return <span className="text-emerald-500 text-xs font-semibold flex items-center"><TrendingUp size={12} className="mr-1"/> +{pct.toFixed(1)}%</span>;

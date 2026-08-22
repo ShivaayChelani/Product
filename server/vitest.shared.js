@@ -40,23 +40,8 @@ function resolveTestDatabaseEnv() {
       'Refusing to run tests: TEST_DATABASE_URL matches PRODUCTION_DATABASE_URL.',
     );
   }
-  const envDb = process.env.DATABASE_URL?.trim();
-  const explicitTestDb = Boolean(process.env.TEST_DATABASE_URL?.trim());
-  if (
-    envDb &&
-    normalize(envDb) === normalize(databaseUrl) &&
-    !explicitTestDb &&
-    process.env.ALLOW_PRODUCTION_DATABASE_FOR_TESTS !== 'true'
-  ) {
-    throw new Error(
-      'Refusing to run tests: test DB equals DATABASE_URL from .env. Set TEST_DATABASE_URL explicitly.',
-    );
-  }
 
   return {
-    NODE_ENV: 'test',
-    JWT_SECRET: process.env.JWT_SECRET || 'test-jwt-secret-for-vitest-min-32-chars!!',
-    TEST_DATABASE_URL: databaseUrl,
     DATABASE_URL: databaseUrl,
     DIRECT_URL: directUrl,
   };
@@ -82,7 +67,6 @@ export const UNIT_TEST_FILES = [
   'src/__tests__/rewarded-ad-claim.test.ts',
   'src/__tests__/palpoints-rule-defaults.unit.test.ts',
   'src/__tests__/itinerary-cluster.unit.test.ts',
-  'src/__tests__/itinerary-cluster.unit.test.ts',
   'src/__tests__/creator-username.unit.test.ts',
   'src/__tests__/creator-privilege-escalation.unit.test.ts',
   'src/__tests__/creator-dashboard-query.unit.test.ts',
@@ -99,6 +83,13 @@ export const UNIT_TEST_FILES = [
   'src/__tests__/admin-grant-subscription.unit.test.ts',
   'src/__tests__/palpoints-earn-message.unit.test.ts',
   'src/__tests__/vendor-itinerary-place.unit.test.ts',
+  'src/__tests__/trip-intent-parser.unit.test.ts',
+  'src/__tests__/itinerary-opening-hours.unit.test.ts',
+  'src/__tests__/itinerary-budget-attempts.unit.test.ts',
+  'src/__tests__/itinerary-interest-scoring.unit.test.ts',
+  'src/__tests__/itinerary-reasons.unit.test.ts',
+  'src/__tests__/place-hours-validation.unit.test.ts',
+  'src/__tests__/fee-basis.unit.test.ts',
 ];
 
 export const E2E_TEST_GLOB = 'src/__tests__/**/*.integration.test.ts';

@@ -46,6 +46,7 @@ export const API_CONFIG = {
       verifyRegisterEmail: '/auth/register/verify-email',
       resendRegisterOtp: '/auth/register/resend-otp',
       login: '/auth/login',
+      google: '/auth/google',
       me: '/auth/me',
       refresh: '/auth/refresh',
       logout: '/auth/logout',

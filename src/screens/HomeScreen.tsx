@@ -755,12 +755,14 @@ export default function HomeScreen({
                   <Icon name="location-sharp" size={16} color="#FFFFFF" />
                   <Text style={styles.locationText}>{locationLabel}</Text>
                 </View>
-                <View style={styles.weatherRow}>
-                  <Icon name={weather?.icon || 'sunny'} size={18} color="#FFFFFF" />
-                  <Text style={styles.weatherText}>
-                    {weather ? `${weather.temp}°C ${weather.text}` : '28°C Sunny'}
-                  </Text>
-                </View>
+                {weather && (
+                  <View style={styles.weatherRow}>
+                    <Icon name={weather.icon} size={18} color="#FFFFFF" />
+                    <Text style={styles.weatherText}>
+                      {`${weather.temp}°C ${weather.text}`}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
 

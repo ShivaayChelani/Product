@@ -5,11 +5,11 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Plus, Search, Check, X as XIcon, Edit, Trash2, MapPin,
-  RefreshCw, ChevronRight, Home, Upload,
+  RefreshCw, ChevronRight, Home, Upload, CheckSquare,
 } from "lucide-react";
 import {
   getPlaces, getCityClusters, approvePlace, rejectPlace, deletePlace,
-  fetchAllPlaces,
+  fetchAllPlaces, bulkPlaceStatus,
 } from "@/services/places";
 import { useNotification } from "@/components/Notification";
 import DataTable from "@/components/DataTable";
@@ -68,6 +68,8 @@ function PlacesWorkspaceContent() {
 
   const [placeForm, setPlaceForm] = useState<{ open: boolean; place: Place | null }>({ open: false, place: null });
   const [importOpen, setImportOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const isCityWorkspace = !!(filters.city && filters.state);
   const serverFilters = useMemo(() => ({
@@ -258,7 +260,66 @@ function PlacesWorkspaceContent() {
     });
   };
 
+  const toggleSelect = (id: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  const allPageSelected = places.length > 0 && places.every((p) => selectedIds.has(p.id as string));
+  const toggleSelectPage = () =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allPageSelected) places.forEach((p) => next.delete(p.id as string));
+      else places.forEach((p) => next.add(p.id as string));
+      return next;
+    });
+
+  const runBulkStatus = (status: "APPROVED" | "REJECTED") => {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    setConfirmDialog({
+      open: true,
+      title: `Bulk ${status === "APPROVED" ? "approve" : "reject"} ${ids.length} place${ids.length > 1 ? "s" : ""}?`,
+      message: "Each place will be updated individually; failures are reported per place.",
+      action: async () => {
+        setBulkLoading(true);
+        try {
+          const res = await bulkPlaceStatus(ids, status);
+          notify(res.failed.length ? "error" : "success",
+            `${res.succeeded.length} succeeded${res.failed.length ? `, ${res.failed.length} failed` : ""}`);
+          setSelectedIds(new Set());
+          refreshAll();
+        } catch {
+          notify("error", "Bulk action failed");
+        }
+        setConfirmDialog((p) => ({ ...p, open: false }));
+        setBulkLoading(false);
+      },
+    });
+  };
+
   const allColumns: Column<Place & Record<string, unknown>>[] = [
+    {
+      key: "select", header: (
+        <input
+          type="checkbox"
+          aria-label="Select page"
+          checked={allPageSelected}
+          onChange={toggleSelectPage}
+          className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+        />
+      ) as unknown as string,
+      render: (item) => (
+        <input
+          type="checkbox"
+          aria-label={`Select ${String(item.name)}`}
+          checked={selectedIds.has(item.id as string)}
+          onChange={() => toggleSelect(item.id as string)}
+          className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+        />
+      ),
+    },
     {
       key: "name", header: "Name", sortable: true,
       exportValue: (i) => i.name,
@@ -351,6 +412,24 @@ function PlacesWorkspaceContent() {
           </div>
         </div>
       </div>
+
+      {selectedIds.size > 0 && (
+        <div className="admin-card mb-4 flex flex-wrap items-center gap-3 border-emerald-200 bg-emerald-50/50 p-3">
+          <CheckSquare size={16} className="text-emerald-600" />
+          <span className="text-sm font-medium text-foreground">
+            {selectedIds.size} selected
+          </span>
+          <button type="button" disabled={bulkLoading} onClick={() => runBulkStatus("APPROVED")} className="admin-btn-primary inline-flex items-center gap-1.5">
+            {bulkLoading ? "Working…" : (<><Check size={14} /> Approve selected</>)}
+          </button>
+          <button type="button" disabled={bulkLoading} onClick={() => runBulkStatus("REJECTED")} className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
+            <XIcon size={14} /> Reject selected
+          </button>
+          <button type="button" onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-muted-foreground hover:text-foreground">
+            Clear selection
+          </button>
+        </div>
+      )}
 
       <div className="admin-card mb-4 p-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">

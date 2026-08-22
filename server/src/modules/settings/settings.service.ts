@@ -1,5 +1,7 @@
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/ApiError';
+import { auditService } from '../audit/audit.service';
+import { AuditAction } from '@prisma/client';
 
 const DEFAULT_SETTINGS: Array<{
   category: string; key: string; value: any; label: string; description: string; type: string;
@@ -74,17 +76,28 @@ export const settingsService = {
     });
   },
 
-  async update(key: string, value: any) {
+  async update(key: string, value: any, actorId?: string) {
     const setting = await prisma.systemSetting.findUnique({ where: { key } });
     if (!setting) throw new ApiError(404, `Setting "${key}" not found`);
 
-    return prisma.systemSetting.update({
+    const updated = await prisma.systemSetting.update({
       where: { key },
       data: { value: JSON.parse(JSON.stringify(value)) },
     });
+
+    await auditService.log(
+      AuditAction.SETTINGS_UPDATED,
+      'SystemSetting',
+      key,
+      actorId || 'unknown',
+      null,
+      { value: setting.value },
+      { value: updated.value },
+    );
+    return updated;
   },
 
-  async bulkUpdate(updates: Array<{ key: string; value: any }>) {
+  async bulkUpdate(updates: Array<{ key: string; value: any }>, actorId?: string) {
     const results = [];
     for (const { key, value } of updates) {
       const setting = await prisma.systemSetting.findUnique({ where: { key } });
@@ -94,12 +107,31 @@ export const settingsService = {
           data: { value: JSON.parse(JSON.stringify(value)) },
         });
         results.push(updated);
+        await auditService.log(
+          AuditAction.SETTINGS_UPDATED,
+          'SystemSetting',
+          key,
+          actorId || 'unknown',
+          null,
+          { value: setting.value },
+          { value: updated.value },
+        );
       }
     }
     return results;
   },
 
-  async resetDefaults() {
+  async resetDefaults(actorId?: string) {
+    const previous = await this.getAll();
+    await auditService.log(
+      AuditAction.SETTINGS_RESET,
+      'SystemSetting',
+      '*',
+      actorId || 'unknown',
+      null,
+      { count: previous.length },
+      null,
+    );
     await prisma.systemSetting.deleteMany();
     await this.seedDefaults();
     return this.getAll();

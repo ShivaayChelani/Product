@@ -235,3 +235,17 @@ _extract_*.txt
 parse-audit.js
 *_audit.json
 *-audit.json
+
+# Release-sprint local artifacts (do not track)
+scratch/
+deploy-api-job35-logs/
+palsafar_crash.txt
+tombstone_11.txt
+server/reports/*.log
+*.local.log
+!server/eslint.config.js
+!server/vitest.config.js
+!server/vitest.e2e.config.js
+!server/vitest.integration.config.js
+!server/vitest.shared.js
+!server/vitest.unit.config.js

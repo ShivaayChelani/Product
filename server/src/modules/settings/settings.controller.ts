@@ -15,17 +15,17 @@ export const settingsController = {
   }),
 
   update: catchAsync(async (req: any, res: Response) => {
-    const setting = await settingsService.update(req.params.key, req.body.value);
+    const setting = await settingsService.update(req.params.key, req.body.value, req.user?.id);
     sendSuccess(res, setting, { message: 'Setting updated' });
   }),
 
   bulkUpdate: catchAsync(async (req: any, res: Response) => {
-    const results = await settingsService.bulkUpdate(req.body.updates);
+    const results = await settingsService.bulkUpdate(req.body.updates, req.user?.id);
     sendSuccess(res, results, { message: 'Settings updated' });
   }),
 
-  resetDefaults: catchAsync(async (_req: any, res: Response) => {
-    const settings = await settingsService.resetDefaults();
+  resetDefaults: catchAsync(async (req: any, res: Response) => {
+    const settings = await settingsService.resetDefaults(req.user?.id);
     sendSuccess(res, settings, { message: 'Settings reset to defaults' });
   }),
 

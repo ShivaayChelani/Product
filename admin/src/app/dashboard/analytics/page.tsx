@@ -81,13 +81,22 @@ export default function AnalyticsPage() {
     void load();
   }, [load]);
 
-  const userGrowthData = useMemo(
-    () => overview?.charts?.userGrowth || growth?.charts?.dailySignups || userSeries.map((r) => ({ date: r.date, newUsers: r.count })),
-    [overview, growth, userSeries],
-  );
+  const userGrowthData = useMemo(() => {
+    const base =
+      overview?.charts?.userGrowth ||
+      growth?.charts?.dailySignups ||
+      userSeries.map((r) => ({ date: r.date, newUsers: r.count })) ||
+      [];
+    // Merge the real daily-active series so the DAU area plots actual data
+    // instead of a contract-dead key.
+    const activeByDate = new Map<string, number>(
+      (growth?.charts?.activeUsersTrend || []).map((p: any) => [p.date, Number(p.activeUsers || 0)]),
+    );
+    return base.map((p: any) => ({ ...p, dau: activeByDate.get(p.date) ?? 0 }));
+  }, [overview, growth, userSeries]);
 
-  const topCities = useMemo(
-    () => (cities?.topCities || overview?.cityAnalytics || []).slice(0, 10),
+const topCities = useMemo(
+  () => (cities?.cityVisitors || overview?.cityAnalytics || []).slice(0, 10),
     [cities, overview],
   );
 
@@ -234,7 +243,7 @@ export default function AnalyticsPage() {
                     <XAxis dataKey="city" tick={{ fontSize: 10 }} />
                     <YAxis tick={{ fontSize: 10 }} />
                     <Tooltip />
-                    <Bar dataKey="users" fill="#8B5CF6" name="Users" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="visitors" fill="#8B5CF6" name="Visitors" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -285,9 +294,9 @@ export default function AnalyticsPage() {
               </h2>
               <div className="max-h-64 space-y-2 overflow-y-auto custom-scrollbar">
                 {topCities.map((c: any) => (
-                  <div key={c.city} className="flex justify-between text-sm">
+                  <div key={`${c.city}-${c.state ?? ""}`} className="flex justify-between text-sm">
                     <span>{c.city}</span>
-                    <span className="font-medium tabular-nums">{Number(c.users || 0).toLocaleString()}</span>
+                    <span className="font-medium tabular-nums">{Number(c.visitors || c.users || 0).toLocaleString()}</span>
                   </div>
                 ))}
               </div>
@@ -301,19 +310,19 @@ export default function AnalyticsPage() {
           <div className="grid gap-4 sm:grid-cols-3">
             <StatCard
               title="Total Redemptions"
-              value={revenue?.summary?.totalRedemptions ?? overview?.kpis?.qrRedemptions?.value ?? 0}
+              value={revenue?.metrics?.totalRedemptions ?? overview?.kpis?.qrRedemptions?.value ?? 0}
               icon={DollarSign}
               color="emerald"
             />
             <StatCard
               title="Redemption Value"
-              value={`₹${Number(revenue?.summary?.totalValue ?? 0).toLocaleString()}`}
+              value={`₹${Number(revenue?.metrics?.redemptionValue ?? 0).toLocaleString()}`}
               icon={TrendingUp}
               color="blue"
             />
             <StatCard
               title="Active Offers"
-              value={revenue?.summary?.activeOffers ?? "—"}
+              value={revenue?.metrics?.activeOffers ?? "—"}
               icon={BarChart3}
               color="purple"
             />

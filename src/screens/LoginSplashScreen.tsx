@@ -14,13 +14,16 @@ import { SecondaryButton } from '../components/auth/SecondaryButton';
 import { SocialButton } from '../components/auth/SocialButton';
 import { useUserContext } from '../context/UserContext';
 
-export default function LoginSplashScreen({ navigation }: any) {
+export default function LoginSplashScreen({ navigation, onGoogleLogin, onGuestContinue }: any) {
   const insets = useSafeAreaInsets();
   const contentPadBottom = useBottomSafePadding(28);
-  const { onGuestContinue } = useUserContext();
 
-  const handleGoogle = () => {
-    Alert.alert('Coming soon', 'Google sign-in will be available in a future update.');
+  const handleGoogle = async () => {
+    try {
+      if (onGoogleLogin) await onGoogleLogin();
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Google Sign-In failed.');
+    }
   };
 
   return (

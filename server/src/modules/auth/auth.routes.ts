@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authController } from './auth.controller';
 import { validate } from '../../middleware/validate';
 import { authenticate, requireAdmin } from '../../middleware/auth';
-import { registerSchema, loginSchema, refreshSchema, logoutSchema, forgotPasswordSchema, resetPasswordSchema, verifyResetOtpSchema, requestLoginOtpSchema, loginWithOtpSchema, verifyRegisterEmailSchema, resendRegisterOtpSchema, updateProfileSchema, changePasswordSchema, deleteAccountSchema, activeModeSchema, activeRoleAliasSchema } from './auth.validation';
+import { registerSchema, loginSchema, googleLoginSchema, refreshSchema, logoutSchema, forgotPasswordSchema, resetPasswordSchema, verifyResetOtpSchema, requestLoginOtpSchema, loginWithOtpSchema, verifyRegisterEmailSchema, resendRegisterOtpSchema, updateProfileSchema, changePasswordSchema, deleteAccountSchema, activeModeSchema, activeRoleAliasSchema } from './auth.validation';
 import { loginLimiter, registerLimiter, refreshLimiter, forgotPasswordLimiter, resetPasswordLimiter, otpVerifyLimiter } from '../../config/rateLimit';
 
 const router = Router();
@@ -11,6 +11,7 @@ router.post('/register', registerLimiter, validate(registerSchema), authControll
 router.post('/register/verify-email', otpVerifyLimiter, validate(verifyRegisterEmailSchema), authController.verifyRegisterEmail);
 router.post('/register/resend-otp', forgotPasswordLimiter, validate(resendRegisterOtpSchema), authController.resendRegisterOtp);
 router.post('/login', loginLimiter, validate(loginSchema), authController.login);
+router.post('/google', loginLimiter, validate(googleLoginSchema), authController.googleLogin);
 router.post('/refresh', refreshLimiter, validate(refreshSchema, 'body'), authController.refresh);
 router.post('/logout', validate(logoutSchema, 'body'), authController.logout);
 router.get('/me', authenticate, authController.getProfile);

@@ -145,7 +145,7 @@ export default function NotificationsPage() {
     void getTemplates().then((t) => setTemplates(t as NotificationTemplate[])).catch(() => {});
   }, []);
 
-  const handleSend = async () => {
+  const performSend = async () => {
     setLoading(true); setError(""); setSuccess("");
     try {
       if (sendForm.targetType === "user") {
@@ -164,7 +164,26 @@ export default function NotificationsPage() {
     } finally { setLoading(false); }
   };
 
-  const handleSendFromTemplate = async () => {
+  const describeSendTarget = () => {
+    if (sendForm.targetType === "user") return `a single user (${sendForm.userId})`;
+    if (sendForm.targetType === "role") return `ALL users with role "${sendForm.role}"`;
+    if (sendForm.targetType === "city") return `ALL users in city "${sendForm.city}"`;
+    return `ALL users with category "${sendForm.category}"`;
+  };
+
+  const handleSend = () => {
+    setConfirmDialog({
+      open: true,
+      title: "Send Notification",
+      message: `Send "${sendForm.title}" to ${describeSendTarget()}?`,
+      action: async () => {
+        await performSend();
+        setConfirmDialog((p) => ({ ...p, open: false }));
+      },
+    });
+  };
+
+  const performSendFromTemplate = async () => {
     setLoading(true); setError(""); setSuccess("");
     try {
       let variables: Record<string, string> = {};
@@ -178,6 +197,20 @@ export default function NotificationsPage() {
     } catch {
       setError("Failed to send template notification");
     } finally { setLoading(false); }
+  };
+
+  const handleSendFromTemplate = () => {
+    const t = sendForm.templateTarget;
+    const targetDesc = t.type === "all" ? "ALL users" : `${t.type} "${t.value}"`;
+    setConfirmDialog({
+      open: true,
+      title: "Send Template Notification",
+      message: `Send this template to ${targetDesc}?`,
+      action: async () => {
+        await performSendFromTemplate();
+        setConfirmDialog((p) => ({ ...p, open: false }));
+      },
+    });
   };
 
   const handleSaveTemplate = async () => {

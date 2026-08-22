@@ -14,15 +14,17 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { DEV_FLAGS } from '../config/devFlags';
 import { useUserContext } from '../context/UserContext';
 import { tripsApi } from '../services/api/trips';
+import type { TimePreference } from '../services/api/trips';
 import { BottomNavigation, BOTTOM_NAV_CLEARANCE } from '../components/navigation/BottomNavigation';
 import { useLocationContext } from '../context/LocationContext';
 import { formatDestinationLabel, canonicalizeDestination } from '../utils/destination';
 import { buildTripPrompt, buildLocalTripPlan, applyAiPlanToLocalItinerary } from '../utils/tripPlanner';
+import { applyWalletPalPoints } from '../utils/syncPalPoints';
 import { getPlaces } from '../services/placesService';
 import type { TouristSpot } from '../types';
 import type { Travelers } from '../services/api/trips';
@@ -30,7 +32,6 @@ import { useAiPlannerStore } from '../features/aiTripPlanner/store';
 import { pushDestinationHistory } from '../features/aiTripPlanner/destinationHistory';
 import { useDestinationAutocomplete } from '../features/aiTripPlanner/hooks/useDestinationAutocomplete';
 import {
-  BUDGETS,
   COMPANIONS,
   DAY_OPTIONS,
   selectExactTripDays,
@@ -40,15 +41,9 @@ import {
   PROMPT_MAX,
   QUICK_SUGGESTIONS,
   TRAVEL_STYLES,
-  budgetSliderPosition,
-  budgetTierFromSliderPosition,
-  buildAiBudgetPayload,
-  estimateBudgetRange,
-  formatInr,
   getDayBucketLabel,
   isDayBucketActive,
 } from '../features/aiTripPlanner/constants';
-import { BudgetRangeSlider } from '../features/aiTripPlanner/BudgetRangeSlider';
 import { PalPointsIcon } from '../components/PalPointsIcon';
 
 const COLORS = {
@@ -167,6 +162,52 @@ function companionToUiKey(companion: Travelers): CompanionUiKey {
   return companion;
 }
 
+const START_DATE_OPTIONS: Array<{ key: string; label: string }> = [
+  { key: 'today', label: 'Today' },
+  { key: 'tomorrow', label: 'Tomorrow' },
+  { key: 'weekend', label: 'This weekend' },
+  { key: '', label: 'Flexible' },
+];
+
+function toIsoDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function resolveStartDateKey(key: string): string {
+  const now = new Date();
+  if (key === 'today') return toIsoDate(now);
+  if (key === 'tomorrow') return toIsoDate(new Date(now.getTime() + 86400000));
+  if (key === 'weekend') {
+    // Upcoming Saturday — today counts when it IS Saturday.
+    const delta = (6 - now.getDay() + 7) % 7;
+    return toIsoDate(new Date(now.getTime() + delta * 86400000));
+  }
+  return '';
+}
+
+function startDateToKey(iso: string): string {
+  if (!iso) return '';
+  if (iso === resolveStartDateKey('today')) return 'today';
+  if (iso === resolveStartDateKey('tomorrow')) return 'tomorrow';
+  if (iso === resolveStartDateKey('weekend')) return 'weekend';
+  return '';
+}
+
+const TIME_PREF_OPTIONS: Array<{ v: TimePreference; label: string }> = [
+  { v: 'MORNING_FOCUSED', label: 'Early starters' },
+  { v: 'FULL_DAY', label: 'Full-day plans' },
+  { v: 'EVENING_FRIENDLY', label: 'Evening lovers' },
+];
+
+const AVOID_OPTIONS: Array<{ v: string; label: string }> = [
+  { v: 'CROWDED', label: 'Crowds' },
+  { v: 'LONG_TRAVEL', label: 'Long travel' },
+  { v: 'EXPENSIVE_ENTRY', label: 'Expensive entry' },
+];
+
 export default function AITripPlannerScreen({
   onNavigate,
 }: {
@@ -185,7 +226,11 @@ export default function AITripPlannerScreen({
     selectedPace,
     selectedCompanions,
     selectedBudget,
+    customBudgetAmount,
     selectedTransportation,
+    startDate,
+    timePreference,
+    avoid,
     days,
     setDestination,
     setCustomPrompt,
@@ -193,6 +238,10 @@ export default function AITripPlannerScreen({
     setPace,
     setCompanions,
     setBudget,
+    setCustomBudgetAmount,
+    setStartDate,
+    setTimePreference,
+    toggleAvoid,
     validate,
     persistDraft,
     loadDraft,
@@ -208,12 +257,11 @@ export default function AITripPlannerScreen({
   const [locating, setLocating] = useState(false);
   const [travelStyleId, setTravelStyleId] = useState(() => paceToTravelStyleId(selectedPace));
   const [companionUi, setCompanionUi] = useState<CompanionUiKey>(() => companionToUiKey(selectedCompanions));
+  const [memberCount, setMemberCount] = useState('');
   const userEditedDestination = useRef(false);
   const gpsPrefillAttempted = useRef(false);
 
   const palPoints = user?.totalPoints ?? 0;
-  const sliderPos = budgetSliderPosition(selectedBudget);
-
   const { suggestions, loading: suggestLoading, clear: clearSuggestions } = useDestinationAutocomplete(
     focusDestination ? destination : '',
   );
@@ -257,20 +305,23 @@ export default function AITripPlannerScreen({
     };
   }, [loadDraft, effectivePosition?.latitude, effectivePosition?.longitude, setDestination]);
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!isGuest) {
+        applyWalletPalPoints(setUser).catch(() => {});
+      }
+    }, [isGuest, setUser])
+  );
+
   const canGenerate = useMemo(() => {
     return (
       destination.trim().length > 0 &&
       selectedInterests.length > 0 &&
       !!selectedPace &&
       !!selectedCompanions &&
-      !!selectedBudget
+      !!customBudgetAmount && !isNaN(Number(customBudgetAmount)) && Number(customBudgetAmount) > 0
     );
-  }, [destination, selectedInterests, selectedPace, selectedCompanions, selectedBudget]);
-
-  const budgetEstimate = useMemo(
-    () => estimateBudgetRange(selectedBudget, days),
-    [selectedBudget, days],
-  );
+  }, [destination, selectedInterests, selectedPace, selectedCompanions, customBudgetAmount]);
 
   const resolveLocation = useCallback(() => {
     const typed = destination.trim();
@@ -298,6 +349,9 @@ export default function AITripPlannerScreen({
     await persistDraft();
 
     const promptParts = [customPrompt.trim()];
+    if (memberCount && ['FAMILY', 'FRIENDS', 'GROUP'].includes(companionUi)) {
+      promptParts.push(`Traveling with ${memberCount} members.`);
+    }
     if (effectivePosition?.latitude != null) {
       promptParts.push(
         `Traveler context: coordinates ${effectivePosition.latitude.toFixed(4)}, ${effectivePosition.longitude?.toFixed(4)}.`,
@@ -319,9 +373,13 @@ export default function AITripPlannerScreen({
         days,
         pace: selectedPace,
         travelers: selectedCompanions,
-        ...buildAiBudgetPayload(selectedBudget),
+        budget: 'CUSTOM',
+        customBudgetAmount: Number(customBudgetAmount),
         interests: selectedInterests,
         transportation: selectedTransportation,
+        startDate: startDate || undefined,
+        timePreference: timePreference || undefined,
+        avoid: avoid.length ? avoid : undefined,
         prompt,
       });
       setGenerating(false);
@@ -501,7 +559,7 @@ export default function AITripPlannerScreen({
           </SectionCard>
 
           <SectionCard>
-            <SectionHeader number="02" icon="people-outline" title="Travelling with" />
+            <SectionHeader number="03" icon="people-outline" title="Travelling with" />
             <View style={styles.companionRow}>
               {COMPANIONS.map(opt => (
                 <SelectBox
@@ -514,27 +572,23 @@ export default function AITripPlannerScreen({
                 />
               ))}
             </View>
-          </SectionCard>
-
-          <SectionCard>
-            <SectionHeader number="03" icon="briefcase-outline" title="Travell style" />
-            <View style={styles.gridWrap}>
-              {TRAVEL_STYLES.map(opt => (
-                <SelectBox
-                  key={opt.id}
-                  label={opt.label}
-                  sub={opt.sub}
-                  icon={opt.icon}
-                  active={travelStyleId === opt.id}
-                  onPress={() => handleTravelStyleSelect(opt.id, opt.pace)}
-                  wide
+            {['FAMILY', 'FRIENDS', 'GROUP'].includes(companionUi) && (
+              <View style={styles.memberCountWrap}>
+                <Text style={styles.memberCountLabel}>Number of members:</Text>
+                <TextInput
+                  style={styles.memberCountInput}
+                  keyboardType="numeric"
+                  placeholder="E.g. 4"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={memberCount}
+                  onChangeText={setMemberCount}
                 />
-              ))}
-            </View>
+              </View>
+            )}
           </SectionCard>
 
           <SectionCard>
-            <SectionHeader number="05" icon="star-outline" title="Your interests" />
+            <SectionHeader number="04" icon="star-outline" title="Your interests" />
             <View style={styles.interestGrid}>
               {INTERESTS.map(opt => (
                 <InterestTile
@@ -549,7 +603,7 @@ export default function AITripPlannerScreen({
             <Text
               style={[
                 styles.interestCount,
-                selectedInterests.length >= MAX_INTERESTS && styles.interestCountFull,
+      selectedInterests.length >= MAX_INTERESTS && styles.interestCountFull,
               ]}
             >
               Selected {selectedInterests.length}/{MAX_INTERESTS}
@@ -557,51 +611,67 @@ export default function AITripPlannerScreen({
           </SectionCard>
 
           <SectionCard>
-            <SectionHeader number="06" icon="wallet-outline" title="Budget" />
-            <View style={styles.budgetRow}>
-              {BUDGETS.map(opt => {
-                const active = selectedBudget === opt.key;
-                return (
-                  <TouchableOpacity
-                    key={opt.key}
-                    style={[styles.budgetCard, active && styles.budgetCardActive]}
-                    onPress={() => {
-                      setBudget(opt.key);
-                      void persistDraft();
-                    }}
-                    activeOpacity={0.85}
-                  >
-                    {active ? (
-                      <View style={styles.checkBadge}>
-                        <Icon name="checkmark" size={9} color="#FFF" />
-                      </View>
-                    ) : null}
-                    <Text style={[styles.budgetCardTitle, active && styles.budgetCardTitleActive]}>{opt.label}</Text>
-                    <Text style={styles.budgetCardSub}>{opt.desc}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+            <SectionHeader number="05" icon="wallet-outline" title="Budget" />
+            <View style={styles.searchInputWrap}>
+              <Text style={{ fontSize: 16, color: COLORS.textPrimary, marginRight: 8 }}>₹</Text>
+              <TextInput
+                style={styles.searchTextInput}
+                placeholder="Enter budget amount..."
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="numeric"
+                value={customBudgetAmount}
+                onChangeText={(text) => {
+                  setCustomBudgetAmount(text.replace(/[^0-9]/g, ''));
+                }}
+                onBlur={() => void persistDraft()}
+              />
             </View>
+          </SectionCard>
 
-            <Text style={styles.budgetEstimateText}>
-              {formatInr(budgetEstimate.min)} – {formatInr(budgetEstimate.max)}{' '}
-              <Text style={styles.budgetEstimateSubInline}>for {getDayBucketLabel(days)} trip</Text>
-            </Text>
+          <SectionCard>
+            <SectionHeader number="06" icon="sunny-outline" title="Start & daily rhythm" />
+              <Text style={styles.quickLabel}>When</Text>
+              <View style={styles.gridWrap}>
+                {START_DATE_OPTIONS.map(opt => (
+                  <SelectBox
+                    key={opt.key || 'flexible'}
+                    label={opt.label}
+                    active={startDateToKey(startDate) === opt.key}
+                    onPress={() => setStartDate(resolveStartDateKey(opt.key))}
+                    wide
+                  />
+                ))}
+              </View>
 
-            <View style={styles.sliderLabels}>
-              <Text style={styles.sliderLabelText}>₹5,000</Text>
-              <Text style={styles.sliderLabelText}>₹50,000+</Text>
-            </View>
-            <BudgetRangeSlider
-              position={sliderPos}
-              onSelectPosition={(pos) => setBudget(budgetTierFromSliderPosition(pos))}
-              onSelectEnd={() => {
-                void persistDraft();
-              }}
-              trackStyle={styles.sliderTrack}
-              fillStyle={styles.sliderFill}
-              thumbStyle={styles.sliderThumb}
-            />
+              <Text style={styles.quickLabel}>Daily rhythm</Text>
+              <View style={styles.companionRow}>
+                {TIME_PREF_OPTIONS.map(opt => (
+                  <SelectBox
+                    key={opt.v}
+                    label={opt.label}
+                    active={timePreference === opt.v}
+                    onPress={() => setTimePreference(timePreference === opt.v ? '' : opt.v)}
+                    compact
+                  />
+                ))}
+              </View>
+
+              <Text style={styles.quickLabel}>Prefer to avoid</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {AVOID_OPTIONS.map(opt => {
+                  const active = avoid.includes(opt.v);
+                  return (
+                    <TouchableOpacity
+                      key={opt.v}
+                      style={[styles.quickChip, active && styles.quickChipActive]}
+                      onPress={() => toggleAvoid(opt.v)}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={[styles.quickChipText, active && styles.quickChipTextActive]}>{opt.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
           </SectionCard>
 
           <SectionCard>
@@ -963,6 +1033,27 @@ const styles = StyleSheet.create({
     borderColor: '#FFF',
     zIndex: 1,
   },
+  memberCountWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingHorizontal: 4,
+  },
+  memberCountLabel: {
+    fontSize: 14,
+    color: COLORS.text,
+    marginRight: 12,
+  },
+  memberCountInput: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    fontSize: 14,
+    color: COLORS.text,
+    minWidth: 80,
+  },
   interestGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1143,6 +1234,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.textSecondary,
     fontWeight: '500',
+  },
+  quickChipActive: {
+    borderColor: COLORS.gold,
+    backgroundColor: 'rgba(185,131,75,0.10)',
+  },
+  quickChipTextActive: {
+    color: COLORS.gold,
+    fontWeight: '600',
   },
   generateWrap: {
     marginHorizontal: 16,

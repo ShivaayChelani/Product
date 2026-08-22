@@ -18,8 +18,10 @@ describe('Map vendor pins for active subscriptions', () => {
       'utf8',
     );
     expect(vis).toMatch(/getPublicVendorMapWhere/);
-    expect(vis).toMatch(/subscriptionStatus: ACTIVE_SUB/);
+    // Live UserSubscription check — denormalized vendor.subscriptionStatus can stay
+    // ACTIVE after expiry until reconcile runs, so pins must key off current_period_end.
     expect(vis).toMatch(/LIVE_VENDOR_SUB_STATUSES/);
+    expect(vis).toMatch(/currentPeriodEnd: \{ gte: now \}/);
     expect(vis).not.toMatch(/showOnMap: true,/);
   });
 });

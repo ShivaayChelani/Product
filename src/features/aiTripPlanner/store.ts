@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
-import type { BudgetTier, TravelPace, Travelers } from '../../services/api/trips';
+import type { BudgetTier, TimePreference, TravelPace, Travelers } from '../../services/api/trips';
 import { AI_PLANNER_DRAFT_KEY, DEFAULT_DAYS, INTERESTS, MAX_INTERESTS, PROMPT_MAX } from './constants';
 
 export type AiPlannerDraft = {
@@ -10,7 +10,12 @@ export type AiPlannerDraft = {
   selectedPace: TravelPace;
   selectedCompanions: Travelers;
   selectedBudget: BudgetTier;
+  customBudgetAmount: string;
   selectedTransportation: string[];
+  /** ISO date (yyyy-mm-dd) or '' when flexible. */
+  startDate: string;
+  timePreference: TimePreference | '';
+  avoid: string[];
   days: number;
 };
 
@@ -28,8 +33,12 @@ const defaultDraft = (): AiPlannerDraft => ({
   selectedInterests: [],
   selectedPace: 'BALANCED',
   selectedCompanions: 'FAMILY',
-  selectedBudget: 'MEDIUM',
+  selectedBudget: 'CUSTOM',
+  customBudgetAmount: '',
   selectedTransportation: ['CAR'],
+  startDate: '',
+  timePreference: '',
+  avoid: [],
   days: DEFAULT_DAYS,
 });
 
@@ -51,7 +60,11 @@ type Store = AiPlannerDraft & {
   setPace: (v: TravelPace) => void;
   setCompanions: (v: Travelers) => void;
   setBudget: (v: BudgetTier) => void;
+  setCustomBudgetAmount: (v: string) => void;
   toggleTransportation: (mode: string) => void;
+  setStartDate: (iso: string) => void;
+  setTimePreference: (v: TimePreference | '') => void;
+  toggleAvoid: (option: string) => void;
   setDays: (n: number) => void;
   validate: () => boolean;
   clearErrors: () => void;
@@ -99,6 +112,7 @@ export const useAiPlannerStore = create<Store>((set, get) => ({
   setPace: selectedPace => set({ selectedPace, isDirty: true }),
   setCompanions: selectedCompanions => set({ selectedCompanions, isDirty: true }),
   setBudget: selectedBudget => set({ selectedBudget, isDirty: true }),
+  setCustomBudgetAmount: customBudgetAmount => set({ customBudgetAmount, isDirty: true }),
   toggleTransportation: mode =>
     set(s => {
       const has = s.selectedTransportation.includes(mode);
@@ -111,6 +125,15 @@ export const useAiPlannerStore = create<Store>((set, get) => ({
       };
     }),
   setDays: days => set({ days, isDirty: true }),
+  setStartDate: startDate => set({ startDate, isDirty: true }),
+  setTimePreference: timePreference => set({ timePreference, isDirty: true }),
+  toggleAvoid: option =>
+    set(s => ({
+      avoid: s.avoid.includes(option)
+        ? s.avoid.filter(a => a !== option)
+        : [...s.avoid, option],
+      isDirty: true,
+    })),
 
   validate: () => {
     const s = get();
@@ -119,7 +142,7 @@ export const useAiPlannerStore = create<Store>((set, get) => ({
     if (s.selectedInterests.length < 1) errors.interests = 'Pick at least one interest';
     if (!s.selectedPace) errors.pace = 'Select travel pace';
     if (!s.selectedCompanions) errors.travelers = 'Select traveller type';
-    if (!s.selectedBudget) errors.budget = 'Select budget';
+    if (!s.customBudgetAmount || isNaN(Number(s.customBudgetAmount)) || Number(s.customBudgetAmount) <= 0) errors.budget = 'Enter a valid budget';
     set({ errors });
     return Object.keys(errors).length === 0;
   },
@@ -137,7 +160,11 @@ export const useAiPlannerStore = create<Store>((set, get) => ({
       selectedPace: s.selectedPace,
       selectedCompanions: s.selectedCompanions,
       selectedBudget: s.selectedBudget,
+      customBudgetAmount: s.customBudgetAmount,
       selectedTransportation: s.selectedTransportation,
+      startDate: s.startDate,
+      timePreference: s.timePreference,
+      avoid: s.avoid,
       days: s.days,
     };
     await AsyncStorage.setItem(AI_PLANNER_DRAFT_KEY, JSON.stringify(draft));

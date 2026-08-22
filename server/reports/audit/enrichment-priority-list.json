@@ -1,0 +1,455 @@
+{
+  "generatedAt": "2026-08-21T18:48:32.271Z",
+  "method": "selection frequency across real aiGenerate audit artifacts (before+after fixes)",
+  "totalRanked": 28,
+  "items": [
+    {
+      "priorityRank": 1,
+      "placeId": "cmsn0bpo7003mfy012ecpdvxi",
+      "name": "Lamheta Ghat",
+      "city": "Jabalpur",
+      "category": "riverfront_/_nature",
+      "selectedCount": 35,
+      "distinctScenarios": 18,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 2,
+      "placeId": "cmsn0bplk003ify01w76wpkcf",
+      "name": "Gupteshwar Mahadev Temple",
+      "city": "Jabalpur",
+      "category": "religious_/_heritage",
+      "selectedCount": 34,
+      "distinctScenarios": 17,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 3,
+      "placeId": "cmsmavh7h002bcf01arvrobwq",
+      "name": "Ghughra Falls",
+      "city": "Jabalpur",
+      "category": "waterfall",
+      "selectedCount": 33,
+      "distinctScenarios": 18,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 4,
+      "placeId": "cmsmavgz00013cf01u52jyj8o",
+      "name": "Dhuandhar Falls",
+      "city": "Jabalpur",
+      "category": "waterfall",
+      "selectedCount": 33,
+      "distinctScenarios": 18,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 5,
+      "placeId": "cmsmavgyy0011cf01nr62zf65",
+      "name": "Bhedaghat Marble Rocks",
+      "city": "Jabalpur",
+      "category": "nature",
+      "selectedCount": 32,
+      "distinctScenarios": 17,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 6,
+      "placeId": "cmsmavh1q0015cf01t1h7t338",
+      "name": "Bhedaghat Boating Point / Nauka Vihar",
+      "city": "Jabalpur",
+      "category": "adventure",
+      "selectedCount": 32,
+      "distinctScenarios": 17,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": false
+      }
+    },
+    {
+      "priorityRank": 7,
+      "placeId": "cmsmavh1u001bcf0109wzld74",
+      "name": "Madan Mahal Fort",
+      "city": "Jabalpur",
+      "category": "fort",
+      "selectedCount": 32,
+      "distinctScenarios": 17,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 8,
+      "placeId": "cmsmavh7i002dcf01rk4brfpq",
+      "name": "Sangram Sagar Lake",
+      "city": "Jabalpur",
+      "category": "lake",
+      "selectedCount": 31,
+      "distinctScenarios": 17,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 9,
+      "placeId": "cmsmavh4o001rcf01d2u7ejsh",
+      "name": "Pisanhari Ki Madiya",
+      "city": "Jabalpur",
+      "category": "temple",
+      "selectedCount": 30,
+      "distinctScenarios": 17,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 10,
+      "placeId": "cmsn0bplh003gfy01d3qnowo3",
+      "name": "Bhawartal Garden",
+      "city": "Jabalpur",
+      "category": "park_/_recreation",
+      "selectedCount": 27,
+      "distinctScenarios": 15,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 11,
+      "placeId": "cmsmavh1w001dcf01julq9wj6",
+      "name": "Rani Durgavati Museum",
+      "city": "Jabalpur",
+      "category": "museum",
+      "selectedCount": 25,
+      "distinctScenarios": 14,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 12,
+      "placeId": "cmsmavh1s0017cf010p43y4yz",
+      "name": "Chausath Yogini Temple",
+      "city": "Jabalpur",
+      "category": "temple",
+      "selectedCount": 22,
+      "distinctScenarios": 18,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 13,
+      "placeId": "cmsmavh4t001zcf01wpr3f8ps",
+      "name": "Maa Tirupur Sundari Temple",
+      "city": "Jabalpur",
+      "category": "temple",
+      "selectedCount": 17,
+      "distinctScenarios": 15,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 14,
+      "placeId": "cmsmavh4l001ncf01agkc00vy",
+      "name": "Gwarighat Narmada river ",
+      "city": "Jabalpur",
+      "category": "ghat",
+      "selectedCount": 6,
+      "distinctScenarios": 5,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": false
+      }
+    },
+    {
+      "priorityRank": 15,
+      "placeId": "cmsmavh4q001tcf01ykwx5m1l",
+      "name": "Tilwara Ghat",
+      "city": "Jabalpur",
+      "category": "ghat",
+      "selectedCount": 5,
+      "distinctScenarios": 5,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": false
+      }
+    },
+    {
+      "priorityRank": 16,
+      "placeId": "cmsmavha2002ncf01amctrmxa",
+      "name": "Bhadbhada  waterfall",
+      "city": "Jabalpur",
+      "category": "waterfall",
+      "selectedCount": 5,
+      "distinctScenarios": 4,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 17,
+      "placeId": "cmsmavh4r001vcf01b0kcygj3",
+      "name": "Balancing Rock",
+      "city": "Jabalpur",
+      "category": "nature",
+      "selectedCount": 5,
+      "distinctScenarios": 3,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 18,
+      "placeId": "cmsn0bpo9003ofy01z27j7zbq",
+      "name": "Gurudwara Gwarighat Sahib",
+      "city": "Jabalpur",
+      "category": "religious_/_cultural",
+      "selectedCount": 4,
+      "distinctScenarios": 3,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 19,
+      "placeId": "cmsmavh7k002fcf01y3fpdyzt",
+      "name": "Hanumantal Bada Jain Mandir",
+      "city": "Jabalpur",
+      "category": "temple",
+      "selectedCount": 4,
+      "distinctScenarios": 4,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 20,
+      "placeId": "cmsmavh4n001pcf01053gi61b",
+      "name": "Kachnar City Shiv Temple",
+      "city": "Jabalpur",
+      "category": "temple",
+      "selectedCount": 4,
+      "distinctScenarios": 4,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 21,
+      "placeId": "cmsmavha7002vcf01dtb3itzi",
+      "name": "Patbaba Mandir",
+      "city": "Jabalpur",
+      "category": "temple",
+      "selectedCount": 4,
+      "distinctScenarios": 4,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 22,
+      "placeId": "cmsmavh4w0023cf01z02q9gbk",
+      "name": "Thakur Taal",
+      "city": "Jabalpur",
+      "category": "nature",
+      "selectedCount": 3,
+      "distinctScenarios": 2,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": false
+      }
+    },
+    {
+      "priorityRank": 23,
+      "placeId": "cmsmavha8002xcf01uh4fjz78",
+      "name": "Bajnamath mandir",
+      "city": "Jabalpur",
+      "category": "temple",
+      "selectedCount": 2,
+      "distinctScenarios": 2,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 24,
+      "placeId": "cmsn0bpod003sfy01kb0qao4x",
+      "name": "Saraswati Ghat",
+      "city": "Jabalpur",
+      "category": "riverfront_/_hidden_gem",
+      "selectedCount": 2,
+      "distinctScenarios": 2,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 25,
+      "placeId": "cmsn0bpob003qfy01z6tmx282",
+      "name": "Jalpari Lake",
+      "city": "Jabalpur",
+      "category": "lake_/_nature",
+      "selectedCount": 2,
+      "distinctScenarios": 2,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 26,
+      "placeId": "cmsn0bpoe003ufy01kllhzwcl",
+      "name": "Kalyanika Tapovan",
+      "city": "Jabalpur",
+      "category": "nature_/_spiritual",
+      "selectedCount": 2,
+      "distinctScenarios": 2,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 27,
+      "placeId": "cmsmavh1x001fcf010f7pej84",
+      "name": "Dumna Nature Reserve Park",
+      "city": "Jabalpur",
+      "category": "park",
+      "selectedCount": 1,
+      "distinctScenarios": 1,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    },
+    {
+      "priorityRank": 28,
+      "placeId": "cmsn0bpoh003yfy01acf37t8b",
+      "name": "Gaubachha Ghat Waterfall",
+      "city": "Jabalpur",
+      "category": "waterfall_/_hidden_gem",
+      "selectedCount": 1,
+      "distinctScenarios": 1,
+      "missing": {
+        "rating": true,
+        "reviews": true,
+        "visitDuration": true,
+        "popularityScore": true,
+        "openingHoursReliable": true
+      }
+    }
+  ]
+}

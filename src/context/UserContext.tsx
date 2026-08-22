@@ -4,7 +4,7 @@ import { UserActiveMode, UserProfile } from '../types';
 import { loadUserProgress, saveUserProgress } from '../services/localStorageService';
 import {
   login, signup, logout, restoreSession, forgotPassword, setActiveMode as persistActiveMode,
-  refreshSessionRoles, verifyRegisterEmail, resendRegisterOtp,
+  refreshSessionRoles, verifyRegisterEmail, resendRegisterOtp, googleLogin,
 } from '../services/authService';
 import { notificationService } from '../services/notificationService';
 import { apiClient } from '../services/api/client';
@@ -25,6 +25,7 @@ interface UserContextType {
   isLoggingOut: boolean;
   setUser: React.Dispatch<React.SetStateAction<UserProfile>>;
   setIsAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
+  onGoogleLogin: () => Promise<boolean>;
   onLogin: (
     email: string,
     password: string,
@@ -187,6 +188,37 @@ export function UserProvider({ children }: { children: ReactNode }) {
     user.activeRole,
     user.roles,
   ]);
+
+  const onGoogleLogin = useCallback(async (): Promise<boolean> => {
+    setAuthLoading(true);
+    try {
+      const result = await googleLogin();
+      if (result) {
+        setUser(prev => ({ ...prev, ...result.user }));
+        setIsAuthenticated(true);
+        trackAuthEvent('login', { mode: result.user.activeMode || result.user.activeRole });
+        void applyWalletPalPoints(setUser);
+
+        notificationService.requestPermission().then((granted) => {
+          if (granted) {
+            notificationService.registerDeviceToken().catch((err) => {
+              console.log('[Push] Token registration failed:', err?.message);
+            });
+          }
+        });
+
+        return true;
+      }
+      return false;
+    } catch (e: any) {
+      if (e.status === 403 && (e.code === 'EMAIL_NOT_VERIFIED' || e.details?.requiresEmailVerification)) {
+        throw e;
+      }
+      throw e;
+    } finally {
+      setAuthLoading(false);
+    }
+  }, [applyWalletPalPoints]);
 
   const onLogin = useCallback(async (
     email: string,
@@ -420,7 +452,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   return (
     <UserContext.Provider value={{
       user, isAuthenticated, isGuest, isInitializing, authLoading, isStorageLoaded, isLoggingOut,
-      setUser, setIsAuthenticated, onLogin, onSignup, onVerifyRegisterEmail, onResendRegisterOtp, onLogout, confirmLogout, onGuestContinue,
+      setUser, setIsAuthenticated, onGoogleLogin, onLogin, onSignup, onVerifyRegisterEmail, onResendRegisterOtp, onLogout, confirmLogout, onGuestContinue,
       onForgotPassword, setActiveMode, setActiveRole: setActiveMode, refreshSession, handleResetProgress,
     }}>
       {children}

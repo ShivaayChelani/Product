@@ -5,7 +5,7 @@ const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'PalSaSafar API',
+      title: 'PalSafar API',
       version: '1.0.0',
       description: `Tourism Places API with user auth, admin roles, place submission, image upload, and geo queries.
 
@@ -45,7 +45,7 @@ const options: swaggerJsdoc.Options = {
 }
 \`\`\``,
       contact: {
-        name: 'PalSaSafar Team',
+        name: 'PalSafar Team',
       },
     },
     servers: [

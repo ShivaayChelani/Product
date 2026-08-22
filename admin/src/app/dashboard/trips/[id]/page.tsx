@@ -161,6 +161,38 @@ export default function TripDetailPage() {
         </div>
       )}
 
+      {(() => {
+        const log = (trip as { generationLog?: { provider: string; success: boolean; errorMessage?: string | null; rawPromptText?: string | null; createdAt: string } | null }).generationLog;
+        if (!log) return null;
+        return (
+          <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-sm font-bold text-gray-900">Last AI generation</h2>
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${log.success ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+                {log.success ? "Success" : "Failed"}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500">
+              Provider: <span className="font-medium text-gray-700">{log.provider}</span>
+              {" · "}
+              {new Date(log.createdAt).toLocaleString()}
+            </p>
+            {log.rawPromptText && (
+              <>
+                <p className="mt-2 text-xs font-medium text-gray-600">User request</p>
+                <pre className="mt-1 max-h-32 overflow-y-auto whitespace-pre-wrap rounded-lg bg-gray-50 p-3 text-[11px] text-gray-700 custom-scrollbar">{log.rawPromptText}</pre>
+              </>
+            )}
+            {log.errorMessage && (
+              <>
+                <p className="mt-2 text-xs font-medium text-red-600">Error</p>
+                <p className="text-[11px] text-red-500">{log.errorMessage}</p>
+              </>
+            )}
+          </div>
+        );
+      })()}
+
       <div className="rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden">
         <div className="border-b border-gray-100 px-5 py-4">
           <h2 className="text-sm font-bold text-gray-900">Itinerary</h2>

@@ -1136,7 +1136,7 @@ model TripCollaborator {
   @@map("trip_collaborators")
 }
 
-/// Audit trail for AI itinerary generation requests — persists even for
+/// Audit trail for AI itinerary generation requests â€” persists even for
 /// failed/ephemeral generations, and backs "regenerate history".
 model AiGenerationLog {
   id            String    @id @default(cuid())
@@ -1593,7 +1593,7 @@ model SearchQueryLog {
   @@map("search_query_logs")
 }
 
-/// One row per (document type, locale) — the addressable "slot" that always has
+/// One row per (document type, locale) â€” the addressable "slot" that always has
 /// at most one PUBLISHED version at a time. Content itself lives in LegalDocumentVersion
 /// so every edit is versioned and nothing is ever destructively overwritten.
 model LegalDocument {
@@ -1635,7 +1635,7 @@ model LegalDocumentVersion {
   @@map("legal_document_versions")
 }
 
-/// Admin-authored in-app banners/notices (separate from push notifications — these
+/// Admin-authored in-app banners/notices (separate from push notifications â€” these
 /// are pulled by clients on demand and shown while active, not delivered as events).
 model Announcement {
   id          String               @id @default(cuid())
@@ -1669,7 +1669,7 @@ model SubscriptionPlan {
   color                  String?                 @default("#B9834B")
   status                 PlanStatus              @default(DRAFT)
   sortOrder              Int                     @default(0) @map("sort_order")
-  /// Legacy feature/limits JSON — synced from plan_limits / plan_permissions for clients
+  /// Legacy feature/limits JSON â€” synced from plan_limits / plan_permissions for clients
   features               Json                    @default("{}")
   trialDays              Int                     @default(0) @map("trial_days")
   gracePeriodDays        Int                     @default(3) @map("grace_period_days")
@@ -2472,6 +2472,8 @@ enum AuditAction {
   COLLABORATION_REJECTED
   COLLABORATION_SUSPENDED
   COLLABORATION_COMPLETED
+  SETTINGS_UPDATED
+  SETTINGS_RESET
 }
 
 enum TransactionType {

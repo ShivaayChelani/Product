@@ -1,4 +1,4 @@
-﻿import type { BudgetTier, TravelPace, Travelers } from '../../services/api/trips';
+import type { BudgetTier, TravelPace, Travelers } from '../../services/api/trips';
 
 export const AI_PLANNER_DRAFT_KEY = '@palsafar/ai_planner_draft_v2';
 export const DESTINATION_HISTORY_KEY = '@palsafar/ai_destination_history';
@@ -18,7 +18,6 @@ export const INTERESTS = [
   { label: 'Heritage', value: 'heritage', icon: 'library-outline' },
   { label: 'Spiritual', value: 'spiritual', icon: 'flower-outline' },
   { label: 'Wildlife', value: 'wildlife', icon: 'paw-outline' },
-  { label: 'Hidden Gems', value: 'hidden gems', icon: 'diamond-outline' },
   { label: 'Beaches', value: 'beaches', icon: 'umbrella-outline' },
   { label: 'Cafes', value: 'cafes', icon: 'cafe-outline' },
 ] as const;

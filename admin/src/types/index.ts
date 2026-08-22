@@ -141,6 +141,11 @@ export interface PlaceOpeningShift {
   close: string;
 }
 
+export interface PlaceOpeningShift {
+  open: string;
+  close: string;
+}
+
 export interface PlaceFormData {
   name: string;
   description: string;
@@ -160,14 +165,18 @@ export interface PlaceFormData {
   bestTimeTo?: string;
   bestTimeMonths?: string;
   bestTimeReason?: string;
-  /** @deprecated Prefer openingShifts — kept for older call sites */
-  openingFrom?: string;
-  openingTo?: string;
-  openingShifts?: PlaceOpeningShift[];
-  closedDays?: string[];
+  /**
+   * Per-day opening windows in the production shape the itinerary engine
+   * normalizes. Empty array = explicitly closed. close <= open = overnight.
+   */
+  hoursByDay?: Record<string, PlaceOpeningShift[]>;
+  dayClosed?: Record<string, boolean>;
+  estimatedDurationMinutes?: string;
   ticketAdult?: string;
   ticketChild?: string;
   ticketForeigner?: string;
+  /** How the ticket is charged — FREE | PER_PERSON | PER_VEHICLE | PER_GROUP | FLAT_RATE | UNKNOWN */
+  ticketBasis?: string;
   isFreeEntry?: boolean;
 }
 

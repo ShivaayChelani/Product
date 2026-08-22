@@ -25,7 +25,6 @@ const WIN = Dimensions.get('window');
 
 const STATUS_TASKS = [
   { icon: 'diamond-outline', label: 'Finding hidden gems...' },
-  { icon: 'partly-sunny-outline', label: 'Checking weather...' },
   { icon: 'heart-outline', label: 'Matching your interests...' },
   { icon: 'wallet-outline', label: 'Calculating budget...' },
   { icon: 'business-outline', label: 'Finding local experiences...' },
@@ -248,6 +247,7 @@ export default function GenerateLoadingScreen({ route: propRoute }: { navigation
       avoid: params.avoid || [],
       prompt: params.prompt,
       tripId: params.tripId,
+      startDate: params.startDate || undefined,
       manualPlaceIds: Array.isArray(params.manualPlaceIds) ? params.manualPlaceIds : undefined,
       fillWithAi: params.fillWithAi === true ? true : undefined,
       transportation: Array.isArray(params.transportation) ? params.transportation : undefined,

@@ -735,6 +735,18 @@ function countSameCategory(chosen: ClusterPlace[], p: ClusterPlace): number {
   return chosen.filter((c) => categoryOf(c) === cat).length;
 }
 
+/** How many already-chosen stops sit inside the same tight complex as `p`. */
+function sameComplexCount(chosen: ClusterPlace[], p: ClusterPlace): number {
+  return chosen.filter((c) => nearestDistanceTo(p, [c]) <= SAME_COMPLEX_KM).length;
+}
+
+/**
+ * Redundancy ceiling for one sight-complex within a single day. Proximity is
+ * legitimate (Marble Rocks + boat ride + viewpoint belong together); endless
+ * stacking of the same complex is not.
+ */
+export const MAX_SAME_COMPLEX_PER_DAY = 3;
+
 /**
  * Value of adding `p` to a day that already contains `chosen`.
  *
@@ -784,14 +796,27 @@ function stopCapacity(
   opts: PackOptions,
   fromOwnZone: boolean,
 ): boolean {
-  // This area is visited once. Pack everything the clock allows so leftovers
-  // are not waiting for a second trip tomorrow.
-  if (fromOwnZone) return chosen.length < 10;
+  // One tight sight-complex (<= SAME_COMPLEX_KM between members) must not
+  // monopolise an outing: after MAX_SAME_COMPLEX_PER_DAY members the day needs
+  // variety more than another angle on the same monument row.
+  if (!p.isPinned && sameComplexCount(chosen, p) >= MAX_SAME_COMPLEX_PER_DAY) return false;
+
+  // Compact bonus is pace-gated: QUICK/BALANCED keep it, RELAXED/VERY_RELAXED
+  // disable it so "fewer activities" is a hard guarantee, not a suggestion.
+  const bonus = opts.allowCompactBonus === true;
+
+  if (fromOwnZone) {
+    // Own-zone stops used to bypass the pace cap entirely (< 10). Now they are
+    // bounded by the pace cap, plus the (bonus-only) compact allowance.
+    if (!bonus) return chosen.length < opts.maxStopsPerDay;
+    return chosen.length < Math.min(10, opts.maxStopsPerDay + MAX_COMPACT_BONUS_STOPS);
+  }
+
   if (chosen.length < opts.maxStopsPerDay) return true;
-  if (chosen.length >= opts.maxStopsPerDay + MAX_COMPACT_BONUS_STOPS) return false;
+  if (!bonus) return false;
   const gap = nearestDistanceTo(p, chosen);
-  if (gap <= SAME_COMPLEX_KM) return true;
-  return !!opts.allowCompactBonus && gap <= NEAR_FREE_STOP_KM;
+  if (gap <= SAME_COMPLEX_KM) return true; // complex cap enforced above
+  return gap <= NEAR_FREE_STOP_KM;
 }
 
 /**

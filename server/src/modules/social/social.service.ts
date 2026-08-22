@@ -970,7 +970,9 @@ export const socialService = {
     if (query.category === 'Nearby' && query.lat && query.lng) {
       const uLat = parseFloat(query.lat);
       const uLng = parseFloat(query.lng);
-      const rad = parseFloat(query.radius || '100'); // Default 100km
+      const parsedRadius = parseFloat(query.radius || '100'); // Default 100km
+      // Clamp server-side: NaN/negative/absurd client radii must not widen or break the feed.
+      const rad = Math.min(Math.max(Number.isFinite(parsedRadius) ? parsedRadius : 100, 1), 200);
 
       // Fetch all reels that link to locations
       const allLinkedReels = await prisma.reel.findMany({

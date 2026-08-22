@@ -4,7 +4,7 @@ import { authenticate, optionalAuth, requireAdmin, requireVendorRole } from '../
 import { requireContentOps, requirePlatformOps } from '../../middleware/adminCapabilities';
 import { validate } from '../../middleware/validate';
 import {
-  createPlaceSchema, updatePlaceSchema, updatePlaceStatusSchema, rejectPlaceSchema,
+  createPlaceSchema, updatePlaceSchema, updatePlaceStatusSchema, rejectPlaceSchema, bulkPlaceStatusSchema,
   nearbyQuerySchema, viewportQuerySchema, viewportSearchQuerySchema, statActionSchema,
   clusterQuerySchema, mapQuerySchema, searchQuerySchema,
   addImageSchema, addVideoSchema,
@@ -92,8 +92,9 @@ adminRouter.get('/canonical/resolve', placesController.canonicalResolveSearch);
 adminRouter.post('/:id/aliases', requirePlatformOps, placesController.canonicalAddAliases);
 adminRouter.delete('/', requirePlatformOps, placesController.adminDeleteAll);
 adminRouter.patch('/:id', requireContentOps, validate(updatePlaceSchema), placesController.adminUpdate);
-adminRouter.patch('/:id/approve', requireContentOps, placesController.approvePlace);
-adminRouter.patch('/:id/reject', requireContentOps, validate(rejectPlaceSchema), placesController.rejectPlace);
+  adminRouter.patch('/:id/approve', requireContentOps, placesController.approvePlace);
+  adminRouter.patch('/:id/reject', requireContentOps, validate(rejectPlaceSchema), placesController.rejectPlace);
+  adminRouter.post('/bulk-status', requireContentOps, validate(bulkPlaceStatusSchema), placesController.bulkStatus);
 adminRouter.delete('/:id', requirePlatformOps, placesController.adminDeletePlace);
 
 // ── Vendor Router (mounted at /vendor/places) ──

@@ -57,7 +57,6 @@ export interface TripPlanDay {
   dayNumber: number;
   date?: string | null;
   theme?: string | null;
-  weather?: string | null;
   stops: TripPlanStop[];
   /** Prisma stop count. Used when `stops` is truncated (list cover thumbnail). */
   _count?: { stops?: number };

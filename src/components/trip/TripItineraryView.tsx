@@ -10,6 +10,7 @@ import {
   Platform,
   ActivityIndicator,
   useWindowDimensions,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -87,6 +88,40 @@ function formatDuration(minutes?: number | null) {
     return m ? `${h}h ${m}m` : `${h} hr`;
   }
   return `${minutes} mins`;
+}
+
+/** "09:30" (24h HH:MM from the engine) -> "9:30 AM". Returns '' for invalid input. */
+function formatTime12h(time?: string | null) {
+  if (!time || !/^\d{1,2}:\d{2}$/.test(time)) return '';
+  const [hStr, mStr] = time.split(':');
+  const h = parseInt(hStr, 10);
+  const m = mStr;
+  if (Number.isNaN(h)) return '';
+  const period = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${m} ${period}`;
+}
+
+/** Honest entry-fee label — reflects the stored fee basis, never assumes. */
+function feeLabel(entryFee?: number | null, basis?: string): string {
+  const fee = entryFee && entryFee > 0 ? `₹${Math.round(entryFee)}` : null;
+  switch ((basis || '').toUpperCase()) {
+    case 'FREE':
+      return 'Free Entry';
+    case 'PER_PERSON':
+      return fee ? `${fee}/person entry` : 'Free Entry';
+    case 'PER_VEHICLE':
+      return fee ? `${fee}/vehicle` : 'Free Entry';
+    case 'PER_GROUP':
+      return fee ? `${fee}/group` : 'Free Entry';
+    case 'FLAT_RATE':
+      return fee ? `${fee} flat` : 'Free Entry';
+    case 'UNKNOWN':
+      return fee ? `${fee} entry (type unverified)` : 'Entry free?';
+    default:
+      // No basis stored: legacy rows with amounts were per-person by contract.
+      return fee ? `${fee}/person entry` : 'Free Entry';
+  }
 }
 
 /** Prefer live destination + stop highlights; never show a stale other-city theme. */
@@ -232,15 +267,29 @@ export default function TripItineraryView({
                       </View>
                     </View>
                     <Text style={styles.stopLocText}>{stop.place?.city || trip.destination || 'Nearby'}</Text>
+                    {formatTime12h(stop.startTime) ? (
+                      <Text style={styles.stopTimeText}>
+                        {formatTime12h(stop.startTime)}
+                        {formatTime12h(stop.endTime) ? ` – ${formatTime12h(stop.endTime)}` : ''}
+                      </Text>
+                    ) : null}
+                    {i > 0 && stop.distanceFromPrev ? (
+                      <Text style={styles.stopTravelText}>
+                        <Icon name="walk-outline" size={11} color={C.textMuted} /> {' '}
+                        ~{stop.distanceFromPrev % 1 === 0 ? stop.distanceFromPrev.toFixed(0) : stop.distanceFromPrev.toFixed(1)} km from previous stop
+                      </Text>
+                    ) : null}
                     <Text style={styles.stopDescText} numberOfLines={2}>
                       {stop.reason || stop.place?.description || 'Explore this stop on your itinerary.'}
                     </Text>
 
                     <View style={styles.stopPills}>
-                      <View style={styles.pillItem}>
-                        <Icon name="time-outline" size={12} color={C.ink} />
-                        <Text style={styles.pillText}>{formatDuration(stop.duration) || '45 mins'}</Text>
-                      </View>
+                      {formatDuration(stop.duration) ? (
+                        <View style={styles.pillItem}>
+                          <Icon name="time-outline" size={12} color={C.ink} />
+                          <Text style={styles.pillText}>{formatDuration(stop.duration)}</Text>
+                        </View>
+                      ) : null}
                       {!stop.skippedAt ? (
                         <View style={styles.pillItem}>
                           <Icon name="star-outline" size={12} color={C.ink} />
@@ -249,7 +298,7 @@ export default function TripItineraryView({
                       ) : null}
                       {!isCheckIn && (
                         <View style={styles.pillItem}>
-                          <Text style={styles.pillText}>Free Entry</Text>
+                          <Text style={styles.pillText}>{feeLabel(stop.entryFee, (stop.place as { ticketPrice?: { basis?: string } } | null)?.ticketPrice?.basis)}</Text>
                         </View>
                       )}
                     </View>
@@ -346,20 +395,29 @@ export default function TripItineraryView({
                   <View style={styles.heroStatItem}>
                     <Icon name="people-outline" size={20} color={C.goldText} style={styles.heroStatIcon} />
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.heroStatVal}>{travellerCount} Traveller{travellerCount !== 1 ? 's' : ''}</Text>
-                      <Text style={styles.heroStatLbl}>{formatTravellerGroup(trip.travelers)}</Text>
+                      <Text style={styles.heroStatVal}>{formatTravellerGroup(trip.travelers)}</Text>
+                      <Text style={styles.heroStatLbl}>Companions</Text>
                     </View>
                   </View>
                   
-                  <View style={styles.heroStatItem}>
+                  <TouchableOpacity 
+                    style={styles.heroStatItem}
+                    onPress={() => {
+                      const msg = trip.customBudgetAmount 
+                        ? `Your budget was ₹${trip.customBudgetAmount.toLocaleString('en-IN')}.\n\nThis trip's estimated cost is ₹${budgetSummary.grandTotal.toLocaleString('en-IN')} (calculated from entry fees, food, and travel).`
+                        : `This is calculated from the itinerary places. Entry fees and food are multiplied by traveller count. Transport is estimated for the route at ₹8/km.`;
+                      Alert.alert('Trip Budget Estimate', msg);
+                    }}
+                    activeOpacity={0.7}
+                  >
                     <Icon name="wallet-outline" size={20} color={C.goldText} style={styles.heroStatIcon} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.heroStatVal}>
                         {budgetSummary.grandTotal > 0 ? formatBudgetApprox(budgetSummary.grandTotal) : 'No cost yet'}
                       </Text>
-                      <Text style={styles.heroStatLbl}>{budgetSummary.scopeLabel}</Text>
+                      <Text style={styles.heroStatLbl}>{budgetSummary.scopeLabel} ⓘ</Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                   
                   <View style={styles.heroStatItem}>
                     <View style={styles.starCircle}>
@@ -422,11 +480,6 @@ export default function TripItineraryView({
                     Earn +{currentDayPotential} PalPoints today
                     {currentDayStopCount ? ` (${currentDayStopCount} places × ${palPointsSummary.perVisitPoints})` : ''}
                   </Text>
-                </View>
-                <View style={styles.weatherBtn}>
-                  <Icon name="sunny-outline" size={16} color={C.goldText} />
-                  <Text style={styles.weatherBtnText}>20°C</Text>
-                  <Icon name="chevron-down" size={14} color={C.text} />
                 </View>
               </View>
 
@@ -561,12 +614,6 @@ const styles = StyleSheet.create({
   dayTitleWrap: { flex: 1, paddingRight: 8 },
   dayTitle: { fontSize: 16, fontFamily: serif, fontWeight: '700', color: C.ink },
   dayPointsText: { fontSize: 11, fontFamily: 'Inter-SemiBold', color: C.goldText, marginTop: 4 },
-  weatherBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: C.surface, paddingHorizontal: 8, paddingVertical: 4,
-    borderRadius: 12, borderWidth: 1, borderColor: C.border,
-  },
-  weatherBtnText: { fontSize: 12, fontFamily: 'Inter-Bold', color: C.text },
 
   // Timeline
   timeline: { paddingHorizontal: H_PAD },
@@ -608,6 +655,8 @@ const styles = StyleSheet.create({
   stopTopActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stopName: { fontSize: 15, fontFamily: 'Inter-Medium', color: C.ink, flex: 1 },
   stopLocText: { fontSize: 12, fontFamily: 'Inter-Medium', color: C.ink, marginTop: 2, marginBottom: 4 },
+  stopTimeText: { fontSize: 11, fontFamily: 'Inter-SemiBold', color: C.goldText, marginBottom: 2 },
+  stopTravelText: { fontSize: 10, fontFamily: 'Inter-Regular', color: C.textMuted, flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
   stopDescText: { fontSize: 11, fontFamily: 'Inter-Regular', color: C.textSub, lineHeight: 16, marginBottom: 8 },
   
   stopPills: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },

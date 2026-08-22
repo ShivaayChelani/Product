@@ -1,0 +1,324 @@
+{
+  "scenario": "T2-jabalpur-3d-relaxed",
+  "input": {
+    "destination": "Jabalpur",
+    "days": 3,
+    "pace": "RELAXED",
+    "travelers": "COUPLE",
+    "budget": "CUSTOM",
+    "customBudgetAmount": 7500,
+    "interests": [
+      "nature",
+      "food"
+    ],
+    "avoid": [],
+    "manualPlaceIds": [],
+    "transportation": [
+      "CAR"
+    ]
+  },
+  "generatedAt": "2026-08-21T18:36:28.690Z",
+  "generationMs": 5837,
+  "tripId": "cmt3aj3fx0001f9x0ngghk8tv",
+  "estimatedBudget": 505,
+  "days": [
+    {
+      "dayNumber": 1,
+      "theme": "Jabalpur Park_/_recreation & Local Sightseeing",
+      "stops": [
+        {
+          "order": 0,
+          "place": "Bhawartal Garden",
+          "placeId": "cmsn0bplh003gfy01d3qnowo3",
+          "category": "park_/_recreation",
+          "city": "Jabalpur",
+          "lat": 23.1626,
+          "lng": 79.9332,
+          "startTime": "09:10",
+          "endTime": "10:10",
+          "timeSlot": "MORNING",
+          "durationMinutes": 60,
+          "entryFee": 10,
+          "distanceFromPrevKm": null,
+          "reason": "Day start near trip-origin. Park Recreation, fits your interest in nature.",
+          "isPinned": false
+        },
+        {
+          "order": 1,
+          "place": "Dumna Nature Reserve Park",
+          "placeId": "cmsmavh1x001fcf010f7pej84",
+          "category": "park",
+          "city": "Jabalpur",
+          "lat": 23.1784,
+          "lng": 80.0248,
+          "startTime": "10:26",
+          "endTime": "11:11",
+          "timeSlot": "MORNING",
+          "durationMinutes": 45,
+          "entryFee": 50,
+          "distanceFromPrevKm": 9.527266522032594,
+          "reason": "Regional anchor for day 1. Park, fits your interest in nature.",
+          "isPinned": false
+        }
+      ]
+    },
+    {
+      "dayNumber": 2,
+      "theme": "Bhedaghat Boating & Jabalpur Highlights",
+      "stops": [
+        {
+          "order": 0,
+          "place": "Bhadbhada  waterfall",
+          "placeId": "cmsmavha2002ncf01amctrmxa",
+          "category": "waterfall",
+          "city": "Jabalpur",
+          "lat": 23.1362,
+          "lng": 79.8037,
+          "startTime": "09:10",
+          "endTime": "10:10",
+          "timeSlot": "MORNING",
+          "durationMinutes": 60,
+          "entryFee": 0,
+          "distanceFromPrevKm": null,
+          "reason": "Day start near Dumna Nature Reserve Park. Waterfall, fits your interest in nature.",
+          "isPinned": false
+        },
+        {
+          "order": 1,
+          "place": "Bhedaghat Boating Point / Nauka Vihar",
+          "placeId": "cmsmavh1q0015cf01t1h7t338",
+          "category": "adventure",
+          "city": "Jabalpur",
+          "lat": 23.1317,
+          "lng": 79.8021,
+          "startTime": "10:15",
+          "endTime": "11:15",
+          "timeSlot": "MORNING",
+          "durationMinutes": 60,
+          "entryFee": 100,
+          "distanceFromPrevKm": 0.5264448358288041,
+          "reason": "Nearby in the same region (0.5 km). Adventure, fits your interest in nature.",
+          "isPinned": false
+        },
+        {
+          "order": 2,
+          "place": "Bhedaghat Marble Rocks",
+          "placeId": "cmsmavgyy0011cf01nr62zf65",
+          "category": "nature",
+          "city": "Jabalpur",
+          "lat": 23.1311,
+          "lng": 79.8011,
+          "startTime": "11:20",
+          "endTime": "12:20",
+          "timeSlot": "MORNING",
+          "durationMinutes": 60,
+          "entryFee": 0,
+          "distanceFromPrevKm": 0.1220956665492088,
+          "reason": "Nearby in the same region (0.1 km). Nature, fits your interest in nature.",
+          "isPinned": false
+        },
+        {
+          "order": 3,
+          "place": "Lamheta Ghat",
+          "placeId": "cmsn0bpo7003mfy012ecpdvxi",
+          "category": "riverfront_/_nature",
+          "city": "Jabalpur",
+          "lat": 23.10825,
+          "lng": 79.82824,
+          "startTime": "12:26",
+          "endTime": "13:26",
+          "timeSlot": "AFTERNOON",
+          "durationMinutes": 60,
+          "entryFee": 0,
+          "distanceFromPrevKm": 3.762825370284275,
+          "reason": "Nearby in the same region (3.8 km). Riverfront Nature, fits your interest in nature.",
+          "isPinned": false
+        },
+        {
+          "order": 4,
+          "place": "Ghughra Falls",
+          "placeId": "cmsmavh7h002bcf01arvrobwq",
+          "category": "waterfall",
+          "city": "Jabalpur",
+          "lat": 23.1039,
+          "lng": 79.8331,
+          "startTime": "13:31",
+          "endTime": "14:31",
+          "timeSlot": "AFTERNOON",
+          "durationMinutes": 60,
+          "entryFee": 0,
+          "distanceFromPrevKm": 0.6935619403239512,
+          "reason": "Nearby in the same region (0.7 km). Waterfall, fits your interest in nature.",
+          "isPinned": false
+        }
+      ]
+    },
+    {
+      "dayNumber": 3,
+      "theme": "Jabalpur Waterfall_/_hidden_gem & Local Sightseeing",
+      "stops": [
+        {
+          "order": 0,
+          "place": "Gaubachha Ghat Waterfall",
+          "placeId": "cmsn0bpoh003yfy01acf37t8b",
+          "category": "waterfall_/_hidden_gem",
+          "city": "Jabalpur",
+          "lat": 23.105,
+          "lng": 79.905,
+          "startTime": "09:10",
+          "endTime": "10:10",
+          "timeSlot": "MORNING",
+          "durationMinutes": 60,
+          "entryFee": 0,
+          "distanceFromPrevKm": null,
+          "reason": "Day start near Ghughra Falls. Waterfall Hidden Gem, fits your interest in nature.",
+          "isPinned": false
+        },
+        {
+          "order": 1,
+          "place": "Gwarighat Narmada river ",
+          "placeId": "cmsmavh4l001ncf01agkc00vy",
+          "category": "ghat",
+          "city": "Jabalpur",
+          "lat": 23.1081,
+          "lng": 79.9283,
+          "startTime": "10:15",
+          "endTime": "11:00",
+          "timeSlot": "MORNING",
+          "durationMinutes": 45,
+          "entryFee": 0,
+          "distanceFromPrevKm": 2.407797706645757,
+          "reason": "Regional anchor for day 3. Ghat, fits your interest in nature.",
+          "isPinned": false
+        },
+        {
+          "order": 2,
+          "place": "Gupteshwar Mahadev Temple",
+          "placeId": "cmsn0bplk003ify01w76wpkcf",
+          "category": "religious_/_heritage",
+          "city": "Jabalpur",
+          "lat": 23.1455,
+          "lng": 79.917,
+          "startTime": "11:07",
+          "endTime": "12:07",
+          "timeSlot": "MORNING",
+          "durationMinutes": 60,
+          "entryFee": 0,
+          "distanceFromPrevKm": 4.316242379006005,
+          "reason": "Nearby in the same region (4.3 km). Religious Heritage, fits your interest in nature.",
+          "isPinned": false
+        },
+        {
+          "order": 3,
+          "place": "Balancing Rock",
+          "placeId": "cmsmavh4r001vcf01b0kcygj3",
+          "category": "nature",
+          "city": "Jabalpur",
+          "lat": 23.1517,
+          "lng": 79.9142,
+          "startTime": "12:12",
+          "endTime": "13:12",
+          "timeSlot": "AFTERNOON",
+          "durationMinutes": 60,
+          "entryFee": 0,
+          "distanceFromPrevKm": 0.7464849063840943,
+          "reason": "Nearby in the same region (0.7 km). Nature, fits your interest in nature.",
+          "isPinned": false
+        },
+        {
+          "order": 4,
+          "place": "Sangram Sagar Lake",
+          "placeId": "cmsmavh7i002dcf01rk4brfpq",
+          "category": "lake",
+          "city": "Jabalpur",
+          "lat": 23.1495,
+          "lng": 79.9048,
+          "startTime": "13:17",
+          "endTime": "14:17",
+          "timeSlot": "AFTERNOON",
+          "durationMinutes": 60,
+          "entryFee": 0,
+          "distanceFromPrevKm": 0.9917098673662939,
+          "reason": "Nearby in the same region (1.0 km). Lake, fits your interest in nature.",
+          "isPinned": false
+        }
+      ]
+    }
+  ],
+  "analysis": {
+    "scenario": "T2-jabalpur-3d-relaxed",
+    "durationMs": 5837,
+    "note": null,
+    "warnings": [],
+    "engineEstimatedBudget": 505,
+    "recomputedEntryFeesX1": 160,
+    "recomputedEntryFeesX2": 320,
+    "recomputedTransportCost": 185,
+    "totalKm": 23.1,
+    "stops": 12,
+    "days": [
+      {
+        "dayNumber": 1,
+        "stopCount": 2,
+        "firstStart": "09:10",
+        "lastEnd": "11:11",
+        "totalVisitMinutes": 105,
+        "totalKm": 9.5,
+        "segments": 1,
+        "maxSegmentKm": 9.5,
+        "maxTravelMinutes": 16,
+        "detourIndex": null,
+        "overlaps": [],
+        "closedByStart": false
+      },
+      {
+        "dayNumber": 2,
+        "stopCount": 5,
+        "firstStart": "09:10",
+        "lastEnd": "14:31",
+        "totalVisitMinutes": 300,
+        "totalKm": 5.1,
+        "segments": 4,
+        "maxSegmentKm": 3.8,
+        "maxTravelMinutes": 6,
+        "detourIndex": 1.09,
+        "overlaps": [],
+        "closedByStart": false
+      },
+      {
+        "dayNumber": 3,
+        "stopCount": 5,
+        "firstStart": "09:10",
+        "lastEnd": "14:17",
+        "totalVisitMinutes": 285,
+        "totalKm": 8.5,
+        "segments": 4,
+        "maxSegmentKm": 4.3,
+        "maxTravelMinutes": 7,
+        "detourIndex": 1.71,
+        "overlaps": [],
+        "closedByStart": false
+      }
+    ],
+    "stopNames": {
+      "1": [
+        "Bhawartal Garden",
+        "Dumna Nature Reserve Park"
+      ],
+      "2": [
+        "Bhadbhada  waterfall",
+        "Bhedaghat Boating Point / Nauka Vihar",
+        "Bhedaghat Marble Rocks",
+        "Lamheta Ghat",
+        "Ghughra Falls"
+      ],
+      "3": [
+        "Gaubachha Ghat Waterfall",
+        "Gwarighat Narmada river ",
+        "Gupteshwar Mahadev Temple",
+        "Balancing Rock",
+        "Sangram Sagar Lake"
+      ]
+    }
+  }
+}
