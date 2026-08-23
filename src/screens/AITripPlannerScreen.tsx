@@ -1041,7 +1041,7 @@ const styles = StyleSheet.create({
   },
   memberCountLabel: {
     fontSize: 14,
-    color: COLORS.text,
+    color: COLORS.textPrimary,
     marginRight: 12,
   },
   memberCountInput: {
@@ -1051,7 +1051,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     fontSize: 14,
-    color: COLORS.text,
+    color: COLORS.textPrimary,
     minWidth: 80,
   },
   interestGrid: {
