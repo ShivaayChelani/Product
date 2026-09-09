@@ -7,10 +7,9 @@ type Props = {
   topInset: number;
   onBack: () => void;
   onShare?: () => void;
-  onMapView?: () => void;
 };
 
-export function PreviewHeader({ topInset, onBack, onShare, onMapView }: Props) {
+export function PreviewHeader({ topInset, onBack, onShare }: Props) {
   return (
     <View style={[styles.wrap, { paddingTop: topInset + 10 }]}>
       <TouchableOpacity style={styles.backBtn} onPress={onBack} hitSlop={8}>
@@ -20,10 +19,6 @@ export function PreviewHeader({ topInset, onBack, onShare, onMapView }: Props) {
         <TouchableOpacity style={styles.pillBtn} onPress={onShare} activeOpacity={0.8}>
           <Icon name="share-outline" size={15} color="#1C1108" />
           <Text style={styles.pillText}>Share</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.pillBtn} onPress={onMapView} activeOpacity={0.8}>
-          <Icon name="map-outline" size={15} color="#1C1108" />
-          <Text style={styles.pillText}>Map View</Text>
         </TouchableOpacity>
       </View>
     </View>

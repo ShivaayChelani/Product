@@ -452,6 +452,8 @@ export const adminPanelService = {
         where: { id: review.reviewId },
         data: { status: nextStatus },
       });
+      const vendorsService = (await import('../vendors/vendors.service')).vendorsService;
+      await vendorsService.recalculateVendorRating(review.entityId);
     }
 
     return { ...review, status: nextStatus };
@@ -485,7 +487,10 @@ export const adminPanelService = {
           where: { status: 'pending' },
           take: 50,
           orderBy: { createdAt: 'desc' },
-          include: { user: { select: { id: true, name: true, avatar: true } } },
+          include: { 
+            user: { select: { id: true, name: true, avatar: true } },
+            place: { select: { name: true } }
+          },
         }),
         prisma.reelReport.findMany({
           where: { status: ReelReportStatus.PENDING },
@@ -577,7 +582,7 @@ export const adminPanelService = {
         id: `place-image-${img.id}`,
         contentType: 'PLACE',
         entityId: img.id,
-        entityName: 'User place image',
+        entityName: `Image for ${img.place.name}`,
         reporter: { id: img.user.id, name: img.user.name, avatar: img.user.avatar },
         reason: 'User-submitted place image',
         severity: 'LOW',

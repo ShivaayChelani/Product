@@ -24,8 +24,9 @@ const local = loadLocal();
 /** Resolve release channel for Sentry environment tagging. */
 function resolveEnvironment(): 'development' | 'staging' | 'production' {
   if (local.SENTRY_ENVIRONMENT) return local.SENTRY_ENVIRONMENT;
-  if (__DEV__) return 'development';
-  if (DEV_FLAGS.USE_LOCAL_API) return 'staging';
+  if (__DEV__) {
+    return DEV_FLAGS.USE_LOCAL_API ? 'development' : 'staging';
+  }
   return 'production';
 }
 
@@ -36,7 +37,7 @@ function resolveEnvironment(): 'development' | 'staging' | 'production' {
  * - ios/PalSafar.xcodeproj → MARKETING_VERSION / CURRENT_PROJECT_VERSION
  */
 export const APP_VERSION = '1.1.2';
-export const APP_BUILD = '4';
+export const APP_BUILD = '5';
 export const APP_BUNDLE_ID = 'com.palsasafar';
 
 /** Keep aligned with android/app/build.gradle applicationId */

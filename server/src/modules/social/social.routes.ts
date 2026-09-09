@@ -3,7 +3,7 @@ import { socialController } from './social.controller';
 import { authenticate, optionalAuth, requireAdmin, requireCreatorRole } from '../../middleware/auth';
 import { requireContentOps } from '../../middleware/adminCapabilities';
 import { validate } from '../../middleware/validate';
-import { usernameCheckLimiter } from '../../config/rateLimit';
+import { usernameCheckLimiter, statsLimiter } from '../../config/rateLimit';
 import {
   applyCreatorSchema,
   updateCreatorProfileSchema,
@@ -34,8 +34,8 @@ router.delete('/creators/:id/follow', authenticate, socialController.unfollowCre
 router.post('/reels', authenticate, requireCreatorRole, validate(createReelSchema), socialController.createReel);
 router.get('/reels', optionalAuth, socialController.listReels);
 router.get('/reels/:id', optionalAuth, socialController.getReelById);
-router.patch('/reels/:id/views', socialController.incrementViews);
-router.patch('/reels/:id/shares', socialController.incrementShares);
+router.patch('/reels/:id/views', statsLimiter, socialController.incrementViews);
+router.patch('/reels/:id/shares', statsLimiter, socialController.incrementShares);
 router.patch('/reels/:id', authenticate, requireCreatorRole, validate(updateReelSchema), socialController.updateReel);
 router.delete('/reels/:id', authenticate, requireCreatorRole, socialController.deleteOwnReel);
 

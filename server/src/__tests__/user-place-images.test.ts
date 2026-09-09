@@ -86,13 +86,13 @@ describe('Place photo PalPoints and review notifications', () => {
       .send({ url: `https://cdn.example.test/place-photo-${testRunId}.jpg` });
 
     expect(res.status).toBe(201);
-    expect(res.body?.data?.points).toBeGreaterThanOrEqual(5);
-    expect(res.body?.data?.pointsAwarded).toBe(true);
+    expect(res.body?.data?.points).toBe(0);
+    expect(res.body?.data?.pointsAwarded).toBe(false);
     imageId = res.body?.data?.id;
     expect(imageId).toBeTruthy();
 
     const walletAfter = await prisma.wallet.findUnique({ where: { userId } });
-    expect((walletAfter?.palPoints ?? 0)).toBeGreaterThanOrEqual(pointsBefore + 5);
+    expect(walletAfter?.palPoints ?? 0).toBe(pointsBefore);
 
     const tx = await prisma.walletTransaction.findFirst({
       where: {
@@ -102,21 +102,19 @@ describe('Place photo PalPoints and review notifications', () => {
         referenceType: 'USER_PLACE_IMAGE',
       },
     });
-    expect(tx).toBeTruthy();
+    expect(tx).toBeNull(); // Should not exist yet
 
     const notif = await prisma.inAppNotification.findFirst({
       where: {
         userId,
         type: 'place_image_review',
-        createdAt: { gte: new Date(Date.now() - 30_000) },
       },
       orderBy: { createdAt: 'desc' },
     });
-    expect(notif).toBeTruthy();
-    expect(`${notif?.title} ${notif?.body || ''}`).toMatch(/review|PalPoints/i);
+    expect(notif?.title).toBe('Photo submitted for review');
   });
 
-  it('does not award PalPoints again when admin approves the same photo', async () => {
+  it('awards PalPoints when admin approves the photo', async () => {
     expect(imageId).toBeTruthy();
     const txCountBefore = await prisma.walletTransaction.count({
       where: { userId, referenceId: imageId! },
@@ -127,12 +125,13 @@ describe('Place photo PalPoints and review notifications', () => {
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body?.data?.points ?? 0).toBe(0);
+    expect(res.body?.data?.points).toBeGreaterThanOrEqual(5);
+    expect(res.body?.data?.pointsAwarded).toBe(true);
 
     const txCountAfter = await prisma.walletTransaction.count({
       where: { userId, referenceId: imageId! },
     });
-    expect(txCountAfter).toBe(txCountBefore);
+    expect(txCountAfter).toBe(txCountBefore + 1);
 
     const approvedNotif = await prisma.inAppNotification.findFirst({
       where: {

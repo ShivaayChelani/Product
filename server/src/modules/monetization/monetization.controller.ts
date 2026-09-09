@@ -117,7 +117,13 @@ export const monetizationController = {
   listMyTransactions: catchAsync(async (req: any, res: Response) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
-    const result = await paymentsService.listTransactions({ userId: req.user!.id, page, limit });
+    // Exclude PENDING transactions (abandoned Razorpay order attempts) from user billing view
+    const result = await paymentsService.listTransactions({
+      userId: req.user!.id,
+      page,
+      limit,
+      excludeStatuses: ['PENDING'],
+    });
     res.json({ success: true, ...result });
   }),
 

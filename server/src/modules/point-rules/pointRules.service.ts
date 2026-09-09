@@ -94,6 +94,12 @@ export const pointRulesService = {
       where: { key: 'place_image_approved', points: 2 },
       data: { points: 5 },
     });
+    // Safety net: reactivate core earning rules that must never be inactive.
+    // Admin can still set points to 0 to effectively disable, but isActive should stay true.
+    await prisma.pointRule.updateMany({
+      where: { key: { in: ['review_write', 'daily_login', 'place_visit'] }, isActive: false },
+      data: { isActive: true },
+    });
   },
 
   async getPointsForAction(key: string) {

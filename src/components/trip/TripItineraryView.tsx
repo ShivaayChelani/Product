@@ -103,8 +103,9 @@ function formatTime12h(time?: string | null) {
 }
 
 /** Honest entry-fee label — reflects the stored fee basis, never assumes. */
-function feeLabel(entryFee?: number | null, basis?: string): string {
-  const fee = entryFee && entryFee > 0 ? `₹${Math.round(entryFee)}` : null;
+function feeLabel(entryFee?: number | string | null, basis?: string): string {
+  const numericFee = typeof entryFee === 'string' ? parseInt(entryFee.replace(/\D/g, ''), 10) : entryFee;
+  const fee = numericFee && numericFee > 0 ? `₹${Math.round(numericFee)}` : null;
   switch ((basis || '').toUpperCase()) {
     case 'FREE':
       return 'Free Entry';
@@ -413,9 +414,11 @@ export default function TripItineraryView({
                     <Icon name="wallet-outline" size={20} color={C.goldText} style={styles.heroStatIcon} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.heroStatVal}>
-                        {budgetSummary.grandTotal > 0 ? formatBudgetApprox(budgetSummary.grandTotal) : 'No cost yet'}
+                        {budgetSummary.grandTotal > 0 ? `₹${Math.round(budgetSummary.grandTotal / budgetSummary.travellerCount).toLocaleString('en-IN')}/pp` : 'No cost yet'}
                       </Text>
-                      <Text style={styles.heroStatLbl}>{budgetSummary.scopeLabel} ⓘ</Text>
+                      <Text style={styles.heroStatLbl}>
+                        {budgetSummary.grandTotal > 0 ? `Total: ₹${budgetSummary.grandTotal.toLocaleString('en-IN')}` : `${budgetSummary.scopeLabel} ⓘ`}
+                      </Text>
                     </View>
                   </TouchableOpacity>
                   

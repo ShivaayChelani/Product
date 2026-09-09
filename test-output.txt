@@ -1,0 +1,88 @@
+﻿node.exe : PASS src/__tests__/budget-range.test.ts
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PASS src/__tests__/budget-range.test.ts:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+PASS src/__tests__/place-card-travel-time.test.ts
+PASS src/__tests__/map-city-card.test.ts
+PASS src/__tests__/category-nearby.test.ts
+PASS src/__tests__/search-itinerary-add.test.ts
+PASS src/__tests__/share-links.test.ts
+PASS src/__tests__/trip-export.test.ts
+PASS src/__tests__/trip-navigation.test.ts
+PASS src/__tests__/vendor-contact-actions.test.ts
+PASS src/__tests__/distance.test.ts (5.08 s)
+PASS src/__tests__/collaboration-detail.test.ts
+PASS src/__tests__/canonical-distance-reuse.test.ts
+PASS src/__tests__/reel-like.test.ts
+PASS src/__tests__/form-file.test.ts
+PASS src/__tests__/trip-card-origin.test.ts
+PASS src/__tests__/quick-add-place.test.ts (5.148 s)
+PASS src/__tests__/trip-summary.test.ts
+PASS src/__tests__/vendor-map-detail.test.ts
+PASS src/__tests__/creator-studio-sidebar.test.ts
+PASS src/__tests__/vendor-recent-activity.test.ts
+PASS src/__tests__/vendor-offer-detail-buttons.test.ts
+PASS src/__tests__/place-review-ui.test.ts
+PASS src/__tests__/creator-dashboard-load.test.ts
+PASS src/__tests__/itinerary-hardening.test.ts
+PASS src/__tests__/reel-background-publish.test.ts
+PASS src/__tests__/vendor-review-flow.test.ts
+PASS src/__tests__/reel-navigation.test.ts
+PASS src/__tests__/creator-form-emoji-location.test.ts
+PASS src/__tests__/home-vendor-offers.test.ts
+PASS src/__tests__/vendor-monetization-ui.test.ts
+PASS src/__tests__/reel-reward-points.test.ts
+PASS src/__tests__/vendor-tagged-reel.test.ts
+PASS src/__tests__/creator-upload-copy.test.ts
+PASS src/__tests__/android-media-permissions.test.ts
+PASS src/__tests__/palpoints-actions.test.ts
+PASS src/__tests__/share-reel.test.ts
+PASS src/__tests__/reel-analytics-live.test.ts
+PASS src/__tests__/caughtError.test.ts
+PASS src/__tests__/saved-offers.test.ts
+PASS src/__tests__/place-reels-vendor.test.ts
+PASS src/__tests__/traveller-change-password.test.ts
+PASS src/__tests__/map-vendor-subscription.test.ts
+PASS src/__tests__/creator-handle.test.ts
+FAIL src/__tests__/travel-time.test.ts
+  ΓùÅ Test suite failed to run
+
+    Cannot find module '../travel-time' from 'src/__tests__/travel-time.test.ts'
+
+    [0m[31m[1m>[22m[39m[90m 1 |[39m [36mimport[39m { getEstimatedTravelTime[33m,[39m 
+_resetTravelTimeCacheForTests } [36mfrom[39m [32m'../travel-time'[39m[33m;[39m
+     [90m   |[39m [31m[1m^[22m[39m
+     [90m 2 |[39m
+     [90m 3 |[39m describe([32m'travel time'[39m[33m,[39m () [33m=>[39m {
+     [90m 4 |[39m   beforeEach(() [33m=>[39m {[0m
+
+      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.<anonymous> (src/__tests__/travel-time.test.ts:1:1)
+
+PASS src/__tests__/creator-upload-manager.test.ts (5.951 s)
+
+Summary of all failing tests
+FAIL src/__tests__/travel-time.test.ts
+  ΓùÅ Test suite failed to run
+
+    Cannot find module '../travel-time' from 'src/__tests__/travel-time.test.ts'
+
+    [0m[31m[1m>[22m[39m[90m 1 |[39m [36mimport[39m { getEstimatedTravelTime[33m,[39m 
+_resetTravelTimeCacheForTests } [36mfrom[39m [32m'../travel-time'[39m[33m;[39m
+     [90m   |[39m [31m[1m^[22m[39m
+     [90m 2 |[39m
+     [90m 3 |[39m describe([32m'travel time'[39m[33m,[39m () [33m=>[39m {
+     [90m 4 |[39m   beforeEach(() [33m=>[39m {[0m
+
+      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.<anonymous> (src/__tests__/travel-time.test.ts:1:1)
+
+
+Test Suites: 1 failed, 44 passed, 45 total
+Tests:       251 passed, 251 total
+Snapshots:   0 total
+Time:        9.023 s
+Ran all test suites.

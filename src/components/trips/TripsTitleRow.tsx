@@ -1,8 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useUserContext } from '../../context/UserContext';
-import { LinearGradient } from '../../utils/LinearGradient';
 import { TripsColors as C, SERIF, SANS } from './tripsTheme';
 
 interface Props {
@@ -14,18 +13,7 @@ interface Props {
 export const TripsTitleRow = ({ unreadCount = 0, onNotificationsPress, topInset = 0 }: Props) => {
   return (
     <View style={styles.container}>
-      <ImageBackground
-        source={require('../../assets/trip-screen-cover.png')}
-        style={[styles.heroBg, { paddingTop: topInset + 8 }]}
-        imageStyle={styles.heroBgImage}
-        resizeMode="cover"
-      >
-        <LinearGradient
-          colors={['rgba(255, 255, 255, 0.95)', 'rgba(255, 255, 255, 0.7)', 'transparent']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={StyleSheet.absoluteFillObject}
-        />
+      <View style={[styles.heroBg, { paddingTop: topInset + 8 }]}>
         <View style={styles.headerTop}>
           <TouchableOpacity
             style={styles.bellBtn}
@@ -64,7 +52,7 @@ export const TripsTitleRow = ({ unreadCount = 0, onNotificationsPress, topInset 
             </Text>
           </View>
         </View>
-      </ImageBackground>
+      </View>
     </View>
   );
 };
@@ -76,15 +64,10 @@ const styles = StyleSheet.create({
   },
   heroBg: {
     width: '100%',
-    minHeight: 250,
     paddingHorizontal: 20,
     paddingBottom: 16,
     justifyContent: 'flex-start',
     overflow: 'hidden',
-  },
-  heroBgImage: {
-    opacity: 1,
-    transform: [{ scale: 1.15 }, { translateX: 20 }],
   },
   headerTop: {
     flexDirection: 'row',

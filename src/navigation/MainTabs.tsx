@@ -153,7 +153,7 @@ function ExploreTabWrapper() {
 
 function MapTabWrapper({ route }: { route: any }) {
   const { places, error, fetchPlaces: onRefresh } = useMainTabsData();
-  const { selectedPlaceId, selectedPlaceKey, initialMapTab, mapTabKey, reviewMode } = route.params || {};
+  const { selectedPlaceId, selectedVendorId, selectedPlaceKey, initialMapTab, mapTabKey, reviewMode } = route.params || {};
   const { user } = useUserContext();
   const { vendors } = useDataContext();
   const navigation = useNavigation<RootNav>();
@@ -177,11 +177,11 @@ function MapTabWrapper({ route }: { route: any }) {
   }, [navigation]);
 
   const handleNavigateToTripBuilder = useCallback(() => {
-    navigation.navigate('TripBuilder');
+    navigation.navigate('AITripPlanner');
   }, [navigation]);
 
-  const handleViewItinerary = useCallback((_placeId?: string) => {
-    navigation.navigate('TripBuilder');
+  const handleViewItinerary = useCallback((placeId?: string) => {
+    navigation.navigate('ItineraryScreen', { addedPlaceId: placeId });
   }, [navigation]);
 
   return (
@@ -198,6 +198,7 @@ function MapTabWrapper({ route }: { route: any }) {
       onNavigateToTripBuilder={handleNavigateToTripBuilder}
       onViewItinerary={handleViewItinerary}
       selectedPlaceId={selectedPlaceId}
+      selectedVendorId={selectedVendorId}
       selectedPlaceKey={selectedPlaceKey}
       initialMapTab={initialMapTab}
       mapTabKey={mapTabKey}

@@ -221,6 +221,7 @@ export const campaignsService = {
         campaign: true,
       },
       orderBy: { claimedAt: 'desc' },
+      take: 100,
     });
   },
 

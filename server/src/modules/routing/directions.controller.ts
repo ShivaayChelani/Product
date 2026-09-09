@@ -3,12 +3,12 @@ import { ApiError } from '../../shared/utils/ApiError';
 import { catchAsync } from '../../shared/utils/catchAsync';
 import { sendSuccess } from '../../shared/utils/response';
 import { DirectionsBody } from './directions.validation';
-import { fetchOsrmDirections } from './directions.service';
+import { fetchGoogleRouteDirections } from './directions.service';
 
 export const directionsController = {
   driving: catchAsync(async (req: Request, res: Response) => {
     const { originLat, originLng, destinationLat, destinationLng } = req.body as DirectionsBody;
-    const result = await fetchOsrmDirections(
+    const result = await fetchGoogleRouteDirections(
       { lat: originLat, lng: originLng },
       { lat: destinationLat, lng: destinationLng },
       { geometry: true },

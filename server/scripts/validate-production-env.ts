@@ -167,6 +167,15 @@ function validate(): Finding[] {
     push(findings, 'warn', 'OPENAI_API_KEY', 'Required when HYBRID_SEARCH_ENABLED=true.');
   }
 
+  if (!isSet('GOOGLE_MAPS_API_KEY')) {
+    push(
+      findings,
+      'warn',
+      'GOOGLE_MAPS_API_KEY',
+      'Unset — /routing/directions returns 502 and the map falls back to straight-line distance (no road route/ETA).',
+    );
+  }
+
   return findings;
 }
 

@@ -11,7 +11,7 @@ import { canonicalizeDestination, normalizeDestinationKey, destinationMatchesInT
  *   3. Unresolved: callers receive `resolved: false` and must NOT fall back
  *      to a default city's places (that produced wrong-city itineraries).
  */
-const KNOWN_LOCATIONS: Record<string, { lat: number; lng: number }> = {
+export const KNOWN_LOCATIONS: Record<string, { lat: number; lng: number }> = {
   // Madhya Pradesh
   bhopal: { lat: 23.2599, lng: 77.4126 },
   indore: { lat: 22.7196, lng: 75.8577 },

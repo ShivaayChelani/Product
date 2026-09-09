@@ -11,16 +11,13 @@ describe('Place Card does not show distance or travel time', () => {
     'utf8',
   );
 
-  it('does not render travel time or distance on the place card', () => {
-    expect(card).not.toMatch(/Travel Time/);
-    expect(card).not.toMatch(/travelTimeLabel/);
-    expect(card).not.toMatch(/distanceLabel/);
-    expect(card).not.toMatch(/Visit Time/);
-    expect(card).not.toMatch(/formatVisitDurationMinutes/);
-    expect(card).toMatch(/Entry Fee/);
+  it('now renders travel time on the place card via internal hook', () => {
+    expect(card).toMatch(/useTravelTime/);
+    expect(card).toMatch(/formatTravelTimeLabel/);
+    expect(card).toMatch(/formatDriveDistanceMeters/);
   });
 
-  it('does not pass travel time or distance into the place card', () => {
+  it('does not pass travel time or distance into the place card from outside', () => {
     expect(map).not.toMatch(/travelTimeLabel=\{/);
     expect(map).not.toMatch(/travelTimeLoading=\{/);
     expect(map).not.toMatch(/travelTimeUnavailable=\{/);

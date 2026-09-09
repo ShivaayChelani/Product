@@ -1,3 +1,4 @@
+import { logger } from '../../config/logger';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { cache, cacheKey } from '../../config/cache';
@@ -263,7 +264,7 @@ export const aiService = {
       try {
         return await this.planTripLLM(prompt, apiKey, query);
       } catch (err) {
-        console.warn('[aiService] LLM trip planning failed, falling back to algorithmic:', err);
+        logger.warn({ err }, '[aiService] LLM trip planning failed, falling back to algorithmic:');
       }
     }
 
@@ -334,7 +335,7 @@ JSON Schema:
         if (parsed.pace) parsedParams.pace = parsed.pace;
       }
     } catch (e) {
-      console.warn('[aiService] Failed to parse prompt using LLM, using simple heuristics:', e);
+      logger.warn({ err: e }, '[aiService] Failed to parse prompt using LLM, using simple heuristics:');
     }
 
     // 2. Fetch candidate places ONLY for the requested destination (never dump all APPROVED places).

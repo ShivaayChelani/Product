@@ -5,6 +5,7 @@ import type { ContributeImageInput } from './userPlaceImages.validation';
 import { pointRulesService } from '../point-rules/pointRules.service';
 import { walletService } from '../wallet/wallet.service';
 import { notificationService } from '../notifications/notification.service';
+import { eventBus, AppEvents } from '../../config/events';
 
 const RULE_KEY = 'place_image_approved';
 const FALLBACK_POINTS = 5;
@@ -78,49 +79,23 @@ export const userPlaceImagesService = {
       },
     });
 
-    const { points, maxDaily } = await resolvePhotoReward();
-    const todayPaidCount = await countTodayAwarded(userId);
-    let awardedPoints = 0;
-
-    if (points > 0 && todayPaidCount < maxDaily) {
-      try {
-        await walletService.earn(
-          userId,
-          points,
-          RULE_KEY,
-          userPlaceImage.id,
-          'USER_PLACE_IMAGE',
-          { notify: false },
-        );
-        awardedPoints = points;
-        await prisma.userPlaceImage.update({
-          where: { id: userPlaceImage.id },
-          data: { pointsAwarded: true },
-        });
-      } catch (error) {
-        logger.warn({ error, imageId: userPlaceImage.id, userId, placeId }, 'Failed to award place photo PalPoints');
-      }
-    }
-
     await notifyPhotoReview(
       userId,
-      awardedPoints > 0 ? `+${awardedPoints} PalPoints` : 'Photo submitted for review',
-      awardedPoints > 0
-        ? `Your photo of ${place.name} was submitted for review.`
-        : `Your photo of ${place.name} was submitted for review. You will be notified when an admin reviews it.`,
+      'Photo submitted for review',
+      `Your photo of ${place.name} was submitted for review. You will be notified when an admin reviews it.`,
       {
         type: 'place_image_review',
         placeId,
         imageId: userPlaceImage.id,
-        amount: awardedPoints,
+        amount: 0,
         screen: 'Wallet',
       },
     );
 
     return {
       ...userPlaceImage,
-      pointsAwarded: awardedPoints > 0,
-      points: awardedPoints,
+      pointsAwarded: false,
+      points: 0,
     };
   },
 
@@ -182,7 +157,7 @@ export const userPlaceImagesService = {
   async approve(id: string, adminId: string) {
     const submission = await prisma.userPlaceImage.findUnique({
       where: { id },
-      include: { place: { select: { id: true, name: true, images: true } } },
+      include: { place: { select: { id: true, name: true, images: true, thumbnail: true } } },
     });
     if (!submission) throw new ApiError(404, 'Submission not found');
     if (submission.status !== 'pending') throw new ApiError(400, 'Submission already reviewed');
@@ -209,11 +184,17 @@ export const userPlaceImagesService = {
         where: { id: submission.placeId },
         data: {
           images: { push: imageUrl },
-          thumbnail: !submission.place.images || submission.place.images.length === 0 ? imageUrl : undefined,
+          thumbnail: !submission.place.thumbnail ? imageUrl : undefined,
         },
       });
 
       return { ...updated, shouldAwardPoints, rewardPoints: points };
+    });
+
+    eventBus.emit(AppEvents.PLACE_UPDATED, {
+      placeId: submission.placeId,
+      actorId: adminId,
+      data: { images: 'user_image_approved' },
     });
 
     if (result.shouldAwardPoints) {

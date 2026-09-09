@@ -1,627 +1,327 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-  ImageBackground,
-  useWindowDimensions,
-  StatusBar,
-} from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import LinearGradient from 'react-native-linear-gradient';
+import React, { useEffect, useState, useContext, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useToast } from '../context/ToastContext';
-import { subscribeUnreadBadge } from '../services/notifications/notificationBadgeStore';
-import { TH, SERIF, SANS, SANS_BOLD, SANS_SEMI } from '../features/treasureHunt/theme';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { launchCamera } from 'react-native-image-picker';
+import { riddlesApi, Riddle } from '../services/api/riddles';
+import { TH, SANS, SANS_BOLD, SANS_SEMI } from '../features/treasureHunt/theme';
+
+import { useLocationContext } from '../context/LocationContext';
 
 const PALPOINT_ICON = require('../assets/palpoint icon.png');
 
-const JOURNEY = [
-  { key: 'clues', color: TH.journey.clues, icon: 'location', lib: 'ion', title: 'Find Clues', sub: 'Explore hidden spots' },
-  { key: 'puzzle', color: TH.journey.puzzle, icon: 'puzzle', lib: 'mci', title: 'Solve Puzzle', sub: 'Use hints and crack the clue' },
-  { key: 'checkin', color: TH.journey.checkin, icon: 'camera', lib: 'ion', title: 'Check In', sub: 'Visit the place and check in' },
-  { key: 'points', color: TH.journey.points, icon: 'palpoint', lib: 'img', title: 'Earn PalPoints', sub: 'Collect points and climb the ranks' },
-  { key: 'treasure', color: TH.journey.treasure, icon: 'gift', lib: 'ion', title: 'Unlock Treasure', sub: 'Unlock exciting rewards' },
-] as const;
-
-const FEATURES = [
-  { icon: 'map-outline', lib: 'ion' as const, color: '#5C8FD4', bg: '#EAF2FB', title: 'Hidden Locations', sub: 'Discover lesser-known gems across India' },
-  { icon: 'target', lib: 'mci' as const, color: '#D4843A', bg: '#FFF3E8', title: 'Daily Missions', sub: 'New challenges every day' },
-  { icon: 'robot-outline', lib: 'mci' as const, color: '#7B6BB8', bg: '#F1EDFA', title: 'AI Hints', sub: 'Smart hints to help you on the way' },
-  { icon: 'camera-outline', lib: 'ion' as const, color: '#5A9E72', bg: '#EAF6EE', title: 'Photo Challenges', sub: 'Capture, upload and earn more points' },
-  { icon: 'gift-outline', lib: 'ion' as const, color: '#C76B52', bg: '#FDEEEA', title: 'Exclusive Rewards', sub: 'Win exciting rewards and offers' },
-  { icon: 'people-outline', lib: 'ion' as const, color: '#4A8FA8', bg: '#E8F4F8', title: 'Team Adventures', sub: 'Play with friends and earn together' },
-];
-
-function SectionHeader({ title }: { title: string }) {
-  return (
-    <View style={styles.sectionHeader}>
-      <View style={styles.sectionLine} />
-      <View style={styles.sectionDiamond} />
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionDiamond} />
-      <View style={styles.sectionLine} />
-    </View>
-  );
-}
-
-function JourneyIcon({ step }: { step: (typeof JOURNEY)[number] }) {
-  return (
-    <View style={[styles.journeyCircle, { backgroundColor: step.color }]}>
-      {step.lib === 'img' ? (
-        <Image source={PALPOINT_ICON} style={styles.palpointIcon} resizeMode="contain" />
-      ) : step.lib === 'mci' ? (
-        <MaterialCommunityIcons name={step.icon as any} size={22} color="#FFF" />
-      ) : (
-        <Icon name={`${step.icon}-outline` as any} size={22} color="#FFF" />
-      )}
-    </View>
-  );
-}
-
-function FeatureIcon({ item }: { item: (typeof FEATURES)[number] }) {
-  return (
-    <View style={[styles.featureIconBox, { backgroundColor: item.bg }]}>
-      {item.lib === 'mci' ? (
-        <MaterialCommunityIcons name={item.icon as any} size={22} color={item.color} />
-      ) : (
-        <Icon name={item.icon as any} size={22} color={item.color} />
-      )}
-    </View>
-  );
-}
-
-function NotifyButton({
-  label,
-  compact,
-  notified,
-  onPress,
-}: {
-  label: string;
-  compact?: boolean;
-  notified: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity activeOpacity={0.88} onPress={onPress} disabled={notified}>
-      <LinearGradient
-        colors={notified ? ['#A88858', '#7A5A32'] : ['#C4A06A', '#7A4E24']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.notifyBtn, compact && styles.notifyBtnCompact]}
-      >
-        <Icon name={notified ? 'checkmark-circle' : 'notifications-outline'} size={compact ? 14 : 17} color="#FFF" />
-        <Text style={[styles.notifyBtnText, compact && styles.notifyBtnTextCompact]}>
-          {notified ? 'Notification Set' : label}
-        </Text>
-      </LinearGradient>
-    </TouchableOpacity>
-  );
-}
-
 export default function TreasureHuntScreen() {
-  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const { showSuccess } = useToast();
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [notified, setNotified] = useState(false);
+  const navigation = useNavigation();
+  const locationCtx = useLocationContext();
 
-  const journeyStepW = Math.min(96, (width - 48) / 3.4);
-  const featureW = (width - 52) / 2;
+  const [hunts, setHunts] = useState<Riddle[]>([]);
+  const [currentCity, setCurrentCity] = useState<string | null>(null);
+  
+  // States: 'detecting' | 'error' | 'list' | 'detail' | 'checkin' | 'preview' | 'submitting' | 'success'
+  const [viewState, setViewState] = useState<'detecting' | 'error' | 'list' | 'detail' | 'checkin' | 'preview' | 'submitting' | 'success'>('detecting');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [errorTitle, setErrorTitle] = useState('');
+  const [selectedHunt, setSelectedHunt] = useState<Riddle | null>(null);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [checkInDistance, setCheckInDistance] = useState<number | null>(null);
+  const [isCheckInAllowed, setIsCheckInAllowed] = useState(false);
+  const lastFetchedCity = useRef<{ lat: number, lng: number } | null>(null);
 
-  useEffect(() => {
-    subscribeUnreadBadge(setUnreadCount);
-    (async () => {
-      try {
-        const val = await AsyncStorage.getItem('TREASURE_HUNT_NOTIFIED');
-        if (val === 'true') {
-          setNotified(true);
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      if (locationCtx?.hasPermission === false) {
+        if (isActive) {
+          setErrorTitle('Location Permission Denied');
+          setErrorMsg('Please enable GPS to play Treasure Hunt.');
+          setViewState('error');
         }
-      } catch (e) {
-        // ignore
-      }
-    })();
-  }, []);
+      } else if (locationCtx?.position) {
+        const { latitude, longitude } = locationCtx.position;
+        
+        // Calculate approx distance from last fetch (if any)
+        let distance = 0;
+        if (lastFetchedCity.current) {
+          const latDiff = latitude - lastFetchedCity.current.lat;
+          const lngDiff = longitude - lastFetchedCity.current.lng;
+          // Very rough distance estimation: 1 deg ~ 111km. Threshold ~ 2km.
+          distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff) * 111;
+        }
 
-  const handleNotify = useCallback(async () => {
-    if (notified) return;
-    setNotified(true);
+        if (!lastFetchedCity.current || distance > 2) {
+          loadHunts(latitude, longitude);
+        }
+      } else {
+        if (isActive) setViewState('detecting');
+      }
+
+      return () => { isActive = false; };
+    }, [locationCtx?.position, locationCtx?.hasPermission])
+  );
+
+  const loadHunts = async (lat: number, lng: number) => {
     try {
-      await AsyncStorage.setItem('TREASURE_HUNT_NOTIFIED', 'true');
-    } catch (e) {
-      // ignore
+      lastFetchedCity.current = { lat, lng };
+      const res = await riddlesApi.getActiveForCurrentLocation(lat, lng);
+      setCurrentCity(res.data.city);
+      setHunts(res.data.riddles);
+      setViewState('list');
+    } catch (err: any) {
+      if (err.code === 'CITY_RESOLUTION_FAILED') {
+        setErrorTitle('City Not Found');
+        setErrorMsg('We couldn\'t determine your current city. Please try again.');
+      } else if (err.message?.includes('Network') || err.message?.includes('timeout') || err.name === 'AbortError') {
+        setErrorTitle('Network Error');
+        setErrorMsg('Unable to connect. Check your internet connection and try again.');
+      } else {
+        setErrorTitle('Location Error');
+        setErrorMsg(err.message || 'Could not find your city.');
+      }
+      setViewState('error');
     }
-    showSuccess("You're on the list! We'll notify you when Treasure Hunt launches.");
-  }, [notified, showSuccess]);
+  };
+
+  const handleRetry = () => {
+    lastFetchedCity.current = null;
+    setViewState('detecting');
+    if (locationCtx?.position) {
+      loadHunts(locationCtx.position.latitude, locationCtx.position.longitude);
+    }
+  };
+
+  const handleStartHunt = (hunt: Riddle) => {
+    setSelectedHunt(hunt);
+    setViewState('detail');
+  };
+
+  const handleVerifyLocation = async () => {
+    if (!locationCtx?.position || !selectedHunt) return;
+    try {
+      const res = await riddlesApi.validateCheckIn(selectedHunt.id, locationCtx.position.latitude, locationCtx.position.longitude);
+      setCheckInDistance(res.data.distanceMeters);
+      setIsCheckInAllowed(res.data.allowed);
+      setViewState('checkin');
+    } catch (err: any) {
+      Alert.alert('Check-in failed', err.response?.data?.message || 'Could not verify your location.');
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    const result = await launchCamera({ mediaType: 'photo', quality: 0.8 });
+    if (result.assets && result.assets.length > 0 && result.assets[0].uri) {
+      setPhotoUri(result.assets[0].uri);
+      setViewState('preview');
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedHunt || !photoUri || !locationCtx?.position) return;
+    try {
+      setViewState('submitting');
+      await riddlesApi.submit(selectedHunt.id, photoUri, locationCtx.position.latitude, locationCtx.position.longitude);
+      setViewState('success');
+    } catch (err: any) {
+      setViewState('preview');
+      Alert.alert('Submission Failed', err.response?.data?.message || 'Please try again.');
+    }
+  };
+
+  // --- Renders ---
+
+  if (viewState === 'detecting') {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#6F4528" />
+        <Text style={styles.detectingText}>Finding your city...</Text>
+      </View>
+    );
+  }
+
+  if (viewState === 'error') {
+    return (
+      <View style={[styles.container, styles.center, { padding: 32 }]}>
+        <Icon name="location-outline" size={64} color="#666" style={{ marginBottom: 16 }} />
+        <Text style={[styles.successTitle, { color: '#1C1C1E', textAlign: 'center' }]}>{errorTitle}</Text>
+        <Text style={[styles.successSub, { textAlign: 'center', marginBottom: 32 }]}>{errorMsg}</Text>
+        <TouchableOpacity style={styles.primaryBtn} onPress={handleRetry}>
+          <Text style={styles.primaryBtnText}>Try Again</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.secondaryBtn, { marginTop: 16 }]} onPress={() => navigation.goBack()}>
+          <Text style={styles.secondaryBtnText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (viewState === 'success') {
+    return (
+      <View style={[styles.container, styles.center, { backgroundColor: '#F8F9FA' }]}>
+        <Icon name="checkmark-circle" size={80} color="#2E7D32" />
+        <Text style={styles.successTitle}>Treasure Found!</Text>
+        <Text style={styles.successSub}>Your photo has been submitted for verification.</Text>
+        <TouchableOpacity style={styles.primaryBtn} onPress={() => { setViewState('list'); setSelectedHunt(null); }}>
+          <Text style={styles.primaryBtnText}>Back to Hunts</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.navigate('MyTreasureHunts' as any)}>
+          <Text style={styles.secondaryBtnText}>View My Hunts</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor={TH.bg} />
-
-      <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-        <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-          <Icon name="chevron-back" size={24} color={TH.brown} />
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => {
+          if (viewState === 'list') navigation.goBack();
+          else if (viewState === 'detail') setViewState('list');
+          else if (viewState === 'checkin') setViewState('detail');
+          else if (viewState === 'preview') setViewState('checkin');
+        }}>
+          <Icon name="arrow-back" size={24} color="#1C1C1E" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Treasure Hunt</Text>
-        <TouchableOpacity
-          style={styles.headerBtn}
-          onPress={() => navigation.navigate('Notifications')}
-          activeOpacity={0.7}
-        >
-          <Icon name="notifications-outline" size={22} color={TH.brown} />
-          {unreadCount > 0 ? (
-            <View style={styles.notifBadge}>
-              <Text style={styles.notifBadgeText}>
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </Text>
-            </View>
-          ) : null}
+        <TouchableOpacity onPress={() => navigation.navigate('MyTreasureHunts' as any)} style={styles.historyBtn}>
+          <Icon name="time-outline" size={24} color="#1C1C1E" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Hero */}
-        <View style={styles.heroCard}>
-          <ImageBackground
-            source={require('../assets/treasure_hunt_bg_new.jpg')}
-            style={styles.heroBg}
-            imageStyle={styles.heroBgImage}
-          >
-            <LinearGradient
-              colors={['rgba(252,249,242,0.65)', 'rgba(252,249,242,0.4)', 'rgba(252,249,242,0.15)', 'rgba(0,0,0,0.3)']}
-              locations={[0, 0.4, 0.7, 1]}
-              style={StyleSheet.absoluteFillObject}
-            />
-            <View style={styles.heroInner}>
-              <View style={styles.heroTitleRow}>
-                <Text style={styles.heroTreasure}>TREASURE</Text>
-                <Text style={styles.heroHunt}>HUNT</Text>
-              </View>
-
-              <View style={styles.heroValues}>
-                <View style={styles.heroValueCol}>
-                  <View style={styles.heroValueIconWrap}>
-                    <Icon name="location" size={18} color={TH.brown} />
-                  </View>
-                  <Text style={styles.heroValueText}>Discover{'\n'}Hidden Places</Text>
-                </View>
-                <View style={styles.heroValueCol}>
-                  <View style={styles.heroValueIconWrap}>
-                    <MaterialCommunityIcons name="puzzle-outline" size={18} color={TH.green} />
-                  </View>
-                  <Text style={styles.heroValueText}>Solve{'\n'}Clues</Text>
-                </View>
-                <View style={styles.heroValueCol}>
-                  <View style={styles.heroValueIconWrap}>
-                    <Image source={PALPOINT_ICON} style={styles.heroCoinIcon} resizeMode="contain" />
-                  </View>
-                  <Text style={styles.heroValueText}>Earn{'\n'}Rewards</Text>
-                </View>
-              </View>
-
-              <View style={styles.comingSoonWrap}>
-                <View style={styles.comingSoonRibbon}>
-                  <Text style={styles.comingSoonText}>COMING SOON</Text>
-                </View>
-              </View>
-
-              <NotifyButton label="Notify Me" notified={notified} onPress={handleNotify} />
+      <ScrollView contentContainerStyle={styles.scroll}>
+        {viewState === 'list' && (
+          <>
+            <View style={styles.cityHeader}>
+              <Icon name="location" size={20} color="#6F4528" />
+              <Text style={styles.cityText}>You're in {currentCity}</Text>
             </View>
-          </ImageBackground>
-        </View>
-
-        {/* Journey */}
-        <View style={styles.block}>
-          <SectionHeader title="Your Adventure Journey" />
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.journeyScroll}
-            nestedScrollEnabled
-          >
-            {JOURNEY.map((step, index) => (
-              <View key={step.key} style={styles.journeyItem}>
-                <View style={[styles.journeyStep, { width: journeyStepW }]}>
-                  <JourneyIcon step={step} />
-                  <Text style={styles.journeyTitle}>{step.title}</Text>
-                  <Text style={styles.journeySub}>{step.sub}</Text>
+            <Text style={styles.subtitle}>Discover hidden stories around you.</Text>
+            
+            {hunts.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={{ fontSize: 18, fontFamily: SANS_BOLD, color: '#1C1C1E', marginBottom: 8 }}>📍 You're in {currentCity}</Text>
+                  <Text style={styles.emptyText}>Treasure Hunt isn't available here yet.</Text>
+                  <Text style={[styles.emptyText, { marginTop: 8 }]}>More cities coming soon!</Text>
+                  <TouchableOpacity style={{ marginTop: 24, padding: 12, backgroundColor: TH.primary, borderRadius: 8 }} onPress={() => {
+                    lastFetchedCity.current = null;
+                    setViewState('detecting');
+                    if (locationCtx?.position) loadHunts(locationCtx.position.latitude, locationCtx.position.longitude);
+                  }}>
+                    <Text style={{ color: 'white', fontFamily: SANS_BOLD }}>Refresh Location</Text>
+                  </TouchableOpacity>
                 </View>
-                {index < JOURNEY.length - 1 ? (
-                  <View style={styles.journeyDash}>
-                    <View style={styles.dashDot} />
-                    <View style={styles.dashDot} />
-                    <Icon name="chevron-forward" size={12} color={TH.textMuted} />
+              ) : (
+              hunts.map((h) => (
+                <TouchableOpacity key={h.id} style={styles.huntCard} onPress={() => handleStartHunt(h)}>
+                  <View style={styles.huntCardInner}>
+                    <Text style={styles.huntTitle}>🗺️ {h.title}</Text>
+                    <Text style={styles.huntClue} numberOfLines={2}>{h.clue}</Text>
+                    <View style={styles.rewardPill}>
+                      <Text style={styles.rewardText}>{h.rewardPoints} PalPoints</Text>
+                    </View>
                   </View>
-                ) : null}
-              </View>
-            ))}
-          </ScrollView>
-        </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </>
+        )}
 
-        {/* Features */}
-        <View style={styles.block}>
-          <SectionHeader title="Why You'll Love It" />
-          <View style={styles.featureGrid}>
-            {FEATURES.map(item => (
-              <View key={item.title} style={[styles.featureCard, { width: featureW }]}>
-                <FeatureIcon item={item} />
-                <View style={styles.featureCopy}>
-                  <Text style={styles.featureTitle}>{item.title}</Text>
-                  <Text style={styles.featureSub}>{item.sub}</Text>
-                </View>
-              </View>
-            ))}
+        {viewState === 'detail' && selectedHunt && (
+          <View style={styles.detailContainer}>
+            <Text style={styles.detailTitle}>{selectedHunt.title}</Text>
+            <View style={styles.clueCard}>
+              <Text style={styles.clueLabel}>THE CLUE</Text>
+              <Text style={styles.clueText}>{selectedHunt.clue}</Text>
+            </View>
+            <TouchableOpacity style={styles.primaryBtn} onPress={handleVerifyLocation}>
+              <Text style={styles.primaryBtnText}>I'm Here (Check-in)</Text>
+            </TouchableOpacity>
           </View>
-        </View>
+        )}
 
-        {/* Promo banner */}
-        <View style={styles.promoCard}>
-          <Image source={require('../assets/wallet.png')} style={styles.promoChest} resizeMode="contain" />
-          <View style={styles.promoCenter}>
-            <Text style={styles.promoLineBrown}>Bigger Adventures.</Text>
-            <Text style={styles.promoLineGreen}>Bigger Rewards.</Text>
-            <Text style={styles.promoLineSub}>Across India.</Text>
-            <NotifyButton label="Get Notified" compact notified={notified} onPress={handleNotify} />
+        {viewState === 'checkin' && (
+          <View style={styles.checkinContainer}>
+            {isCheckInAllowed ? (
+              <>
+                <Icon name="location" size={64} color="#2E7D32" />
+                <Text style={styles.checkinTitle}>You found it!</Text>
+                <Text style={styles.checkinSub}>Take a photo of the location to prove you're here.</Text>
+                <TouchableOpacity style={styles.primaryBtn} onPress={handleTakePhoto}>
+                  <Text style={styles.primaryBtnText}>Take Photo</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Icon name="navigate-circle" size={64} color="#F57F17" />
+                <Text style={styles.checkinTitle}>You are {checkInDistance}m away</Text>
+                <Text style={styles.checkinSub}>Move closer to the treasure location to check in.</Text>
+                <TouchableOpacity style={styles.secondaryBtn} onPress={handleVerifyLocation}>
+                  <Text style={styles.secondaryBtnText}>Refresh Distance</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
-          <Image source={require('../assets/explore_map.png')} style={styles.promoMap} resizeMode="contain" />
-        </View>
+        )}
 
+        {viewState === 'preview' && photoUri && (
+          <View style={styles.previewContainer}>
+            <Image source={{ uri: photoUri }} style={styles.previewImage} />
+            <TouchableOpacity style={styles.primaryBtn} onPress={handleSubmit}>
+              <Text style={styles.primaryBtnText}>Submit Answer</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.secondaryBtn} onPress={handleTakePhoto}>
+              <Text style={styles.secondaryBtnText}>Retake Photo</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
+        {viewState === 'submitting' && (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color="#6F4528" />
+            <Text style={styles.detectingText}>Submitting...</Text>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: TH.bg },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-    backgroundColor: TH.bg,
-  },
-  headerBtn: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontFamily: SERIF,
-    fontSize: 21,
-    color: TH.brown,
-    letterSpacing: 0.2,
-  },
-  notifBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 4,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#E05252',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  notifBadgeText: {
-    fontFamily: SANS_BOLD,
-    fontSize: 9,
-    color: '#FFF',
-  },
-
-  heroCard: {
-    marginHorizontal: 16,
-    marginTop: 4,
-    borderRadius: 22,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: TH.border,
-    ...TH.shadow,
-  },
-  heroBg: { minHeight: 360 },
-  heroBgImage: { borderRadius: 22 },
-  heroInner: {
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 22,
-    alignItems: 'center',
-  },
-  heroTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 8,
-    marginBottom: 14,
-  },
-  heroTreasure: {
-    fontFamily: SERIF,
-    fontSize: 40,
-    color: '#FFFFFF',
-    letterSpacing: 1.5,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
-  },
-  heroHunt: {
-    fontFamily: SERIF,
-    fontSize: 40,
-    color: '#F9C22E', // Vibrant gold
-    letterSpacing: 1.5,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
-  },
-  heroValues: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    paddingHorizontal: 4,
-    marginBottom: 16,
-  },
-  heroValueCol: { flex: 1, alignItems: 'center' },
-  heroValueIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.88)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-    borderWidth: 1,
-    borderColor: TH.border,
-  },
-  heroCoinIcon: { width: 22, height: 22 },
-  heroValueText: {
-    fontFamily: SANS_BOLD,
-    fontSize: 11,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    lineHeight: 14,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  comingSoonWrap: { marginBottom: 14 },
-  comingSoonRibbon: {
-    backgroundColor: TH.brownDark,
-    paddingHorizontal: 22,
-    paddingVertical: 7,
-    borderRadius: 6,
-    transform: [{ rotate: '-2deg' }],
-  },
-  comingSoonText: {
-    fontFamily: SANS_BOLD,
-    fontSize: 11,
-    color: '#FFF',
-    letterSpacing: 1.4,
-  },
-  notifyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 26,
-    minWidth: 210,
-  },
-  notifyBtnCompact: {
-    minWidth: 0,
-    alignSelf: 'flex-start',
-    paddingVertical: 9,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginTop: 8,
-  },
-  notifyBtnText: {
-    fontFamily: SANS_BOLD,
-    fontSize: 15,
-    color: '#FFF',
-  },
-  notifyBtnTextCompact: { fontSize: 12 },
-
-  block: { marginTop: 28, paddingHorizontal: 16 },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 18,
-    gap: 8,
-  },
-  sectionLine: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: TH.border,
-  },
-  sectionDiamond: {
-    width: 7,
-    height: 7,
-    backgroundColor: TH.gold,
-    transform: [{ rotate: '45deg' }],
-  },
-  sectionTitle: {
-    fontFamily: SERIF,
-    fontSize: 18,
-    color: TH.brown,
-  },
-
-  journeyScroll: { paddingRight: 8, alignItems: 'center' },
-  journeyItem: { flexDirection: 'row', alignItems: 'center' },
-  journeyStep: { alignItems: 'center', paddingHorizontal: 2 },
-  journeyCircle: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.65)',
-    ...TH.shadow,
-  },
-  palpointIcon: { width: 26, height: 26 },
-  journeyTitle: {
-    fontFamily: SANS_BOLD,
-    fontSize: 11,
-    color: TH.text,
-    textAlign: 'center',
-    marginBottom: 3,
-  },
-  journeySub: {
-    fontFamily: SANS,
-    fontSize: 9,
-    color: TH.textSecondary,
-    textAlign: 'center',
-    lineHeight: 12,
-  },
-  journeyDash: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    marginHorizontal: 2,
-    marginBottom: 28,
-  },
-  dashDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: TH.textMuted,
-  },
-
-  featureGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  featureCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: TH.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: TH.border,
-    padding: 12,
-    ...TH.shadow,
-  },
-  featureIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  featureCopy: { flex: 1, minWidth: 0 },
-  featureTitle: {
-    fontFamily: SANS_BOLD,
-    fontSize: 12,
-    color: TH.text,
-    marginBottom: 3,
-  },
-  featureSub: {
-    fontFamily: SANS,
-    fontSize: 10,
-    color: TH.textSecondary,
-    lineHeight: 13,
-  },
-
-  promoCard: {
-    marginHorizontal: 16,
-    marginTop: 28,
-    backgroundColor: TH.cream,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: TH.border,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    overflow: 'hidden',
-    ...TH.shadow,
-  },
-  promoChest: { width: 52, height: 52 },
-  promoCenter: { flex: 1, paddingHorizontal: 8 },
-  promoLineBrown: {
-    fontFamily: SERIF,
-    fontSize: 16,
-    color: TH.brown,
-    lineHeight: 20,
-  },
-  promoLineGreen: {
-    fontFamily: SERIF,
-    fontSize: 16,
-    color: TH.greenBright,
-    lineHeight: 20,
-  },
-  promoLineSub: {
-    fontFamily: SANS_SEMI,
-    fontSize: 12,
-    color: TH.textSecondary,
-    marginBottom: 4,
-  },
-  promoMap: { width: 68, height: 68, opacity: 0.95 },
-
-  footerCard: {
-    marginHorizontal: 16,
-    marginTop: 28,
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#D4E4C8',
-    minHeight: 130,
-  },
-  footerBg: { minHeight: 130, justifyContent: 'flex-end' },
-  footerBgImage: { borderRadius: 20 },
-  footerPathRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    flex: 1,
-    paddingTop: 20,
-  },
-  footerPin: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: TH.journey.treasure,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FFF',
-  },
-  signpost: {
-    position: 'absolute',
-    right: 14,
-    bottom: 12,
-    alignItems: 'flex-end',
-    gap: 3,
-  },
-  signpostPlank: {
-    backgroundColor: '#6B4423',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 3,
-    borderWidth: 1,
-    borderColor: '#523318',
-    minWidth: 68,
-    alignItems: 'center',
-  },
-  signpostText: {
-    fontFamily: SANS_SEMI,
-    fontSize: 9,
-    color: '#FFF',
-  },
+  container: { flex: 1, backgroundColor: '#FFFDF9' },
+  center: { justifyContent: 'center', alignItems: 'center', padding: 24 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#EFEFEF' },
+  backButton: { padding: 4 },
+  historyBtn: { padding: 4 },
+  headerTitle: { fontSize: 18, fontFamily: SANS_SEMI, color: '#1C1C1E' },
+  scroll: { padding: 16 },
+  detectingText: { marginTop: 16, fontSize: 16, fontFamily: SANS, color: '#666' },
+  cityHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  cityText: { fontSize: 16, fontFamily: SANS_BOLD, color: '#6F4528', textTransform: 'uppercase' },
+  subtitle: { fontSize: 16, fontFamily: SANS, color: '#666', marginBottom: 24 },
+  emptyState: { padding: 32, alignItems: 'center', backgroundColor: '#F8F9FA', borderRadius: 16 },
+  emptyText: { textAlign: 'center', color: '#666', fontFamily: SANS },
+  huntCard: { backgroundColor: '#FFF', borderRadius: 16, marginBottom: 16, shadowColor: '#6F4528', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 4 },
+  huntCardInner: { padding: 20 },
+  huntTitle: { fontSize: 18, fontFamily: SANS_BOLD, color: '#1C1C1E', marginBottom: 8 },
+  huntClue: { fontSize: 14, fontFamily: SANS, color: '#666', marginBottom: 16, lineHeight: 20 },
+  rewardPill: { backgroundColor: '#FDF1E6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 100, alignSelf: 'flex-start' },
+  rewardText: { color: '#D97706', fontFamily: SANS_BOLD, fontSize: 12 },
+  detailContainer: { padding: 8 },
+  detailTitle: { fontSize: 24, fontFamily: SANS_BOLD, color: '#1C1C1E', marginBottom: 24 },
+  clueCard: { backgroundColor: '#F8F9FA', padding: 20, borderRadius: 16, marginBottom: 32, borderWidth: 1, borderColor: '#E5E5EA' },
+  clueLabel: { fontSize: 12, fontFamily: SANS_BOLD, color: '#999', marginBottom: 8, letterSpacing: 1 },
+  clueText: { fontSize: 18, fontFamily: SANS_SEMI, color: '#1C1C1E', lineHeight: 26 },
+  primaryBtn: { backgroundColor: '#6F4528', padding: 16, borderRadius: 12, alignItems: 'center', width: '100%', marginBottom: 12 },
+  primaryBtnText: { color: '#FFF', fontSize: 16, fontFamily: SANS_BOLD },
+  secondaryBtn: { backgroundColor: '#F5F5F5', padding: 16, borderRadius: 12, alignItems: 'center', width: '100%' },
+  secondaryBtnText: { color: '#1C1C1E', fontSize: 16, fontFamily: SANS_SEMI },
+  checkinContainer: { alignItems: 'center', padding: 24, marginTop: 40 },
+  checkinTitle: { fontSize: 24, fontFamily: SANS_BOLD, color: '#1C1C1E', marginTop: 16, marginBottom: 8 },
+  checkinSub: { fontSize: 16, fontFamily: SANS, color: '#666', textAlign: 'center', marginBottom: 32 },
+  previewContainer: { alignItems: 'center' },
+  previewImage: { width: '100%', height: 300, borderRadius: 16, marginBottom: 24, backgroundColor: '#EFEFEF' },
+  successTitle: { fontSize: 28, fontFamily: SANS_BOLD, color: '#1C1C1E', marginTop: 24, marginBottom: 12 },
+  successSub: { fontSize: 16, fontFamily: SANS, color: '#666', textAlign: 'center', marginBottom: 40, paddingHorizontal: 32 }
 });

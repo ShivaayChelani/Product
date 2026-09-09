@@ -78,8 +78,8 @@ import {
   isValidLatLng,
   isReliableUserPosition,
 } from '../services/location/distance';
-import { fetchDrivingRoute } from '../services/location/travelTime';
 import { useTravelTime } from '../services/location/useTravelTime';
+import { getOSRMRoute, formatRouteDistance, formatRouteDuration } from '../services/routing/osrmService';
 import { getRoutedDistanceFields } from '../services/location/routedDistance';
 import { mergeMarkersPreservingSelection } from '../features/mapExplore/utils/mapSelectionLifecycle';
 
@@ -278,6 +278,19 @@ export default function MapScreen({
   const mapCursorRef = useRef<string | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [rideSheetVisible, setRideSheetVisible] = useState(false);
+  const [route, setRoute] = useState<{
+    distanceMeters: number;
+    durationSeconds: number;
+    geometry: [number, number][];
+  } | null>(null);
+  const [routeStatus, setRouteStatus] = useState<'idle' | 'loading' | 'success' | 'error' | 'no-route' | 'no-location'>('idle');
+  const [routeCardVisible, setRouteCardVisible] = useState(false);
+  const routeFromSelectionRef = useRef(false);
+  const setRouteFromSelectionRef = () => { routeFromSelectionRef.current = true; };
+  const [routeLastOrigin, setRouteLastOrigin] = useState<UserPosition | null>(null);
+  const [routeLastDest, setRouteLastDest] = useState<{lat: number, lng: number} | null>(null);
+  const [routeLastProfile, setRouteLastProfile] = useState<'driving' | 'walking' | 'cycling'>('driving');
+
   const [addedPlaceIds, setAddedPlaceIds] = useState<Set<string>>(new Set());
   const [addingPlaceId, setAddingPlaceId] = useState<string | null>(null);
   const pendingItineraryAddsRef = useRef<Set<string>>(new Set());
@@ -322,6 +335,142 @@ export default function MapScreen({
       lng: p.longitude,
     });
   }, [postToWebView]);
+
+  // Calculate driving route using OSRM
+  const calculateRoute = useCallback(async (
+    destLat: number,
+    destLng: number,
+    profile: 'driving' | 'walking' | 'cycling' = 'driving',
+  ) => {
+    // If same origin and destination, skip
+    if (routeFromSelectionRef.current && routeLastOrigin && routeLastDest) {
+      const originKey = `${routeLastOrigin.latitude},${routeLastOrigin.longitude}`;
+      const destKey = `${destLat},${destLng}`;
+      if (originKey === destKey) {
+        setRouteStatus('idle');
+        setRoute(null);
+        setRouteCardVisible(false);
+        setSelectedMarker(null);
+        postToWebView({ type: 'clearRoute' });
+        return;
+      }
+    }
+
+    // Mark this as the latest selection — newer requests will overwrite state
+    postToWebView({ type: 'clearRoute' });
+
+    setRouteFromSelectionRef();
+    setRouteLastOrigin(effectivePosition);
+    setRouteLastDest({ lat: destLat, lng: destLng });
+    setRouteLastProfile(profile);
+
+    if (!effectivePosition || !isReliableUserPosition(effectivePosition)) {
+      setRouteStatus('no-location');
+      setRoute(null);
+      setRouteCardVisible(false);
+      setSelectedMarker(null);
+      postToWebView({ type: 'clearRoute' });
+      Alert.alert('Location unavailable', 'Waiting for GPS signal. Please wait a moment and try again.');
+      return;
+    }
+
+    setRouteStatus('loading');
+    setRouteCardVisible(true);
+    setSelectedMarker({ ...selectedMarker } as MarkerData | null);
+
+    try {
+      if (__DEV__) console.warn('[MapRoute] calculateRoute called with destLat:', destLat, 'destLng:', destLng);
+      if (__DEV__) console.warn('[MapRoute] effectivePosition:', effectivePosition);
+      const originLat = effectivePosition.latitude;
+      const originLng = effectivePosition.longitude;
+      const destLatNum = Number(destLat);
+      const destLngNum = Number(destLng);
+
+      if (__DEV__) console.warn('[MapRoute] originLat:', originLat, 'originLng:', originLng, 'destLatNum:', destLatNum, 'destLngNum:', destLngNum);
+
+      const result = await getOSRMRoute(
+        originLat,
+        originLng,
+        destLatNum,
+        destLngNum,
+        profile,
+      );
+
+      if (routeFromSelectionRef.current !== true || routeLastProfile !== profile) {
+        // Stale or profile-changed request ignored — newest request will win
+        return;
+      }
+
+      if (result && result.source === 'routing') {
+        // Convert OSRM geometry [lng, lat] to Leaflet [lat, lng]
+        const leafletGeometry: [number, number][] = result.geometry.map((point: [number, number]) => [point[1], point[0]]);
+
+        setRoute({
+          distanceMeters: result.distanceMeters,
+          durationSeconds: result.durationSeconds,
+          geometry: leafletGeometry,
+        });
+        setRouteStatus('success');
+
+        // Fit map bounds to include origin, destination, and entire route
+        const originLatNum = effectivePosition.latitude;
+        const originLngNum = effectivePosition.longitude;
+
+        // Build bounds including origin, destination, and all route points
+        let minLat = Math.min(originLatNum, destLatNum);
+        let maxLat = Math.max(originLatNum, destLatNum);
+        let minLng = Math.min(originLngNum, destLngNum);
+        let maxLng = Math.max(originLngNum, destLngNum);
+
+        // Add route geometry vertices to bounds
+        if (leafletGeometry && leafletGeometry.length > 0) {
+          for (const [rLat, rLng] of leafletGeometry) {
+            if (rLat < minLat) minLat = rLat;
+            if (rLat > maxLat) maxLat = rLat;
+            if (rLng < minLng) minLng = rLng;
+            if (rLng > maxLng) maxLng = rLng;
+          }
+        }
+
+        // Add some padding
+        const latSpan = maxLat - minLat || 0.01;
+        const lngSpan = maxLng - minLng || 0.01;
+        const paddingLat = latSpan * 0.25;
+        const paddingLng = lngSpan * 0.25;
+
+        const bounds = {
+          north: maxLat + paddingLat,
+          south: minLat - paddingLat,
+          east: maxLng + paddingLng,
+          west: minLng - paddingLng,
+        };
+
+        postToWebView({
+          type: 'fitBounds',
+          bounds,
+          maxZoom: 18,
+        });
+
+        setRouteCardVisible(true);
+        setSelectedMarker({ ...selectedMarker } as MarkerData | null);
+      } else {
+        setRouteStatus('no-route');
+        setRoute(null);
+        setRouteCardVisible(false);
+setSelectedMarker(null);
+        postToWebView({ type: 'clearRoute' });
+        Alert.alert('Route not found', 'Could not calculate a driving route to this location. Please try another destination.');
+      }
+    } catch (err) {
+      if (routeFromSelectionRef.current !== true) return;
+      setRouteStatus('error');
+      setRoute(null);
+      setRouteCardVisible(false);
+      setSelectedMarker(null);
+      postToWebView({ type: 'clearRoute' });
+      Alert.alert('Routing error', 'Could not fetch route data. Please check your connection and try again.');
+    }
+  }, [effectivePosition, isReliableUserPosition, selectedMarker, postToWebView]);
 
   const lockMapView = useCallback(() => {
     allowAutoRecenterRef.current = false;
@@ -1488,7 +1637,7 @@ export default function MapScreen({
     }
 
     postToWebView({ type: 'clearSelectedMarker' });
-    setSelectedMarker(null);
+    // Keep selectedMarker React state - route card needs the name
 
     let pos = effectivePositionRef.current ?? effectivePosition;
     if (!isReliableUserPosition(pos)) {
@@ -1507,20 +1656,18 @@ export default function MapScreen({
       return;
     }
 
-    postToWebView({ type: 'clearRoute' });
+    // Use new OSRM-based routing
+    if (__DEV__) console.warn('[MapHandleNavigate] marker.lat:', marker.lat, 'marker.lng:', marker.lng);
+    if (__DEV__) console.warn('[MapHandleNavigate] effectivePosition:', effectivePosition);
+    const originLat = effectivePosition?.latitude ?? (origin?.latitude ?? 0);
+    const originLng = effectivePosition?.longitude ?? (origin?.longitude ?? 0);
+    const destLat = marker.lat;
+    const destLng = marker.lng;
 
-    try {
-      const route = await fetchDrivingRoute(origin, dest, { geometry: true });
-      if (route?.geometry?.length) {
-        postToWebView({ type: 'drawRoute', coords: route.geometry });
-        setIsNavigating(true);
-      } else {
-        Alert.alert('Route not found', 'Could not find a driving route to this location.');
-      }
-    } catch {
-      Alert.alert('Navigation Error', 'Could not fetch route data.');
-    }
-  }, [selectedMarker, effectivePosition, hasPermission, requestPermission, postToWebView]);
+    if (__DEV__) console.warn('[MapHandleNavigate] originLat:', originLat, 'originLng:', originLng, 'destLat:', destLat, 'destLng:', destLng);
+
+    calculateRoute(destLat, destLng);
+  }, [selectedMarker, effectivePosition, hasPermission, requestPermission, postToWebView, calculateRoute]);
 
   const handleEndNavigation = useCallback(() => {
     setIsNavigating(false);

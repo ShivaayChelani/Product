@@ -46,6 +46,11 @@ export async function getRiddles(params?: {
   return res.data;
 }
 
+export async function getCitySummary() {
+  const res = await client.get("/admin/riddles/cities/summary");
+  return res.data;
+}
+
 export async function getRiddle(id: string) {
   const res = await client.get(`/admin/riddles/${id}`);
   return res.data.data;

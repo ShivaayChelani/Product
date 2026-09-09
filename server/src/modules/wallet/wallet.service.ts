@@ -100,13 +100,14 @@ export const walletService = {
     referenceId?: string,
     referenceType?: string,
     notifyOptions?: EarnNotifyOptions,
+    prismaTx?: any
   ) {
     if (amount <= 0) throw new ApiError(400, 'Amount must be positive');
 
     await this.getOrCreateWallet(userId);
 
     let awarded = true;
-    const result = await prisma.$transaction(async (tx) => {
+    const execute = async (tx: any) => {
       // Idempotency: same reference must not mint duplicate EARN rows.
       if (referenceId) {
         const existing = await tx.walletTransaction.findFirst({
@@ -146,7 +147,9 @@ export const walletService = {
       });
 
       return wallet;
-    });
+    };
+
+    const result = prismaTx ? await execute(prismaTx) : await prisma.$transaction(execute, { timeout: 25000, maxWait: 20000 });
 
     if (awarded && notifyOptions?.notify !== false) {
       const title = notifyOptions?.title || `+${amount} PalPoints`;

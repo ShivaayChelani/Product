@@ -9,7 +9,7 @@ import DraggableFlatList, {
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { TripPlanStop } from '../../../services/api/trips';
-import type { RouteLeg } from '../hooks/useOsrmLegs';
+import type { RouteLeg } from '../hooks/useDrivingLegs';
 import { BT, SERIF, SANS, SANS_SEMI, SANS_BOLD } from '../theme';
 import { categoryBadge } from '../utils/itineraryHelpers';
 import { getMapMarkerConfig, normalizeCategory } from '../../../utils/mapMarkerUtils';

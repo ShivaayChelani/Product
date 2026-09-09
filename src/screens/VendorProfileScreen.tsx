@@ -18,6 +18,8 @@ import ProfileModeSwitcher from '../components/ProfileModeSwitcher';
 
 import { BottomNavigation, BOTTOM_NAV_CLEARANCE } from '../components/navigation/BottomNavigation';
 import type { UserActiveMode } from '../types';
+import { useLocationContext } from '../context/LocationContext';
+import { haversineDistance } from '../services/location/distance';
 
 const CARD_GAP = VendorUI.space.md;
 const H_PAD = VendorUI.space.screen;
@@ -84,6 +86,7 @@ export default function VendorProfileScreen({
 }) {
   const { updateVendorProfile, currentVendor, vendorOffers } = useDataContext();
   const { user, setUser, setActiveMode, isGuest } = useUserContext();
+  const { effectivePosition } = useLocationContext();
   const insets = useSafeAreaInsets();
   const contentPadBottom = useBottomSafePadding(24);
   const screenInsets = useVendorScreenInsets({ withTabBar: self });
@@ -281,21 +284,23 @@ export default function VendorProfileScreen({
 
   const handleNavigate = () => {
     if (vendor?.latitude && vendor?.longitude) {
-      const url = Platform.select({
-        ios: `maps:0,0?q=${vendor.latitude},${vendor.longitude}(${encodeURIComponent(vendor.businessName)})`,
-        android: `geo:0,0?q=${vendor.latitude},${vendor.longitude}(${encodeURIComponent(vendor.businessName)})`,
-        default: `https://www.google.com/maps/search/?api=1&query=${vendor.latitude},${vendor.longitude}`,
-      });
-      if (url) Linking.openURL(url).catch(() => {});
+      if (onNavigate) {
+        onNavigate('MainTabs', {
+          screen: 'Map',
+          params: { selectedVendorId: vendor.id, selectedPlaceKey: Date.now(), mapTab: 'vendors' },
+        });
+      }
     }
   };
 
   const handleShare = async () => {
     if (!vendor) return;
     try {
-      await Share.share({
-        message: `Check out ${vendor.businessName} on PalSafar!\n📍 ${vendor.address}, ${vendor.city}, ${vendor.state}`,
-      });
+      let msg = `Check out ${vendor.businessName} on PalSafar!\n📍 ${vendor.address}, ${vendor.city}, ${vendor.state}`;
+      if (vendor.latitude && vendor.longitude) {
+        msg += `\n🔗 https://www.google.com/maps/search/?api=1&query=${vendor.latitude},${vendor.longitude}`;
+      }
+      await Share.share({ message: msg });
     } catch { }
   };
 
@@ -312,6 +317,22 @@ export default function VendorProfileScreen({
     if (isGuest) {
       Alert.alert('Sign In Required', 'Create an account or sign in to review this shop.');
       return;
+    }
+    if (vendor?.latitude && vendor?.longitude) {
+      if (!effectivePosition) {
+        Alert.alert('Location Required', 'We need your location to verify you are at the shop.');
+        return;
+      }
+      const dist = haversineDistance(
+        effectivePosition.latitude,
+        effectivePosition.longitude,
+        vendor.latitude,
+        vendor.longitude
+      );
+      if (dist > 300) {
+        Alert.alert('Too Far', 'You must be at the shop to write a review.');
+        return;
+      }
     }
     setRatingInput(null);
     setCommentInput('');
@@ -629,9 +650,6 @@ export default function VendorProfileScreen({
                   <Text style={styles.actionBtnText}>Website</Text>
                 </TouchableOpacity>
               ) : null}
-              <TouchableOpacity onPress={() => {}} style={styles.actionIconOnly} activeOpacity={0.85}>
-                <Icon name="bookmark-outline" size={18} color={Pal.colors.light.primary} />
-              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -722,7 +740,7 @@ export default function VendorProfileScreen({
                         </View>
                       </View>
                       <Text style={{ fontSize: 11, color: Pal.colors.light.textMuted }}>
-                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ''}
+                        {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : (item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '')}
                       </Text>
                     </View>
                     {!!item.content && (

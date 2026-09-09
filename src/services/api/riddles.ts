@@ -33,9 +33,19 @@ export interface MyRiddleSubmission {
 }
 
 export const riddlesApi = {
-  /** Get all active riddles for the given city */
-  async getActiveForCity(city: string) {
-    return apiClient.get<Riddle[]>(`/riddles/active?city=${encodeURIComponent(city)}`);
+  /** Get all active riddles for the given current location */
+  async getActiveForCurrentLocation(lat: number, lng: number) {
+    return apiClient.get<{ city: string; riddles: Riddle[] }>(`/riddles/active/current-location?lat=${lat}&lng=${lng}`);
+  },
+
+  /** Get riddle detail ensuring current city matches */
+  async getById(riddleId: string, lat: number, lng: number) {
+    return apiClient.get<Riddle>(`/riddles/${riddleId}?lat=${lat}&lng=${lng}`);
+  },
+
+  /** Validate if user is close enough to submit */
+  async validateCheckIn(riddleId: string, userLat: number, userLng: number) {
+    return apiClient.post<{ allowed: boolean; distanceMeters: number }>(`/riddles/${riddleId}/validate-checkin`, { userLat, userLng });
   },
 
   /** Get my submission status for a specific riddle */
@@ -56,8 +66,8 @@ export const riddlesApi = {
     return apiClient.get<MyRiddleSubmission[]>('/riddles/my-submissions');
   },
 
-  /** Submit a photo answer for a riddle */
-  async submit(riddleId: string, photoUrl: string) {
-    return apiClient.post<{ id: string; status: string }>(`/riddles/${riddleId}/submit`, { photoUrl });
+  /** Submit a photo answer for a riddle (server validates GPS again) */
+  async submit(riddleId: string, photoUrl: string, userLat: number, userLng: number) {
+    return apiClient.post<{ id: string; status: string }>(`/riddles/${riddleId}/submit`, { photoUrl, userLat, userLng });
   },
 };

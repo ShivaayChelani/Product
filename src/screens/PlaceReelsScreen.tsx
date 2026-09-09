@@ -70,7 +70,7 @@ export default function PlaceReelsScreen() {
         setReels(data);
       }
     } catch (err) {
-      console.warn('Failed to load place reels:', err);
+      (typeof __DEV__ !== 'undefined' && __DEV__) && console.warn('Failed to load place reels:', err);
     } finally {
       setLoading(false);
     }
@@ -89,7 +89,7 @@ export default function PlaceReelsScreen() {
         message: `Check out creator reels and experiences from ${placeName} on PalSafar! 🌍📸`,
       });
     } catch (error) {
-      console.warn('Error sharing place', error);
+      (typeof __DEV__ !== 'undefined' && __DEV__) && console.warn('Error sharing place', error);
     }
   };
 

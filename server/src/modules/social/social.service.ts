@@ -1284,6 +1284,7 @@ export const socialService = {
     return prisma.reelComment.findMany({
       where: { reelId },
       orderBy: { createdAt: 'desc' },
+      take: 100,
       include: {
         user: {
           select: { id: true, name: true },
@@ -1384,6 +1385,7 @@ export const socialService = {
     return prisma.collection.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+      take: 100,
     });
   },
 

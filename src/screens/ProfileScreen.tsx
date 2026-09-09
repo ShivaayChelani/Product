@@ -18,6 +18,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { UserProfile, TouristSpot, VendorBusiness, VendorOffer } from '../types';
 import { DEV_FLAGS } from '../config/devFlags';
 import { updateUserProfile } from '../services/authService';
+import { uploadApi } from '../services/api';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import ProfileModeSwitcher from '../components/ProfileModeSwitcher';
 import {
@@ -326,6 +327,17 @@ export default function ProfileScreen({
     }
     setUpdatingProfile(true);
     try {
+      let finalAvatarUrl = personalForm.avatarUri;
+      if (finalAvatarUrl && !finalAvatarUrl.startsWith('http')) {
+        try {
+          const uploadRes = await uploadApi.uploadImage(finalAvatarUrl, null, 'profile.jpg');
+          finalAvatarUrl = uploadRes.url;
+        } catch (uploadErr) {
+          console.warn('Failed to upload avatar', uploadErr);
+          // Proceed with local URI or fail? Let's proceed and it might fail or stay local.
+        }
+      }
+
       const updates: Partial<UserProfile> & Record<string, unknown> = {
         displayName: personalForm.displayName.trim(),
         bio: personalForm.bio.trim(),
@@ -333,7 +345,7 @@ export default function ProfileScreen({
         travelInterests: personalForm.interests,
         city: personalForm.city.trim(),
         avatarStyle: personalForm.avatarStyle >= 0 ? personalForm.avatarStyle : user.avatarStyle,
-        avatar: personalForm.avatarUri ?? undefined,
+        avatar: finalAvatarUrl ?? undefined,
         state: personalForm.state,
         gender: personalForm.gender,
         dateOfBirth: personalForm.dateOfBirth,
@@ -386,14 +398,28 @@ export default function ProfileScreen({
   const handleAvatarPick = () => {
     launchImageLibrary(
       { mediaType: 'photo', quality: 0.7, selectionLimit: 1 },
-      response => {
+      async response => {
         if (response.didCancel || response.errorCode) return;
         const uri = response.assets?.[0]?.uri;
         if (uri) {
+          // Immediately optimistically update UI
           const updated = { ...user, avatar: uri };
           setUser(updated);
           setContextUser(updated);
           setPersonalForm(prev => ({ ...prev, avatarUri: uri, avatarStyle: -1 }));
+
+          // Upload and save to backend
+          try {
+            const uploadRes = await uploadApi.uploadImage(uri, null, 'profile.jpg');
+            await updateUserProfile(user.uid, { avatar: uploadRes.url, avatarStyle: -1 });
+            const persistedUpdated = { ...user, avatar: uploadRes.url, avatarStyle: -1 } as UserProfile;
+            setUser(persistedUpdated);
+            setContextUser(persistedUpdated);
+            setPersonalForm(prev => ({ ...prev, avatarUri: uploadRes.url }));
+          } catch (err) {
+            console.warn('Failed to upload quick avatar', err);
+            Alert.alert('Error', 'Failed to save new profile photo');
+          }
         }
       },
     );

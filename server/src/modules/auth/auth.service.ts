@@ -31,6 +31,10 @@ import {
 import { roleTransitionService } from '../../shared/services/roleTransition.service';
 import { findUserByEmail, normalizeEmail } from '../../shared/utils/userEmailLookup';
 import { ADMIN_ROLES } from '../../middleware/auth';
+import {
+  collectUserOwnedMediaAssets,
+  purgeUserMediaAssets,
+} from '../upload/media-cleanup.service';
 
 const ACCESS_TOKEN_EXPIRY = (env.jwt.expiresIn || '1h') as SignOptions['expiresIn'];
 const REFRESH_TOKEN_EXPIRY_DAYS = 7;
@@ -849,6 +853,10 @@ export const authService = {
     const forfeitedPalPoints = user.wallet?.palPoints ?? 0;
     const cancelledPendingRedemptions = user._count.redemptions;
 
+    // Collect every Cloudinary asset this user owns BEFORE the transaction —
+    // ownership is proven by rows that cascade away with the user.
+    const mediaAssets = await collectUserOwnedMediaAssets(userId);
+
     // Permanent delete — schema has no soft-delete column; related rows cascade or null per Prisma.
     await prisma.$transaction(async (tx) => {
       await tx.redemption.updateMany({
@@ -862,12 +870,26 @@ export const authService = {
       await tx.user.delete({ where: { id: userId } });
     }, { maxWait: 10_000, timeout: 20_000 });
 
+    // Post-commit CDN purge (compensating action). The database is already
+    // consistent; purgeUserMediaAssets never throws — per-asset failures are
+    // persisted to MediaCleanupTask for the retry job.
+    const mediaCleanup = await purgeUserMediaAssets(mediaAssets, userId).catch((purgeErr) => {
+      logger.error({ err: purgeErr, userId }, 'Account media cleanup crashed after delete');
+      return null;
+    });
+
+    logger.info(
+      { userId, forfeitedPalPoints, cancelledPendingRedemptions, vendorRemoved: !!user.vendor, creatorRemoved: !!user.creatorProfile, mediaCleanup },
+      'Account permanently deleted',
+    );
+
     return {
       deleted: true,
       forfeitedPalPoints,
       cancelledPendingRedemptions,
       vendorRemoved: !!user.vendor,
       creatorRemoved: !!user.creatorProfile,
+      mediaCleanup,
     };
   },
 

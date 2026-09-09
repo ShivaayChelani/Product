@@ -60,7 +60,7 @@ export const UNIT_TEST_FILES = [
   'src/__tests__/vendor-public-visibility.unit.test.ts',
   'src/__tests__/vendor-tagged-reels.unit.test.ts',
   'src/__tests__/plan-enforcement.unit.test.ts',
-  'src/__tests__/osrm-directions.unit.test.ts',
+  'src/__tests__/routes-directions.unit.test.ts',
   'src/__tests__/rides.providers.test.ts',
   'src/__tests__/place-images.sync.test.ts',
   'src/__tests__/itinerary-checkpoint-gps.test.ts',

@@ -1,5 +1,6 @@
 import { CreatorStatus, Prisma, Role, RoleAssignmentStatus, VendorStatus } from '@prisma/client';
 import { prisma } from '../../config/database';
+import { logger } from '../../config/logger';
 import { ApiError } from '../../shared/utils/ApiError';
 import { getPaginationParams, paginatedResponse } from '../../shared/utils/pagination';
 import { ListUsersInput, UpdateRoleInput } from './users.validation';
@@ -14,6 +15,10 @@ import {
   upsertRoleStatus,
 } from '../../shared/utils/specialtyRoles';
 import { roleTransitionService, type ProfessionalRole } from '../../shared/services/roleTransition.service';
+import {
+  collectUserOwnedMediaAssets,
+  purgeUserMediaAssets,
+} from '../upload/media-cleanup.service';
 
 /** Vendor/creator statuses that still need admin attention in the users list. */
 const ATTENTION_VENDOR_STATUSES: VendorStatus[] = [
@@ -357,6 +362,10 @@ export const usersService = {
       deleted: false,
     };
 
+    // Collect user-owned Cloudinary assets BEFORE the transaction (ownership
+    // is proven by rows that cascade away with the user).
+    const mediaAssets = await collectUserOwnedMediaAssets(id);
+
     // Clear reviewer FK with no onDelete rule so hard-delete does not fail on Restrict.
     await prisma.$transaction(async (tx) => {
       await tx.userPlaceImage.updateMany({
@@ -364,6 +373,12 @@ export const usersService = {
         data: { reviewedBy: null },
       });
       await tx.user.delete({ where: { id } });
+    });
+
+    // Post-commit CDN purge — never throws; failures queue in MediaCleanupTask.
+    const mediaCleanup = await purgeUserMediaAssets(mediaAssets, id).catch((purgeErr) => {
+      logger.error({ err: purgeErr, userId: id }, 'Admin-delete media cleanup crashed after delete');
+      return null;
     });
 
     // Reuse USER_ROLE_CHANGED audit channel with an explicit deletion marker
@@ -375,6 +390,6 @@ export const usersService = {
       newValues: { deleted: true },
     });
 
-    return { message: 'User deleted successfully' };
+    return { message: 'User deleted successfully', mediaCleanup };
   },
 };

@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 
-import { Platform, UIManager } from 'react-native';
+import analytics from '@react-native-firebase/analytics';
 
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-
+import { Platform, UIManager } from 'react-native';
 
 const isNewArch = (global as any).nativeFabricUILibrary !== undefined || (global as any).RN$Bridgeless !== undefined;
 
@@ -49,92 +49,94 @@ import { adsService } from './src/services/adsService';
 
 import { captureNonFatal, Sentry, isMonitoringEnabled } from './src/services/monitoring';
 
-
-
 function AppInitializer({ children }: { children: React.ReactNode }) {
-
   useEffect(() => {
-
     let notificationCleanup: (() => void) | null = null;
 
-
-
     (async () => {
+      // Firebase Analytics test
+      try {
+        await analytics().logEvent('palsafar_analytics_test', {
+          source: 'app_start',
+          app_version: '1.1.2',
+        });
+
+        console.log(
+          '[Firebase Analytics] Test event logged successfully'
+        );
+      } catch (err) {
+        console.warn(
+          '[Firebase Analytics] Test event failed:',
+          err
+        );
+      }
 
       try {
-
         if (DEV_FLAGS.USE_SERVER_API) {
-
           await apiClient.init();
 
           await syncService.init();
 
           syncService.sync();
-
         }
-
       } catch (err) {
+        console.warn(
+          '[AppInitializer] API client/sync init failed:',
+          err
+        );
 
-        console.warn('[AppInitializer] API client/sync init failed:', err);
-
-        captureNonFatal(err, { source: 'AppInitializer', step: 'api_sync' });
-
+        captureNonFatal(err, {
+          source: 'AppInitializer',
+          step: 'api_sync',
+        });
       }
 
-
-
       try {
-
         await adsService.refreshConfig();
 
-        if (adsService.getConfig().showAds && !adsService.getConfig().killSwitch) {
-
+        if (
+          adsService.getConfig().showAds &&
+          !adsService.getConfig().killSwitch
+        ) {
           await adsService.init();
-
         }
-
       } catch (err) {
+        console.warn(
+          '[AppInitializer] Ads init skipped:',
+          err
+        );
 
-        console.warn('[AppInitializer] Ads init skipped:', err);
-
-        captureNonFatal(err, { source: 'AppInitializer', step: 'ads' });
-
+        captureNonFatal(err, {
+          source: 'AppInitializer',
+          step: 'ads',
+        });
       }
-
-
 
       try {
-
-        notificationCleanup = await notificationService.initHandlers();
+        notificationCleanup =
+          await notificationService.initHandlers();
 
         await notificationService.refreshUnreadBadgeCount();
-
       } catch (err) {
+        console.warn(
+          '[AppInitializer] Notification handlers failed:',
+          err
+        );
 
-        console.warn('[AppInitializer] Notification handlers failed:', err);
-
-        captureNonFatal(err, { source: 'AppInitializer', step: 'notifications' });
-
+        captureNonFatal(err, {
+          source: 'AppInitializer',
+          step: 'notifications',
+        });
       }
-
     })();
 
-
-
     return () => {
-
       notificationCleanup?.();
-
     };
-
   }, []);
 
-
-
   return <>{children}</>;
-
 }
-
 
 
 function MonitoringTouchBoundary({ children }: { children: React.ReactNode }) {

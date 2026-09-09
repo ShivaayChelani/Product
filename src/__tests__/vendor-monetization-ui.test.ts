@@ -4,7 +4,7 @@ import path from 'path';
 describe('Vendor subscription + premium UI', () => {
   const sub = fs.readFileSync(path.join(__dirname, '../screens/VendorSubscriptionScreen.tsx'), 'utf8');
   const preview = fs.readFileSync(path.join(__dirname, '../screens/VendorListingPreviewScreen.tsx'), 'utf8');
-  const premium = fs.readFileSync(path.join(__dirname, '../screens/UserPremiumScreen.tsx'), 'utf8');
+  const premium = fs.readFileSync(path.join(__dirname, '../screens/PremiumUpgradeScreen.tsx'), 'utf8');
   const checkout = fs.readFileSync(path.join(__dirname, '../screens/RazorpayCheckoutScreen.tsx'), 'utf8');
   const dash = fs.readFileSync(path.join(__dirname, '../screens/VendorDashboardScreen.tsx'), 'utf8');
 
@@ -29,11 +29,10 @@ describe('Vendor subscription + premium UI', () => {
   });
 
   it('premium UI uses server pricing and ad-free copy', () => {
-    expect(premium).toMatch(/Ad-free experience/);
+    expect(premium).toMatch(/Ad-Free Experience/i);
     expect(premium).toMatch(/listPlans\('USER_PREMIUM'\)/);
-    expect(premium).toMatch(/slug === 'user-premium'/);
     expect(premium).toMatch(/refreshEntitlements/);
-    expect(premium).not.toMatch(/₹99/);
+    expect(premium).not.toMatch(/₹199/);
     expect(premium).not.toMatch(/plans\[0\]/);
   });
 

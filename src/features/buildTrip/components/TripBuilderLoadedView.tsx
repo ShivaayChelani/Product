@@ -21,7 +21,7 @@ import { normalizeTripDays, normalizeTripPlan } from '../../../utils/normalizeTr
 import { PressableScale } from '../../../components/home/PressableScale';
 import { BT, SERIF, SANS, SANS_BOLD, SANS_SEMI } from '../theme';
 import { ItineraryTimelineList } from './ItineraryTimelineList';
-import { useOsrmLegs } from '../hooks/useOsrmLegs';
+import { useDrivingLegs } from '../hooks/useDrivingLegs';
 import { countAllStops } from '../utils/itineraryHelpers';
 
 function applyTrip(trip: TripPlan): TripPlan {
@@ -50,7 +50,7 @@ function DayItinerarySection({
   onAddPlaces: () => void;
 }) {
   const stops = day.stops || [];
-  const { legs } = useOsrmLegs(stops);
+  const { legs } = useDrivingLegs(stops);
   if (stops.length === 0) return null;
   return (
     <View style={scrollEnabled ? styles.daySectionFlex : undefined}>

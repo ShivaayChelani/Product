@@ -9,6 +9,7 @@ export const documentsService = {
     return prisma.vendorDocument.findMany({
       where: { vendorId: vendor.id },
       orderBy: { createdAt: 'desc' },
+      take: 100,
     });
   },
 

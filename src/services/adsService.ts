@@ -62,7 +62,7 @@ export const adsService = {
       await ads.mobileAds().initialize();
     } catch (error) {
       if (__DEV__) {
-        console.warn('[Ads] SDK initialization warning:', error);
+        (typeof __DEV__ !== 'undefined' && __DEV__) && console.warn('[Ads] SDK initialization warning:', error);
       }
     }
 
@@ -109,7 +109,7 @@ export const adsService = {
     } catch {
       cached = FALLBACK;
       if (__DEV__) {
-        console.warn('[Ads] config refresh failed, using fallback config');
+        (typeof __DEV__ !== 'undefined' && __DEV__) && console.warn('[Ads] config refresh failed, using fallback config');
       }
       return cached;
     }
@@ -173,7 +173,7 @@ export const adsService = {
         resolve(true);
       });
       const unsubError = interstitial.addAdEventListener(ads.AdEventType.ERROR, (error: any) => {
-        console.warn('[Ads] interstitial load error:', error);
+        (typeof __DEV__ !== 'undefined' && __DEV__) && console.warn('[Ads] interstitial load error:', error);
         unsubLoaded();
         unsubClosed();
         unsubError();
@@ -186,27 +186,27 @@ export const adsService = {
   async showRewarded(): Promise<{ watched: boolean; points: number }> {
     await this.refreshConfig();
     if (!this.canShow('rewarded')) {
-      if (__DEV__) console.warn('[Ads] showRewarded blocked: canShow returned false');
+      if (__DEV__) (typeof __DEV__ !== 'undefined' && __DEV__) && console.warn('[Ads] showRewarded blocked: canShow returned false');
       return { watched: false, points: 0 };
     }
     const ads = loadAds();
     if (!ads) {
-      if (__DEV__) console.warn('[Ads] showRewarded blocked: SDK unavailable');
+      if (__DEV__) (typeof __DEV__ !== 'undefined' && __DEV__) && console.warn('[Ads] showRewarded blocked: SDK unavailable');
       return { watched: false, points: 0 };
     }
     const unit = this.resolveUnit('rewarded');
     if (!unit) {
-      if (__DEV__) console.warn('[Ads] showRewarded blocked: rewarded unit missing');
+      if (__DEV__) (typeof __DEV__ !== 'undefined' && __DEV__) && console.warn('[Ads] showRewarded blocked: rewarded unit missing');
       return { watched: false, points: 0 };
     }
     const ssvCustomData = this.getConfig().ssvCustomData;
     if (!ssvCustomData) {
-      if (__DEV__) console.warn('[Ads] showRewarded blocked: ssvCustomData missing');
+      if (__DEV__) (typeof __DEV__ !== 'undefined' && __DEV__) && console.warn('[Ads] showRewarded blocked: ssvCustomData missing');
       return { watched: false, points: 0 };
     }
     await this.init();
     if (!mobileAdsReady && __DEV__) {
-      console.warn('[Ads] showRewarded: SDK initialization failed');
+      (typeof __DEV__ !== 'undefined' && __DEV__) && console.warn('[Ads] showRewarded: SDK initialization failed');
     }
 
     const requestOptions: any = {
@@ -229,7 +229,7 @@ export const adsService = {
         resolve({ watched: earned, points: 0 });
       });
       const unsubError = rewarded.addAdEventListener(ads.AdEventType.ERROR, (error: any) => {
-        console.warn('[Ads] rewarded load error:', error);
+        (typeof __DEV__ !== 'undefined' && __DEV__) && console.warn('[Ads] rewarded load error:', error);
         unsubLoaded();
         unsubEarned();
         unsubClosed();

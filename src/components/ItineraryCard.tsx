@@ -35,7 +35,8 @@ export default function ItineraryCard({
 }: ItineraryCardProps) {
   const emoji = spot.badgeIcon || getCategoryEmoji(spot.category) || '📍';
   const duration = spot.estimatedDuration || 60;
-  const entryFee = spot.entryFee ?? spot.averageCost ?? 0;
+  const rawFee = spot.entryFee ?? spot.averageCost ?? 0;
+  const entryFee = typeof (rawFee as unknown) === 'string' ? parseInt((rawFee as unknown as string).replace(/\D/g, ''), 10) || 0 : rawFee as number;
   const bestTimeReason = getBestTimeReason(spot);
   const spotImage = spot.imageUrl || spot.imageUri || (spot as { images?: string[] }).images?.[0] || null;
   const [imgError, _setImgError] = useState(false);

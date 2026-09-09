@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { vendorsController } from './vendors.controller';
 import { authenticate, optionalAuth, requireAdmin, requireVendorRole } from '../../middleware/auth';
 import { requireVendorOps } from '../../middleware/adminCapabilities';
+import { statsLimiter } from '../../config/rateLimit';
 import { validate } from '../../middleware/validate';
 import {
   registerVendorSchema, updateVendorSchema, verifyVendorSchema,
@@ -59,8 +60,8 @@ router.post('/offers/:offerId/resume', authenticate, requireVendorRole, vendorsC
 router.post('/offers/:offerId/duplicate', authenticate, requireVendorRole, vendorsController.duplicateOffer);
 
 // Offer analytics tracking (public, no auth needed)
-router.post('/offers/:offerId/view', vendorsController.recordOfferView);
-router.post('/offers/:offerId/click', vendorsController.recordOfferClick);
+router.post('/offers/:offerId/view', statsLimiter, vendorsController.recordOfferView);
+router.post('/offers/:offerId/click', statsLimiter, vendorsController.recordOfferClick);
 
 // Vendor dashboard & analytics (authenticated vendor)
 router.get('/me/dashboard', authenticate, requireVendorRole, vendorsController.getDashboard);

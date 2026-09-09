@@ -743,6 +743,32 @@ export const hiddenGemsService = {
     }
 
     const reason = input.reason?.trim() || 'Unpublished by admin';
+    
+    // Revoke any points previously awarded for this hidden gem
+    let revoked = 0;
+    const pointTag = (place.tags || []).find(t => t.startsWith(META_PREFIX.points));
+    if (pointTag && place.submittedById) {
+      const awarded = parseInt(pointTag.replace(META_PREFIX.points, ''), 10);
+      if (awarded > 0) {
+        try {
+          // Use adjustWallet for an admin-forced deduction (floors at 0 inside adjustWallet logic if we update it, or we can just pass negative amount).
+          // Actually, adjustWallet will throw if they don't have enough points.
+          // Let's manually deduct safely up to their balance to avoid blocking the unpublish action.
+          const userWallet = await prisma.wallet.findUnique({ where: { userId: place.submittedById } });
+          const debit = userWallet ? Math.min(awarded, userWallet.palPoints) : 0;
+          if (debit > 0) {
+            await walletService.adjustWallet(place.submittedById, adminId, {
+              palPoints: -debit,
+              reason: `Hidden Gem Unpublished: ${place.name}`,
+            });
+            revoked = debit;
+          }
+        } catch (err) {
+          logger.error({ err, placeId: id }, 'Failed to revoke points on unpublish');
+        }
+      }
+    }
+
     const updated = await prisma.place.update({
       where: { id },
       data: {
@@ -750,6 +776,7 @@ export const hiddenGemsService = {
         approvedById: adminId,
         reviewedAt: new Date(),
         rejectionReason: reason,
+        tags: (place.tags || []).filter((t) => !t.startsWith(META_PREFIX.points)),
       },
     });
 

@@ -253,11 +253,6 @@ function PremiumUpgradeWrapper({ navigation }: any) {
   return <Screen onBack={() => navigation.goBack()} />;
 }
 
-function UserPremiumWrapper({ navigation }: any) {
-  const Screen = useLazyScreen(() => require('../screens/UserPremiumScreen'));
-  return <Screen onBack={() => navigation.goBack()} />;
-}
-
 function CreatorSubscriptionWrapper({ navigation }: any) {
   const Screen = useLazyScreen(() => require('../screens/CreatorSubscriptionScreen'));
   return <Screen onBack={() => navigation.goBack()} />;
@@ -810,6 +805,11 @@ function TreasureHuntWrapper() {
   return <Screen />;
 }
 
+function MyTreasureHuntsWrapper() {
+  const Screen = useLazyScreen(() => require('../screens/MyTreasureHuntsScreen').default);
+  return <Screen />;
+}
+
 function BlockListWrapper() {
   const { BlockListScreen } = require('../screens/settings/BlockListScreen');
   return <BlockListScreen />;
@@ -1040,7 +1040,6 @@ const sharedStackScreens = (
     <Stack.Screen name="CreateOffer" component={CreateOfferWrapper} />
     <Stack.Screen name="VendorCustomers" component={VendorCustomersWrapper} />
     <Stack.Screen name="PremiumUpgrade" component={PremiumUpgradeWrapper} />
-    <Stack.Screen name="UserPremium" component={UserPremiumWrapper} />
     <Stack.Screen name="CreatorSubscription" component={CreatorSubscriptionWrapper} />
     <Stack.Screen name="BillingHistory" component={BillingHistoryWrapper} />
     <Stack.Screen name="VendorSubscription" component={VendorSubscriptionWrapper} />
@@ -1081,6 +1080,7 @@ const sharedStackScreens = (
     <Stack.Screen name="Settings" component={SettingsWrapper} />
     <Stack.Screen name="HowItWorks" component={HowItWorksWrapper} />
     <Stack.Screen name="TreasureHunt" component={TreasureHuntWrapper} />
+    <Stack.Screen name="MyTreasureHunts" component={MyTreasureHuntsWrapper} />
     {MONITORING_CONFIG.enableCrashTests ? (
       <Stack.Screen name="CrashTest" component={CrashTestWrapper} options={{ headerShown: false }} />
     ) : null}

@@ -35,8 +35,11 @@ export function normalizeTripDays(days: TripPlanDay[] | null | undefined): TripP
       stops.push(stop);
     }
 
+    stops.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     normalized.push({ ...day, stops });
   }
+
+  normalized.sort((a, b) => (a.dayNumber ?? 0) - (b.dayNumber ?? 0));
 
   return normalized;
 }

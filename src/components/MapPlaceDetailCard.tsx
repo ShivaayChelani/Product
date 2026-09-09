@@ -11,7 +11,10 @@ import {
   Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-
+import { useLocationContext } from '../context/LocationContext';
+import { useTravelTime } from '../services/location/useTravelTime';
+import { isReliableUserPosition } from '../services/location/distance';
+import { formatDriveDistanceMeters, formatTravelTimeLabel } from '../services/location/travelTime';
 export type MapDetailMarker = {
   id: string;
   name: string;
@@ -32,12 +35,13 @@ export type MapDetailMarker = {
   needsImage?: boolean;
   isOpen?: boolean | null;
   closesAt?: string | null;
-  entryFee?: number | null;
+  entryFee?: number | string | null;
   estimatedDuration?: number | null;
 };
 
 type Props = {
   marker: MapDetailMarker;
+  distanceLabel?: string;
   locationUnavailable?: boolean;
   addressLine?: string;
   inItinerary: boolean;
@@ -68,14 +72,24 @@ const COLORS = {
 
 const serif = Platform.OS === 'ios' ? 'Georgia' : 'serif';
 
-function formatEntryFee(fee?: number | null): string {
-  if (fee == null) return 'Not listed';
-  if (fee === 0) return '₹0';
+function formatEntryFee(fee?: number | string | null): string {
+  if (fee == null || fee === '') return 'Not listed';
+  if (fee === 0 || fee === '0') return 'Free';
+  if (typeof fee === 'string') {
+    const lower = fee.toLowerCase().trim();
+    if (lower === 'free' || lower === '0' || lower === '₹0') return 'Free';
+    if (/^\d+$/.test(lower)) return `₹${fee}`;
+    if (!fee.includes('₹') && !lower.includes('rs') && !lower.includes('inr')) {
+       return `₹${fee}`;
+    }
+    return fee;
+  }
   return `₹${fee}`;
 }
 
 export default function MapPlaceDetailCard({
   marker,
+  distanceLabel,
   locationUnavailable = false,
   inItinerary,
   addingToItinerary = false,
@@ -93,6 +107,19 @@ export default function MapPlaceDetailCard({
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+
+  const { effectivePosition } = useLocationContext();
+  const travelOrigin =
+    effectivePosition && isReliableUserPosition(effectivePosition)
+      ? { latitude: effectivePosition.latitude, longitude: effectivePosition.longitude }
+      : null;
+  const travelDest = { latitude: marker.lat, longitude: marker.lng };
+  const { result: travelTime, loading: travelTimeLoading } = useTravelTime(
+    travelOrigin,
+    travelDest,
+    marker.id,
+  );
+  const showTravelCard = travelOrigin && (travelTime || travelTimeLoading || distanceLabel);
 
   useEffect(() => {
     setDescriptionExpanded(false);
@@ -240,6 +267,58 @@ export default function MapPlaceDetailCard({
           </View>
         </View>
       </View>
+
+      {/* Distance + Travel Time card */}
+      {showTravelCard ? (
+        <View style={styles.travelCard}>
+          {travelTimeLoading && !travelTime ? (
+            <ActivityIndicator size="small" color={COLORS.gold} style={{ marginVertical: 8 }} />
+          ) : travelTime ? (
+            <View style={styles.travelCardInner}>
+              {/* Left Section - Distance */}
+              <View style={styles.travelSection}>
+                <View style={styles.travelIconDisc}>
+                  <Icon name="car-outline" size={20} color={COLORS.gold} />
+                </View>
+                <View style={styles.travelTextCol}>
+                  <Text style={styles.travelValue}>
+                    {formatDriveDistanceMeters(travelTime.distanceMeters)}
+                  </Text>
+                  <Text style={styles.travelLabel}>Distance</Text>
+                </View>
+              </View>
+
+              {/* Divider */}
+              <View style={styles.travelDivider} />
+
+              {/* Right Section - ETA */}
+              <View style={styles.travelSection}>
+                <View style={styles.travelIconDisc}>
+                  <Icon name="time-outline" size={20} color={COLORS.gold} />
+                </View>
+                <View style={styles.travelTextCol}>
+                  <Text style={styles.travelValue}>
+                    {formatTravelTimeLabel(travelTime)}
+                  </Text>
+                  <Text style={styles.travelLabel}>by road</Text>
+                </View>
+              </View>
+            </View>
+          ) : distanceLabel ? (
+            <View style={styles.travelCardInner}>
+              <View style={styles.travelSection}>
+                <View style={styles.travelIconDisc}>
+                  <Icon name="navigate-outline" size={20} color={COLORS.gold} />
+                </View>
+                <View style={styles.travelTextCol}>
+                  <Text style={styles.travelValue}>{distanceLabel}</Text>
+                  <Text style={styles.travelLabel}>straight line</Text>
+                </View>
+              </View>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
 
       {/* Bottom Action Pill Buttons: Navigate, Add to Trip, Get a Ride */}
       <View style={styles.actionsRow}>
@@ -472,6 +551,54 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 1,
   },
+  travelCard: {
+    backgroundColor: COLORS.cardBg,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 14,
+  },
+  travelCardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  travelSection: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  travelIconDisc: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.iconDiscBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  travelTextCol: {
+    flexShrink: 1,
+  },
+  travelValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  travelLabel: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  travelDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: COLORS.cardBorder,
+    marginHorizontal: 8,
+  },
+
   actionsRow: {
     flexDirection: 'row',
     gap: 8,

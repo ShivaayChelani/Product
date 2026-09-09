@@ -41,15 +41,15 @@ export function mapsSearchUrl(
   return Platform.select({
     ios: `maps:0,0?q=${latitude},${longitude}(${q})`,
     android: `geo:0,0?q=${latitude},${longitude}(${q})`,
-    default: `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`,
-  }) || `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+    default: `https://www.openstreetmap.org/search?query=${latitude},${longitude}`,
+  }) || `https://www.openstreetmap.org/search?query=${latitude},${longitude}`;
 }
 
 export function googleMapsFallbackUrl(
   latitude: number,
   longitude: number,
 ): string {
-  return `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+  return `https://www.openstreetmap.org/directions?destination=${latitude},${longitude}`;
 }
 
 export async function openExternalUrl(url: string, missingMessage: string): Promise<void> {

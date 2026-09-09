@@ -2819,3 +2819,20 @@ enum ContentModerationStatus {
   APPROVED
   REJECTED
 }
+
+model MediaCleanupTask {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  publicId     String   @map("public_id")
+  resourceType String   @default("image") @map("resource_type")
+  status       String   @default("PENDING")
+  attempts     Int      @default(0)
+  lastError    String?  @map("last_error")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@unique([publicId, resourceType])
+  @@index([status, updatedAt])
+  @@map("media_cleanup_tasks")
+}
+

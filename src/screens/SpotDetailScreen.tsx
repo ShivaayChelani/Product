@@ -59,7 +59,11 @@ export default function SpotDetailScreen({
   const puzzleSize = responsive.fitWidth(270, 48);
 
   const renderTimings = () => {
-    if (!displaySpot.openingHours) return 'Check local listing';
+    if (!displaySpot.openingHours) {
+      if (displaySpot.bestTimeToVisit?.label) return displaySpot.bestTimeToVisit.label;
+      if (displaySpot.source === 'HIDDEN_GEM' || displaySpot.tags?.includes('hidden-gem')) return 'Varies / Not specified';
+      return 'Check local listing';
+    }
     if (typeof displaySpot.openingHours === 'string') return displaySpot.openingHours;
     try {
       const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
@@ -82,7 +86,20 @@ export default function SpotDetailScreen({
       if (tp.foreigner) parts.push(`Foreigner ₹${tp.foreigner}`);
       return parts.join(' • ') || 'Free';
     }
-    return displaySpot.entryFee ? `₹${displaySpot.entryFee}` : (displaySpot.fee ?? 'Free');
+    
+    if (displaySpot.entryFee) return `₹${displaySpot.entryFee}`;
+    if (displaySpot.fee) return displaySpot.fee;
+    
+    const costTag = displaySpot.tags?.find((t: string) => t.startsWith('hg-cost:'));
+    if (costTag) {
+      return costTag.replace('hg-cost:', '');
+    }
+
+    if (displaySpot.source === 'HIDDEN_GEM' || displaySpot.tags?.includes('hidden-gem')) {
+      return 'Not specified';
+    }
+    
+    return 'Free';
   };
   const tileSize = puzzleSize / 3;
   const styles = useMemo(() => createStyles(theme, puzzleSize, tileSize), [theme, puzzleSize, tileSize]);
@@ -604,38 +621,48 @@ export default function SpotDetailScreen({
               <Icon name="hourglass-outline" size={20} color={colors.secondary} />
               <View style={styles.infoGridTextCol}>
                 <Text style={styles.infoGridLabel}>Duration</Text>
-                <Text style={styles.infoGridValue}>{displaySpot.recommendedDuration || `${displaySpot.estimatedDuration || 60} mins`}</Text>
+                <Text style={styles.infoGridValue}>
+                  {displaySpot.recommendedDuration || (
+                    displaySpot.estimatedDuration
+                      ? `${displaySpot.estimatedDuration} mins`
+                      : (displaySpot.source === 'HIDDEN_GEM' || displaySpot.tags?.includes('hidden-gem')
+                        ? 'Varies / Not specified'
+                        : '60 mins')
+                  )}
+                </Text>
               </View>
             </View>
 
             <View style={styles.infoGridItem}>
-              <Icon name="fitness-outline" size={20} color={displaySpot.difficulty === 'easy' ? '#4CAF50' : displaySpot.difficulty === 'medium' ? '#FF9800' : '#F44336'} />
+              <Icon name="fitness-outline" size={20} color={displaySpot.difficulty === 'easy' ? '#4CAF50' : displaySpot.difficulty === 'medium' ? '#FF9800' : displaySpot.difficulty === 'hard' ? '#F44336' : colors.textMuted} />
               <View style={styles.infoGridTextCol}>
                 <Text style={styles.infoGridLabel}>Difficulty</Text>
-                <Text style={styles.infoGridValue}>{displaySpot.difficulty?.toUpperCase()}</Text>
+                <Text style={styles.infoGridValue}>{displaySpot.difficulty?.toUpperCase() || (displaySpot.source === 'HIDDEN_GEM' || displaySpot.tags?.includes('hidden-gem') ? 'Unknown' : 'N/A')}</Text>
               </View>
             </View>
           </View>
 
           {/* Amenities Row */}
-          <View style={styles.amenitiesRow}>
-            <View style={[styles.amenityBadge, { opacity: displaySpot.hasParking ? 1 : 0.4 }]}>
-              <Icon name="car-sport-outline" size={16} color={colors.text} />
-              <Text style={styles.amenityText}>Parking</Text>
+          {(!(displaySpot.source === 'HIDDEN_GEM' || displaySpot.tags?.includes('hidden-gem')) || (displaySpot.hasParking || displaySpot.isAccessible || displaySpot.hasWashroom || displaySpot.isPetFriendly)) && (
+            <View style={styles.amenitiesRow}>
+              <View style={[styles.amenityBadge, { opacity: displaySpot.hasParking ? 1 : 0.4 }]}>
+                <Icon name="car-sport-outline" size={16} color={colors.text} />
+                <Text style={styles.amenityText}>Parking</Text>
+              </View>
+              <View style={[styles.amenityBadge, { opacity: displaySpot.isAccessible ? 1 : 0.4 }]}>
+                <Icon name="body-outline" size={16} color={colors.text} />
+                <Text style={styles.amenityText}>Accessible</Text>
+              </View>
+              <View style={[styles.amenityBadge, { opacity: displaySpot.hasWashroom ? 1 : 0.4 }]}>
+                <Icon name="water-outline" size={16} color={colors.text} />
+                <Text style={styles.amenityText}>Washroom</Text>
+              </View>
+              <View style={[styles.amenityBadge, { opacity: displaySpot.isPetFriendly ? 1 : 0.4 }]}>
+                <Icon name="paw-outline" size={16} color={colors.text} />
+                <Text style={styles.amenityText}>Pets</Text>
+              </View>
             </View>
-            <View style={[styles.amenityBadge, { opacity: displaySpot.isAccessible ? 1 : 0.4 }]}>
-              <Icon name="body-outline" size={16} color={colors.text} />
-              <Text style={styles.amenityText}>Accessible</Text>
-            </View>
-            <View style={[styles.amenityBadge, { opacity: displaySpot.hasWashroom ? 1 : 0.4 }]}>
-              <Icon name="water-outline" size={16} color={colors.text} />
-              <Text style={styles.amenityText}>Washroom</Text>
-            </View>
-            <View style={[styles.amenityBadge, { opacity: displaySpot.isPetFriendly ? 1 : 0.4 }]}>
-              <Icon name="paw-outline" size={16} color={colors.text} />
-              <Text style={styles.amenityText}>Pets</Text>
-            </View>
-          </View>
+          )}
         </View>
 
         {/* Check-In / Visited Action Button */}

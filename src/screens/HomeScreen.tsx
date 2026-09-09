@@ -21,7 +21,7 @@ import { loadWishlistIds, toggleWishlistId } from '../utils/homeWishlist';
 import { refreshUnreadBadgeCount } from '../services/notificationService';
 import { getMainTabBarClearance } from '../design/tabBarLayout';
 import { useResponsive, scale, verticalScale, fontScale, radiusScale } from '../design/responsive';
-import { getLuxuryTheme, MAX_HOME_CONTENT_WIDTH } from '../design/luxuryTravel';
+import { getLuxuryTheme } from '../design/luxuryTravel';
 import {
   HomeHeader,
   HeroAITripPlannerCard,
@@ -207,20 +207,6 @@ export default function HomeScreen({
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { width: windowW } = useWindowDimensions();
   const responsive = useResponsive();
-
-  const layout = useMemo(() => {
-    const maxW = responsive.isTablet ? MAX_HOME_CONTENT_WIDTH : 440;
-    const layoutW = Math.min(windowW, maxW);
-    const heroW = layoutW - H_PAD * 2;
-    return {
-      layoutW,
-      heroW,
-      heroH: heroW * 0.58,
-      placeCardW: layoutW * (responsive.isSmallPhone ? 0.72 : 0.68),
-      reelCardW: layoutW * 0.38,
-      offerCardW: layoutW * (responsive.isSmallPhone ? 0.52 : 0.46),
-    };
-  }, [windowW, responsive.isTablet, responsive.isSmallPhone]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const { isGuest, user: ctxUser, setUser } = useUserContext();
@@ -680,6 +666,12 @@ export default function HomeScreen({
     }));
   }, [publicNearbyOffers, vendorOffers, vendors, position, vendorOfferDistanceLabels]);
 
+  const contentWidth = Math.min(responsive.width, 1000) - 40;
+  const placesCols = contentWidth >= 800 ? 3 : 2;
+  const placesCardWidth = (contentWidth - (placesCols - 1) * 12) / placesCols;
+  const vendorCols = contentWidth >= 800 ? 3 : 2;
+  const vendorCardWidth = (contentWidth - (vendorCols - 1) * 12) / vendorCols;
+
   return (
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
@@ -702,10 +694,9 @@ export default function HomeScreen({
       >
         <Animated.View style={[styles.contentShell, { opacity: fadeAnim }]}>
           
-          {/* Top Section with Hero Image */}
           <ImageBackground
             source={require('../assets/Homescreen_cover.jpeg')}
-            style={styles.heroSection}
+            style={[styles.heroSection, responsive.isTablet && { minHeight: 400 }]}
             resizeMode="cover"
           >
             
@@ -821,7 +812,7 @@ export default function HomeScreen({
               
               <ImageBackground 
                 source={require('../assets/map_banner.jpg')} 
-                style={styles.tripCard}
+                style={[styles.tripCard, responsive.isTablet && { height: 240 }]}
                 imageStyle={{ borderRadius: 24 }}
                 resizeMode="cover"
               >
@@ -857,38 +848,62 @@ export default function HomeScreen({
               </TouchableOpacity>
             </View>
             
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trendingScroll}>
-              {nearbyPlaces.slice(0, 3).map((place, idx) => (
-                <TouchableOpacity key={place.id || idx} style={styles.trendingCard} onPress={() => handleSelectNearby(place.id)}>
-                  <Image source={{ uri: place.imageUri || 'https://images.unsplash.com/photo-1596423735880-5c2921568e64?q=80&w=600' }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-                  <View style={styles.trendingCardOverlay} />
-                  <TouchableOpacity style={styles.heartButton} onPress={() => handleToggleWishlist(place.id)}>
-                    <Icon name={wishlistIds.includes(place.id) ? "heart" : "heart-outline"} size={20} color="#FFFFFF" />
-                  </TouchableOpacity>
-                  <View style={styles.trendingCardBottom}>
-                    <Text style={styles.trendingPlaceName} numberOfLines={1}>{place.name}</Text>
-                    <View style={styles.trendingStatsRow}>
-                      <View style={styles.ratingWrap}>
-                        <Icon name="star" size={12} color={HOME.iconOnDark} />
-                        <Text style={styles.ratingText}>{place.rating || '4.5'} (201)</Text>
+            {responsive.isTablet ? (
+              <View style={[styles.tabletGridContainer, { paddingRight: 0 }]}>
+                {nearbyPlaces.slice(0, placesCols === 3 ? 6 : 4).map((place, idx) => (
+                  <TouchableOpacity key={place.id || idx} style={[styles.trendingCard, { width: placesCardWidth }]} onPress={() => handleSelectNearby(place.id)}>
+                    <Image source={{ uri: place.imageUri || 'https://images.unsplash.com/photo-1596423735880-5c2921568e64?q=80&w=600' }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+                    <View style={styles.trendingCardOverlay} />
+                    <TouchableOpacity style={styles.heartButton} onPress={() => handleToggleWishlist(place.id)}>
+                      <Icon name={wishlistIds.includes(place.id) ? "heart" : "heart-outline"} size={20} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    <View style={styles.trendingCardBottom}>
+                      <Text style={styles.trendingPlaceName} numberOfLines={1}>{place.name}</Text>
+                      <View style={styles.trendingStatsRow}>
+                        <View style={styles.ratingWrap}>
+                          <Icon name="star" size={12} color={HOME.iconOnDark} />
+                          <Text style={styles.ratingText}>{place.rating || '4.5'} (201)</Text>
+                        </View>
+                        <Text style={styles.distanceText}>{place.distance}</Text>
                       </View>
-                      <Text style={styles.distanceText}>{place.distance}</Text>
                     </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trendingScroll}>
+                {nearbyPlaces.slice(0, 3).map((place, idx) => (
+                  <TouchableOpacity key={place.id || idx} style={styles.trendingCard} onPress={() => handleSelectNearby(place.id)}>
+                    <Image source={{ uri: place.imageUri || 'https://images.unsplash.com/photo-1596423735880-5c2921568e64?q=80&w=600' }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+                    <View style={styles.trendingCardOverlay} />
+                    <TouchableOpacity style={styles.heartButton} onPress={() => handleToggleWishlist(place.id)}>
+                      <Icon name={wishlistIds.includes(place.id) ? "heart" : "heart-outline"} size={20} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    <View style={styles.trendingCardBottom}>
+                      <Text style={styles.trendingPlaceName} numberOfLines={1}>{place.name}</Text>
+                      <View style={styles.trendingStatsRow}>
+                        <View style={styles.ratingWrap}>
+                          <Icon name="star" size={12} color={HOME.iconOnDark} />
+                          <Text style={styles.ratingText}>{place.rating || '4.5'} (201)</Text>
+                        </View>
+                        <Text style={styles.distanceText}>{place.distance}</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+                
+                {/* Explore More Card */}
+                <TouchableOpacity style={styles.exploreMoreCard} onPress={onNavigateToMap}>
+                  <View style={styles.exploreMoreIconWrap}>
+                    <Icon name="navigate-outline" size={28} color={HOME.iconOnDark} />
+                  </View>
+                  <Text style={styles.exploreMoreText}>Explore{'\n'}More</Text>
+                  <View style={styles.exploreMoreArrow}>
+                    <Icon name="arrow-forward" size={18} color="#1E1B18" />
                   </View>
                 </TouchableOpacity>
-              ))}
-              
-              {/* Explore More Card */}
-              <TouchableOpacity style={styles.exploreMoreCard} onPress={onNavigateToMap}>
-                <View style={styles.exploreMoreIconWrap}>
-                  <Icon name="navigate-outline" size={28} color={HOME.iconOnDark} />
-                </View>
-                <Text style={styles.exploreMoreText}>Explore{'\n'}More</Text>
-                <View style={styles.exploreMoreArrow}>
-                  <Icon name="arrow-forward" size={18} color="#1E1B18" />
-                </View>
-              </TouchableOpacity>
-            </ScrollView>
+              </ScrollView>
+            )}
           </View>
 
           {/* Vendor Offers Near You */}
@@ -902,41 +917,64 @@ export default function HomeScreen({
                 <Text style={styles.viewAllText}>View all →</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trendingScroll}>
-              {nearbyVendorOffers.slice(0, 6).map((offer, idx) => (
-                <TouchableOpacity key={offer.id || idx} style={styles.vendorOfferCard} onPress={() => openOfferDetail(offer.id)} activeOpacity={0.9}>
-                  <Image source={{ uri: offer.imageUri || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=400' }} style={styles.vendorOfferImage} />
-                  <View style={styles.vendorOfferDiscountBadge}>
-                    <Text style={styles.vendorOfferDiscountText}>{offer.headline}</Text>
-                  </View>
-                  <TouchableOpacity style={styles.offerHeartBtn}>
-                    <Icon name="heart-outline" size={18} color="#FFFFFF" />
-                  </TouchableOpacity>
-                  <View style={styles.vendorOfferBottom}>
-                    <Text style={styles.vendorOfferName} numberOfLines={1}>{offer.vendorName}</Text>
-                    <Text style={styles.vendorOfferLoc} numberOfLines={1}>{cityName === 'Nearby' ? 'Jabalpur' : cityName}</Text>
-                    <View style={styles.vendorOfferRatingRow}>
-                      <Text style={styles.vendorOfferRatingTxt}>4.5 <Icon name="star" size={10} color="#B9834B" /></Text>
+            {responsive.isTablet ? (
+              <View style={[styles.tabletGridContainer, { paddingRight: 0 }]}>
+                {nearbyVendorOffers.slice(0, vendorCols === 3 ? 6 : 4).map((offer, idx) => (
+                  <TouchableOpacity key={offer.id || idx} style={[styles.vendorOfferCard, { width: vendorCardWidth }]} onPress={() => openOfferDetail(offer.id)} activeOpacity={0.9}>
+                    <Image source={{ uri: offer.imageUri || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=400' }} style={styles.vendorOfferImage} />
+                    <View style={styles.vendorOfferDiscountBadge}>
+                      <Text style={styles.vendorOfferDiscountText}>{offer.headline}</Text>
                     </View>
+                    <TouchableOpacity style={styles.offerHeartBtn}>
+                      <Icon name="heart-outline" size={18} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    <View style={styles.vendorOfferBottom}>
+                      <Text style={styles.vendorOfferName} numberOfLines={1}>{offer.vendorName}</Text>
+                      <Text style={styles.vendorOfferLoc} numberOfLines={1}>{cityName === 'Nearby' ? 'Jabalpur' : cityName}</Text>
+                      <View style={styles.vendorOfferRatingRow}>
+                        <Text style={styles.vendorOfferRatingTxt}>4.5 <Icon name="star" size={10} color="#B9834B" /></Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trendingScroll}>
+                {nearbyVendorOffers.slice(0, 6).map((offer, idx) => (
+                  <TouchableOpacity key={offer.id || idx} style={styles.vendorOfferCard} onPress={() => openOfferDetail(offer.id)} activeOpacity={0.9}>
+                    <Image source={{ uri: offer.imageUri || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=400' }} style={styles.vendorOfferImage} />
+                    <View style={styles.vendorOfferDiscountBadge}>
+                      <Text style={styles.vendorOfferDiscountText}>{offer.headline}</Text>
+                    </View>
+                    <TouchableOpacity style={styles.offerHeartBtn}>
+                      <Icon name="heart-outline" size={18} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    <View style={styles.vendorOfferBottom}>
+                      <Text style={styles.vendorOfferName} numberOfLines={1}>{offer.vendorName}</Text>
+                      <Text style={styles.vendorOfferLoc} numberOfLines={1}>{cityName === 'Nearby' ? 'Jabalpur' : cityName}</Text>
+                      <View style={styles.vendorOfferRatingRow}>
+                        <Text style={styles.vendorOfferRatingTxt}>4.5 <Icon name="star" size={10} color="#B9834B" /></Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity style={styles.promoOfferCard} onPress={openVendorOffers} activeOpacity={0.9}>
+                  <Icon name="gift-outline" size={24} color="#B9834B" style={{ marginBottom: 12 }} />
+                  <Text style={styles.promoOfferTitle}>
+                    {nearbyVendorOffers.length ? 'More offers' : 'Exciting offers'}
+                  </Text>
+                  <Text style={styles.promoOfferSub}>from top local{'\n'}vendors!</Text>
+                  <View style={styles.promoArrowBtn}>
+                    <Icon name="arrow-forward" size={16} color="#FFFFFF" />
                   </View>
                 </TouchableOpacity>
-              ))}
-              <TouchableOpacity style={styles.promoOfferCard} onPress={openVendorOffers} activeOpacity={0.9}>
-                <Icon name="gift-outline" size={24} color="#B9834B" style={{ marginBottom: 12 }} />
-                <Text style={styles.promoOfferTitle}>
-                  {nearbyVendorOffers.length ? 'More offers' : 'Exciting offers'}
-                </Text>
-                <Text style={styles.promoOfferSub}>from top local{'\n'}vendors!</Text>
-                <View style={styles.promoArrowBtn}>
-                  <Icon name="arrow-forward" size={16} color="#FFFFFF" />
-                </View>
-              </TouchableOpacity>
-            </ScrollView>
+              </ScrollView>
+            )}
           </View>
 
           {/* Treasure Hunt */}
           <View style={[styles.sectionContainer, { paddingHorizontal: 20 }]}>
-            <TouchableOpacity style={styles.treasureHuntBanner} onPress={onNavigateToTreasureHunt} activeOpacity={0.9}>
+            <TouchableOpacity style={[styles.treasureHuntBanner, responsive.isTablet && { height: 240 }]} onPress={onNavigateToTreasureHunt} activeOpacity={0.9}>
               <ImageBackground 
                 source={require('../assets/treasure_hunt_bg_new.jpg')} 
                 style={styles.treasureHuntBg}
@@ -987,7 +1025,7 @@ export default function HomeScreen({
         onNavigateToSaved={() => onNavigateToSearch?.('Saved', 'saved')}
         onNavigateToSettings={() => navigation.navigate('Settings')}
         onNavigateToHelp={() => onNavigateToLegal?.()}
-        onNavigateToSubscription={() => navigation.navigate('UserPremium')}
+        onNavigateToSubscription={() => navigation.navigate('PremiumUpgrade')}
       />
     </View>
   );
@@ -1003,7 +1041,7 @@ const styles = StyleSheet.create({
   emptyBtnText: { color: '#FFF', fontWeight: 'bold' },
   contentShell: {
     alignSelf: 'center',
-    maxWidth: MAX_HOME_CONTENT_WIDTH,
+    maxWidth: 1000,
     width: '100%',
   },
   heroSection: {
@@ -1160,7 +1198,7 @@ const styles = StyleSheet.create({
   categoriesCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'space-evenly',
     backgroundColor: '#2D241D',
     borderRadius: 16,
     paddingVertical: 18,
@@ -1213,7 +1251,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tripCard: {
-    height: 180,
+    height: 180, // Will override inline if tablet
     borderRadius: 20,
     overflow: 'hidden',
     padding: 20,
@@ -1272,6 +1310,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 12,
+  },
+  tabletGridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
   },
   trendingScroll: {
     paddingRight: 20,

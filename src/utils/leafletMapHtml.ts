@@ -286,12 +286,12 @@ var map = L.map('map', {
   maxZoom: 18,
 });
 
-/* Streets basemap (Carto Voyager) */
+/* Streets basemap (OpenStreetMap) */
 var streetsLayer = L.tileLayer(
-  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   {
     maxZoom: 19,
-    attribution: '&copy; CARTO &copy; OSM',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }
 );
 streetsLayer.addTo(map);
@@ -960,9 +960,9 @@ window.__palMap = {
 function drawRoute(coords) {
   if (routeLayer) map.removeLayer(routeLayer);
   routeLayer = L.polyline(coords, {
-    color: '#00A8A8',
+    color: '#B9834B',
     weight: 6,
-    opacity: 0.85,
+    opacity: 0.95,
     lineCap: 'round',
     lineJoin: 'round',
   }).addTo(map);

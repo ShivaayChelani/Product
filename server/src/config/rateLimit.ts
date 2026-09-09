@@ -60,10 +60,22 @@ function isAdminRequest(req: Request): boolean {
   }
 }
 
+const { getRedisClient } = require('./redis');
+const { RedisStore } = require('rate-limit-redis');
+
 const createLimiter = (options: Partial<Options>): RateLimitRequestHandler => {
   const userSkip = options.skip;
+  const redisClient = getRedisClient();
+  
   return rateLimit({
     ...options,
+    ...(redisClient
+      ? {
+          store: new RedisStore({
+            sendCommand: (...args: string[]) => redisClient.call(...args),
+          }),
+        }
+      : {}),
     validate: {
       // We intentionally use a custom key (user id) behind a reverse proxy.
       xForwardedForHeader: false,

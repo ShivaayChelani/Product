@@ -372,16 +372,44 @@ export function dedupeMapMarkers<T extends {
     if (a !== b) parent[a] = b;
   };
 
-  const NEAR_M_ANY_NAME_KM = 0.001; // 1 meter — only collapse exact coordinate collisions with exact names
+  const bucketSize = 0.002; // ~222 meters
+  const grid = new Map<string, number[]>();
+  
   for (let i = 0; i < list.length; i++) {
-    for (let j = i + 1; j < list.length; j++) {
-      const d = haversineKm(list[i].lat, list[i].lng, list[j].lat, list[j].lng);
-      if (d <= NEAR_M_ANY_NAME_KM && namesLikelySamePlace(list[i].name, list[j].name)) {
-        unite(i, j);
-        continue;
-      }
-      if (radiusKm > 0 && d <= radiusKm && namesLikelySamePlace(list[i].name, list[j].name)) {
-        unite(i, j);
+    const latB = Math.floor(list[i].lat / bucketSize);
+    const lngB = Math.floor(list[i].lng / bucketSize);
+    const key = `${latB},${lngB}`;
+    let bucket = grid.get(key);
+    if (!bucket) {
+      bucket = [];
+      grid.set(key, bucket);
+    }
+    bucket.push(i);
+  }
+
+  const NEAR_M_ANY_NAME_KM = 0.001;
+  for (let i = 0; i < list.length; i++) {
+    const latB = Math.floor(list[i].lat / bucketSize);
+    const lngB = Math.floor(list[i].lng / bucketSize);
+
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const key = `${latB + dy},${lngB + dx}`;
+        const neighbors = grid.get(key);
+        if (!neighbors) continue;
+
+        for (const j of neighbors) {
+          if (j <= i) continue;
+
+          const d = haversineKm(list[i].lat, list[i].lng, list[j].lat, list[j].lng);
+          if (d <= NEAR_M_ANY_NAME_KM && namesLikelySamePlace(list[i].name, list[j].name)) {
+            unite(i, j);
+            continue;
+          }
+          if (radiusKm > 0 && d <= radiusKm && namesLikelySamePlace(list[i].name, list[j].name)) {
+            unite(i, j);
+          }
+        }
       }
     }
   }

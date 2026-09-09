@@ -985,7 +985,7 @@ export const vendorsService = {
 
   async recalculateVendorRating(vendorId: string) {
     const result = await prisma.vendorReview.aggregate({
-      where: { vendorId },
+      where: { vendorId, status: 'APPROVED' },
       _avg: { rating: true },
       _count: true,
     });
@@ -1000,7 +1000,7 @@ export const vendorsService = {
 
   async addReview(vendorId: string, userId: string, input: VendorReviewInput) {
     const vendor = await prisma.vendor.findFirst({
-      where: { id: vendorId, ...getPublicVendorListingWhere() },
+      where: { id: vendorId, status: 'APPROVED', suspendedAt: null },
       select: { id: true, status: true, userId: true, businessName: true },
     });
     if (!vendor) {
@@ -1039,8 +1039,10 @@ export const vendorsService = {
 
     let pointsAwarded = 0;
     try {
+      // Use 10pts as hardcoded fallback only if rule is completely missing from DB.
+      // If the rule exists but isActive=false, skip the award entirely.
       const rule = await pointRulesService.getPointsForAction('review_write');
-      const points = rule?.points ?? 10;
+      const points = rule !== null ? rule.points : 10; // rule===null means not in DB at all
       if (points > 0) {
         const limitReached = await pointRulesService.checkDailyLimit(userId, 'review_write');
         if (!limitReached) {
@@ -1048,10 +1050,15 @@ export const vendorsService = {
             notify: false,
           });
           pointsAwarded = points;
+          logger.info({ reviewId: review.id, vendorId, userId, points }, 'Awarded vendor review PalPoints');
+        } else {
+          logger.info({ reviewId: review.id, userId }, 'Vendor review PalPoints skipped — daily limit reached');
         }
+      } else {
+        logger.info({ reviewId: review.id, userId }, 'Vendor review PalPoints skipped — rule inactive or zero');
       }
     } catch (error) {
-      logger.warn({ error, reviewId: review.id, vendorId, userId }, 'Failed to award vendor review PalPoints');
+      logger.error({ error, reviewId: review.id, vendorId, userId }, 'Failed to award vendor review PalPoints');
     }
 
     const shopName = vendor.businessName || 'this shop';
@@ -1100,7 +1107,7 @@ export const vendorsService = {
     const pagination = getPaginationParams(query);
     const [data, total] = await Promise.all([
       prisma.vendorReview.findMany({
-        where: { vendorId },
+        where: { vendorId, status: 'APPROVED' },
         skip: pagination.skip,
         take: pagination.limit,
         orderBy: [{ helpfulVotes: 'desc' }, { createdAt: 'desc' }],
@@ -1108,7 +1115,7 @@ export const vendorsService = {
           user: { select: { id: true, name: true, avatarStyle: true, avatar: true } },
         },
       }),
-      prisma.vendorReview.count({ where: { vendorId } }),
+      prisma.vendorReview.count({ where: { vendorId, status: 'APPROVED' } }),
     ]);
 
     return paginatedResponse(data, total, pagination);

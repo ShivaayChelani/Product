@@ -89,6 +89,7 @@ export interface VendorReview {
   photos?: string[];
   helpfulVotes?: number;
   createdAt: string;
+  updatedAt?: string;
   /** Server-confirmed PalPoints for first eligible review (review_write rule). */
   pointsAwarded?: number;
   updated?: boolean;

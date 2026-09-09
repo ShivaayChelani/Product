@@ -131,6 +131,7 @@ eventBus.on(AppEvents.PLACE_UPDATED, async (payload: {
     await withRetry(() => auditService.log(AuditAction.PLACE_UPDATED, 'Place', payload.placeId, payload.actorId, payload.placeId, null, payload.data));
     cache.delPattern(cacheKey('places', 'trending'));
     cache.delPattern(cacheKey('places', 'hidden-gems'));
+    cache.delPattern(cacheKey('places', 'nearby'));
   } catch (err) {
     logger.error({ err, payload }, 'Failed to handle PLACE_UPDATED event');
   }

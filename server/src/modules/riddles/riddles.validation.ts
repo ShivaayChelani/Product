@@ -19,6 +19,8 @@ export const updateRiddleSchema = createRiddleSchema.partial().extend({
 
 export const submitRiddleSchema = z.object({
   photoUrl: z.string().url('Photo URL must be a valid URL'),
+  userLat: z.coerce.number().min(-90).max(90, 'Invalid latitude'),
+  userLng: z.coerce.number().min(-180).max(180, 'Invalid longitude'),
 });
 
 export const rejectRiddleSchema = z.object({

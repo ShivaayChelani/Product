@@ -621,12 +621,16 @@ export const paymentsService = {
     page?: number;
     limit?: number;
     status?: PaymentStatus;
+    excludeStatuses?: PaymentStatus[];
   }) {
     const page = filters.page ?? 1;
     const limit = Math.min(filters.limit ?? 20, 100);
     const where: Prisma.PaymentTransactionWhereInput = {};
     if (filters.userId) where.userId = filters.userId;
     if (filters.status) where.status = filters.status;
+    if (filters.excludeStatuses?.length) {
+      where.status = { notIn: filters.excludeStatuses };
+    }
 
     const [data, total] = await Promise.all([
       prisma.paymentTransaction.findMany({

@@ -202,7 +202,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         notificationService.requestPermission().then((granted) => {
           if (granted) {
             notificationService.registerDeviceToken().catch((err) => {
-              console.log('[Push] Token registration failed:', err?.message);
+              (typeof __DEV__ !== 'undefined' && __DEV__) && console.log('[Push] Token registration failed:', err?.message);
             });
           }
         });

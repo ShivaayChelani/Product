@@ -37,6 +37,10 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      # Google Routes API (map routing). When missing, /routing/directions falls back
+      # to the client-side geodesic estimate (existing behavior preserved).
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
       - key: SENTRY_DSN
         sync: false
       - key: SMTP_HOST

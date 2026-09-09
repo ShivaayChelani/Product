@@ -8,13 +8,14 @@ import {
   ThumbsUp, ThumbsDown, MessageSquare, Star
 } from "lucide-react";
 import {
-  getRiddles, createRiddle, updateRiddle, deleteRiddle,
+  getRiddles, getCitySummary, createRiddle, updateRiddle, deleteRiddle,
   getRiddleSubmissions, getAllPendingSubmissions,
   approveSubmission, rejectSubmission,
   type Riddle, type RiddleSubmission
 } from "@/services/riddles";
 import { getApiErrorMessage } from "@/services/client";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { ExcelImportModal } from "./ExcelImportModal";
 
 type Tab = "riddles" | "pending";
 type RiddleListParams = NonNullable<Parameters<typeof getRiddles>[0]>;
@@ -69,6 +70,7 @@ export default function RiddleHuntAdminPage() {
 
 function RiddlesTab() {
   const [riddles, setRiddles] = useState<Riddle[]>([]);
+  const [citySummary, setCitySummary] = useState<{city: string, activeCount: number}[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -78,6 +80,7 @@ function RiddlesTab() {
   const [cityFilter, setCityFilter] = useState("");
   const [filterActive, setFilterActive] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState("");
@@ -116,7 +119,10 @@ function RiddlesTab() {
     } catch { setRiddles([]); } finally { setLoading(false); }
   }, [page, filterActive, cityFilter, searchQuery]);
 
-  useEffect(() => { fetchRiddles(); }, [fetchRiddles]);
+  useEffect(() => {
+    fetchRiddles();
+    getCitySummary().then(res => setCitySummary(res.data || res)).catch(() => {});
+  }, [fetchRiddles]);
 
   const fetchSubmissions = async (riddleId: string, p: number = 1) => {
     setLoadingSubs(true);
@@ -234,6 +240,24 @@ function RiddlesTab() {
         </div>
       )}
 
+      {/* Supported Cities */}
+      {citySummary.length > 0 && (
+        <div className="bg-white border rounded-lg p-4 shadow-sm">
+          <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2"><MapPin size={16} className="text-purple-600"/> Supported Cities</h3>
+          <div className="flex flex-wrap gap-2">
+            {citySummary.map(c => (
+              <button 
+                key={c.city}
+                onClick={() => setCityFilter(c.city === cityFilter ? "" : c.city)}
+                className={`px-3 py-1 text-sm rounded-full border transition-colors ${cityFilter === c.city ? "bg-purple-100 border-purple-300 text-purple-800 font-medium" : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"}`}
+              >
+                {c.city} — {c.activeCount} active
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Info banner */}
       <div className="bg-purple-50 border border-purple-200 rounded-lg px-4 py-3 flex items-start gap-3">
         <Puzzle size={18} className="text-purple-500 mt-0.5 shrink-0" />
@@ -243,30 +267,48 @@ function RiddlesTab() {
         </div>
       </div>
 
-      {/* Filters & create */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-              placeholder="Search riddles…" className="rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm outline-none focus:border-purple-500 w-40" />
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 
+rounded-xl border shadow-sm">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input type="text" placeholder="Search riddles..." value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                className="pl-9 pr-4 py-2 border rounded-lg text-sm w-48 sm:w-64 focus:ring-2 focus:ring-purple-600 
+focus:border-transparent outline-none" />
+            </div>
+            <select value={cityFilter} onChange={(e) => { setCityFilter(e.target.value); setPage(1); }}
+              className="px-3 py-2 border rounded-lg text-sm bg-white outline-none">
+              <option value="">All Cities</option>
+              <option value="Kolkata">Kolkata</option>
+              <option value="Darjeeling">Darjeeling</option>
+            </select>
+            <select value={filterActive} onChange={(e) => { setFilterActive(e.target.value); setPage(1); }}
+              className="px-3 py-2 border rounded-lg text-sm bg-white outline-none">
+              <option value="">All Status</option>
+              <option value="true">Active Only</option>
+              <option value="false">Inactive Only</option>
+            </select>
           </div>
-          <input value={cityFilter} onChange={(e) => { setCityFilter(e.target.value); setPage(1); }}
-            placeholder="Filter by city…" className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-purple-500 w-36" />
-          <select value={filterActive} onChange={(e) => { setFilterActive(e.target.value); setPage(1); }}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-purple-500">
-            <option value="">All</option>
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
-          </select>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <button onClick={() => setIsImportOpen(true)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-emerald-700">
+              Bulk Import
+            </button>
+            <button onClick={openCreate}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-purple-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-purple-700">
+              <Plus size={16} /> New Riddle
+            </button>
+          </div>
         </div>
-        <button onClick={openCreate}
-          className="flex items-center gap-2 bg-purple-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-purple-700">
-          <Plus size={16} /> New Riddle
-        </button>
-      </div>
 
-      {loading ? (
+        <ExcelImportModal 
+          isOpen={isImportOpen} 
+          onClose={() => setIsImportOpen(false)} 
+          onSuccess={() => { setIsImportOpen(false); fetchRiddles(); }} 
+        />
+
+        {loading ? (
         <div className="flex justify-center py-20">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-600 border-t-transparent" />
         </div>

@@ -2,6 +2,8 @@ export const TH = {
   bg: '#FCF9F2',
   card: '#FFFFFF',
   cream: '#F7F1E8',
+  /** Legacy alias used by TreasureHuntScreen — kept in sync with brown. */
+  primary: '#5C3D1E',
   brown: '#5C3D1E',
   brownDark: '#3D2814',
   green: '#2F6B3A',

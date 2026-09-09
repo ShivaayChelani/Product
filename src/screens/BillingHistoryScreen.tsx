@@ -24,6 +24,40 @@ type Tx = {
   description?: string;
 };
 
+function formatStatus(status: string): string {
+  switch (status) {
+    case 'CAPTURED': return 'Paid';
+    case 'FAILED': return 'Failed';
+    case 'REFUNDED': return 'Refunded';
+    case 'PARTIALLY_REFUNDED': return 'Partially Refunded';
+    case 'FREE': return 'Free';
+    default: return status;
+  }
+}
+
+function statusColor(status: string): string {
+  switch (status) {
+    case 'CAPTURED': return '#2E7D32';
+    case 'FREE': return '#2E7D32';
+    case 'FAILED': return '#C62828';
+    case 'REFUNDED': return '#E65100';
+    case 'PARTIALLY_REFUNDED': return '#E65100';
+    default: return '#8B7355';
+  }
+}
+
+function planLabel(tx: Tx): string {
+  const name =
+    tx.subscription?.plan?.name ||
+    tx.plan?.name ||
+    tx.description ||
+    null;
+  if (!name) return tx.provider || 'Payment';
+  // Append billing period if deducible from description
+  const period = tx.description?.match(/MONTHLY|QUARTERLY|SEMIANNUAL|YEARLY|LIFETIME/i)?.[0];
+  return period ? `${name} (${period})` : name;
+}
+
 export default function BillingHistoryScreen({ onBack }: { onBack?: () => void }) {
   const insets = useSafeAreaInsets();
   const contentPadBottom = useBottomSafePadding(24);
@@ -35,22 +69,13 @@ export default function BillingHistoryScreen({ onBack }: { onBack?: () => void }
     setLoading(true);
     setError(null);
     try {
-      const [res, inv] = await Promise.all([
-        monetizationApi.listTransactions(),
-        monetizationApi.listInvoices().catch(() => null),
-      ]);
+      const res = await monetizationApi.listTransactions();
       const rows = Array.isArray((res as any)?.data)
         ? (res as any).data
         : Array.isArray(res)
           ? res
           : [];
-      const invoices = Array.isArray((inv as any)?.data) ? (inv as any).data : [];
-      // Prefer invoice id on matching transactions when present
-      const byTx = new Map(invoices.map((i: any) => [i.transactionId, i]));
-      setItems(rows.map((t: any) => ({
-        ...t,
-        invoice: t.invoice || byTx.get(t.id) || null,
-      })));
+      setItems(rows);
     } catch (e: any) {
       setError(e?.message || 'Could not load billing history');
     } finally {
@@ -61,7 +86,12 @@ export default function BillingHistoryScreen({ onBack }: { onBack?: () => void }
   useEffect(() => { load(); }, [load]);
 
   const openInvoice = async (tx: Tx) => {
-    const invoiceId = tx.invoice?.id || tx.invoiceId || tx.id;
+    // Only download if we actually have an invoice record linked
+    const invoiceId = tx.invoice?.id;
+    if (!invoiceId) {
+      Alert.alert('Invoice unavailable', 'No invoice has been generated for this transaction yet.');
+      return;
+    }
     try {
       const token = apiClient.getToken();
       if (!token) {
@@ -114,23 +144,40 @@ export default function BillingHistoryScreen({ onBack }: { onBack?: () => void }
             items.length === 0 ? styles.center : [styles.list, { paddingBottom: contentPadBottom }]
           }
           ListEmptyComponent={<Text style={styles.muted}>No payments yet.</Text>}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.row}>
-                <Text style={styles.name}>
-                  {item.subscription?.plan?.name || item.plan?.name || item.description || item.provider || 'Payment'}
-                </Text>
-                <Text style={styles.amount}>₹{((item.amountPaise || 0) / 100).toFixed(0)}</Text>
+          renderItem={({ item }) => {
+            const hasInvoice = !!item.invoice?.id;
+            const statusText = formatStatus(item.status);
+            const statusClr = statusColor(item.status);
+            return (
+              <View style={styles.card}>
+                <View style={styles.row}>
+                  <Text style={styles.name} numberOfLines={2}>
+                    {planLabel(item)}
+                  </Text>
+                  <Text style={styles.amount}>₹{((item.amountPaise || 0) / 100).toFixed(0)}</Text>
+                </View>
+                <View style={styles.statusRow}>
+                  <Text style={styles.muted}>
+                    {new Date(item.createdAt).toLocaleString('en-IN', {
+                      day: '2-digit', month: 'short', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit',
+                    })}
+                  </Text>
+                  <View style={[styles.badge, { backgroundColor: statusClr + '1A', borderColor: statusClr + '55' }]}>
+                    <Text style={[styles.badgeText, { color: statusClr }]}>{statusText}</Text>
+                  </View>
+                </View>
+                {hasInvoice ? (
+                  <TouchableOpacity style={styles.link} onPress={() => openInvoice(item)}>
+                    <Icon name="download-outline" size={16} color="#B9834B" />
+                    <Text style={styles.linkText}>GST invoice PDF · {item.invoice?.invoiceNumber}</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={styles.noInvoice}>Invoice not available</Text>
+                )}
               </View>
-              <Text style={styles.muted}>
-                {new Date(item.createdAt).toLocaleString('en-IN')} · {item.status}
-              </Text>
-              <TouchableOpacity style={styles.link} onPress={() => openInvoice(item)}>
-                <Icon name="download-outline" size={16} color="#B9834B" />
-                <Text style={styles.linkText}>GST invoice PDF</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+            );
+          }}
         />
       )}
     </SafeAreaView>
@@ -138,19 +185,36 @@ export default function BillingHistoryScreen({ onBack }: { onBack?: () => void }
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FFFFFF' },
+  safe: { flex: 1, backgroundColor: '#FDFAF5' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10 },
   iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   title: { flex: 1, textAlign: 'center', fontWeight: '800', fontSize: 17, color: '#63300E' },
   list: { padding: 16, gap: 10 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
-  card: { backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: '#E9D4BE', padding: 14, marginBottom: 10, gap: 6 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  name: { fontWeight: '800', color: '#63300E', flex: 1, marginRight: 8 },
-  amount: { fontWeight: '900', color: '#B9834B' },
-  muted: { fontSize: 13, color: '#8B7355' },
-  link: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
-  linkText: { color: '#B9834B', fontWeight: '700', fontSize: 13 },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E9D4BE',
+    padding: 14,
+    marginBottom: 10,
+    gap: 8,
+  },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  statusRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  name: { fontWeight: '800', color: '#63300E', flex: 1, marginRight: 8, fontSize: 14 },
+  amount: { fontWeight: '900', color: '#B9834B', fontSize: 15 },
+  muted: { fontSize: 12, color: '#8B7355' },
+  badge: {
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  badgeText: { fontSize: 11, fontWeight: '700' },
+  link: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+  linkText: { color: '#B9834B', fontWeight: '700', fontSize: 12 },
+  noInvoice: { fontSize: 12, color: '#B8895A', fontStyle: 'italic' },
   btn: { backgroundColor: '#B9834B', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10 },
   btnText: { color: '#fff', fontWeight: '800' },
 });

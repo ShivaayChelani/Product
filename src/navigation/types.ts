@@ -68,6 +68,7 @@ export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   HowItWorks: undefined;
   TreasureHunt: undefined;
+  MyTreasureHunts: undefined;
   VendorTabs: NavigatorScreenParams<VendorTabParamList> | undefined;
   CreatorTabs: NavigatorScreenParams<CreatorTabParamList> | undefined;
   UploadPlacePhoto: undefined;
@@ -117,7 +118,6 @@ export type RootStackParamList = {
   CreateOffer: { offerId?: string };
   VendorCustomers: undefined;
   PremiumUpgrade: undefined;
-  UserPremium: undefined;
   CreatorSubscription: undefined;
   BillingHistory: undefined;
   VendorSubscription: undefined;

@@ -1,3 +1,4 @@
+import { logger } from '../../config/logger';
 /**
  * Zone-based itinerary planner core (pure, DB-free).
  *
@@ -1252,7 +1253,10 @@ export function planZoneItinerary(
       allowCompactBonus,
       // A neighbouring area may only be absorbed when there are more areas left
       // than days to spend; otherwise that area is tomorrow's day.
-      allowAdjacentFill: openAreas.length > remainingDays,
+      // DISABLED: User requested to base stop count on duration and NOT force 6 places per day.
+      // Padding full days with adjacent areas produces arbitrary groupings.
+      allowAdjacentFill: false,
+      allowThinFill: false,
       debug,
     };
 
@@ -1419,7 +1423,7 @@ export function planZoneItinerary(
 
   if (debug && debugLog.length) {
     for (const line of debugLog) {
-      console.log('[itineraryZones] ' + line);
+      logger.debug('[itineraryZones] ' + line);
     }
   }
 

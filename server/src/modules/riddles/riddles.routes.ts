@@ -10,11 +10,11 @@ import {
   rejectRiddleSchema,
 } from './riddles.validation';
 
-// ─── User Router (mounted at /riddles) ────────────────────────────────────────
+// ──────────────── User Router (mounted at /riddles) ────────────────
 const router = Router();
 
-// Get active riddles for a city (user sees riddle clue only)
-router.get('/active', authenticate, riddlesController.getActiveForCity);
+// Get active riddles based on current GPS location
+router.get('/active/current-location', authenticate, riddlesController.getActiveForCurrentLocation);
 
 // Get all my past submissions (with riddle info)
 router.get('/my-submissions', authenticate, riddlesController.getMySubmissions);
@@ -22,16 +22,33 @@ router.get('/my-submissions', authenticate, riddlesController.getMySubmissions);
 // Get my submission status for a specific riddle
 router.get('/:id/my-submission', authenticate, riddlesController.getMySubmission);
 
+// Get a specific riddle detail (secured by location)
+router.get('/:id', authenticate, riddlesController.getByIdUser);
+
+// Get riddle hint (secured by location)
+router.post('/:id/hint', authenticate, riddlesController.getHint);
+
+// Validate check-in distance
+router.post('/:id/validate-checkin', authenticate, riddlesController.validateCheckIn);
+
 // Submit an answer (photo) for a riddle
 router.post('/:id/submit', authenticate, validate(submitRiddleSchema), riddlesController.submit);
 
 export default router;
 
-// ─── Admin Router (mounted at /admin/riddles) ─────────────────────────────────
+import multer from 'multer';
+const upload = multer({ storage: multer.memoryStorage() });
+
+// ──────────────── Admin Router (mounted at /admin/riddles) ────────────────
 export const adminRouter = Router();
 adminRouter.use(authenticate, requireAdmin);
 
+// Excel Bulk Import
+adminRouter.post('/bulk-import/validate', requireContentOps, upload.single('file'), riddlesController.bulkImportValidate);
+adminRouter.post('/bulk-import/confirm', requireContentOps, riddlesController.bulkImportConfirm);
+
 // Riddle CRUD
+adminRouter.get('/cities/summary', riddlesController.getCitySummary);
 adminRouter.get('/', riddlesController.list);
 adminRouter.get('/submissions/pending', riddlesController.getAllPendingSubmissions);
 adminRouter.get('/:id', riddlesController.getById);

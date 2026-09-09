@@ -1,22 +1,17 @@
 /**
- * Canonical travel-time for PalSafar.
+ * Travel-time utilities for PalSafar.
  *
- * Routing provider: PalSafar backend OSRM proxy (POST /routing/directions).
- * The backend calls the public OSRM demo router; no routing API key is used.
+ * Routing provider: OSRM (OpenStreetRoute Market) — primary routing source.
+ * getEstimatedTravelTime() uses OSRM for ETA/distance in the place detail card.
  *
  * When routing is unavailable, a geodesic-based *estimate* is returned with
  * source: "fallback". That is NOT driving time and must be labeled "Est.".
  */
-import { apiClient } from '../api/client';
-import {
-  haversineDistance,
-  parseLatLng,
-  type LatLng,
-} from './distance';
+import { parseLatLng, type LatLng } from './distance';
 
 export type TravelMode = 'driving';
 export type TravelTimeSource = 'routing' | 'fallback';
-export type TravelRouteProvider = 'osrm' | 'fallback';
+export type TravelRouteProvider = 'osrm' | 'fallback' | string;
 
 export type TravelTimeResult = {
   durationSeconds: number;
@@ -26,23 +21,7 @@ export type TravelTimeResult = {
   provider?: TravelRouteProvider;
 };
 
-export type DrivingRouteResult = {
-  durationSeconds: number;
-  distanceMeters: number;
-  /** Leaflet [lat, lng] pairs when geometry was requested. */
-  geometry?: [number, number][];
-  provider?: 'osrm';
-};
-
-const DIRECTIONS_ENDPOINT = '/routing/directions';
-const CACHE_TTL_MS = 10 * 60 * 1000;
-/** ~111 m at the equator — tiny GPS jitter does not refetch. */
-const ORIGIN_BUCKET_DEG = 0.001;
-
-/**
- * Documented fallback: geodesic × 1.25 (roads are longer than the great circle)
- * at this average mixed India driving speed. Never presented as routing time.
- */
+/** Default mixed India driving speed km/h */
 export const DEFAULT_DRIVING_SPEED_KMH = 28;
 const FALLBACK_ROAD_FACTOR = 1.25;
 const FALLBACK_METERS_PER_SECOND = (DEFAULT_DRIVING_SPEED_KMH * 1000) / 3600;
@@ -52,7 +31,7 @@ type CacheEntry = { result: TravelTimeResult; expiresAt: number };
 const travelCache = new Map<string, CacheEntry>();
 
 export function originBucketKey(lat: number, lng: number): string {
-  const q = (n: number) => (Math.floor(n / ORIGIN_BUCKET_DEG) * ORIGIN_BUCKET_DEG).toFixed(3);
+  const q = (n: number) => (Math.floor(n / 0.001) * 0.001).toFixed(3);
   return `${q(lat)},${q(lng)}`;
 }
 
@@ -68,98 +47,26 @@ export function estimateFallbackTravelSeconds(geodesicMeters: number): number {
 
 export function formatTravelTimeLabel(result: TravelTimeResult): string {
   const minutes = Math.max(1, Math.round(result.durationSeconds / 60));
-  let core: string;
-  if (minutes < 60) {
-    core = `${minutes} min`;
-  } else if (minutes % 60 === 0) {
-    core = `${minutes / 60} hr`;
-  } else {
-    core = `${Math.floor(minutes / 60)} hr ${minutes % 60} min`;
-  }
-  return result.source === 'routing' ? core : `Est. ${core}`;
-}
-
-export function formatVisitDurationMinutes(minutes?: number | null): string | null {
-  if (minutes == null || !Number.isFinite(minutes) || minutes <= 0) return null;
-  if (minutes < 60) return `${Math.round(minutes)} min`;
-  const hrs = minutes / 60;
-  return Number.isInteger(hrs) ? `${hrs} hr` : `${hrs.toFixed(1)} hr`;
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rem = minutes % 60;
+  return rem === 0 ? `${hours} hr` : `${hours} hr ${rem} min`;
 }
 
 export function formatDriveDistanceMeters(meters: number): string {
-  if (!Number.isFinite(meters)) return '';
   if (meters < 1000) return `${Math.round(meters)} m`;
   return `${(meters / 1000).toFixed(1)} km`;
 }
 
-export function formatDriveDistanceLabel(
-  distanceMeters: number,
-  durationSeconds?: number,
-): string {
-  const distance = formatDriveDistanceMeters(distanceMeters);
-  if (!distance) return '';
-  if (durationSeconds == null || !Number.isFinite(durationSeconds) || durationSeconds <= 0) {
-    return distance;
-  }
-  return `${distance} · ${formatTravelTimeLabel({
-    durationSeconds,
-    distanceMeters,
-    source: 'routing',
-  })}`;
+export function formatDriveDistanceLabel(distanceMeters: number, _durationSeconds?: number): string {
+  return formatDriveDistanceMeters(distanceMeters);
 }
 
 /**
- * Calls the PalSafar backend OSRM proxy (POST /api/v1/routing/directions).
- * Returns null on any failure so callers can fall back to geodesic estimates.
+ * Estimated travel time from origin to destination.
+ * Uses OSRM API as the primary routing source.
+ * Falls back to geodesic estimate when OSRM is unavailable.
  */
-async function fetchBackendDrivingRoute(
-  origin: LatLng,
-  destination: LatLng,
-): Promise<DrivingRouteResult | null> {
-  try {
-    const res = await apiClient.post<{
-      distanceMeters: number;
-      durationSeconds: number;
-      geometry?: Array<[number, number]>;
-      provider?: string;
-    }>(DIRECTIONS_ENDPOINT, {
-      originLat: origin.latitude,
-      originLng: origin.longitude,
-      destinationLat: destination.latitude,
-      destinationLng: destination.longitude,
-    });
-    if (!res?.success) return null;
-    const data = res.data;
-    const distanceMeters = Number(data?.distanceMeters);
-    const durationSeconds = Number(data?.durationSeconds);
-    if (!Number.isFinite(distanceMeters) || distanceMeters < 0) return null;
-    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return null;
-    return {
-      durationSeconds,
-      distanceMeters,
-      geometry: Array.isArray(data?.geometry) ? (data.geometry as [number, number][]) : undefined,
-      provider: 'osrm',
-    };
-  } catch {
-    return null;
-  }
-}
-
-/** Driving route via the PalSafar backend OSRM proxy. */
-export async function fetchDrivingRoute(
-  origin: LatLng,
-  destination: LatLng,
-  options?: { geometry?: boolean },
-): Promise<DrivingRouteResult | null> {
-  const from = parseLatLng(origin.latitude, origin.longitude);
-  const to = parseLatLng(destination.latitude, destination.longitude);
-  if (!from || !to) return null;
-
-  const backend = await fetchBackendDrivingRoute(from, to);
-  if (!backend) return null;
-  return options?.geometry === true ? backend : { ...backend, geometry: undefined };
-}
-
 export async function getEstimatedTravelTime(input: {
   origin: LatLng;
   destination: LatLng;
@@ -169,24 +76,31 @@ export async function getEstimatedTravelTime(input: {
   const destination = parseLatLng(input.destination.latitude, input.destination.longitude);
   if (!origin || !destination) return null;
 
-  const key = travelCacheKey(origin, destination, input.mode ?? 'driving');
-  const cached = travelCache.get(key);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.result;
-  }
+  // Import lazily to avoid circular dependencies
+  const { getOSRMRoute } = await import('../routing/osrmService');
+  const routed = await getOSRMRoute(
+    origin.latitude,
+    origin.longitude,
+    destination.latitude,
+    destination.longitude,
+    'driving',
+  );
 
-  const routed = await fetchDrivingRoute(origin, destination);
-  if (routed) {
+  if (routed && routed.source === 'routing') {
     const result: TravelTimeResult = {
       durationSeconds: routed.durationSeconds,
       distanceMeters: routed.distanceMeters,
       source: 'routing',
-      provider: routed.provider ?? 'osrm',
+      provider: 'osrm',
     };
-    travelCache.set(key, { result, expiresAt: Date.now() + CACHE_TTL_MS });
+    travelCache.set(travelCacheKey(origin, destination, input.mode ?? 'driving'), {
+      result,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
     return result;
   }
 
+  // Mapbox fallback (straight-line) or complete failure — use geodesic
   const geodesic = haversineDistance(
     origin.latitude,
     origin.longitude,
@@ -202,11 +116,35 @@ export async function getEstimatedTravelTime(input: {
     source: 'fallback',
     provider: 'fallback',
   };
-  travelCache.set(key, { result, expiresAt: Date.now() + CACHE_TTL_MS });
+  travelCache.set(travelCacheKey(origin, destination, input.mode ?? 'driving'), {
+    result,
+    expiresAt: Date.now() + 10 * 60 * 1000,
+  });
   return result;
 }
 
 /** Test helper — do not use in production UI. */
 export function _resetTravelTimeCacheForTests(): void {
   travelCache.clear();
+}
+
+/** Haversine distance in meters (straight-line) — used as fallback only */
+const R = 6371000;
+function haversineDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const sinHalf =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(sinHalf), Math.sqrt(1 - sinHalf));
+
+  return R * c;
 }

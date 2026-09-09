@@ -42,20 +42,143 @@ const trip = {
 describe('trip share export text', () => {
   const text = buildTripExportText(trip);
 
-  it('keeps trip header, stop names, category, and entry', () => {
-    expect(text).toContain('PalSafar Trip: Jabalpur Trip');
-    expect(text).toContain('Ghughra Falls');
-    expect(text).toContain('Lamheta Ghat');
-    expect(text).toContain('Category: waterfall');
-    expect(text).toContain('Category: riverfront / nature');
-    expect(text).toContain('Entry: Free');
+  it('has the polished header with bold title and destination', () => {
+    expect(text).toContain('✨ *My Jabalpur Trip* — PalSafar');
+    expect(text).toContain('📍 *Jabalpur*');
   });
 
-  it('omits time, from-prev, and why from the shared itinerary', () => {
-    expect(text).not.toMatch(/Time:/);
-    expect(text).not.toMatch(/09:10/);
-    expect(text).not.toMatch(/From prev/i);
+  it('shows humanized travellers, budget, and duration', () => {
+    expect(text).toContain('👨‍👩‍👧‍👦 *Friends*');
+    expect(text).toContain('💰 *Low Budget*');
+    expect(text).toContain('📅 *3 Days*');
+  });
+
+  it('shows total distance', () => {
+    expect(text).toContain('🚗 *32.8 km*');
+  });
+
+  it('renders day headers with DAY N format', () => {
+    expect(text).toContain('📅 *DAY 1*');
+    expect(text).toContain('*Chausath Yogini & Jabalpur Highlights*');
+  });
+
+  it('renders stops with bold numbered names', () => {
+    expect(text).toContain('📍 *1. Ghughra Falls*');
+    expect(text).toContain('📍 *2. Lamheta Ghat*');
+  });
+
+  it('shows category labels and emoji', () => {
+    expect(text).toContain('💧 waterfall');
+    expect(text).toContain('🌊 • 🌿 riverfront / nature');
+  });
+
+  it('shows entry fee as Free', () => {
+    expect(text).toContain('🎟️ Entry: *Free*');
+  });
+
+  it('uses horizontal separators between days', () => {
+    expect(text).toContain('━━━━━━━━━━━━━━');
+  });
+
+  it('has the PalSafar branding footer', () => {
+    expect(text).toContain('✨ *Planned with PalSafar*');
+  });
+
+  it('includes time, duration, and from-prev in the shared itinerary', () => {
+    expect(text).toMatch(/9:10 AM – 10:10 AM/);
+    expect(text).toMatch(/1 hr/);
+    expect(text).toMatch(/0\.7 km from previous stop/);
     expect(text).not.toMatch(/Why:/);
     expect(text).not.toContain('Day start near trip-origin');
+  });
+
+  it('does not contain raw debug separators', () => {
+    expect(text).not.toMatch(/--- Day \d/);
+  });
+});
+
+describe('trip share export — edge cases', () => {
+  it('handles 1-day trip', () => {
+    const single = {
+      ...trip,
+      days: 1,
+      tripDays: [{ ...trip.tripDays[0], dayNumber: 1 }],
+    } as unknown as TripPlan;
+    const text = buildTripExportText(single);
+    expect(text).toContain('📅 *1 Day*');
+    expect(text).toContain('📅 *DAY 1*');
+  });
+
+  it('handles missing optional fields gracefully', () => {
+    const minimal = {
+      id: 'min',
+      days: 2,
+      tripDays: [
+        {
+          dayNumber: 1,
+          stops: [
+            {
+              order: 0,
+              place: { name: 'Test Place' },
+            },
+          ],
+        },
+        {
+          dayNumber: 2,
+          stops: [],
+        },
+      ],
+    } as unknown as TripPlan;
+    const text = buildTripExportText(minimal);
+    expect(text).toContain('✨ *My Trip* — PalSafar');
+    expect(text).toContain('📅 *DAY 1*');
+    expect(text).toContain('📍 *1. Test Place*');
+    expect(text).toContain('📅 *DAY 2*');
+    expect(text).toContain('(no stops)');
+    expect(text).not.toContain('Travellers:');
+    expect(text).not.toContain('Budget:');
+    expect(text).not.toContain('Distance:');
+  });
+
+  it('handles entry fee with non-zero value', () => {
+    const withFee = {
+      ...trip,
+      days: 1,
+      tripDays: [
+        {
+          dayNumber: 1,
+          stops: [
+            {
+              order: 0,
+              entryFee: 150,
+              place: { name: 'Paid Attraction', category: 'museum' },
+            },
+          ],
+        },
+      ],
+    } as unknown as TripPlan;
+    const text = buildTripExportText(withFee);
+    expect(text).toContain('🎟️ Entry: *₹150*');
+    expect(text).toContain('🏛️ museum');
+  });
+
+  it('escapes special WhatsApp characters in place names', () => {
+    const special = {
+      ...trip,
+      days: 1,
+      tripDays: [
+        {
+          dayNumber: 1,
+          stops: [
+            {
+              order: 0,
+              place: { name: 'O\'Brien *Adventure* _Park_' },
+            },
+          ],
+        },
+      ],
+    } as unknown as TripPlan;
+    const text = buildTripExportText(special);
+    expect(text).toContain(`O'Brien \\*Adventure\\* \\_Park\\_`);
   });
 });

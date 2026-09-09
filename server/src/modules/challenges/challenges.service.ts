@@ -85,6 +85,7 @@ export const challengesService = {
     return prisma.challenge.findMany({
       where: { creatorId: userId },
       orderBy: { createdAt: 'desc' },
+      take: 100,
     });
   },
 

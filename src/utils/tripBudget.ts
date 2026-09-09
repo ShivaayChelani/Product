@@ -15,6 +15,11 @@ export function parseEntryFee(ticketPrice: unknown): number | null {
 
 export function getStopEntryFee(stop: TripPlanStop): number | null {
   if (typeof stop.entryFee === 'number') return stop.entryFee;
+  const stringFee = stop.entryFee as unknown;
+  if (typeof stringFee === 'string') {
+    const parsed = parseInt(stringFee.replace(/\D/g, ''), 10);
+    if (!isNaN(parsed)) return parsed;
+  }
   if (typeof stop.cost === 'number' && stop.cost > 0) return stop.cost;
   return parseEntryFee(stop.place?.ticketPrice);
 }

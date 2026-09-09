@@ -28,11 +28,11 @@ function resolveBaseUrl(): string {
   const configured = (DEV_FLAGS.LOCAL_API_HOST || '').trim();
   if (Platform.OS === 'android') {
     const host = configured || '10.0.2.2';
-    return `http://${host}:5000/api/v1`;
+    return `http://${host}:3000/api/v1`;
   }
   // iOS Simulator can reach the host via localhost; physical iPhone needs LAN IP.
   const host = configured || 'localhost';
-  return `http://${host}:5000/api/v1`;
+  return `http://${host}:3000/api/v1`;
 }
 
 const RESOLVED_BASE_URL = resolveBaseUrl();
