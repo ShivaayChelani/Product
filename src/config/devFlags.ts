@@ -11,14 +11,14 @@ export const DEV_FLAGS = {
    * iOS Simulator -> leave LOCAL_API_HOST empty (defaults to localhost) or set LAN IP
    * Physical iPhone -> LOCAL_API_HOST (LAN IP of your Mac/PC) - never localhost
    */
-  USE_LOCAL_API: true,
+  USE_LOCAL_API: false,
   /**
    * Host for local API when USE_LOCAL_API is true.
    * Android emulator: '10.0.2.2'
    * iOS Simulator: '' (localhost) or your LAN IP
    * Physical phone (Android/iOS): your machine LAN IP (e.g. 192.168.1.9)
    */
-  LOCAL_API_HOST: '192.168.1.9',
+  LOCAL_API_HOST: '',
   /** When true (dev only), always show onboarding after splash so you can re-test the flow. */
   FORCE_SHOW_ONBOARDING: true,
 };

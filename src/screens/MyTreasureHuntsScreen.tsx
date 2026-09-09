@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useUserContext } from '../context/UserContext';
+import { TreasureHuntGuestBlock } from '../components/ui/TreasureHuntGuestBlock';
 import { riddlesApi, MyRiddleSubmission } from '../services/api/riddles';
 
 const PALPOINT_ICON = require('../assets/palpoint icon.png');
@@ -12,6 +14,22 @@ export default function MyTreasureHuntsScreen() {
   const navigation = useNavigation();
   const [submissions, setSubmissions] = useState<MyRiddleSubmission[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isGuest } = useUserContext();
+
+  if (isGuest) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#1E1B18', paddingTop: insets.top }}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 8 }}>
+            <Icon name="arrow-back" size={24} color="white" />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: 'white' }]}>My Hunts</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <TreasureHuntGuestBlock />
+      </View>
+    );
+  }
 
   useEffect(() => {
     fetchSubmissions();
@@ -128,3 +146,4 @@ const styles = StyleSheet.create({
   emptyContainer: { padding: 32, alignItems: 'center' },
   emptyText: { fontSize: 15, color: '#666', textAlign: 'center' }
 });
+

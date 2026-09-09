@@ -8,13 +8,20 @@ import { riddlesApi, Riddle } from '../services/api/riddles';
 import { TH, SANS, SANS_BOLD, SANS_SEMI } from '../features/treasureHunt/theme';
 
 import { useLocationContext } from '../context/LocationContext';
+import { useUserContext } from '../context/UserContext';
+import { TreasureHuntGuestBlock } from '../components/ui/TreasureHuntGuestBlock';
 
 const PALPOINT_ICON = require('../assets/palpoint icon.png');
 
 export default function TreasureHuntScreen() {
+  const { isGuest } = useUserContext();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const locationCtx = useLocationContext();
+
+  if (isGuest) {
+    return <TreasureHuntGuestBlock />;
+  }
 
   const [hunts, setHunts] = useState<Riddle[]>([]);
   const [currentCity, setCurrentCity] = useState<string | null>(null);
@@ -70,7 +77,10 @@ export default function TreasureHuntScreen() {
       setHunts(res.data.riddles);
       setViewState('list');
     } catch (err: any) {
-      if (err.code === 'CITY_RESOLUTION_FAILED') {
+      if (err.status === 401 || err.status === 403) {
+        setErrorTitle('Authentication Error');
+        setErrorMsg('Your session has expired. Please log in again.');
+      } else if (err.code === 'CITY_RESOLUTION_FAILED') {
         setErrorTitle('City Not Found');
         setErrorMsg('We couldn\'t determine your current city. Please try again.');
       } else if (err.message?.includes('Network') || err.message?.includes('timeout') || err.name === 'AbortError') {
@@ -105,7 +115,14 @@ export default function TreasureHuntScreen() {
       setIsCheckInAllowed(res.data.allowed);
       setViewState('checkin');
     } catch (err: any) {
-      Alert.alert('Check-in failed', err.response?.data?.message || 'Could not verify your location.');
+      if (err.status === 401 || err.status === 403) {
+        setErrorTitle('Authentication Error');
+        setErrorMsg('Your session has expired. Please log in again.');
+      } else {
+        setErrorTitle('Verification Failed');
+        setErrorMsg(err.message || 'Could not verify your location. Please try again.');
+      }
+      setViewState('error');
     }
   };
 
@@ -125,7 +142,11 @@ export default function TreasureHuntScreen() {
       setViewState('success');
     } catch (err: any) {
       setViewState('preview');
-      Alert.alert('Submission Failed', err.response?.data?.message || 'Please try again.');
+      if (err.status === 401 || err.status === 403) {
+        Alert.alert('Authentication Error', 'Your session has expired. Please log in again.');
+      } else {
+        Alert.alert('Submission Failed', err.message || 'Please try again.');
+      }
     }
   };
 

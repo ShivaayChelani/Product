@@ -800,41 +800,8 @@ export default function HomeScreen({
             </View>
           </View>
 
-          {/* Continue Your Journey */}
-          {resumeTarget && (
-            <View style={styles.sectionContainer}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Continue Your Journey</Text>
-                <TouchableOpacity onPress={onStartTrip}>
-                  <Text style={styles.viewAllText}>View all →</Text>
-                </TouchableOpacity>
-              </View>
-              
-              <ImageBackground 
-                source={require('../assets/map_banner.jpg')} 
-                style={[styles.tripCard, responsive.isTablet && { height: 240 }]}
-                imageStyle={{ borderRadius: 24 }}
-                resizeMode="cover"
-              >
-                <View style={styles.tripCardOverlay} />
-                <Text style={styles.tripTitle}>{resumeTarget.title}</Text>
-                <Text style={styles.tripProgressText}>{progressPct}% Completed</Text>
-                
-                <View style={styles.progressBarTrack}>
-                  <View style={[styles.progressBarFill, { width: `${progressPct}%` }]} />
-                </View>
-                
-                <View style={styles.tripActionRow}>
-                  <TouchableOpacity style={styles.resumeButton} onPress={onStartTrip}>
-                    <Text style={styles.resumeButtonText}>Resume Trip</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.arrowCircleButton} onPress={onStartTrip}>
-                    <Icon name="arrow-forward" size={20} color="#1E1B18" />
-                  </TouchableOpacity>
-                </View>
-              </ImageBackground>
-            </View>
-          )}
+          {/* Treasure Hunt */}
+          <TreasureHuntBanner onPress={onNavigateToTreasureHunt} />
 
           {/* Trending Near You */}
           <View style={styles.sectionContainer}>
@@ -972,31 +939,60 @@ export default function HomeScreen({
             )}
           </View>
 
-          {/* Treasure Hunt */}
-          <View style={[styles.sectionContainer, { paddingHorizontal: 20 }]}>
-            <TouchableOpacity style={[styles.treasureHuntBanner, responsive.isTablet && { height: 240 }]} onPress={onNavigateToTreasureHunt} activeOpacity={0.9}>
+          {/* Continue Your Journey / Plan Your Next Trip */}
+          {resumeTarget ? (
+            <View style={styles.sectionContainer}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Continue Your Journey</Text>
+                <TouchableOpacity onPress={onStartTrip}>
+                  <Text style={styles.viewAllText}>View all →</Text>
+                </TouchableOpacity>
+              </View>
+              
               <ImageBackground 
-                source={require('../assets/treasure_hunt_bg_new.jpg')} 
-                style={styles.treasureHuntBg}
+                source={require('../assets/map_banner.jpg')} 
+                style={[styles.tripCard, responsive.isTablet && { height: 240 }]}
+                imageStyle={{ borderRadius: 24 }}
+                resizeMode="cover"
+              >
+                <View style={styles.tripCardOverlay} />
+                <Text style={styles.tripTitle}>{resumeTarget.title}</Text>
+                <Text style={styles.tripProgressText}>{progressPct}% Completed</Text>
+                
+                <View style={styles.progressBarTrack}>
+                  <View style={[styles.progressBarFill, { width: `${progressPct}%` }]} />
+                </View>
+                
+                <View style={styles.tripActionRow}>
+                  <TouchableOpacity style={styles.resumeButton} onPress={onStartTrip}>
+                    <Text style={styles.resumeButtonText}>Resume Trip</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.arrowCircleButton} onPress={onStartTrip}>
+                    <Icon name="arrow-forward" size={20} color="#1E1B18" />
+                  </TouchableOpacity>
+                </View>
+              </ImageBackground>
+            </View>
+          ) : (
+            <View style={styles.sectionContainer}>
+              <ImageBackground 
+                source={require('../assets/map_banner.jpg')} 
+                style={[styles.tripCard, responsive.isTablet && { height: 240 }]}
                 imageStyle={{ borderRadius: 16 }}
                 resizeMode="cover"
               >
-                <View style={styles.treasureHuntOverlay} />
-                <View style={styles.treasureHuntContent}>
-                  <Text style={styles.treasureHuntTitle}>Treasure Hunt ✨</Text>
-                  <Text style={styles.treasureHuntSub}>Exciting rewards coming{'\n'}your way!</Text>
-                  <View style={styles.treasureHuntBtn}>
-                    <Text style={styles.treasureHuntBtnTxt}>Coming Soon</Text>
-                  </View>
-                </View>
-                <View style={styles.treasureDots}>
-                  <View style={styles.treasureDotActive} />
-                  <View style={styles.treasureDot} />
-                  <View style={styles.treasureDot} />
+                <View style={styles.tripCardOverlay} />
+                <Text style={styles.tripTitle}>Plan Your{'\n'}Next Trip</Text>
+                <Text style={[styles.tripProgressText, { marginTop: 4, marginBottom: 12 }]}>Uncover unique experiences,{'\n'}local gems and hidden stories.</Text>
+                <View style={styles.tripActionRow}>
+                  <TouchableOpacity style={[styles.resumeButton, { backgroundColor: '#B9834B', flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' }]} onPress={onNavigateToAITripPlanner}>
+                    <Text style={[styles.resumeButtonText, { color: '#FFF' }]}>Explore Now</Text>
+                    <Icon name="arrow-forward" size={14} color="#FFF" style={{ marginLeft: 4 }} />
+                  </TouchableOpacity>
                 </View>
               </ImageBackground>
-            </TouchableOpacity>
-          </View>
+            </View>
+          )}
 
         </Animated.View>
       </ScrollView>
@@ -1485,70 +1481,5 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#666',
     fontWeight: '600',
-  },
-  treasureHuntBanner: {
-    width: '100%',
-    height: verticalScale(140),
-    borderRadius: radiusScale(16),
-    overflow: 'hidden',
-    marginTop: 8,
-    marginBottom: 24,
-  },
-  treasureHuntBg: {
-    width: '100%',
-    height: '100%',
-  },
-  treasureHuntOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  treasureHuntContent: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-  },
-  treasureHuntTitle: {
-    fontSize: 22,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    fontWeight: 'bold',
-    color: '#F4D068',
-  },
-  treasureHuntSub: {
-    fontSize: 12,
-    color: '#FFF',
-    marginTop: 4,
-    marginBottom: 12,
-  },
-  treasureHuntBtn: {
-    backgroundColor: '#C58C4F',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 16,
-    alignSelf: 'flex-start',
-  },
-  treasureHuntBtnTxt: {
-    color: '#FFF',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  treasureDots: {
-    position: 'absolute',
-    bottom: 12,
-    right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  treasureDotActive: {
-    width: 16,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#F4D068',
-  },
-  treasureDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.4)',
   },
 });

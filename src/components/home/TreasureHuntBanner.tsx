@@ -7,7 +7,7 @@ import {
   ImageBackground,
   Platform,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 type Props = {
   onPress?: () => void;
@@ -26,35 +26,13 @@ function TreasureHuntBannerComponent({ onPress }: Props) {
         imageStyle={styles.bannerImage}
         resizeMode="cover"
       >
-        <LinearGradient
-          colors={['rgba(18, 12, 8, 0.82)', 'rgba(18, 12, 8, 0.45)', 'rgba(18, 12, 8, 0.78)']}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={StyleSheet.absoluteFillObject}
-        />
-
         <View style={styles.content}>
-          <View style={styles.leftCopy}>
-            <Text style={styles.title}>Treasure Hunt</Text>
-            <Text style={styles.subtitle}>Exciting rewards coming your way!</Text>
-            <LinearGradient
-              colors={['#E5C07A', '#B9834B']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.ctaPill}
-            >
-              <Text style={styles.ctaText}>Coming Soon</Text>
-            </LinearGradient>
-          </View>
-
-          <View style={styles.rightCopy}>
-            <Text style={styles.rightText}>Stay tuned for thrilling adventures!</Text>
-            <View style={styles.dotsRow}>
-              <View style={styles.dotActive} />
-              <View style={styles.dotLine} />
-              <View style={styles.dot} />
-              <View style={styles.dot} />
-            </View>
+          <Text style={styles.title}>Treasure{'\n'}Hunt ✨</Text>
+          <Text style={styles.subtitle}>Explore. Discover. Win!</Text>
+          <Text style={styles.desc}>Find hidden treasures around you{'\n'}and earn exciting rewards!</Text>
+          <View style={styles.ctaPill}>
+            <Text style={styles.ctaText}>View Hunts on Map</Text>
+            <Icon name="arrow-forward" size={14} color="#FFF" style={{ marginLeft: 4 }} />
           </View>
         </View>
       </ImageBackground>
@@ -64,93 +42,56 @@ function TreasureHuntBannerComponent({ onPress }: Props) {
 
 const styles = StyleSheet.create({
   wrap: {
-    marginTop: 28,
-    marginBottom: 30,
+    marginTop: 24,
     paddingHorizontal: 20,
   },
   banner: {
-    minHeight: 150,
-    borderRadius: 22,
+    width: '100%',
+    height: 180,
+    borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#1A1410',
   },
   bannerImage: {
-    borderRadius: 22,
+    borderRadius: 16,
   },
   content: {
-    minHeight: 150,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-  },
-  leftCopy: {
     flex: 1,
-    paddingRight: 12,
+    padding: 20,
+    justifyContent: 'center',
   },
   title: {
-    fontSize: 24,
-    color: '#E5C07A',
+    fontSize: 28,
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    fontWeight: '700',
+    fontWeight: '800',
+    color: '#1E1B18',
+    lineHeight: 32,
   },
   subtitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#1E1B18',
     marginTop: 4,
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.92)',
-    fontWeight: '500',
-    lineHeight: 16,
+  },
+  desc: {
+    fontSize: 11,
+    color: '#4B3B30',
+    marginTop: 4,
+    marginBottom: 12,
+    lineHeight: 15,
   },
   ctaPill: {
-    alignSelf: 'flex-start',
-    marginTop: 12,
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  ctaText: {
-    color: '#2B1D15',
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  rightCopy: {
-    maxWidth: 120,
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    alignSelf: 'stretch',
-    paddingVertical: 2,
-  },
-  rightText: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.9)',
-    textAlign: 'right',
-    lineHeight: 15,
-    fontWeight: '500',
-  },
-  dotsRow: {
+    backgroundColor: '#A1622D',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 'auto',
+    alignSelf: 'flex-start',
   },
-  dotActive: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#E5C07A',
-  },
-  dotLine: {
-    width: 14,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: '#E5C07A',
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.28)',
+  ctaText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
 
