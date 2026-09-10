@@ -8,7 +8,7 @@ import { enrichUserWithRoles } from '../utils/specialtyRoles';
  * Replace JWT-derived roles with current DB state for privileged authorization.
  * Called from role-gating middleware only (not every authenticated request).
  */
-export async function revalidateRequestUser(req: Express.Request): Promise<void> {
+export async function revalidateRequestUser(req: any): Promise<void> {
   if (!req.user?.id) {
     throw new ApiError(401, 'Authentication required. Please provide a valid token.');
   }
@@ -34,7 +34,7 @@ export async function revalidateRequestUser(req: Express.Request): Promise<void>
   };
 }
 
-export async function revalidateVendorCapability(req: Express.Request): Promise<void> {
+export async function revalidateVendorCapability(req: any): Promise<void> {
   await revalidateRequestUser(req);
   if (hasDbAdminCapability(req.user)) return;
 
@@ -47,7 +47,7 @@ export async function revalidateVendorCapability(req: Express.Request): Promise<
   }
 }
 
-function hasDbAdminCapability(user: Express.Request['user'] | undefined): boolean {
+function hasDbAdminCapability(user: any): boolean {
   if (!user) return false;
   return ADMIN_ROLES.some((role) => user.roles?.includes(role));
 }

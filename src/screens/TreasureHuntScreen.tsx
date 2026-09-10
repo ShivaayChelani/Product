@@ -5,6 +5,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { launchCamera } from 'react-native-image-picker';
 import { riddlesApi, Riddle } from '../services/api/riddles';
+import { uploadApi } from '../services/api/upload';
 import { TH, SANS, SANS_BOLD, SANS_SEMI } from '../features/treasureHunt/theme';
 
 import { useLocationContext } from '../context/LocationContext';
@@ -34,7 +35,25 @@ export default function TreasureHuntScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [checkInDistance, setCheckInDistance] = useState<number | null>(null);
   const [isCheckInAllowed, setIsCheckInAllowed] = useState(false);
+  const [hintImage, setHintImage] = useState<string | null>(null);
+  const [hintLoading, setHintLoading] = useState(false);
   const lastFetchedCity = useRef<{ lat: number, lng: number } | null>(null);
+
+  const describeError = (err: any, fallbackTitle = 'Something went wrong') => {
+    if (err.status === 401) {
+      return { title: 'Session Expired', msg: 'Your session has expired. Please log in again.' };
+    }
+    if (err.status === 403 || err.code === 'TREASURE_HUNT_CITY_MISMATCH') {
+      return { title: 'Location Mismatch', msg: 'This hunt is only available in the city it belongs to.' };
+    }
+    if (err.code === 'CITY_RESOLUTION_FAILED') {
+      return { title: 'City Not Found', msg: 'We couldn\'t determine your current city. Please try again.' };
+    }
+    if (err.message?.includes('Network') || err.message?.includes('timeout') || err.name === 'AbortError') {
+      return { title: 'Network Error', msg: 'Unable to connect. Check your internet connection and try again.' };
+    }
+    return { title: fallbackTitle, msg: err.message || 'Please try again.' };
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -77,19 +96,9 @@ export default function TreasureHuntScreen() {
       setHunts(res.data.riddles);
       setViewState('list');
     } catch (err: any) {
-      if (err.status === 401 || err.status === 403) {
-        setErrorTitle('Authentication Error');
-        setErrorMsg('Your session has expired. Please log in again.');
-      } else if (err.code === 'CITY_RESOLUTION_FAILED') {
-        setErrorTitle('City Not Found');
-        setErrorMsg('We couldn\'t determine your current city. Please try again.');
-      } else if (err.message?.includes('Network') || err.message?.includes('timeout') || err.name === 'AbortError') {
-        setErrorTitle('Network Error');
-        setErrorMsg('Unable to connect. Check your internet connection and try again.');
-      } else {
-        setErrorTitle('Location Error');
-        setErrorMsg(err.message || 'Could not find your city.');
-      }
+      const { title, msg } = describeError(err, 'Location Error');
+      setErrorTitle(title);
+      setErrorMsg(msg);
       setViewState('error');
     }
   };
@@ -115,13 +124,9 @@ export default function TreasureHuntScreen() {
       setIsCheckInAllowed(res.data.allowed);
       setViewState('checkin');
     } catch (err: any) {
-      if (err.status === 401 || err.status === 403) {
-        setErrorTitle('Authentication Error');
-        setErrorMsg('Your session has expired. Please log in again.');
-      } else {
-        setErrorTitle('Verification Failed');
-        setErrorMsg(err.message || 'Could not verify your location. Please try again.');
-      }
+      const { title, msg } = describeError(err, 'Verification Failed');
+      setErrorTitle(title);
+      setErrorMsg(msg);
       setViewState('error');
     }
   };
@@ -134,19 +139,36 @@ export default function TreasureHuntScreen() {
     }
   };
 
+  const handleShowHint = async () => {
+    if (!selectedHunt || !selectedHunt.hasHint || hintLoading || !locationCtx?.position) return;
+    setHintLoading(true);
+    try {
+      const res = await riddlesApi.getHint(selectedHunt.id, locationCtx.position.latitude, locationCtx.position.longitude);
+      setHintImage(res.data.hintImage);
+    } catch (err: any) {
+      const { title, msg } = describeError(err, 'Hint Unavailable');
+      Alert.alert(title, msg);
+    } finally {
+      setHintLoading(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!selectedHunt || !photoUri || !locationCtx?.position) return;
     try {
       setViewState('submitting');
-      await riddlesApi.submit(selectedHunt.id, photoUri, locationCtx.position.latitude, locationCtx.position.longitude);
+      const uploaded = await uploadApi.uploadImage(photoUri, 'image/jpeg');
+      await riddlesApi.submit(
+        selectedHunt.id,
+        uploaded.url,
+        locationCtx.position.latitude,
+        locationCtx.position.longitude,
+      );
       setViewState('success');
     } catch (err: any) {
       setViewState('preview');
-      if (err.status === 401 || err.status === 403) {
-        Alert.alert('Authentication Error', 'Your session has expired. Please log in again.');
-      } else {
-        Alert.alert('Submission Failed', err.message || 'Please try again.');
-      }
+      const { title, msg } = describeError(err, 'Submission Failed');
+      Alert.alert(title, msg);
     }
   };
 
@@ -256,6 +278,19 @@ export default function TreasureHuntScreen() {
               <Text style={styles.clueLabel}>THE CLUE</Text>
               <Text style={styles.clueText}>{selectedHunt.clue}</Text>
             </View>
+            {selectedHunt.hasHint && !hintImage && (
+              <TouchableOpacity style={styles.hintBtn} onPress={handleShowHint} disabled={hintLoading}>
+                {hintLoading ? (
+                  <ActivityIndicator size="small" color="#6F4528" />
+                ) : (
+                  <Icon name="bulb-outline" size={18} color="#6F4528" />
+                )}
+                <Text style={styles.hintBtnText}>{hintLoading ? 'Loading hint…' : 'Show Hint'}</Text>
+              </TouchableOpacity>
+            )}
+            {hintImage ? (
+              <Image source={{ uri: hintImage }} style={styles.hintImage} resizeMode="cover" />
+            ) : null}
             <TouchableOpacity style={styles.primaryBtn} onPress={handleVerifyLocation}>
               <Text style={styles.primaryBtnText}>I'm Here (Check-in)</Text>
             </TouchableOpacity>
@@ -334,6 +369,9 @@ const styles = StyleSheet.create({
   clueCard: { backgroundColor: '#F8F9FA', padding: 20, borderRadius: 16, marginBottom: 32, borderWidth: 1, borderColor: '#E5E5EA' },
   clueLabel: { fontSize: 12, fontFamily: SANS_BOLD, color: '#999', marginBottom: 8, letterSpacing: 1 },
   clueText: { fontSize: 18, fontFamily: SANS_SEMI, color: '#1C1C1E', lineHeight: 26 },
+  hintBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: '#E8D9C7', backgroundColor: '#FDF6EE', marginBottom: 16 },
+  hintBtnText: { color: '#6F4528', fontSize: 15, fontFamily: SANS_BOLD },
+  hintImage: { width: '100%', height: 220, borderRadius: 16, marginBottom: 20, backgroundColor: '#EFEFEF' },
   primaryBtn: { backgroundColor: '#6F4528', padding: 16, borderRadius: 12, alignItems: 'center', width: '100%', marginBottom: 12 },
   primaryBtnText: { color: '#FFF', fontSize: 16, fontFamily: SANS_BOLD },
   secondaryBtn: { backgroundColor: '#F5F5F5', padding: 16, borderRadius: 12, alignItems: 'center', width: '100%' },

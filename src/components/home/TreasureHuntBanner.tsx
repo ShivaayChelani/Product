@@ -21,11 +21,15 @@ function TreasureHuntBannerComponent({ onPress }: Props) {
       onPress={onPress}
     >
       <ImageBackground
-        source={require('../../assets/treasure_hunt_banner.png')}
+        source={require('../../assets/treasure_hunt_bg.jpg')}
         style={styles.banner}
         imageStyle={styles.bannerImage}
         resizeMode="cover"
       >
+        <View style={styles.livePill}>
+          <View style={styles.liveDot} />
+          <Text style={styles.liveText}>Live Now</Text>
+        </View>
         <View style={styles.content}>
           <Text style={styles.title}>Treasure{'\n'}Hunt ✨</Text>
           <Text style={styles.subtitle}>Explore. Discover. Win!</Text>
@@ -53,6 +57,30 @@ const styles = StyleSheet.create({
   },
   bannerImage: {
     borderRadius: 16,
+  },
+  livePill: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: '#1E3E2A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#4ADE80',
+    marginRight: 6,
+  },
+  liveText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: 'bold',
   },
   content: {
     flex: 1,

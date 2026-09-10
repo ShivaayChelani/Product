@@ -1,9 +1,11 @@
 import { prisma } from '../../config/database';
+import { Prisma } from '@prisma/client';
 import { ApiError } from '../../shared/utils/ApiError';
 import { walletService } from '../wallet/wallet.service';
 import { notificationService } from '../notifications/notification.service';
 import { logger } from '../../config/logger';
-import { reverseGeocodeToCity, normalizeCityName } from '../../shared/utils/reverseGeocode';
+import { reverseGeocodeToCity } from '../../shared/utils/reverseGeocode';
+import { cityKeyEquals, cityDisplayName, canonicalCityKey } from '../../shared/utils/cityIdentity';
 import { haversineDistance } from '../../shared/utils/geo';
 import crypto from 'crypto';
 import * as XLSX from 'xlsx';
@@ -64,13 +66,15 @@ export const riddlesService = {
   },
 
   async create(data: CreateRiddleInput) {
-    return prisma.riddle.create({ data });
+    return prisma.riddle.create({ data: { ...data, city: cityDisplayName(data.city) } });
   },
 
   async update(id: string, data: UpdateRiddleInput) {
     const riddle = await prisma.riddle.findUnique({ where: { id } });
     if (!riddle) throw new ApiError(404, 'Riddle not found');
-    return prisma.riddle.update({ where: { id }, data });
+    const patch: UpdateRiddleInput = { ...data };
+    if (data.city) patch.city = cityDisplayName(data.city);
+    return prisma.riddle.update({ where: { id }, data: patch });
   },
 
   async delete(id: string) {
@@ -90,7 +94,7 @@ export const riddlesService = {
         where, skip, take: limit, orderBy: { createdAt: 'desc' },
         include: {
           user: { select: { id: true, name: true, avatar: true, avatarStyle: true } },
-          riddle: { select: { id: true, title: true, city: true } },
+          riddle: { select: { id: true, title: true, city: true, rewardPoints: true, correctPlaceName: true } },
         },
       }),
       prisma.riddleSubmission.count({ where }),
@@ -207,7 +211,7 @@ export const riddlesService = {
         skip, take: limit, orderBy: { createdAt: 'asc' },
         include: {
           user: { select: { id: true, name: true, avatar: true, avatarStyle: true } },
-          riddle: { select: { id: true, title: true, city: true, correctPlaceName: true } },
+          riddle: { select: { id: true, title: true, city: true, rewardPoints: true, correctPlaceName: true } },
         },
       }),
       prisma.riddleSubmission.count({ where: { status: 'PENDING' } }),
@@ -331,7 +335,7 @@ export const riddlesService = {
       const existingRiddle = await prisma.riddle.findFirst({
         where: {
           title: { equals: item.title.trim(), mode: 'insensitive' },
-          city: { equals: item.city.trim(), mode: 'insensitive' },
+          city: { equals: cityDisplayName(item.city.trim()), mode: 'insensitive' },
           correctPlaceName: item.match.name,
         }
       });
@@ -341,7 +345,7 @@ export const riddlesService = {
           data: {
             title: item.title.trim(),
             clue: item.clue.trim(),
-            city: item.city.trim(),
+            city: cityDisplayName(item.city.trim()),
             correctPlaceName: item.match.name,
             correctLat: item.match.lat,
             correctLng: item.match.lng,
@@ -367,7 +371,7 @@ export const riddlesService = {
     const now = new Date();
     const riddles = await prisma.riddle.findMany({
       where: {
-        city: { equals: currentCity, mode: 'insensitive' },
+        city: { in: await this.aliasesOfStoredCity(currentCity) },
         isActive: true,
         startsAt: { lte: now },
         OR: [{ endsAt: null }, { endsAt: { gte: now } }],
@@ -395,7 +399,28 @@ export const riddlesService = {
       return { ...rest, hasHint: !!hintImage };
     });
 
-    return { city: currentCity, riddles: mappedRiddles };
+    return { city: cityDisplayName(currentCity), riddles: mappedRiddles };
+  },
+
+  /**
+   * All canonical spellings currently stored for the city the user is in —
+   * "Delhi" and "New Delhi" must resolve to the same hunt list.
+   *
+   * Returns the RAW stored spellings (plus the canonical display form of the
+   * resolved city) so the `city IN [...]` filter matches rows regardless of the
+   * spelling an admin originally stored.
+   */
+  async aliasesOfStoredCity(city: string): Promise<string[]> {
+    const key = canonicalCityKey(city);
+    const stored = await prisma.riddle.findMany({
+      where: { isActive: true },
+      distinct: ['city'],
+      select: { city: true },
+    });
+    const matches = stored
+      .map((s) => s.city)
+      .filter((c) => canonicalCityKey(c) === key);
+    return Array.from(new Set([cityDisplayName(city), ...matches]));
   },
 
   async getByIdUser(id: string, lat: number, lng: number) {
@@ -416,12 +441,12 @@ export const riddlesService = {
     });
 
     if (!riddle) throw new ApiError(404, 'Riddle not found', true, 'RIDDLE_NOT_FOUND');
-    if (!currentCity || normalizeCityName(currentCity) !== normalizeCityName(riddle.city)) {
+    if (!currentCity || !cityKeyEquals(currentCity, riddle.city)) {
       throw new ApiError(403, `This riddle is in ${riddle.city}, but you are in ${currentCity || 'an unknown location'}.`, true, 'TREASURE_HUNT_CITY_MISMATCH');
     }
 
     const { hintImage, ...rest } = riddle;
-    return { ...rest, hasHint: !!hintImage };
+    return { ...rest, city: cityDisplayName(riddle.city), hasHint: !!hintImage };
   },
 
   async getHint(id: string, lat: number, lng: number) {
@@ -437,7 +462,7 @@ export const riddlesService = {
     });
 
     if (!riddle) throw new ApiError(404, 'Riddle not found', true, 'RIDDLE_NOT_FOUND');
-    if (!currentCity || normalizeCityName(currentCity) !== normalizeCityName(riddle.city)) {
+    if (!currentCity || !cityKeyEquals(currentCity, riddle.city)) {
       throw new ApiError(403, `This riddle is in ${riddle.city}, but you are in ${currentCity || 'an unknown location'}.`, true, 'TREASURE_HUNT_CITY_MISMATCH');
     }
 
@@ -455,7 +480,7 @@ export const riddlesService = {
     if (!riddle.correctLat || !riddle.correctLng) throw new ApiError(500, 'Riddle destination is missing');
 
     const currentCity = await reverseGeocodeToCity(userLat, userLng);
-    if (!currentCity || normalizeCityName(currentCity) !== normalizeCityName(riddle.city)) {
+    if (!currentCity || !cityKeyEquals(currentCity, riddle.city)) {
       throw new ApiError(403, `You are not in ${riddle.city}. Check-in denied.`);
     }
 
@@ -479,9 +504,18 @@ export const riddlesService = {
     if (existing) throw new ApiError(409, 'You have already submitted an answer for this riddle');
 
     // 3. Save as PENDING
-    return prisma.riddleSubmission.create({
-      data: { riddleId, userId, photoUrl },
-    });
+    try {
+      return await prisma.riddleSubmission.create({
+        data: { riddleId, userId, photoUrl },
+      });
+    } catch (err: any) {
+      // Race between the pre-check and the unique index @@unique([riddleId, userId])
+      // → surface a clean 409 instead of a generic 500.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ApiError(409, 'You have already submitted an answer for this riddle');
+      }
+      throw err;
+    }
   },
 
   async getMySubmissions(userId: string) {
@@ -491,7 +525,7 @@ export const riddlesService = {
       take: 100,
       include: {
         riddle: {
-          select: { id: true, title: true, clue: true, city: true, rewardPoints: true, correctPlaceName: true },
+          select: { id: true, title: true, clue: true, city: true, rewardPoints: true },
         },
       },
     });

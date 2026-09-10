@@ -10,6 +10,7 @@ export interface Riddle {
   startsAt: string;
   endsAt: string | null;
   createdAt: string;
+  hasHint: boolean;
 }
 
 export type RiddleSubmissionStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -28,7 +29,6 @@ export interface MyRiddleSubmission {
     clue: string;
     city: string;
     rewardPoints: number;
-    correctPlaceName: string;
   };
 }
 
@@ -41,6 +41,11 @@ export const riddlesApi = {
   /** Get riddle detail ensuring current city matches */
   async getById(riddleId: string, lat: number, lng: number) {
     return apiClient.get<Riddle>(`/riddles/${riddleId}?lat=${lat}&lng=${lng}`);
+  },
+
+  /** Get the visual hint for a riddle (server verifies city). */
+  async getHint(riddleId: string, userLat: number, userLng: number) {
+    return apiClient.post<{ hintImage: string | null }>(`/riddles/${riddleId}/hint`, { userLat, userLng });
   },
 
   /** Validate if user is close enough to submit */

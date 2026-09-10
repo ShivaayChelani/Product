@@ -203,8 +203,9 @@ function RiddlesTab() {
   const handleApprove = async (submissionId: string) => {
     setActionLoading(submissionId);
     try {
-      await approveSubmission(submissionId);
-      setSuccess("Submission approved — 100 PalPoints awarded!");
+      const res = await approveSubmission(submissionId);
+      const points = res?.pointsAwarded ?? res?.riddle?.rewardPoints;
+      setSuccess(`Submission approved — ${points ?? 'points'} awarded!`);
       if (showSubmissions) fetchSubmissions(showSubmissions, subPage);
     } catch (e: unknown) {
       setError(getApiErrorMessage(e, "Failed to approve"));
@@ -263,7 +264,7 @@ function RiddlesTab() {
         <Puzzle size={18} className="text-purple-500 mt-0.5 shrink-0" />
         <div className="text-sm text-purple-800">
           <p className="font-semibold mb-1">How Riddle Hunt Works</p>
-          <p>The app detects the user&apos;s city via GPS and shows them the active riddle for that city. The user must physically visit the hinted place, take a photo, and submit. You review the submission and approve (awarding {" "}<strong>100 PalPoints</strong>) or reject with a comment explaining the correct location.</p>
+          <p>The app detects the user&apos;s city via GPS and shows them the active riddle for that city. The user must physically visit the hinted place, take a photo, and submit. You review the submission and approve (awarding the riddle&apos;s configured PalPoints) or reject with a comment explaining the correct location.</p>
         </div>
       </div>
 
@@ -280,8 +281,9 @@ focus:border-transparent outline-none" />
             <select value={cityFilter} onChange={(e) => { setCityFilter(e.target.value); setPage(1); }}
               className="px-3 py-2 border rounded-lg text-sm bg-white outline-none">
               <option value="">All Cities</option>
-              <option value="Kolkata">Kolkata</option>
-              <option value="Darjeeling">Darjeeling</option>
+              {citySummary.map((c) => (
+                <option key={c.city} value={c.city}>{c.city}</option>
+              ))}
             </select>
             <select value={filterActive} onChange={(e) => { setFilterActive(e.target.value); setPage(1); }}
               className="px-3 py-2 border rounded-lg text-sm bg-white outline-none">
@@ -554,8 +556,9 @@ function PendingReviewsTab() {
   const handleApprove = async (submissionId: string) => {
     setActionLoading(submissionId);
     try {
-      await approveSubmission(submissionId);
-      setSuccess("Approved! 100 PalPoints awarded to user.");
+      const res = await approveSubmission(submissionId);
+      const points = res?.pointsAwarded ?? res?.riddle?.rewardPoints;
+      setSuccess(`Approved! ${points ?? 'points'} PalPoints awarded to user.`);
       fetchPending();
     } catch (e: unknown) {
       setError(getApiErrorMessage(e, "Failed to approve"));
@@ -724,7 +727,7 @@ function SubmissionCard({
         <div className="flex gap-2 mt-3">
           <button onClick={onApprove} disabled={loading}
             className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 text-white rounded-lg px-3 py-2 text-sm font-medium hover:bg-emerald-700 disabled:opacity-50">
-            {loading ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <><ThumbsUp size={14} /> Approve (+{s.riddle?.correctPlaceName ? "100" : "??"} pts)</>}
+            {loading ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <><ThumbsUp size={14} /> Approve (+{s.riddle?.rewardPoints ?? s.pointsAwarded ?? "??"} pts)</>}
           </button>
           <button onClick={onReject} disabled={loading}
             className="flex-1 flex items-center justify-center gap-2 border border-red-300 text-red-600 rounded-lg px-3 py-2 text-sm font-medium hover:bg-red-50 disabled:opacity-50">

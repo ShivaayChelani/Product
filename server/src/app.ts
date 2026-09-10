@@ -171,7 +171,18 @@ app.use((req, _res, next) => {
     || req.path.includes('/auth/reset-password')
     || req.path.includes('/auth/verify-reset-otp')
     || req.path.includes('/auth/account/deletion-code');
-  req.setTimeout(isUpload || isAiTrip ? 120000 : isAuthEmail ? 60000 : 30000);
+  // Treasure Hunt handlers perform server-side reverse geocoding (multi-attempt
+  // OSM Nominatim fallback) plus Prisma round-trips on each request — extend the
+  // idle-socket watchdog so a slow-but-valid request is never silently destroyed.
+  const isGeoCoding =
+    req.path.startsWith('/api/v1/riddles')
+    || req.path.startsWith('/api/v1/admin/riddles');
+  req.setTimeout(
+    isUpload || isAiTrip ? 120000
+      : isAuthEmail ? 60000
+      : isGeoCoding ? 90000
+      : 30000,
+  );
   next();
 });
 

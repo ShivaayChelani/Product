@@ -30,7 +30,7 @@ export interface RiddleSubmission {
   reviewedAt: string | null;
   createdAt: string;
   user: { id: string; name: string; avatar: string | null; avatarStyle: number };
-  riddle: { id: string; title: string; city: string; correctPlaceName?: string };
+  riddle: { id: string; title: string; city: string; rewardPoints?: number; correctPlaceName?: string };
 }
 
 // ─── Riddle CRUD (admin) ──────────────────────────────────────────────────────

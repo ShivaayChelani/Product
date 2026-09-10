@@ -35,9 +35,7 @@ export function ExcelImportModal({ isOpen, onClose, onSuccess }: ExcelImportModa
       formData.append('file', selected);
 
       // Send to backend for parsing and validation
-      const res = await client.post('/admin/riddles/bulk-import/validate', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await client.post('/admin/riddles/bulk-import/validate', formData);
       const data = res.data.data || res.data;
       if (res.data.summary) {
         setPreview(res.data.data);

@@ -11,14 +11,14 @@ export type EarnNotifyOptions = {
 };
 
 export const walletService = {
-  async getOrCreateWallet(userId: string) {
-    let wallet = await prisma.wallet.findUnique({
+  async getOrCreateWallet(userId: string, tx: any = prisma) {
+    let wallet = await tx.wallet.findUnique({
       where: { userId },
       include: { user: { select: { id: true, name: true, email: true } } },
     });
 
     if (!wallet) {
-      wallet = await prisma.wallet.create({
+      wallet = await tx.wallet.create({
         data: { userId },
         include: { user: { select: { id: true, name: true, email: true } } },
       });
@@ -104,7 +104,7 @@ export const walletService = {
   ) {
     if (amount <= 0) throw new ApiError(400, 'Amount must be positive');
 
-    await this.getOrCreateWallet(userId);
+    await this.getOrCreateWallet(userId, prismaTx);
 
     let awarded = true;
     const execute = async (tx: any) => {

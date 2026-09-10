@@ -1,6 +1,5 @@
 import { env } from '../../config/env';
-import { KNOWN_LOCATIONS } from './geocode';
-import { haversineDistance } from './geo';
+import { cityDisplayName } from './cityIdentity';
 import axios from 'axios';
 import { logger } from '../../config/logger';
 
@@ -67,7 +66,7 @@ export async function reverseGeocodeToCity(lat: number, lng: number): Promise<st
         logger.info({ resolvedCity }, '[TH-REVERSE-GEOCODE] Component extraction (Google)');
         
         if (resolvedCity) {
-          const canonical = normalizeCityName(resolvedCity);
+          const canonical = cityDisplayName(resolvedCity);
           logger.info({ canonical, source: 'google' }, '[TH-CITY-RESOLUTION] Final city resolved');
           return canonical;
         }
@@ -77,51 +76,46 @@ export async function reverseGeocodeToCity(lat: number, lng: number): Promise<st
     }
   }
 
-  // 2. Fallback to OpenStreetMap (Nominatim)
-  try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
-    const res = await axios.get(url, { 
-      timeout: 3000,
-      headers: { 'User-Agent': 'PalSafarApp/1.0 (info@palsafar.com)' }
-    });
-    
-    logger.info({ provider: 'OSM/Nominatim', httpStatus: res.status }, '[TH-REVERSE-GEOCODE] API Response received');
+  // 2. Fallback to OpenStreetMap (Nominatim) — with retry/backoff, since it is
+  //    the only resolution provider in environments without a Google Maps key.
+  const osmAttempts = 3;
+  for (let attempt = 0; attempt < osmAttempts; attempt++) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+      const res = await axios.get(url, {
+        timeout: 8000,
+        headers: { 'User-Agent': 'PalSafarApp/1.0 (info@palsafar.com)' },
+      });
 
-    const address = res.data?.address;
-    if (address) {
-      const resolvedCity = address.city || address.town || address.county || address.state_district;
-      logger.info({ resolvedCity }, '[TH-REVERSE-GEOCODE] Component extraction (OSM)');
-      
-      if (resolvedCity) {
-        // Drop terms like "District" or "Municipal Corporation" before normalizing
-        const cleaned = resolvedCity.replace(/District|Municipal Corporation|City/gi, '').trim();
-        const canonical = normalizeCityName(cleaned);
-        logger.info({ canonical, source: 'osm' }, '[TH-CITY-RESOLUTION] Final city resolved');
-        return canonical;
+      logger.info({ provider: 'OSM/Nominatim', httpStatus: res.status, attempt: attempt + 1 }, '[TH-REVERSE-GEOCODE] API Response received');
+
+      const address = res.data?.address;
+      if (address) {
+        const resolvedCity = address.city || address.town || address.county || address.state_district;
+        logger.info({ resolvedCity }, '[TH-REVERSE-GEOCODE] Component extraction (OSM)');
+
+        if (resolvedCity) {
+          // Drop terms like "District" or "Municipal Corporation" before normalizing
+          const cleaned = resolvedCity.replace(/District|Municipal Corporation|City/gi, '').trim();
+          const canonical = cityDisplayName(cleaned);
+          logger.info({ canonical, source: 'osm' }, '[TH-CITY-RESOLUTION] Final city resolved');
+          return canonical;
+        }
       }
-    }
-  } catch (err: any) {
-    logger.warn({ err: err.message, lat, lng }, '[TH-REVERSE-GEOCODE] OSM reverse geocoding failed');
-  }
-
-  // 3. Optional emergency fallback to local known locations (if all network APIs fail)
-  let nearestCity: string | null = null;
-  let minDistance = 15 * 1000;
-
-  for (const [cityName, coords] of Object.entries(KNOWN_LOCATIONS)) {
-    const d = haversineDistance(lat, lng, coords.lat, coords.lng);
-    if (d < minDistance) {
-      minDistance = d;
-      nearestCity = cityName;
+      return null; // API responded but no usable city component
+    } catch (err: any) {
+      const last = attempt === osmAttempts - 1;
+      logger.warn({ err: err.message, lat, lng, attempt: attempt + 1 }, last
+        ? '[TH-REVERSE-GEOCODE] OSM reverse geocoding exhausted retries'
+        : '[TH-REVERSE-GEOCODE] OSM reverse geocoding failed, retrying');
+      if (last) break;
+      await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
     }
   }
 
-  if (nearestCity) {
-    const canonical = normalizeCityName(nearestCity);
-    logger.info({ fallbackUsed: true, canonical, distance: minDistance }, '[TH-CITY-RESOLUTION] Emergency fallback successful');
-    return canonical;
-  }
-
+  // Deliberately NO radius-based "known city" fallback: guessing a city from
+  // a nearby location table can tag the wrong city (e.g. a suburb of Gurugram
+  // as "Delhi"). Fail closed → callers surface CITY_RESOLUTION_FAILED.
   logger.warn('[TH-CITY-RESOLUTION] Exhausted all resolution methods, no city found');
   return null;
 }

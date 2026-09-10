@@ -71,7 +71,7 @@ function toRequestUser(decoded: JwtPayload) {
 }
 
 /** True if JWT/user carries an approved capability (not merely activeMode). */
-export function hasRole(user: Express.Request['user'] | undefined, role: Role): boolean {
+export function hasRole(user: any, role: Role): boolean {
   if (!user) return false;
   if (Array.isArray(user.roles) && user.roles.includes(role)) return true;
   // Legacy fallback during dual-write
@@ -79,7 +79,7 @@ export function hasRole(user: Express.Request['user'] | undefined, role: Role): 
 }
 
 /** @deprecated Prefer hasRole — kept for gradual migration */
-export function hasPermission(user: Express.Request['user'] | undefined, role: Role): boolean {
+export function hasPermission(user: any, role: Role): boolean {
   return hasRole(user, role);
 }
 
