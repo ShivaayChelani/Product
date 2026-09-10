@@ -1,4 +1,5 @@
 import { prisma } from '../../config/database';
+import { Prisma } from '@prisma/client';
 import { ApiError } from '../../shared/utils/ApiError';
 
 export const customersService = {
@@ -42,7 +43,7 @@ export const customersService = {
     };
 
     // Paginated list
-    const conditions = q ? require('@prisma/client').Prisma.sql`AND (u.name ILIKE ${q} OR u.email ILIKE ${q})` : require('@prisma/client').Prisma.empty;
+    const conditions = q ? Prisma.sql`AND (u.name ILIKE ${'%' + q + '%'} OR u.email ILIKE ${'%' + q + '%'})` : Prisma.empty;
     
     const customers = await prisma.$queryRaw<any[]>`
       SELECT 
