@@ -60,8 +60,10 @@ function isAdminRequest(req: Request): boolean {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { getRedisClient } = require('./redis');
-const { RedisStore } = require('rate-limit-redis');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const RedisStore = require('rate-limit-redis').default;
 
 const createLimiter = (options: Partial<Options>): RateLimitRequestHandler => {
   const userSkip = options.skip;
