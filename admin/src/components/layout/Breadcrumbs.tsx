@@ -34,7 +34,6 @@ const LABEL_MAP: Record<string, string> = {
   search: "Search",
   tags: "Tags",
   reels: "Reels",
-  trips: "Trips",
   legal: "Legal",
   announcements: "Announcements",
   monetization: "Monetization",

@@ -45,8 +45,9 @@ export function ExcelImportModal({ open, onCancel, onSuccess }: Props) {
       const res = await client.post('/admin/riddles/bulk-import/validate', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setPreview(res.data.data || res.data || []);
-      setSummary(res.data.summary || null);
+      const payload = res.data?.data;
+      setPreview(Array.isArray(payload?.data) ? payload.data : []);
+      setSummary(payload?.summary ?? null);
     } catch (err: any) {
       setError(getApiErrorMessage(err, 'Failed to upload and parse Excel file.'));
     } finally {
@@ -72,7 +73,7 @@ export function ExcelImportModal({ open, onCancel, onSuccess }: Props) {
         invalidRows,
         cities,
       });
-      const msg = res.data?.meta?.message || res.data?.data?.message || `Imported ${validRows.length} riddles`;
+      const msg = res.data?.message || res.data?.data?.message || `Imported ${validRows.length} riddles`;
       setSuccess(`Import complete! ${msg}`);
       setTimeout(() => {
         onSuccess();

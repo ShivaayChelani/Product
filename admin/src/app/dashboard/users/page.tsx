@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, type ReactNode } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Search, Eye, Check, X, Trash2, Users, RefreshCw, Wallet, Map, AlertCircle } from "lucide-react";
+import { Search, Eye, Check, X, Trash2, Users, RefreshCw, Wallet, AlertCircle } from "lucide-react";
 import { getUser, getUsers, updateUserRole, deleteUser } from "@/services/users";
 import { getVendor, verifyVendor } from "@/services/vendors";
 import { getCreatorApplications, verifyCreator } from "@/services/creators";
@@ -841,9 +841,6 @@ export default function UsersPage() {
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link href={`/dashboard/wallets?search=${encodeURIComponent(detailUser.email)}`} className="admin-btn-secondary py-1.5 text-xs">
                   <Wallet size={14} /> Wallet
-                </Link>
-                <Link href={`/dashboard/trips?search=${encodeURIComponent(detailUser.email)}`} className="admin-btn-secondary py-1.5 text-xs">
-                  <Map size={14} /> Trips
                 </Link>
               </div>
             </div>

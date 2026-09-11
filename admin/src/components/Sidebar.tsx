@@ -6,7 +6,7 @@ import {
   LayoutDashboard, MapPin, Users, Video, Flag, Compass, ScrollText, LogOut, Menu, X,
   Store, Award, Tag, Wallet, Settings, Diamond, ScanLine, TrendingUp, DollarSign, Bell,
   Gift, Clapperboard, Megaphone, FolderLock, CreditCard, Receipt, BadgePercent, ImageIcon,
-  ShieldCheck, Globe, Layers, Hash, Shield, Search, Sparkles, Database, Activity,
+  ShieldCheck, Layers, Hash, Shield, Search, Sparkles, Database, Activity,
   Lock, ShieldAlert, Handshake, Smartphone
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -62,7 +62,6 @@ const navGroups = [
     title: "ENGAGEMENT",
     items: [
       { href: "/dashboard/riddle-hunt", label: "Treasure Hunt", icon: Compass },
-      { href: "/dashboard/trips", label: "Trips", icon: Globe },
     ],
   },
   {

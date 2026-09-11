@@ -12,7 +12,7 @@ const ROLE_ROUTE_PREFIXES: Record<AdminRole, string[]> = {
     "/dashboard/places", "/dashboard/canonical", "/dashboard/hidden-gems",
     "/dashboard/categories", "/dashboard/tags", "/dashboard/media", "/dashboard/reels",
     "/dashboard/moderation", "/dashboard/reviews", "/dashboard/offers", "/dashboard/redemptions", "/dashboard/campaigns",
-    "/dashboard/riddle-hunt", "/dashboard/trips", "/dashboard/wallets", "/dashboard/palpoints", "/dashboard/rewards",
+    "/dashboard/riddle-hunt", "/dashboard/wallets", "/dashboard/palpoints", "/dashboard/rewards",
     "/dashboard/monetization", "/dashboard/analytics", "/dashboard/notifications", "/dashboard/fraud-detection",
     "/dashboard/announcements", "/dashboard/legal", "/dashboard/reports",
     "/dashboard/audit-logs", "/dashboard/point-rules", "/dashboard/sync", "/dashboard/search", "/dashboard/roles",
@@ -34,7 +34,7 @@ const ROLE_ROUTE_PREFIXES: Record<AdminRole, string[]> = {
   ],
   SUPPORT_AGENT: [
     "/dashboard", "/dashboard/users", "/dashboard/vendors", "/dashboard/creators",
-    "/dashboard/notifications", "/dashboard/audit-logs", "/dashboard/trips", "/dashboard/moderation",
+    "/dashboard/notifications", "/dashboard/audit-logs", "/dashboard/moderation",
   ],
   MARKETING_ADMIN: [
     "/dashboard", "/dashboard/campaigns", "/dashboard/announcements",
