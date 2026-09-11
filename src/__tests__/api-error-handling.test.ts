@@ -172,4 +172,26 @@ describe('apiClient error handling', () => {
     const out = await apiClient.get('/trips/t');
     expect(out).toEqual(body);
   });
+
+  it('a body read that stalls after headers still times out (never hangs the caller)', async () => {
+    jest.useFakeTimers();
+    try {
+      const res = {
+        ok: true,
+        status: 200,
+        headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'application/json' : null) },
+        json: () => new Promise(() => { /* intentionally never settles */ }),
+        text: () => new Promise(() => { /* intentionally never settles */ }),
+      };
+      await setUpFetch(() => Promise.resolve(res));
+
+      const pending = apiClient.get('/trips');
+      const assertion = expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+
+      jest.advanceTimersByTime(60001);
+      await assertion;
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

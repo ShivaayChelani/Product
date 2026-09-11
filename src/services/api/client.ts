@@ -82,6 +82,27 @@ interface StandardApiResponse<T = any> {
 
 type AuthExpiredHandler = () => void;
 
+/**
+ * Reject with `timeoutMs` if the wrapped promise does not settle, invoking
+ * `onTimeout` so native work can be cancelled. Guarantees every HTTP call
+ * settles within the deadline — even a body read that stalls after response
+ * headers have been received.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, onTimeout: () => void): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      onTimeout();
+      const err = new Error('Request timed out. Please check your connection.') as Error & { name: string };
+      err.name = 'AbortError';
+      reject(err);
+    }, ms);
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (error) => { clearTimeout(timer); reject(error); },
+    );
+  });
+}
+
 class ApiClient {
   private token: string | null = null;
   private refreshToken: string | null = null;
@@ -257,10 +278,15 @@ class ApiClient {
 
     const controller = new AbortController();
     // Render free tier can take >60s to wake; give map/bootstrap reads the same budget as login.
+    // Auth-email endpoints (forgot-password / verify-reset-otp / reset-password) must also survive a
+    // cold start plus actual email delivery — 60s caused false aborts on the reset flow.
     const timeoutMs = path === API_CONFIG.endpoints.auth.login
       || path === API_CONFIG.endpoints.auth.register
       || path === API_CONFIG.endpoints.auth.verifyRegisterEmail
       || path === API_CONFIG.endpoints.auth.resendRegisterOtp
+      || path === '/auth/forgot-password'
+      || path === '/auth/verify-reset-otp'
+      || path === '/auth/reset-password'
       || path === API_CONFIG.endpoints.trips.aiGenerate
       || path === API_CONFIG.endpoints.health
       || path === API_CONFIG.endpoints.vendors.mapList
@@ -269,18 +295,15 @@ class ApiClient {
       || (path.includes('/trips/') && path.endsWith('/generate'))
       ? 120_000
       : API_CONFIG.timeout;
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     const startedAt = Date.now();
 
-    try {
+    const perform = async () => {
       const response = await fetch(url, {
         method,
         headers,
         body: isFormData ? body : body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       });
-
-      clearTimeout(timeout);
 
       let json: any = {};
       const contentType = response.headers.get('content-type');
@@ -294,6 +317,16 @@ class ApiClient {
         const text = await response.text();
         json = { message: text || `Request failed with status ${response.status}` };
       }
+
+      return { response, json };
+    };
+
+    try {
+      // The deadline must cover the FULL request lifecycle (headers + body read),
+      // not just until fetch() resolves. Otherwise a stalled body transfer leaves
+      // callers awaiting response.json() forever — e.g. the Forgot Password screen
+      // stuck indefinitely on "Processing...".
+      const { response, json } = await withTimeout(perform(), timeoutMs, () => controller.abort());
 
       if (!response.ok) {
         if (response.status === 401 && !isRetry && !path.includes('/auth/refresh') && !path.includes('/auth/login') && !path.includes('/auth/register')) {
@@ -337,7 +370,6 @@ class ApiClient {
 
       return json as StandardApiResponse<T>;
     } catch (error: any) {
-      clearTimeout(timeout);
       const durationMs = Date.now() - startedAt;
       const status = error?.status;
       try {
@@ -358,6 +390,10 @@ class ApiClient {
         throw timeoutErr;
       }
       throw error;
+    } finally {
+      // No-op once complete; cancels any native transfer still running if the
+      // deadline fired mid-body-read.
+      controller.abort();
     }
   }
 
