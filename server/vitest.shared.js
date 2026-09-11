@@ -90,6 +90,7 @@ export const UNIT_TEST_FILES = [
   'src/__tests__/itinerary-reasons.unit.test.ts',
   'src/__tests__/place-hours-validation.unit.test.ts',
   'src/__tests__/fee-basis.unit.test.ts',
+  'src/__tests__/riddles-import.unit.test.ts',
 ];
 
 export const E2E_TEST_GLOB = 'src/__tests__/**/*.integration.test.ts';

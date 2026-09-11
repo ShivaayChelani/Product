@@ -4,95 +4,13 @@ import { walletService } from '../wallet/wallet.service';
 import { logger } from '../../config/logger';
 import { reverseGeocodeToCity } from '../../shared/utils/reverseGeocode';
 import { cityDisplayName, canonicalCityKey } from '../../shared/utils/cityIdentity';
-import * as XLSX from 'xlsx';
+import { validateTreasureHuntExcelFile } from './riddles-import';
 
 export const riddlesService = {
 
   // ──────────────── ADMIN EXCEL IMPORT ────────────────
   async bulkImportValidate(fileBuffer: Buffer) {
-    let workbook: XLSX.WorkBook;
-    try {
-      workbook = XLSX.read(fileBuffer, { type: 'buffer' });
-    } catch {
-      throw new ApiError(400, 'Could not read this Excel file. Make sure it is a valid .xlsx or .xls file.');
-    }
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json<any>(worksheet, { defval: '' });
-
-    if (rows.length === 0) {
-      throw new ApiError(400, 'The selected Excel sheet is empty.');
-    }
-
-    const expectedHeaders = ['City name', 'Riddle in English', 'Answer in English', 'Riddle in Hindi', 'Answer in Hindi'];
-    const actualHeaders = Object.keys(rows[0] || {});
-
-    for (const h of expectedHeaders) {
-      if (!actualHeaders.includes(h)) {
-        throw new ApiError(400, `Invalid Excel Format. Missing column: ${h}`);
-      }
-    }
-
-    let validCount = 0;
-    let invalidCount = 0;
-    const citiesDetected = new Set<string>();
-    const results: any[] = [];
-    const seen = new Set<string>();
-
-    rows.forEach((row, index) => {
-      const rowIndex = index + 2; // +1 for 0-index, +1 for header
-      const city = String(row['City name'] || '').trim();
-      const clueEnglish = String(row['Riddle in English'] || '').trim();
-      const answerEnglish = String(row['Answer in English'] || '').trim();
-      const clueHindi = String(row['Riddle in Hindi'] || '').trim();
-      const answerHindi = String(row['Answer in Hindi'] || '').trim();
-
-      let status = 'VALID';
-      let error: string | null = null;
-
-      if (!city) { status = 'INVALID'; error = `Row ${rowIndex}: City name is required`; }
-      else if (!clueEnglish) { status = 'INVALID'; error = `Row ${rowIndex}: Riddle in English is required`; }
-      else if (!answerEnglish) { status = 'INVALID'; error = `Row ${rowIndex}: Answer in English is required`; }
-      else if (!clueHindi) { status = 'INVALID'; error = `Row ${rowIndex}: Riddle in Hindi is required`; }
-      else if (!answerHindi) { status = 'INVALID'; error = `Row ${rowIndex}: Answer in Hindi is required`; }
-
-      if (status === 'VALID') {
-        const dedupeKey = [city, clueEnglish, answerEnglish, clueHindi, answerHindi].join('|').toLowerCase();
-        if (seen.has(dedupeKey)) {
-          status = 'INVALID';
-          error = `Row ${rowIndex}: Duplicate row (same city, riddle and answers as a previous row)`;
-        } else {
-          seen.add(dedupeKey);
-        }
-      }
-
-      if (status === 'VALID') {
-        validCount++;
-        citiesDetected.add(cityDisplayName(city));
-      } else {
-        invalidCount++;
-      }
-
-      results.push({
-        city: cityDisplayName(city),
-        clueEnglish,
-        answerEnglish,
-        clueHindi,
-        answerHindi,
-        status,
-        error
-      });
-    });
-
-    return {
-      summary: {
-        total: rows.length,
-        valid: validCount,
-        invalid: invalidCount,
-        citiesCount: citiesDetected.size,
-      },
-      data: results
-    };
+    return validateTreasureHuntExcelFile(fileBuffer);
   },
 
   async bulkImportExecute(options: {
