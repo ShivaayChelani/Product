@@ -2,7 +2,7 @@
  * India destination aliases — single source of truth for server + mobile.
  * Maps alternate / historical / colloquial names → canonical keys used in place DB + geocode.
  *
- * NOTE: Mirrored from the repo-root `shared/` for self-contained server builds (Docker context is `server/`).
+ * NOTE: Mirrored from the repo-root `shared/` for self-contained server builds (server/ is the deployable unit).
  */
 
 export const INDIA_DESTINATION_ALIASES: Record<string, string> = {

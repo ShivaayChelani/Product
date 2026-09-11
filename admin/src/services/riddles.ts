@@ -1,124 +1,92 @@
 import client from "./client";
 
-// ─── Riddle types ─────────────────────────────────────────────────────────────
+export interface TreasureHunt {
+  id: string;
+  city: string;
+  title: string;
+  description: string | null;
+  rewardCoins: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  _count: { riddles: number };
+}
 
 export interface Riddle {
   id: string;
-  title: string;
-  clue: string;
-  hintImage: string | null;
-  correctPlaceName: string;
-  correctLat: number | null;
-  correctLng: number | null;
+  huntId: string;
   city: string;
-  rewardPoints: number;
-  isActive: boolean;
-  startsAt: string;
-  endsAt: string | null;
+  sequence: number;
+  clueEnglish: string;
+  answerEnglish: string;
+  clueHindi: string;
+  answerHindi: string;
+  status: string;
+  rewardCoins: number;
   createdAt: string;
-  _count: { submissions: number };
+  updatedAt: string;
 }
 
-export interface RiddleSubmission {
+export interface ImportLog {
   id: string;
-  riddleId: string;
-  userId: string;
-  photoUrl: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  adminComment: string | null;
-  pointsAwarded: number;
-  reviewedAt: string | null;
+  fileName: string;
+  uploadedById: string;
+  totalRows: number;
+  validRows: number;
+  failedRows: number;
+  cities: string[];
+  status: string;
+  errorMessage: string | null;
   createdAt: string;
-  user: { id: string; name: string; avatar: string | null; avatarStyle: number };
-  riddle: { id: string; title: string; city: string; rewardPoints?: number; correctPlaceName?: string };
+  uploadedBy?: { id: string; name: string; email: string };
 }
 
-// ─── Riddle CRUD (admin) ──────────────────────────────────────────────────────
+export interface CityRow {
+  city: string;
+  riddleCount: number;
+  huntId: string | null;
+  title: string | null;
+  status: string;
+  lastUpdatedAt: string | null;
+}
+
+export async function getHunts(params?: {
+  page?: number;
+  limit?: number;
+  city?: string;
+}) {
+  const res = await client.get("/admin/riddles/hunts", { params });
+  return res.data;
+}
 
 export async function getRiddles(params?: {
   page?: number;
   limit?: number;
-  isActive?: string;
   city?: string;
   search?: string;
 }) {
-  const res = await client.get("/admin/riddles", { params });
+  const res = await client.get("/admin/riddles/riddles", { params });
   return res.data;
 }
 
-export async function getCitySummary() {
-  const res = await client.get("/admin/riddles/cities/summary");
-  return res.data;
+export async function deleteHunt(id: string) {
+  await client.delete(`/admin/riddles/hunts/${id}`);
 }
 
-export async function getRiddle(id: string) {
-  const res = await client.get(`/admin/riddles/${id}`);
-  return res.data.data;
+export async function getTreasureOverview() {
+  const res = await client.get("/admin/riddles/overview");
+  return res.data.data || res.data;
 }
 
-export async function createRiddle(data: {
-  title: string;
-  clue: string;
-  hintImage?: string;
-  correctPlaceName: string;
-  correctLat?: number;
-  correctLng?: number;
-  city: string;
-  rewardPoints?: number;
-  startsAt: string;
-  endsAt?: string;
+export async function getCitiesList(): Promise<CityRow[]> {
+  const res = await client.get("/admin/riddles/cities");
+  return res.data.data || res.data;
+}
+
+export async function getImportHistory(params?: {
+  page?: number;
+  limit?: number;
 }) {
-  const res = await client.post("/admin/riddles", data);
-  return res.data.data;
-}
-
-export async function updateRiddle(
-  id: string,
-  data: Partial<{
-    title: string;
-    clue: string;
-    hintImage: string | null;
-    correctPlaceName: string;
-    correctLat: number;
-    correctLng: number;
-    city: string;
-    rewardPoints: number;
-    isActive: boolean;
-    startsAt: string;
-    endsAt: string | null;
-  }>
-) {
-  const res = await client.patch(`/admin/riddles/${id}`, data);
-  return res.data.data;
-}
-
-export async function deleteRiddle(id: string) {
-  await client.delete(`/admin/riddles/${id}`);
-}
-
-// ─── Submission Review ────────────────────────────────────────────────────────
-
-export async function getRiddleSubmissions(
-  riddleId: string,
-  params?: { page?: number; limit?: number; status?: string }
-) {
-  const res = await client.get(`/admin/riddles/${riddleId}/submissions`, { params });
+  const res = await client.get("/admin/riddles/import-history", { params });
   return res.data;
-}
-
-export async function getAllPendingSubmissions(params?: { page?: number; limit?: number }) {
-  const res = await client.get("/admin/riddles/submissions/pending", { params });
-  return res.data;
-}
-
-export async function approveSubmission(submissionId: string) {
-  const res = await client.post(`/admin/riddles/submissions/${submissionId}/approve`);
-  return res.data.data;
-}
-
-export async function rejectSubmission(submissionId: string, adminComment: string) {
-  const res = await client.post(`/admin/riddles/submissions/${submissionId}/reject`, {
-    adminComment,
-  });
-  return res.data.data;
 }

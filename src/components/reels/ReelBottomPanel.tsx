@@ -27,6 +27,7 @@ type Props = {
   showControls: boolean;
   paddingBottom: number;
   onComment: () => void;
+  onSeek?: (progress: number) => void;
 };
 
 function ReelBottomPanelComponent({
@@ -49,6 +50,7 @@ function ReelBottomPanelComponent({
   showControls,
   paddingBottom,
   onComment,
+  onSeek,
 }: Props) {
   const raw = description || title || '';
   const { caption } = splitCaptionAndHashtags(raw);
@@ -96,8 +98,8 @@ function ReelBottomPanelComponent({
 
       {showControls && (
         <View pointerEvents="box-none">
-          <View style={styles.progressWrap} pointerEvents="none">
-            <ReelProgressBar progress={progress} />
+          <View style={styles.progressWrap} pointerEvents="box-none">
+            <ReelProgressBar progress={progress} onSeek={onSeek} />
           </View>
           {/* <ReelCommentBar onPress={onComment} /> */}
         </View>

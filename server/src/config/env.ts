@@ -15,10 +15,11 @@ if (!process.env.DATABASE_URL) {
 
 /**
  * Environment isolation guard (hostname-only comparison — never prints credentials).
- * Prevents a production-configured application from connecting to the known TEST
- * database host, and prevents test/dev runs from connecting to the known
- * PRODUCTION database host. Render production and the Ohio TEST_DATABASE_URL
- * are unaffected.
+ * Deny-lists database hosts from the previous PostgreSQL provider. These hosts
+ * are decommissioned but deliberately retained: a stale DATABASE_URL or
+ * .env.test still pointing at an old host (whose credentials are no longer
+ * valid) must be refused instead of silently retried. The current production
+ * database (Neon) is not listed here and is unaffected.
  */
 const KNOWN_TEST_DB_HOSTS = new Set([
   'dpg-d9usgk37uimc73al1gv0-a.ohio-postgres.render.com',

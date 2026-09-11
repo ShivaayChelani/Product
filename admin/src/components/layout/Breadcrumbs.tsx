@@ -43,7 +43,7 @@ const LABEL_MAP: Record<string, string> = {
   transactions: "Transactions",
   revenue: "Revenue",
   "point-rules": "Point Rules",
-  "riddle-hunt": "Riddle Hunt",
+  "riddle-hunt": "Treasure Hunt",
 };
 
 function segmentLabel(segment: string): string {

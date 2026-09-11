@@ -38,7 +38,7 @@ interface Row { id: string; label: string; pass: Pass; detail: string; }
 const rows: Row[] = [];
 let passCount = 0;
 let failCount = 0;
-let skipCount = 0;
+const skipCount = 0;
 
 function scenario(id: string, label: string, fn: () => Promise<string>): Promise<void> {
   return Promise.resolve().then(async () => {

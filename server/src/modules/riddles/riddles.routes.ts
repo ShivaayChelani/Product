@@ -1,43 +1,38 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { riddlesController } from './riddles.controller';
 import { authenticate, requireAdmin } from '../../middleware/auth';
 import { requireContentOps } from '../../middleware/adminCapabilities';
 import { validate } from '../../middleware/validate';
-import {
-  createRiddleSchema,
-  updateRiddleSchema,
-  submitRiddleSchema,
-  rejectRiddleSchema,
-} from './riddles.validation';
+import { submitAnswerSchema, locationQuerySchema } from './riddles.validation';
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 // ──────────────── User Router (mounted at /riddles) ────────────────
 const router = Router();
 
-// Get active riddles based on current GPS location
-router.get('/active/current-location', authenticate, riddlesController.getActiveForCurrentLocation);
+// Get the current hunt available in the user's GPS city
+router.get('/active/current-location', authenticate, validate(locationQuerySchema, 'query'), riddlesController.getCurrentCityHunt);
 
-// Get all my past submissions (with riddle info)
-router.get('/my-submissions', authenticate, riddlesController.getMySubmissions);
+// Get my progress
+router.get('/my-progress', authenticate, riddlesController.getMyHuntProgress);
 
-// Get my submission status for a specific riddle
-router.get('/:id/my-submission', authenticate, riddlesController.getMySubmission);
+// Get hunt details
+router.get('/hunt/:id', authenticate, validate(locationQuerySchema, 'query'), riddlesController.getHuntDetails);
 
-// Get a specific riddle detail (secured by location)
-router.get('/:id', authenticate, riddlesController.getByIdUser);
+// Get riddle details
+router.get('/hunt/:huntId/riddle/:riddleId', authenticate, validate(locationQuerySchema, 'query'), riddlesController.getRiddle);
 
-// Get riddle hint (secured by location)
-router.post('/:id/hint', authenticate, riddlesController.getHint);
-
-// Validate check-in distance
-router.post('/:id/validate-checkin', authenticate, riddlesController.validateCheckIn);
-
-// Submit an answer (photo) for a riddle
-router.post('/:id/submit', authenticate, validate(submitRiddleSchema), riddlesController.submit);
+// Submit an answer
+router.post(
+  '/hunt/:huntId/riddle/:riddleId/answer',
+  authenticate,
+  validate(locationQuerySchema, 'query'),
+  validate(submitAnswerSchema),
+  riddlesController.submitAnswer
+);
 
 export default router;
-
-import multer from 'multer';
-const upload = multer({ storage: multer.memoryStorage() });
 
 // ──────────────── Admin Router (mounted at /admin/riddles) ────────────────
 export const adminRouter = Router();
@@ -47,16 +42,14 @@ adminRouter.use(authenticate, requireAdmin);
 adminRouter.post('/bulk-import/validate', requireContentOps, upload.single('file'), riddlesController.bulkImportValidate);
 adminRouter.post('/bulk-import/confirm', requireContentOps, riddlesController.bulkImportConfirm);
 
-// Riddle CRUD
-adminRouter.get('/cities/summary', riddlesController.getCitySummary);
-adminRouter.get('/', riddlesController.list);
-adminRouter.get('/submissions/pending', riddlesController.getAllPendingSubmissions);
-adminRouter.get('/:id', riddlesController.getById);
-adminRouter.post('/', requireContentOps, validate(createRiddleSchema), riddlesController.create);
-adminRouter.patch('/:id', requireContentOps, validate(updateRiddleSchema), riddlesController.update);
-adminRouter.delete('/:id', requireContentOps, riddlesController.delete);
+// Dashboard
+adminRouter.get('/overview', riddlesController.getOverview);
+adminRouter.get('/cities', riddlesController.getCities);
+adminRouter.get('/import-history', riddlesController.listImportHistory);
 
-// Submission review
-adminRouter.get('/:id/submissions', riddlesController.getSubmissions);
-adminRouter.post('/submissions/:submissionId/approve', requireContentOps, riddlesController.approve);
-adminRouter.post('/submissions/:submissionId/reject', requireContentOps, validate(rejectRiddleSchema), riddlesController.reject);
+// Hunts & Riddles listing
+adminRouter.get('/hunts', riddlesController.listAllHunts);
+adminRouter.get('/riddles', riddlesController.listAllRiddles);
+
+// Delete hunt
+adminRouter.delete('/hunts/:id', requireContentOps, riddlesController.deleteHunt);

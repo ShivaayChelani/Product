@@ -74,7 +74,7 @@ function analyzeTrip(scenario: string, durationMs: number, trip: any, warnings: 
     let visitTotal = 0;
     let prevEnd: number | null = null;
     const overlaps: string[] = [];
-    let segKms: number[] = [];
+    const segKms: number[] = [];
 
     for (let i = 0; i < stops.length; i++) {
       const s = stops[i];

@@ -135,7 +135,7 @@ function HomeTabWrapper() {
       }
       onNavigateToTrips={() => navigation.navigate('MainTabs', { screen: 'Itinerary' })}
       onNavigateToLegal={() => navigation.navigate('LegalHub')}
-      onNavigateToTreasureHunt={() => navigation.navigate('TreasureHunt')}
+      onNavigateToTreasureHunt={() => navigation.navigate('TreasureHuntLanding')}
       onBecomeCreator={() => navigation.navigate('BecomeCreator')}
       onBecomeVendor={() => navigation.navigate('VendorRegister')}
       onOpenCreatorStudio={() => setActiveMode('CONTENT_CREATOR')}

@@ -61,7 +61,7 @@ const navGroups = [
   {
     title: "ENGAGEMENT",
     items: [
-      { href: "/dashboard/riddle-hunt", label: "Riddle Hunt", icon: Compass },
+      { href: "/dashboard/riddle-hunt", label: "Treasure Hunt", icon: Compass },
       { href: "/dashboard/trips", label: "Trips", icon: Globe },
     ],
   },

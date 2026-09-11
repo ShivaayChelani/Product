@@ -1,60 +1,25 @@
 import { Request, Response } from 'express';
 import { riddlesService } from './riddles.service';
 import { catchAsync } from '../../shared/utils/catchAsync';
-import { sendSuccess, sendCreated } from '../../shared/utils/response';
+import { sendSuccess } from '../../shared/utils/response';
 import { ApiError } from '../../shared/utils/ApiError';
 
 export const riddlesController = {
   // ─── Admin ──────────────────────────────────────────────────────────────────
 
-  list: catchAsync(async (req: Request, res: Response) => {
-    const result = await riddlesService.listAll(req.query as any);
+  listAllHunts: catchAsync(async (req: Request, res: Response) => {
+    const result = await riddlesService.listAllHunts(req.query as any);
     sendSuccess(res, result.data, { pagination: result.pagination });
   }),
 
-  getCitySummary: catchAsync(async (req: Request, res: Response) => {
-    const summary = await riddlesService.getCitySummary();
-    sendSuccess(res, summary);
-  }),
-
-  getById: catchAsync(async (req: Request, res: Response) => {
-    const riddle = await riddlesService.getById(req.params.id as string);
-    sendSuccess(res, riddle);
-  }),
-
-  create: catchAsync(async (req: Request, res: Response) => {
-    const riddle = await riddlesService.create(req.body);
-    sendCreated(res, riddle, 'Riddle created');
-  }),
-
-  update: catchAsync(async (req: Request, res: Response) => {
-    const riddle = await riddlesService.update(req.params.id as string, req.body);
-    sendSuccess(res, riddle, { message: 'Riddle updated' });
-  }),
-
-  delete: catchAsync(async (req: Request, res: Response) => {
-    await riddlesService.delete(req.params.id as string);
-    sendSuccess(res, null, { message: 'Riddle deleted' });
-  }),
-
-  getSubmissions: catchAsync(async (req: Request, res: Response) => {
-    const result = await riddlesService.getSubmissions(req.params.id as string, req.query as any);
+  listAllRiddles: catchAsync(async (req: Request, res: Response) => {
+    const result = await riddlesService.listAllRiddles(req.query as any);
     sendSuccess(res, result.data, { pagination: result.pagination });
   }),
 
-  getAllPendingSubmissions: catchAsync(async (req: Request, res: Response) => {
-    const result = await riddlesService.getAllPendingSubmissions(req.query as any);
-    sendSuccess(res, result.data, { pagination: result.pagination });
-  }),
-
-  approve: catchAsync(async (req: any, res: Response) => {
-    const result = await riddlesService.approve(req.params.submissionId as string, req.user.id);
-    sendSuccess(res, result, { message: 'Submission approved and points awarded' });
-  }),
-
-  reject: catchAsync(async (req: any, res: Response) => {
-    const result = await riddlesService.reject(req.params.submissionId as string, req.user.id, req.body);
-    sendSuccess(res, result, { message: 'Submission rejected' });
+  deleteHunt: catchAsync(async (req: Request, res: Response) => {
+    await riddlesService.deleteHunt(req.params.id as string);
+    sendSuccess(res, null, { message: 'Hunt deleted' });
   }),
 
   // ──────────────── Admin Excel Bulk Import ────────────────
@@ -67,59 +32,81 @@ export const riddlesController = {
     sendSuccess(res, result);
   }),
 
-  bulkImportConfirm: catchAsync(async (req: Request, res: Response) => {
-    const result = await riddlesService.bulkImportConfirm(req.body.validRows);
+  bulkImportConfirm: catchAsync(async (req: any, res: Response) => {
+    const { validRows, totalRows, invalidRows, cities, fileName } = req.body;
+    if (!Array.isArray(validRows) || validRows.length === 0) {
+      throw new ApiError(400, 'No valid rows to import');
+    }
+    if (!fileName) {
+      throw new ApiError(400, 'File name is required');
+    }
+    const result = await riddlesService.bulkImportExecute({
+      validRows,
+      fileName,
+      uploadedById: req.user.id,
+      totalRows: Number(totalRows) || validRows.length,
+      invalidRows: Number(invalidRows) || 0,
+      cities: Array.isArray(cities) ? cities : [],
+    });
     sendSuccess(res, result, { message: `Imported ${result.imported} riddles` });
+  }),
+
+  getOverview: catchAsync(async (req: Request, res: Response) => {
+    const result = await riddlesService.getOverview();
+    sendSuccess(res, result);
+  }),
+
+  getCities: catchAsync(async (req: Request, res: Response) => {
+    const result = await riddlesService.getCities();
+    sendSuccess(res, result);
+  }),
+
+  listImportHistory: catchAsync(async (req: Request, res: Response) => {
+    const result = await riddlesService.listImportHistory(req.query as any);
+    sendSuccess(res, result.data, { pagination: result.pagination });
   }),
 
   // ──────────────── User Gameplay ────────────────
 
-  getActiveForCurrentLocation: catchAsync(async (req: Request, res: Response) => {
+  getCurrentCityHunt: catchAsync(async (req: Request, res: Response) => {
     const lat = Number(req.query.lat);
     const lng = Number(req.query.lng);
-    const riddles = await riddlesService.getActiveForCurrentLocation(lat, lng);
-    sendSuccess(res, riddles);
+    const hunt = await riddlesService.getCurrentCityHunt(lat, lng);
+    sendSuccess(res, hunt);
   }),
 
-  getByIdUser: catchAsync(async (req: Request, res: Response) => {
+  getHuntDetails: catchAsync(async (req: any, res: Response) => {
     const lat = Number(req.query.lat);
     const lng = Number(req.query.lng);
-    const riddle = await riddlesService.getByIdUser(req.params.id as string, lat, lng);
+    const hunt = await riddlesService.getHuntDetails(req.params.id as string, lat, lng, req.user.id);
+    sendSuccess(res, hunt);
+  }),
+
+  getRiddle: catchAsync(async (req: Request, res: Response) => {
+    const lat = Number(req.query.lat);
+    const lng = Number(req.query.lng);
+    const riddle = await riddlesService.getRiddle(req.params.huntId as string, req.params.riddleId as string, lat, lng);
     sendSuccess(res, riddle);
   }),
 
-  getHint: catchAsync(async (req: Request, res: Response) => {
-    const lat = Number(req.body.userLat || req.body.lat);
-    const lng = Number(req.body.userLng || req.body.lng);
-    const hint = await riddlesService.getHint(req.params.id as string, lat, lng);
-    sendSuccess(res, hint);
-  }),
-
-  validateCheckIn: catchAsync(async (req: any, res: Response) => {
-    const { userLat, userLng } = req.body;
-    const result = await riddlesService.validateCheckIn(req.params.id as string, Number(userLat), Number(userLng));
+  submitAnswer: catchAsync(async (req: any, res: Response) => {
+    const { answer, language } = req.body;
+    const lat = Number(req.query.lat);
+    const lng = Number(req.query.lng);
+    const result = await riddlesService.submitAnswer(
+      req.params.huntId as string,
+      req.params.riddleId as string,
+      req.user.id,
+      answer,
+      language,
+      lat,
+      lng
+    );
     sendSuccess(res, result);
   }),
 
-  getMySubmissions: catchAsync(async (req: any, res: Response) => {
-    const submissions = await riddlesService.getMySubmissions(req.user.id);
-    sendSuccess(res, submissions);
-  }),
-
-  getMySubmission: catchAsync(async (req: any, res: Response) => {
-    const submission = await riddlesService.getMySubmission(req.params.id as string, req.user.id);
-    sendSuccess(res, submission);
-  }),
-
-  submit: catchAsync(async (req: any, res: Response) => {
-    const { photoUrl, userLat, userLng } = req.body;
-    const submission = await riddlesService.submit(
-      req.params.id as string,
-      req.user.id,
-      photoUrl,
-      Number(userLat),
-      Number(userLng)
-    );
-    sendCreated(res, submission, 'Answer submitted! Admin will review it soon.');
+  getMyHuntProgress: catchAsync(async (req: any, res: Response) => {
+    const progress = await riddlesService.getMyHuntProgress(req.user.id);
+    sendSuccess(res, progress);
   }),
 };

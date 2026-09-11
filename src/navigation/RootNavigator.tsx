@@ -800,14 +800,19 @@ function HowItWorksWrapper({ navigation }: any) {
   return <Screen navigation={navigation} onBack={() => navigation.goBack()} />;
 }
 
-function TreasureHuntWrapper() {
-  const Screen = useLazyScreen(() => require('../screens/TreasureHuntScreen'));
+function TreasureHuntLandingWrapper() {
+  const Screen = useLazyScreen(() => require('../screens/TreasureHuntLandingScreen').default);
   return <Screen />;
 }
 
-function MyTreasureHuntsWrapper() {
-  const Screen = useLazyScreen(() => require('../screens/MyTreasureHuntsScreen').default);
-  return <Screen />;
+function TreasureHuntActiveWrapper({ route }: any) {
+  const Screen = useLazyScreen(() => require('../screens/TreasureHuntActiveScreen').default);
+  return <Screen huntId={route.params?.huntId} riddleId={route.params?.riddleId} />;
+}
+
+function TreasureHuntSuccessWrapper({ route }: any) {
+  const Screen = useLazyScreen(() => require('../screens/TreasureHuntSuccessScreen').default);
+  return <Screen huntId={route.params?.huntId} rewardCoins={route.params?.rewardCoins} completed={route.params?.completed} city={route.params?.city} />;
 }
 
 function BlockListWrapper() {
@@ -1079,8 +1084,9 @@ const sharedStackScreens = (
     <Stack.Screen name="Credits" component={CreditsWrapper} />
     <Stack.Screen name="Settings" component={SettingsWrapper} />
     <Stack.Screen name="HowItWorks" component={HowItWorksWrapper} />
-    <Stack.Screen name="TreasureHunt" component={TreasureHuntWrapper} />
-    <Stack.Screen name="MyTreasureHunts" component={MyTreasureHuntsWrapper} />
+    <Stack.Screen name="TreasureHuntLanding" component={TreasureHuntLandingWrapper} />
+    <Stack.Screen name="TreasureHuntActive" component={TreasureHuntActiveWrapper} />
+    <Stack.Screen name="TreasureHuntSuccess" component={TreasureHuntSuccessWrapper} />
     {MONITORING_CONFIG.enableCrashTests ? (
       <Stack.Screen name="CrashTest" component={CrashTestWrapper} options={{ headerShown: false }} />
     ) : null}

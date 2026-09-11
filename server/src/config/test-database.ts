@@ -3,7 +3,7 @@
  *
  * Priority:
  *   1. TEST_DATABASE_URL (+ optional TEST_DIRECT_URL)
- *   2. Local Docker PostGIS default (palsafar_test)
+ *   2. Local PostGIS default (palsafar_test)
  *
  * Production DATABASE_URL from .env is ignored unless explicitly copied into TEST_DATABASE_URL.
  */
@@ -13,8 +13,8 @@ const LOCAL_TEST_DEFAULT =
 
 /**
  * Prisma URL params for the TEST database only.
- * Does not raise connection_limit (Render TEST max_connections=100; keep a small client pool).
- * connect_timeout/pool_timeout cover transcontinental RTT without changing production DATABASE_URL.
+ * Keeps a small client pool with sane timeouts for any remote TEST host
+ * (CI PostGIS container or TEST_DATABASE_URL) without changing production DATABASE_URL.
  */
 export function withTestPoolParams(url: string): string {
   const parsed = new URL(url);
@@ -27,7 +27,7 @@ export function withTestPoolParams(url: string): string {
   if (!parsed.searchParams.has('connect_timeout')) {
     parsed.searchParams.set('connect_timeout', '15');
   }
-  // Keep idle pooled sockets alive across Render's external proxy (TEST DB only).
+  // Keep idle pooled sockets alive across any remote TEST host proxy (TEST DB only).
   if (!parsed.searchParams.has('keepalives')) {
     parsed.searchParams.set('keepalives', '1');
   }
@@ -59,7 +59,7 @@ export function assertSafeTestDatabase(): void {
   if (productionUrl && normalizeUrl(productionUrl) === normalizedTest) {
     throw new Error(
       'Refusing to run tests: TEST_DATABASE_URL matches PRODUCTION_DATABASE_URL. ' +
-        'Use local Docker PostGIS for automated tests.',
+        'Use local PostGIS for automated tests.',
     );
   }
 

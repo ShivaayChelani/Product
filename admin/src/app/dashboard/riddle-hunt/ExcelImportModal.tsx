@@ -1,15 +1,15 @@
 import React, { useState, useRef } from 'react';
-import { Upload, X, AlertTriangle, CheckCircle, UploadCloud, Info } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { UploadCloud, X, AlertTriangle, CheckCircle, Eye } from 'lucide-react';
 import client from '@/services/client';
+import { getApiErrorMessage } from '@/services/client';
 
-export interface ExcelImportModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+interface Props {
+  open: boolean;
+  onCancel: () => void;
   onSuccess: () => void;
 }
 
-export function ExcelImportModal({ isOpen, onClose, onSuccess }: ExcelImportModalProps) {
+export function ExcelImportModal({ open, onCancel, onSuccess }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
@@ -17,35 +17,38 @@ export function ExcelImportModal({ isOpen, onClose, onSuccess }: ExcelImportModa
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!isOpen) return null;
+  if (!open) return null;
+
+  const reset = () => {
+    setPreview([]);
+    setSummary(null);
+    setError('');
+    setSuccess('');
+    setRevealed({});
+    setImporting(false);
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (!selected) return;
+    reset();
     setFile(selected);
-    setError('');
-    setPreview([]);
-    setSuccess('');
-    
+
     try {
       setLoading(true);
       const formData = new FormData();
       formData.append('file', selected);
 
-      // Send to backend for parsing and validation
-      const res = await client.post('/admin/riddles/bulk-import/validate', formData);
-      const data = res.data.data || res.data;
-      if (res.data.summary) {
-        setPreview(res.data.data);
-        setSummary(res.data.summary);
-      } else {
-        setPreview(data);
-        setSummary(null);
-      }
+      const res = await client.post('/admin/riddles/bulk-import/validate', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setPreview(res.data.data || res.data || []);
+      setSummary(res.data.summary || null);
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to upload and parse Excel file.');
+      setError(getApiErrorMessage(err, 'Failed to upload and parse Excel file.'));
     } finally {
       setLoading(false);
     }
@@ -53,37 +56,47 @@ export function ExcelImportModal({ isOpen, onClose, onSuccess }: ExcelImportModa
 
   const handleImport = async () => {
     const validRows = preview.filter((r) => r.status === 'VALID');
-    if (validRows.length === 0) return;
+    if (validRows.length === 0 || !file) return;
+
+    const cities = [...new Set(validRows.map((r) => r.city))];
+    const totalRows = summary?.total ?? preview.length;
+    const invalidRows = summary?.invalid ?? preview.length - validRows.length;
 
     try {
       setImporting(true);
       setError('');
-      const res = await client.post('/admin/riddles/bulk-import/confirm', { validRows });
-      setSuccess(`Import complete! ${res.data.data.message || 'Success'}`);
+      const res = await client.post('/admin/riddles/bulk-import/confirm', {
+        validRows,
+        fileName: file.name,
+        totalRows,
+        invalidRows,
+        cities,
+      });
+      const msg = res.data?.meta?.message || res.data?.data?.message || `Imported ${validRows.length} riddles`;
+      setSuccess(`Import complete! ${msg}`);
       setTimeout(() => {
         onSuccess();
-      }, 2000);
+      }, 1800);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Import failed.');
+      setError(getApiErrorMessage(err, 'Import failed.'));
     } finally {
       setImporting(false);
     }
   };
 
   const validCount = preview.filter((r) => r.status === 'VALID').length;
-  const needsAttentionCount = preview.filter((r) => r.status === 'NEEDS_ATTENTION').length;
   const invalidCount = preview.filter((r) => r.status === 'INVALID').length;
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">Bulk Import Treasure Hunts</h2>
-            <p className="text-sm text-gray-500 mt-1">Upload an Excel (.xlsx) file to create multiple riddles at once.</p>
+            <p className="text-sm text-gray-500 mt-1">Upload an Excel (.xlsx) file with 5 columns: City name, Riddle in English, Answer in English, Riddle in Hindi, Answer in Hindi.</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={onCancel} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -105,19 +118,19 @@ export function ExcelImportModal({ isOpen, onClose, onSuccess }: ExcelImportModa
           )}
 
           {!preview.length && !loading && (
-            <div 
+            <div
               className="border-2 border-dashed border-gray-200 rounded-xl p-12 text-center hover:bg-gray-50 hover:border-brand-300 transition-colors cursor-pointer"
               onClick={() => fileInputRef.current?.click()}
             >
               <UploadCloud className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-sm font-medium text-gray-900 mb-1">Click to upload or drag and drop</h3>
               <p className="text-xs text-gray-500">XLSX, XLS files only</p>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                accept=".xlsx, .xls" 
-                className="hidden" 
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept=".xlsx, .xls"
+                className="hidden"
               />
             </div>
           )}
@@ -131,46 +144,46 @@ export function ExcelImportModal({ isOpen, onClose, onSuccess }: ExcelImportModa
 
           {preview.length > 0 && !loading && (
             <div className="space-y-4">
-              <div className="flex flex-col gap-4 p-4 bg-gray-50 rounded-lg text-sm">
-                <div className="flex gap-4">
+              <div className="flex flex-col gap-3 p-4 bg-gray-50 rounded-lg text-sm">
+                <div className="flex flex-wrap gap-x-6 gap-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-900">{summary?.total ?? preview.length}</span>
+                    <span className="text-gray-500">Total Rows</span>
+                  </div>
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                     <span className="font-medium text-gray-900">{validCount}</span>
-                    <span className="text-gray-500">Valid</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                    <span className="font-medium text-gray-900">{needsAttentionCount}</span>
-                    <span className="text-gray-500">Needs Attention</span>
+                    <span className="text-gray-500">Valid Rows</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
                     <span className="font-medium text-gray-900">{invalidCount}</span>
-                    <span className="text-gray-500">Invalid</span>
+                    <span className="text-gray-500">Invalid Rows</span>
                   </div>
-                </div>
-                {summary?.citiesBreakdown && (
-                  <div className="pt-3 border-t border-gray-200">
-                    <h4 className="font-medium text-gray-900 mb-2">Cities detected: {summary.citiesCount}</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(summary.citiesBreakdown).map(([city, count]) => (
-                        <span key={city} className="px-2 py-1 bg-white border border-gray-200 rounded text-xs font-medium text-gray-700">
-                          {city} ({count as React.ReactNode})
-                        </span>
-                      ))}
+                  {summary && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-900">{summary.citiesCount}</span>
+                      <span className="text-gray-500">Cities Found</span>
                     </div>
-                  </div>
+                  )}
+                </div>
+                {invalidCount > 0 && (
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-md px-3 py-2">
+                    {invalidCount} invalid row(s) will be skipped. Only the {validCount} valid row(s) will be imported.
+                  </p>
                 )}
               </div>
 
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="border border-gray-200 rounded-lg overflow-x-auto">
                 <table className="w-full text-left text-sm whitespace-nowrap">
                   <thead className="bg-gray-50 text-gray-500 border-b border-gray-200">
                     <tr>
                       <th className="px-4 py-3 font-medium">Row</th>
                       <th className="px-4 py-3 font-medium">City</th>
-                      <th className="px-4 py-3 font-medium">Riddle</th>
-                      <th className="px-4 py-3 font-medium">Destination Match</th>
+                      <th className="px-4 py-3 font-medium">Riddle (EN)</th>
+                      <th className="px-4 py-3 font-medium">Answer (EN)</th>
+                      <th className="px-4 py-3 font-medium">Riddle (HI)</th>
+                      <th className="px-4 py-3 font-medium">Answer (HI)</th>
                       <th className="px-4 py-3 font-medium text-right">Status</th>
                     </tr>
                   </thead>
@@ -179,50 +192,103 @@ export function ExcelImportModal({ isOpen, onClose, onSuccess }: ExcelImportModa
                       <tr key={i} className="hover:bg-gray-50">
                         <td className="px-4 py-3 text-gray-500">#{i + 2}</td>
                         <td className="px-4 py-3 font-medium text-gray-900">{row.city || '-'}</td>
-                        <td className="px-4 py-3 text-gray-500 max-w-[200px] truncate" title={row.clue}>
-                          {row.clue || '-'}
+                        <td className="px-4 py-3 text-gray-500 max-w-[200px] truncate" title={row.clueEnglish}>
+                          {row.clueEnglish || '-'}
                         </td>
-                        <td className="px-4 py-3">
-                          {row.match ? (
-                            <span className="text-emerald-700 font-medium bg-emerald-50 px-2 py-0.5 rounded text-xs border border-emerald-100">
-                              ✓ {row.match.name}
-                            </span>
+                        <td className="px-4 py-3 text-gray-500 max-w-[150px] truncate">
+                          {row.status !== 'VALID' && !row.answerEnglish ? (
+                            '-'
+                          ) : revealed[i] ? (
+                            <span className="text-emerald-700 font-medium" title={row.answerEnglish}>{row.answerEnglish}</span>
                           ) : (
-                            <span className="text-amber-700 font-medium bg-amber-50 px-2 py-0.5 rounded text-xs border border-amber-100 flex items-center gap-1 w-fit">
-                              <Info className="w-3 h-3" /> No exact match ({row.answer})
+                            <span className="flex items-center gap-1.5 text-gray-400">
+                              ··········
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setRevealed((p) => ({ ...p, [i]: true })); }}
+                                className="p-0.5 text-gray-400 hover:text-gray-700"
+                                title="View Answer"
+                              >
+                                <Eye size={14} />
+                              </button>
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500 max-w-[200px] truncate" title={row.clueHindi}>
+                          {row.clueHindi || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500 max-w-[150px] truncate">
+                          {row.status !== 'VALID' && !row.answerHindi ? (
+                            '-'
+                          ) : revealed[i] ? (
+                            <span className="text-emerald-700 font-medium" title={row.answerHindi}>{row.answerHindi}</span>
+                          ) : (
+                            <span className="flex items-center gap-1.5 text-gray-400">
+                              ··········
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setRevealed((p) => ({ ...p, [i]: true })); }}
+                                className="p-0.5 text-gray-400 hover:text-gray-700"
+                                title="View Answer"
+                              >
+                                <Eye size={14} />
+                              </button>
                             </span>
                           )}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          {row.status === 'VALID' && <span className="text-emerald-600 font-medium">Valid</span>}
-                          {row.status === 'NEEDS_ATTENTION' && <span className="text-amber-600 font-medium">Needs Attention</span>}
-                          {row.status === 'INVALID' && <span className="text-red-600 font-medium" title={row.error}>Invalid</span>}
+                          {row.status === 'VALID' ? (
+                            <span className="text-emerald-600 font-medium">Valid</span>
+                          ) : (
+                            <span className="text-red-600 font-medium" title={row.error}>Invalid</span>
+                          )}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+
+              {invalidCount > 0 && (
+                <div className="p-4 bg-red-50 border border-red-100 rounded-lg">
+                  <h4 className="text-sm font-medium text-red-800 mb-2">Errors</h4>
+                  <ul className="list-disc pl-5 text-sm text-red-700 space-y-1">
+                    {preview.filter((r) => r.status === 'INVALID').map((r, i) => (
+                      <li key={i}>{r.error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
-          <button 
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button 
-            onClick={handleImport}
-            disabled={validCount === 0 || importing}
-            className="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {importing && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-            Import {validCount} Riddles
-          </button>
+        <div className="p-6 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
+          <p className="text-xs text-gray-400">
+            {preview.length > 0 && file ? `File: ${file.name}` : 'Answers are masked by default. Use the eye icon to reveal.'}
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={onCancel}
+              disabled={importing}
+              className="px-4 py-2 font-medium text-gray-700 hover:text-gray-900 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleImport}
+              disabled={!preview.length || loading || importing || validCount === 0 || !file}
+              className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg shadow-sm shadow-brand-600/20 transition-all disabled:opacity-50 flex items-center gap-2"
+            >
+              {importing ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Importing...
+                </>
+              ) : (
+                `Import ${validCount} Riddle${validCount === 1 ? '' : 's'}`
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

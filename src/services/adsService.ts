@@ -59,7 +59,7 @@ export const adsService = {
     if (!ads || mobileAdsReady) return;
 
     try {
-      await ads.mobileAds().initialize();
+      await (ads.default ? ads.default() : ads()).initialize();
     } catch (error) {
       if (__DEV__) {
         (typeof __DEV__ !== 'undefined' && __DEV__) && console.warn('[Ads] SDK initialization warning:', error);

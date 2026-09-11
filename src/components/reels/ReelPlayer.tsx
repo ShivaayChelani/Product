@@ -15,7 +15,11 @@ interface ReelPlayerProps {
   onProgress?: (progress: number) => void;
 }
 
-export const ReelPlayer: React.FC<ReelPlayerProps> = React.memo(({
+export interface ReelPlayerRef {
+  seekToPercent: (pct: number) => void;
+}
+
+export const ReelPlayer = React.memo(React.forwardRef<ReelPlayerRef, ReelPlayerProps>(({
   videoUrl,
   posterUrl,
   isActive,
@@ -24,7 +28,7 @@ export const ReelPlayer: React.FC<ReelPlayerProps> = React.memo(({
   onDoubleTap,
   onLongPress,
   onProgress,
-}) => {
+}, ref) => {
   const resolvedInitial = useMemo(() => {
     if (!videoUrl || typeof videoUrl !== 'string') return '';
     const trimmed = videoUrl.trim();
@@ -46,6 +50,16 @@ export const ReelPlayer: React.FC<ReelPlayerProps> = React.memo(({
 
   const playIconOpacity = useRef(new Animated.Value(0)).current;
   const videoRef = useRef<VideoRef>(null);
+  const durationRef = useRef(0);
+
+  React.useImperativeHandle(ref, () => ({
+    seekToPercent: (pct: number) => {
+      if (videoRef.current && durationRef.current > 0) {
+        videoRef.current.seek(pct * durationRef.current);
+      }
+    }
+  }));
+
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const singleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTapRef = useRef(0);
@@ -154,12 +168,16 @@ export const ReelPlayer: React.FC<ReelPlayerProps> = React.memo(({
           playWhenInactive={false}
           ignoreSilentSwitch="ignore"
           onLoadStart={() => setIsBuffering(true)}
-          onLoad={() => setIsBuffering(false)}
+          onLoad={(data) => {
+            setIsBuffering(false);
+            if (data?.duration) durationRef.current = data.duration;
+          }}
           onReadyForDisplay={() => setIsBuffering(false)}
           onBuffer={({ isBuffering: buffering }) => setIsBuffering(!!buffering)}
           onProgress={({ currentTime, seekableDuration }) => {
-            if (isActive && seekableDuration > 0) {
-              onProgress?.(currentTime / seekableDuration);
+            if (seekableDuration > 0) durationRef.current = seekableDuration;
+            if (isActive && durationRef.current > 0) {
+              onProgress?.(currentTime / durationRef.current);
             }
           }}
           progressUpdateInterval={250}
@@ -219,7 +237,7 @@ export const ReelPlayer: React.FC<ReelPlayerProps> = React.memo(({
       ) : null}
     </TouchableOpacity>
   );
-});
+}));
 
 const styles = StyleSheet.create({
   container: {

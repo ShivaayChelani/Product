@@ -1,78 +1,95 @@
 import { apiClient } from './client';
 
-export interface Riddle {
+export interface TreasureHunt {
   id: string;
-  title: string;
-  clue: string;
-  hintImage: string | null;
   city: string;
-  rewardPoints: number;
-  startsAt: string;
-  endsAt: string | null;
-  createdAt: string;
-  hasHint: boolean;
+  title: string;
+  description: string | null;
+  rewardCoins: number;
+  status: string;
+  /** present on /active/current-location */
+  riddleCount?: number;
+  /** id + sequence only (clues are hidden until the riddle becomes active) */
+  riddles?: RiddleMeta[];
+  myProgress?: HuntProgressInfo | null;
 }
 
-export type RiddleSubmissionStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
-
-export interface MyRiddleSubmission {
+export interface RiddleMeta {
   id: string;
-  status: RiddleSubmissionStatus;
-  photoUrl: string;
-  adminComment: string | null;
-  pointsAwarded: number;
-  createdAt: string;
-  reviewedAt: string | null;
-  riddle: {
-    id: string;
-    title: string;
-    clue: string;
+  sequence: number;
+  rewardCoins: number;
+}
+
+export interface Riddle {
+  id: string;
+  huntId: string;
+  sequence: number;
+  clueEnglish: string;
+  clueHindi: string;
+  rewardCoins: number;
+}
+
+export interface HuntProgressInfo {
+  currentRiddleId: string | null;
+  isCompleted: boolean;
+  coinsEarned: number;
+  startedAt: string | null;
+  completedAt: string | null;
+}
+
+export interface NextRiddle {
+  id: string;
+  sequence: number;
+}
+
+export interface SubmitAnswerResult {
+  correct: boolean;
+  rewardCoins: number;
+  huntCompleteReward: number;
+  nextRiddle: NextRiddle | null;
+  huntCompleted: boolean;
+}
+
+export interface HuntProgress {
+  id: string;
+  huntId: string;
+  currentRiddleId: string | null;
+  isCompleted: boolean;
+  coinsEarned: number;
+  hunt: {
     city: string;
-    rewardPoints: number;
+    title: string;
+    rewardCoins: number;
+    _count: { riddles: number };
   };
 }
 
 export const riddlesApi = {
-  /** Get all active riddles for the given current location */
+  /** Get the active hunt in the user's current GPS city */
   async getActiveForCurrentLocation(lat: number, lng: number) {
-    return apiClient.get<{ city: string; riddles: Riddle[] }>(`/riddles/active/current-location?lat=${lat}&lng=${lng}`);
+    return apiClient.get<{ city: string; hunt: TreasureHunt | null }>(`/riddles/active/current-location?lat=${lat}&lng=${lng}`);
   },
 
-  /** Get riddle detail ensuring current city matches */
-  async getById(riddleId: string, lat: number, lng: number) {
-    return apiClient.get<Riddle>(`/riddles/${riddleId}?lat=${lat}&lng=${lng}`);
+  /** Get hunt details (city-gated on the backend). Requires GPS coords. */
+  async getHuntDetails(huntId: string, lat: number, lng: number) {
+    return apiClient.get<TreasureHunt>(`/riddles/hunt/${huntId}?lat=${lat}&lng=${lng}`);
   },
 
-  /** Get the visual hint for a riddle (server verifies city). */
-  async getHint(riddleId: string, userLat: number, userLng: number) {
-    return apiClient.post<{ hintImage: string | null }>(`/riddles/${riddleId}/hint`, { userLat, userLng });
+  /** Get a single riddle (city-gated on the backend). Requires GPS coords. */
+  async getRiddle(huntId: string, riddleId: string, lat: number, lng: number) {
+    return apiClient.get<Riddle>(`/riddles/hunt/${huntId}/riddle/${riddleId}?lat=${lat}&lng=${lng}`);
   },
 
-  /** Validate if user is close enough to submit */
-  async validateCheckIn(riddleId: string, userLat: number, userLng: number) {
-    return apiClient.post<{ allowed: boolean; distanceMeters: number }>(`/riddles/${riddleId}/validate-checkin`, { userLat, userLng });
+  /** Submit answer (city-gated on the backend). language: 'en' | 'hi' */
+  async submitAnswer(huntId: string, riddleId: string, answer: string, language: 'en' | 'hi', lat: number, lng: number) {
+    return apiClient.post<SubmitAnswerResult>(
+      `/riddles/hunt/${huntId}/riddle/${riddleId}/answer?lat=${lat}&lng=${lng}`,
+      { answer, language }
+    );
   },
 
-  /** Get my submission status for a specific riddle */
-  async getMySubmission(riddleId: string) {
-    return apiClient.get<{
-      id: string;
-      status: RiddleSubmissionStatus;
-      photoUrl: string;
-      adminComment: string | null;
-      pointsAwarded: number;
-      createdAt: string;
-      reviewedAt: string | null;
-    } | null>(`/riddles/${riddleId}/my-submission`);
-  },
-
-  /** Get all my submissions across riddles */
-  async getMySubmissions() {
-    return apiClient.get<MyRiddleSubmission[]>('/riddles/my-submissions');
-  },
-
-  /** Submit a photo answer for a riddle (server validates GPS again) */
-  async submit(riddleId: string, photoUrl: string, userLat: number, userLng: number) {
-    return apiClient.post<{ id: string; status: string }>(`/riddles/${riddleId}/submit`, { photoUrl, userLat, userLng });
+  /** Get my progress across all hunts */
+  async getMyHuntProgress() {
+    return apiClient.get<HuntProgress[]>('/riddles/my-progress');
   },
 };

@@ -2,52 +2,42 @@
 
 import { useEffect, useState, useCallback } from "react";
 import {
-  Plus, Search, Edit3, Trash2, Eye, Power, PowerOff,
-  MapPin, Trophy, Calendar, Users, CheckCircle, AlertCircle,
-  Puzzle, Clock, Image as ImageIcon, ChevronLeft, ChevronRight,
-  ThumbsUp, ThumbsDown, MessageSquare, Star
+  MapPin, Trophy, Trash2, CheckCircle, AlertCircle,
+  Puzzle, ChevronLeft, ChevronRight, UploadCloud, Search,
+  Building2, History, LayoutDashboard, Eye, TrendingUp,
+  Users
 } from "lucide-react";
 import {
-  getRiddles, getCitySummary, createRiddle, updateRiddle, deleteRiddle,
-  getRiddleSubmissions, getAllPendingSubmissions,
-  approveSubmission, rejectSubmission,
-  type Riddle, type RiddleSubmission
+  getHunts, getRiddles, deleteHunt, getTreasureOverview, getCitiesList, getImportHistory,
+  type TreasureHunt, type Riddle, type ImportLog, type CityRow
 } from "@/services/riddles";
 import { getApiErrorMessage } from "@/services/client";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { ExcelImportModal } from "./ExcelImportModal";
 
-type Tab = "riddles" | "pending";
+type Tab = "overview" | "upload" | "hunts" | "riddles" | "cities" | "imports";
 type RiddleListParams = NonNullable<Parameters<typeof getRiddles>[0]>;
-type RiddleWritePayload = Parameters<typeof createRiddle>[0];
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    PENDING: "bg-amber-100 text-amber-700",
-    APPROVED: "bg-emerald-100 text-emerald-700",
-    REJECTED: "bg-red-100 text-red-700",
-  };
-  return (
-    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${map[status] ?? "bg-gray-100 text-gray-500"}`}>
-      {status}
-    </span>
-  );
-}
 
 export default function RiddleHuntAdminPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("riddles");
+  const [activeTab, setActiveTab] = useState<Tab>("overview");
 
   return (
     <div className="space-y-6 pb-20">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Riddle Hunt</h1>
-        <p className="mt-1 text-sm text-gray-500">Manage the official PalSafar location riddle game and photo submissions</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Treasure Hunt</h1>
+          <p className="mt-1 text-sm text-gray-500">Manage city-based text riddle games via Excel import</p>
+        </div>
       </div>
 
-      <div className="flex gap-1 p-1 bg-gray-100 rounded-lg w-fit">
+      <div className="flex gap-1 p-1 bg-gray-100 rounded-lg w-fit flex-wrap">
         {[
+          { key: "overview", label: "Overview", icon: LayoutDashboard },
+          { key: "upload", label: "Upload Excel", icon: UploadCloud },
+          { key: "hunts", label: "Hunts", icon: MapPin },
           { key: "riddles", label: "Riddles", icon: Puzzle },
-          { key: "pending", label: "Pending Reviews", icon: Clock },
+          { key: "cities", label: "Cities", icon: Building2 },
+          { key: "imports", label: "Import History", icon: History },
         ].map(({ key, label, icon: Icon }) => (
           <button
             key={key}
@@ -62,690 +52,563 @@ export default function RiddleHuntAdminPage() {
         ))}
       </div>
 
+      {activeTab === "overview" && <OverviewTab onNavigate={setActiveTab} />}
+      {activeTab === "upload" && (
+        <ExcelImportModal
+          open
+          onCancel={() => setActiveTab("overview")}
+          onSuccess={() => setActiveTab("overview")}
+        />
+      )}
+      {activeTab === "hunts" && <HuntsTab />}
       {activeTab === "riddles" && <RiddlesTab />}
-      {activeTab === "pending" && <PendingReviewsTab />}
+      {activeTab === "cities" && <CitiesTab />}
+      {activeTab === "imports" && <ImportHistoryTab />}
     </div>
   );
 }
 
-function RiddlesTab() {
-  const [riddles, setRiddles] = useState<Riddle[]>([]);
-  const [citySummary, setCitySummary] = useState<{city: string, activeCount: number}[]>([]);
+function StatusBadge({ status }: { status: string }) {
+  const active = status === "ACTIVE";
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+      active ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-600"
+    }`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${active ? "bg-emerald-500" : "bg-gray-400"}`} />
+      {status}
+    </span>
+  );
+}
+
+function OverviewTab({ onNavigate }: { onNavigate: (t: Tab) => void }) {
+  const [stats, setStats] = useState<any>(null);
+  const [recent, setRecent] = useState<ImportLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const fetch = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getTreasureOverview();
+      setStats(data.stats);
+      setRecent(data.recentImports || []);
+    } catch (err: any) {
+      setError(getApiErrorMessage(err, "Failed to load overview"));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetch(); }, [fetch]);
+
+  const cards = [
+    { label: "Total Hunts", value: stats?.totalHunts ?? 0, icon: MapPin, color: "bg-purple-50 text-purple-600" },
+    { label: "Active Hunts", value: stats?.activeHunts ?? 0, icon: TrendingUp, color: "bg-emerald-50 text-emerald-600" },
+    { label: "Cities", value: stats?.totalCities ?? 0, icon: Building2, color: "bg-blue-50 text-blue-600" },
+    { label: "Riddles", value: stats?.totalRiddles ?? 0, icon: Puzzle, color: "bg-amber-50 text-amber-600" },
+    { label: "Total Imports", value: stats?.totalImports ?? 0, icon: History, color: "bg-rose-50 text-rose-600" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-100 rounded-lg flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600" />
+          <p className="text-sm font-medium text-red-700">{error}</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {cards.map((c) => (
+          <div key={c.label} className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${c.color}`}>
+              <c.icon size={18} />
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{loading ? "…" : c.value}</p>
+            <p className="text-sm text-gray-500">{c.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          onClick={() => onNavigate("upload")}
+          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700"
+        >
+          <UploadCloud size={16} /> Upload Excel
+        </button>
+        <button
+          onClick={() => onNavigate("riddles")}
+          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50"
+        >
+          <Puzzle size={16} /> Manage Riddles
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="font-medium text-gray-900 flex items-center gap-2"><History size={16} className="text-gray-400" /> Recent Imports</h3>
+          <button onClick={() => onNavigate("imports")} className="text-sm font-medium text-purple-600 hover:text-purple-700">View all</button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-gray-50 text-gray-500">
+              <tr>
+                <th className="px-6 py-3 font-medium">File Name</th>
+                <th className="px-6 py-3 font-medium">Uploaded By</th>
+                <th className="px-6 py-3 font-medium">Rows</th>
+                <th className="px-6 py-3 font-medium">Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {recent.length === 0 ? (
+                <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-400">No imports yet.</td></tr>
+              ) : recent.map((log) => (
+                <tr key={log.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-3 font-medium text-gray-900">{log.fileName}</td>
+                  <td className="px-6 py-3 text-gray-500">{log.uploadedBy?.name || log.uploadedBy?.email || "—"}</td>
+                  <td className="px-6 py-3 text-gray-500">
+                    <span className="text-emerald-600 font-medium">{log.validRows}</span>
+                    {log.failedRows > 0 && <span className="text-red-600 font-medium"> / {log.failedRows} failed</span>}
+                  </td>
+                  <td className="px-6 py-3 text-gray-400">{new Date(log.createdAt).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HuntsTab() {
+  const [hunts, setHunts] = useState<TreasureHunt[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [cityFilter, setCityFilter] = useState("");
-  const [filterActive, setFilterActive] = useState("");
-  const [showModal, setShowModal] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
-  const [showSubmissions, setShowSubmissions] = useState<string | null>(null);
-  const [submissions, setSubmissions] = useState<RiddleSubmission[]>([]);
-  const [loadingSubs, setLoadingSubs] = useState(false);
-  const [subPage, setSubPage] = useState(1);
-  const [subTotalPages, setSubTotalPages] = useState(1);
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean; title: string; message: string; action: () => void;
   }>({ open: false, title: "", message: "", action: () => {} });
-  const [rejectModal, setRejectModal] = useState<{ open: boolean; submissionId: string }>({ open: false, submissionId: "" });
-  const [rejectComment, setRejectComment] = useState("");
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const emptyForm = {
-    title: "", clue: "", hintImage: "", correctPlaceName: "",
-    correctLat: "", correctLng: "", city: "", rewardPoints: "100",
-    startsAt: "", endsAt: "",
-  };
-  const [form, setForm] = useState(emptyForm);
-
-  const fetchRiddles = useCallback(async () => {
+  const fetchHunts = useCallback(async () => {
     setLoading(true);
     try {
       const params: RiddleListParams = { page, limit: 20 };
-      if (filterActive) params.isActive = filterActive;
       if (cityFilter) params.city = cityFilter;
-      if (searchQuery) params.search = searchQuery;
-      const res = await getRiddles(params);
-      setRiddles(res.data);
+      const res = await getHunts(params);
+      setHunts(res.data);
       setTotalPages(res.pagination.totalPages);
       setHasNext(res.pagination.hasNext);
       setHasPrev(res.pagination.hasPrev);
-    } catch { setRiddles([]); } finally { setLoading(false); }
-  }, [page, filterActive, cityFilter, searchQuery]);
+    } catch { setHunts([]); } finally { setLoading(false); }
+  }, [page, cityFilter]);
 
-  useEffect(() => {
-    fetchRiddles();
-    getCitySummary().then(res => setCitySummary(res.data || res)).catch(() => {});
-  }, [fetchRiddles]);
-
-  const fetchSubmissions = async (riddleId: string, p: number = 1) => {
-    setLoadingSubs(true);
-    try {
-      const res = await getRiddleSubmissions(riddleId, { page: p, limit: 10 });
-      setSubmissions(res.data);
-      setSubTotalPages(res.pagination.totalPages);
-      setSubPage(p);
-    } catch { setSubmissions([]); } finally { setLoadingSubs(false); }
-  };
-
-  const openCreate = () => {
-    setEditingId(null);
-    setForm(emptyForm);
-    setShowModal(true);
-  };
-
-  const openEdit = (r: Riddle) => {
-    setEditingId(r.id);
-    setForm({
-      title: r.title, clue: r.clue, hintImage: r.hintImage || "",
-      correctPlaceName: r.correctPlaceName, correctLat: String(r.correctLat ?? ""),
-      correctLng: String(r.correctLng ?? ""), city: r.city,
-      rewardPoints: String(r.rewardPoints),
-      startsAt: r.startsAt.slice(0, 16), endsAt: r.endsAt ? r.endsAt.slice(0, 16) : "",
-    });
-    setShowModal(true);
-  };
-
-  const handleSave = async () => {
-    if (!form.title || !form.clue || !form.correctPlaceName || !form.city || !form.startsAt) {
-      setError("Title, clue, correct place, city, and start date are required.");
-      return;
-    }
-    setSaving(true); setError(""); setSuccess("");
-    try {
-      const payload: RiddleWritePayload = {
-        title: form.title, clue: form.clue,
-        hintImage: form.hintImage || undefined,
-        correctPlaceName: form.correctPlaceName,
-        correctLat: form.correctLat ? parseFloat(form.correctLat) : undefined,
-        correctLng: form.correctLng ? parseFloat(form.correctLng) : undefined,
-        city: form.city, rewardPoints: parseInt(form.rewardPoints) || 100,
-        startsAt: form.startsAt, endsAt: form.endsAt || undefined,
-      };
-      if (editingId) {
-        await updateRiddle(editingId, payload);
-      } else {
-        await createRiddle(payload);
-      }
-      setShowModal(false);
-      fetchRiddles();
-      setSuccess(editingId ? "Riddle updated!" : "Riddle created!");
-    } catch (e: unknown) {
-      setError(getApiErrorMessage(e, "Failed to save riddle"));
-    } finally { setSaving(false); }
-  };
-
-  const handleToggle = async (r: Riddle) => {
-    try {
-      await updateRiddle(r.id, { isActive: !r.isActive });
-      fetchRiddles();
-      setSuccess(r.isActive ? "Riddle deactivated" : "Riddle activated");
-    } catch { setError("Failed to toggle"); }
-  };
+  useEffect(() => { fetchHunts(); }, [fetchHunts]);
 
   const handleDelete = (id: string) => {
     setConfirmDialog({
-      open: true, title: "Delete Riddle", message: "Delete this riddle and all its submissions?",
+      open: true, title: "Delete Hunt", message: "Delete this hunt and ALL its riddles?",
       action: async () => {
-        try { await deleteRiddle(id); fetchRiddles(); setSuccess("Riddle deleted"); }
+        try { await deleteHunt(id); fetchHunts(); setSuccess("Hunt deleted"); }
         catch { setError("Failed to delete"); }
         setConfirmDialog((p) => ({ ...p, open: false }));
       },
     });
   };
 
-  const handleApprove = async (submissionId: string) => {
-    setActionLoading(submissionId);
-    try {
-      const res = await approveSubmission(submissionId);
-      const points = res?.pointsAwarded ?? res?.riddle?.rewardPoints;
-      setSuccess(`Submission approved — ${points ?? 'points'} awarded!`);
-      if (showSubmissions) fetchSubmissions(showSubmissions, subPage);
-    } catch (e: unknown) {
-      setError(getApiErrorMessage(e, "Failed to approve"));
-    } finally { setActionLoading(null); }
-  };
-
-  const handleReject = async () => {
-    if (!rejectComment.trim()) return;
-    setActionLoading(rejectModal.submissionId);
-    try {
-      await rejectSubmission(rejectModal.submissionId, rejectComment.trim());
-      setSuccess("Submission rejected. User notified with correct location.");
-      setRejectModal({ open: false, submissionId: "" });
-      setRejectComment("");
-      if (showSubmissions) fetchSubmissions(showSubmissions, subPage);
-    } catch (e: unknown) {
-      setError(getApiErrorMessage(e, "Failed to reject"));
-    } finally { setActionLoading(null); }
-  };
-
   return (
-    <>
+    <div className="space-y-4">
       {success && (
-        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 text-sm text-emerald-700">
-          <CheckCircle size={16} /> {success}
-          <button onClick={() => setSuccess("")} className="ml-auto">&times;</button>
+        <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-3">
+          <CheckCircle className="w-5 h-5 text-emerald-600" />
+          <p className="text-sm font-medium text-emerald-700">{success}</p>
         </div>
       )}
       {error && (
-        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
-          <AlertCircle size={16} /> {error}
-          <button onClick={() => setError("")} className="ml-auto">&times;</button>
+        <div className="p-4 bg-red-50 border border-red-100 rounded-lg flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600" />
+          <p className="text-sm font-medium text-red-700">{error}</p>
         </div>
       )}
 
-      {/* Supported Cities */}
-      {citySummary.length > 0 && (
-        <div className="bg-white border rounded-lg p-4 shadow-sm">
-          <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2"><MapPin size={16} className="text-purple-600"/> Supported Cities</h3>
-          <div className="flex flex-wrap gap-2">
-            {citySummary.map(c => (
-              <button 
-                key={c.city}
-                onClick={() => setCityFilter(c.city === cityFilter ? "" : c.city)}
-                className={`px-3 py-1 text-sm rounded-full border transition-colors ${cityFilter === c.city ? "bg-purple-100 border-purple-300 text-purple-800 font-medium" : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"}`}
-              >
-                {c.city} — {c.activeCount} active
-              </button>
-            ))}
-          </div>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-gray-200">
+        <div className="flex-1 w-full sm:w-auto relative">
+          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search city..."
+            value={cityFilter}
+            onChange={(e) => setCityFilter(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-gray-50 border-transparent focus:bg-white focus:border-brand-500 rounded-lg text-sm transition-colors"
+          />
         </div>
-      )}
-
-      {/* Info banner */}
-      <div className="bg-purple-50 border border-purple-200 rounded-lg px-4 py-3 flex items-start gap-3">
-        <Puzzle size={18} className="text-purple-500 mt-0.5 shrink-0" />
-        <div className="text-sm text-purple-800">
-          <p className="font-semibold mb-1">How Riddle Hunt Works</p>
-          <p>The app detects the user&apos;s city via GPS and shows them the active riddle for that city. The user must physically visit the hinted place, take a photo, and submit. You review the submission and approve (awarding the riddle&apos;s configured PalPoints) or reject with a comment explaining the correct location.</p>
-        </div>
+        <button
+          onClick={() => setIsImportOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700"
+        >
+          <UploadCloud size={16} /> Bulk Import
+        </button>
       </div>
 
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 
-rounded-xl border shadow-sm">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-              <input type="text" placeholder="Search riddles..." value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                className="pl-9 pr-4 py-2 border rounded-lg text-sm w-48 sm:w-64 focus:ring-2 focus:ring-purple-600 
-focus:border-transparent outline-none" />
-            </div>
-            <select value={cityFilter} onChange={(e) => { setCityFilter(e.target.value); setPage(1); }}
-              className="px-3 py-2 border rounded-lg text-sm bg-white outline-none">
-              <option value="">All Cities</option>
-              {citySummary.map((c) => (
-                <option key={c.city} value={c.city}>{c.city}</option>
-              ))}
-            </select>
-            <select value={filterActive} onChange={(e) => { setFilterActive(e.target.value); setPage(1); }}
-              className="px-3 py-2 border rounded-lg text-sm bg-white outline-none">
-              <option value="">All Status</option>
-              <option value="true">Active Only</option>
-              <option value="false">Inactive Only</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button onClick={() => setIsImportOpen(true)}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-emerald-700">
-              Bulk Import
-            </button>
-            <button onClick={openCreate}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-purple-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-purple-700">
-              <Plus size={16} /> New Riddle
-            </button>
-          </div>
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-gray-50 text-gray-500">
+              <tr>
+                <th className="px-6 py-4 font-medium">City</th>
+                <th className="px-6 py-4 font-medium">Title</th>
+                <th className="px-6 py-4 font-medium">Riddles</th>
+                <th className="px-6 py-4 font-medium">Reward (Coins)</th>
+                <th className="px-6 py-4 font-medium">Status</th>
+                <th className="px-6 py-4 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">Loading hunts...</td>
+                </tr>
+              ) : hunts.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <MapPin className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                    <p className="text-gray-500 font-medium">No hunts found.</p>
+                  </td>
+                </tr>
+              ) : (
+                hunts.map((h) => (
+                  <tr key={h.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 font-medium text-gray-900">{h.city}</td>
+                    <td className="px-6 py-4 text-gray-500">{h.title}</td>
+                    <td className="px-6 py-4 text-gray-900 font-medium">{h._count.riddles}</td>
+                    <td className="px-6 py-4 text-emerald-600 font-medium flex items-center gap-1">
+                      <Trophy size={14} /> {h.rewardCoins}
+                    </td>
+                    <td className="px-6 py-4"><StatusBadge status={h.status} /></td>
+                    <td className="px-6 py-4 text-right">
+                      <button onClick={() => handleDelete(h.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
+      </div>
+      <Pagination page={page} totalPages={totalPages} hasPrev={hasPrev} hasNext={hasNext} onPageChange={setPage} />
 
-        <ExcelImportModal 
-          isOpen={isImportOpen} 
-          onClose={() => setIsImportOpen(false)} 
-          onSuccess={() => { setIsImportOpen(false); fetchRiddles(); }} 
-        />
-
-        {loading ? (
-        <div className="flex justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-600 border-t-transparent" />
-        </div>
-      ) : riddles.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
-          <Puzzle size={48} className="mx-auto mb-3 opacity-40" />
-          <p className="text-sm">No riddles yet. Create the first Riddle Hunt challenge!</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {riddles.map((r) => (
-            <div key={r.id} className={`bg-white rounded-xl border shadow-sm p-5 ${r.isActive ? "border-purple-100" : "border-gray-200 bg-gray-50"}`}>
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${r.isActive ? "bg-purple-100 text-purple-600" : "bg-gray-200 text-gray-500"}`}>
-                    <Puzzle size={18} />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-sm">{r.title}</h3>
-                    <span className="text-xs text-gray-500 flex items-center gap-1"><MapPin size={10} />{r.city}</span>
-                  </div>
-                </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${r.isActive ? "bg-purple-100 text-purple-700" : "bg-gray-200 text-gray-500"}`}>
-                  {r.isActive ? "Active" : "Inactive"}
-                </span>
-              </div>
-
-              <p className="text-xs text-gray-600 mb-3 line-clamp-2 italic">&quot;{r.clue}&quot;</p>
-
-              <div className="flex flex-wrap gap-3 mb-3 text-xs text-gray-500">
-                <div className="flex items-center gap-1"><Trophy size={12} className="text-purple-500" /> {r.rewardPoints} pts</div>
-                <div className="flex items-center gap-1"><Calendar size={12} /> {new Date(r.startsAt).toLocaleDateString()}{r.endsAt && <> — {new Date(r.endsAt).toLocaleDateString()}</>}</div>
-                <div className="flex items-center gap-1"><Users size={12} /> {r._count.submissions} submissions</div>
-                {r.hintImage && <div className="flex items-center gap-1"><ImageIcon size={12} /> Has image hint</div>}
-              </div>
-
-              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                <button onClick={() => { setShowSubmissions(r.id); fetchSubmissions(r.id); }}
-                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-purple-600">
-                  <Eye size={13} /> View Submissions
-                </button>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => handleToggle(r)} className="p-1.5 text-gray-400 hover:text-purple-600 rounded-lg hover:bg-gray-100">
-                    {r.isActive ? <PowerOff size={14} /> : <Power size={14} />}
-                  </button>
-                  <button onClick={() => openEdit(r)} className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-gray-100">
-                    <Edit3 size={14} />
-                  </button>
-                  <button onClick={() => handleDelete(r.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-gray-100">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={!hasPrev} className="text-sm text-gray-500 hover:text-purple-600 disabled:opacity-40">Previous</button>
-          <span className="text-xs text-gray-400">Page {page} of {totalPages}</span>
-          <button onClick={() => setPage((p) => p + 1)} disabled={!hasNext} className="text-sm text-gray-500 hover:text-purple-600 disabled:opacity-40">Next</button>
-        </div>
-      )}
-
-      {/* Riddle Create/Edit Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-xl p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">{editingId ? "Edit" : "Create"} Riddle</h3>
-                <p className="text-xs text-gray-500 mt-0.5">The correct place name is hidden from users — only shown on rejection.</p>
-              </div>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-medium text-gray-600 mb-1 block">Title *</label>
-                <input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                  placeholder="e.g. The Sleeping Giant of Jaipur" className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-purple-500" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-600 mb-1 block">Riddle Clue * <span className="text-gray-400 font-normal">(shown to user)</span></label>
-                <textarea value={form.clue} onChange={(e) => setForm((p) => ({ ...p, clue: e.target.value }))}
-                  placeholder="I was built in the 16th century. My walls rise like red mountains…" rows={4}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-purple-500 resize-none" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">City * <span className="text-gray-400 font-normal">(for GPS matching)</span></label>
-                  <input value={form.city} onChange={(e) => setForm((p) => ({ ...p, city: e.target.value }))}
-                    placeholder="Jaipur" className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-purple-500" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Reward Points</label>
-                  <input type="number" value={form.rewardPoints} onChange={(e) => setForm((p) => ({ ...p, rewardPoints: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-purple-500" />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-600 mb-1 block">Correct Place Name * <span className="text-gray-400 font-normal">(admin only — shown to user on rejection)</span></label>
-                <input value={form.correctPlaceName} onChange={(e) => setForm((p) => ({ ...p, correctPlaceName: e.target.value }))}
-                  placeholder="Amer Fort, Jaipur" className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-purple-500" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Latitude (optional)</label>
-                  <input type="number" step="any" value={form.correctLat} onChange={(e) => setForm((p) => ({ ...p, correctLat: e.target.value }))}
-                    placeholder="26.9855" className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-purple-500" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Longitude (optional)</label>
-                  <input type="number" step="any" value={form.correctLng} onChange={(e) => setForm((p) => ({ ...p, correctLng: e.target.value }))}
-                    placeholder="75.8513" className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-purple-500" />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-600 mb-1 block">Hint Image URL (optional)</label>
-                <input value={form.hintImage} onChange={(e) => setForm((p) => ({ ...p, hintImage: e.target.value }))}
-                  placeholder="https://…" className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-purple-500" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Start Date *</label>
-                  <input type="datetime-local" value={form.startsAt} onChange={(e) => setForm((p) => ({ ...p, startsAt: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-purple-500" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">End Date (optional)</label>
-                  <input type="datetime-local" value={form.endsAt} onChange={(e) => setForm((p) => ({ ...p, endsAt: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-purple-500" />
-                </div>
-              </div>
-              <button onClick={handleSave} disabled={saving}
-                className="w-full bg-purple-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-purple-700 disabled:opacity-50">
-                {saving ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mx-auto" /> : (editingId ? "Update" : "Create") + " Riddle"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Submissions modal */}
-      {showSubmissions && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl p-6 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">Riddle Submissions</h3>
-              <button onClick={() => setShowSubmissions(null)} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
-            </div>
-            {loadingSubs ? (
-              <div className="flex justify-center py-8"><div className="h-6 w-6 animate-spin rounded-full border-3 border-purple-600 border-t-transparent" /></div>
-            ) : submissions.length === 0 ? (
-              <div className="text-center py-8 text-gray-400"><Users size={32} className="mx-auto mb-2 opacity-40" /><p className="text-sm">No submissions yet</p></div>
-            ) : (
-              <div className="space-y-4">
-                {submissions.map((s) => (
-                  <SubmissionCard
-                    key={s.id} submission={s}
-                    onApprove={() => handleApprove(s.id)}
-                    onReject={() => { setRejectModal({ open: true, submissionId: s.id }); }}
-                    loading={actionLoading === s.id}
-                  />
-                ))}
-              </div>
-            )}
-            {subTotalPages > 1 && (
-              <div className="flex items-center justify-between mt-4">
-                <button onClick={() => fetchSubmissions(showSubmissions, subPage - 1)} disabled={subPage === 1}
-                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-purple-600 disabled:opacity-40"><ChevronLeft size={14} /> Prev</button>
-                <span className="text-xs text-gray-400">Page {subPage} of {subTotalPages}</span>
-                <button onClick={() => fetchSubmissions(showSubmissions, subPage + 1)} disabled={subPage >= subTotalPages}
-                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-purple-600 disabled:opacity-40">Next <ChevronRight size={14} /></button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Reject comment modal */}
-      {rejectModal.open && (
-        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Reject Submission</h3>
-            <p className="text-sm text-gray-500 mb-4">Write the correct location — this will be sent to the user as a notification so they know where the place actually was.</p>
-            <textarea
-              value={rejectComment}
-              onChange={(e) => setRejectComment(e.target.value)}
-              placeholder="e.g. The correct place is Hawa Mahal, Badi Choupad, Jaipur — the Palace of Winds built in 1799"
-              rows={4} className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-red-400 resize-none mb-4"
-            />
-            <div className="flex gap-3">
-              <button onClick={() => { setRejectModal({ open: false, submissionId: "" }); setRejectComment(""); }}
-                className="flex-1 border border-gray-300 text-gray-600 rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-gray-50">Cancel</button>
-              <button onClick={handleReject} disabled={!rejectComment.trim() || actionLoading === rejectModal.submissionId}
-                className="flex-1 bg-red-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-red-700 disabled:opacity-50">
-                {actionLoading === rejectModal.submissionId ? "Rejecting…" : "Reject & Notify User"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <ConfirmDialog
-        open={confirmDialog.open} title={confirmDialog.title} message={confirmDialog.message}
-        onConfirm={confirmDialog.action} onCancel={() => setConfirmDialog((p) => ({ ...p, open: false }))}
-      />
-    </>
+      <ExcelImportModal open={isImportOpen} onCancel={() => setIsImportOpen(false)} onSuccess={() => { setIsImportOpen(false); fetchHunts(); }} />
+      <ConfirmDialog open={confirmDialog.open} title={confirmDialog.title} message={confirmDialog.message} onConfirm={confirmDialog.action} onCancel={() => setConfirmDialog(p => ({ ...p, open: false }))} />
+    </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// PENDING REVIEWS TAB — All pending across all riddles
-// ═══════════════════════════════════════════════════════════════════════════════
-function PendingReviewsTab() {
-  const [submissions, setSubmissions] = useState<RiddleSubmission[]>([]);
+function RiddlesTab() {
+  const [riddles, setRiddles] = useState<Riddle[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
-  const [success, setSuccess] = useState("");
-  const [error, setError] = useState("");
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [rejectModal, setRejectModal] = useState<{ open: boolean; submissionId: string }>({ open: false, submissionId: "" });
-  const [rejectComment, setRejectComment] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
+  const [search, setSearch] = useState("");
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
 
-  const fetchPending = useCallback(async () => {
+  const fetchRiddles = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getAllPendingSubmissions({ page, limit: 15 });
-      setSubmissions(res.data);
+      const params: RiddleListParams = { page, limit: 20 };
+      if (cityFilter) params.city = cityFilter;
+      if (search) params.search = search;
+      const res = await getRiddles(params);
+      setRiddles(res.data);
       setTotalPages(res.pagination.totalPages);
       setHasNext(res.pagination.hasNext);
       setHasPrev(res.pagination.hasPrev);
-    } catch { setSubmissions([]); } finally { setLoading(false); }
-  }, [page]);
+    } catch { setRiddles([]); } finally { setLoading(false); }
+  }, [page, cityFilter, search]);
 
-  useEffect(() => { fetchPending(); }, [fetchPending]);
-
-  const handleApprove = async (submissionId: string) => {
-    setActionLoading(submissionId);
-    try {
-      const res = await approveSubmission(submissionId);
-      const points = res?.pointsAwarded ?? res?.riddle?.rewardPoints;
-      setSuccess(`Approved! ${points ?? 'points'} PalPoints awarded to user.`);
-      fetchPending();
-    } catch (e: unknown) {
-      setError(getApiErrorMessage(e, "Failed to approve"));
-    } finally { setActionLoading(null); }
-  };
-
-  const handleReject = async () => {
-    if (!rejectComment.trim()) return;
-    setActionLoading(rejectModal.submissionId);
-    try {
-      await rejectSubmission(rejectModal.submissionId, rejectComment.trim());
-      setSuccess("Rejected. User notified with the correct location.");
-      setRejectModal({ open: false, submissionId: "" });
-      setRejectComment("");
-      fetchPending();
-    } catch (e: unknown) {
-      setError(getApiErrorMessage(e, "Failed to reject"));
-    } finally { setActionLoading(null); }
-  };
+  useEffect(() => { fetchRiddles(); }, [fetchRiddles]);
 
   return (
-    <>
-      {success && (
-        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 text-sm text-emerald-700">
-          <CheckCircle size={16} /> {success}
-          <button onClick={() => setSuccess("")} className="ml-auto">&times;</button>
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center bg-white p-4 rounded-xl border border-gray-200">
+        <div className="flex-1 w-full sm:w-auto relative">
+          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search riddles, answers or cities..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-gray-50 border-transparent focus:bg-white focus:border-brand-500 rounded-lg text-sm transition-colors"
+          />
         </div>
-      )}
-      {error && (
-        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
-          <AlertCircle size={16} /> {error}
-          <button onClick={() => setError("")} className="ml-auto">&times;</button>
-        </div>
-      )}
-
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
-          <Clock size={16} className="text-amber-500" />
-          Pending Submissions ({submissions.length})
-        </h2>
-        <button onClick={fetchPending} className="text-sm text-blue-600 hover:text-blue-700">Refresh</button>
+        <input
+          type="text"
+          placeholder="Filter by city..."
+          value={cityFilter}
+          onChange={(e) => setCityFilter(e.target.value)}
+          className="w-full sm:w-48 px-4 py-2 bg-gray-50 border-transparent focus:bg-white focus:border-brand-500 rounded-lg text-sm transition-colors"
+        />
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-gray-50 text-gray-500">
+              <tr>
+                <th className="px-6 py-4 font-medium">City</th>
+                <th className="px-6 py-4 font-medium">Seq</th>
+                <th className="px-6 py-4 font-medium">Clue (EN)</th>
+                <th className="px-6 py-4 font-medium">Answer (EN)</th>
+                <th className="px-6 py-4 font-medium">Clue (HI)</th>
+                <th className="px-6 py-4 font-medium">Answer (HI)</th>
+                <th className="px-6 py-4 font-medium">Reward</th>
+                <th className="px-6 py-4 font-medium">Status</th>
+                <th className="px-6 py-4 font-medium">Created</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={9} className="px-6 py-12 text-center text-gray-400">Loading riddles...</td>
+                </tr>
+              ) : riddles.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-6 py-12 text-center">
+                    <Puzzle className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                    <p className="text-gray-500 font-medium">No riddles found.</p>
+                  </td>
+                </tr>
+              ) : (
+                riddles.map((r) => (
+                  <tr key={r.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 font-medium text-gray-900">{r.city}</td>
+                    <td className="px-6 py-4 text-gray-500">#{r.sequence}</td>
+                    <td className="px-6 py-4 text-gray-500 max-w-[200px] truncate" title={r.clueEnglish}>{r.clueEnglish}</td>
+                    <td className="px-6 py-4 max-w-[150px] truncate">
+                      {revealed[r.id] ? (
+                        <span className="text-emerald-700 font-medium flex items-center gap-1.5" title={r.answerEnglish}>
+                          {r.answerEnglish}
+                          <button onClick={() => setRevealed((p) => ({ ...p, [r.id]: false }))} className="p-0.5 text-gray-400 hover:text-gray-700" title="Hide">
+                            <Eye size={14} className="text-gray-300" />
+                          </button>
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1.5 text-gray-400">
+                          ··········
+                          <button onClick={() => setRevealed((p) => ({ ...p, [r.id]: true }))} className="p-0.5 text-gray-400 hover:text-gray-700" title="View Answer">
+                            <Eye size={14} />
+                          </button>
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-gray-500 max-w-[200px] truncate" title={r.clueHindi}>{r.clueHindi}</td>
+                    <td className="px-6 py-4 max-w-[150px] truncate">
+                      {revealed[r.id] ? (
+                        <span className="text-emerald-700 font-medium" title={r.answerHindi}>{r.answerHindi}</span>
+                      ) : (
+                        <span className="text-gray-400">··········</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-amber-600 font-medium">{r.rewardCoins}</td>
+                    <td className="px-6 py-4"><StatusBadge status={r.status} /></td>
+                    <td className="px-6 py-4 text-gray-400">{new Date(r.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      ) : submissions.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
-          <CheckCircle size={48} className="mx-auto mb-3 opacity-40 text-emerald-400" />
-          <p className="text-sm font-medium text-gray-500">All caught up!</p>
-          <p className="text-xs mt-1">No pending submissions to review.</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {submissions.map((s) => (
-            <SubmissionCard
-              key={s.id} submission={s}
-              showRiddleInfo
-              onApprove={() => handleApprove(s.id)}
-              onReject={() => setRejectModal({ open: true, submissionId: s.id })}
-              loading={actionLoading === s.id}
-            />
-          ))}
-        </div>
-      )}
-
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={!hasPrev}
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600 disabled:opacity-40"><ChevronLeft size={16} /> Previous</button>
-          <span className="text-xs text-gray-400">Page {page} of {totalPages}</span>
-          <button onClick={() => setPage((p) => p + 1)} disabled={!hasNext}
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600 disabled:opacity-40">Next <ChevronRight size={16} /></button>
-        </div>
-      )}
-
-      {rejectModal.open && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Reject Submission</h3>
-            <p className="text-sm text-gray-500 mb-4">Enter the correct place name / location. This will be sent to the user as a push notification.</p>
-            <textarea
-              value={rejectComment} onChange={(e) => setRejectComment(e.target.value)}
-              placeholder="The correct answer is Hawa Mahal — the Palace of Winds, Jaipur…"
-              rows={4} className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-red-400 resize-none mb-4"
-            />
-            <div className="flex gap-3">
-              <button onClick={() => { setRejectModal({ open: false, submissionId: "" }); setRejectComment(""); }}
-                className="flex-1 border border-gray-300 text-gray-600 rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-gray-50">Cancel</button>
-              <button onClick={handleReject} disabled={!rejectComment.trim() || actionLoading === rejectModal.submissionId}
-                className="flex-1 bg-red-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-red-700 disabled:opacity-50">
-                {actionLoading === rejectModal.submissionId ? "Rejecting…" : "Reject & Notify"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+      </div>
+      <Pagination page={page} totalPages={totalPages} hasPrev={hasPrev} hasNext={hasNext} onPageChange={setPage} />
+    </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Shared Submission Card Component
-// ═══════════════════════════════════════════════════════════════════════════════
-function SubmissionCard({
-  submission: s, showRiddleInfo = false, onApprove, onReject, loading,
-}: {
-  submission: RiddleSubmission;
-  showRiddleInfo?: boolean;
-  onApprove: () => void;
-  onReject: () => void;
-  loading: boolean;
-}) {
-  const [imgOpen, setImgOpen] = useState(false);
+function CitiesTab() {
+  const [cities, setCities] = useState<CityRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const fetch = useCallback(async () => {
+    setLoading(true);
+    try {
+      setCities(await getCitiesList());
+    } catch (err: any) {
+      setError(getApiErrorMessage(err, "Failed to load cities"));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetch(); }, [fetch]);
 
   return (
-    <div className="border border-gray-200 rounded-xl p-4 bg-white">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-sm">
-            {s.user.name.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-gray-900">{s.user.name}</p>
-            <p className="text-xs text-gray-400">{new Date(s.createdAt).toLocaleString()}</p>
-          </div>
-        </div>
-        <StatusBadge status={s.status} />
-      </div>
-
-      {showRiddleInfo && s.riddle && (
-        <div className="mt-3 p-2.5 bg-gray-50 rounded-lg">
-          <p className="text-xs font-medium text-gray-700 flex items-center gap-1">
-            <Puzzle size={11} /> {s.riddle.title}
-          </p>
-          <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><MapPin size={10} /> {s.riddle.city}</p>
-          {s.riddle.correctPlaceName && (
-            <p className="text-xs text-emerald-600 mt-0.5 flex items-center gap-1">
-              <Star size={10} /> Correct: {s.riddle.correctPlaceName}
-            </p>
-          )}
+    <div className="space-y-4">
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-100 rounded-lg flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600" />
+          <p className="text-sm font-medium text-red-700">{error}</p>
         </div>
       )}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-gray-50 text-gray-500">
+              <tr>
+                <th className="px-6 py-4 font-medium">City</th>
+                <th className="px-6 py-4 font-medium">Hunt Title</th>
+                <th className="px-6 py-4 font-medium">Riddles</th>
+                <th className="px-6 py-4 font-medium">Status</th>
+                <th className="px-6 py-4 font-medium">Last Updated</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">Loading cities...</td>
+                </tr>
+              ) : cities.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center">
+                    <Building2 className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                    <p className="text-gray-500 font-medium">No cities with riddles yet. Upload an Excel file to get started.</p>
+                  </td>
+                </tr>
+              ) : (
+                cities.map((c) => (
+                  <tr key={c.city} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 font-medium text-gray-900">{c.city}</td>
+                    <td className="px-6 py-4 text-gray-500">{c.title || "—"}</td>
+                    <td className="px-6 py-4 text-gray-900 font-medium">{c.riddleCount}</td>
+                    <td className="px-6 py-4"><StatusBadge status={c.status} /></td>
+                    <td className="px-6 py-4 text-gray-400">{c.lastUpdatedAt ? new Date(c.lastUpdatedAt).toLocaleDateString() : "—"}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-      {/* Photo thumbnail */}
-      <div className="mt-3">
-        <button onClick={() => setImgOpen(true)}
-          className="relative group w-full rounded-lg overflow-hidden border border-gray-200 bg-gray-50 h-36 flex items-center justify-center hover:border-purple-300 transition-colors">
-          <img src={s.photoUrl} alt="Submission" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
-            <ImageIcon size={20} className="text-white opacity-0 group-hover:opacity-100" />
-          </div>
+function ImportHistoryTab() {
+  const [logs, setLogs] = useState<ImportLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hasNext, setHasNext] = useState(false);
+  const [hasPrev, setHasPrev] = useState(false);
+  const [error, setError] = useState("");
+
+  const fetch = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await getImportHistory({ page, limit: 20 });
+      setLogs(res.data);
+      setTotalPages(res.pagination.totalPages);
+      setHasNext(res.pagination.hasNext);
+      setHasPrev(res.pagination.hasPrev);
+    } catch (err: any) {
+      setError(getApiErrorMessage(err, "Failed to load import history"));
+    } finally {
+      setLoading(false);
+    }
+  }, [page]);
+
+  useEffect(() => { fetch(); }, [fetch]);
+
+  return (
+    <div className="space-y-4">
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-100 rounded-lg flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600" />
+          <p className="text-sm font-medium text-red-700">{error}</p>
+        </div>
+      )}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-gray-50 text-gray-500">
+              <tr>
+                <th className="px-6 py-4 font-medium">File Name</th>
+                <th className="px-6 py-4 font-medium">Uploaded By</th>
+                <th className="px-6 py-4 font-medium">Total Rows</th>
+                <th className="px-6 py-4 font-medium">Imported</th>
+                <th className="px-6 py-4 font-medium">Failed</th>
+                <th className="px-6 py-4 font-medium">Cities</th>
+                <th className="px-6 py-4 font-medium">Status</th>
+                <th className="px-6 py-4 font-medium">Upload Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-400">Loading imports...</td>
+                </tr>
+              ) : logs.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-6 py-12 text-center">
+                    <History className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                    <p className="text-gray-500 font-medium">No imports recorded yet.</p>
+                  </td>
+                </tr>
+              ) : (
+                logs.map((log) => (
+                  <tr key={log.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 font-medium text-gray-900">{log.fileName}</td>
+                    <td className="px-6 py-4 text-gray-500">
+                      <span className="flex items-center gap-2"><Users size={14} className="text-gray-300" />{log.uploadedBy?.name || log.uploadedBy?.email || "—"}</span>
+                    </td>
+                    <td className="px-6 py-4 text-gray-500">{log.totalRows}</td>
+                    <td className="px-6 py-4 text-emerald-600 font-medium">{log.validRows}</td>
+                    <td className="px-6 py-4 text-red-600 font-medium">{log.failedRows}</td>
+                    <td className="px-6 py-4 text-gray-500 max-w-[200px] truncate" title={log.cities?.join(", ")}>
+                      {log.cities?.join(", ") || "—"}
+                    </td>
+                    <td className="px-6 py-4"><StatusBadge status={log.status} /></td>
+                    <td className="px-6 py-4 text-gray-400">{new Date(log.createdAt).toLocaleString()}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <Pagination page={page} totalPages={totalPages} hasPrev={hasPrev} hasNext={hasNext} onPageChange={setPage} />
+    </div>
+  );
+}
+
+function Pagination({
+  page, totalPages, hasPrev, hasNext, onPageChange
+}: {
+  page: number; totalPages: number; hasPrev: boolean; hasNext: boolean; onPageChange: (p: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-lg">
+      <p className="text-sm text-gray-700">Page <span className="font-medium">{page}</span> of <span className="font-medium">{totalPages}</span></p>
+      <div className="flex gap-2">
+        <button onClick={() => onPageChange(page - 1)} disabled={!hasPrev} className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 disabled:opacity-50">
+          <ChevronLeft className="w-4 h-4" />
         </button>
-        <a href={s.photoUrl} target="_blank" rel="noopener noreferrer" className="mt-1 text-xs text-blue-500 hover:underline block">Open full image ↗</a>
+        <button onClick={() => onPageChange(page + 1)} disabled={!hasNext} className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 disabled:opacity-50">
+          <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
-
-      {s.adminComment && (
-        <div className="mt-3 p-2.5 bg-red-50 border border-red-100 rounded-lg">
-          <p className="text-xs font-medium text-red-700 flex items-center gap-1"><MessageSquare size={11} /> Admin comment:</p>
-          <p className="text-xs text-red-600 mt-0.5">{s.adminComment}</p>
-        </div>
-      )}
-
-      {s.status === "PENDING" && (
-        <div className="flex gap-2 mt-3">
-          <button onClick={onApprove} disabled={loading}
-            className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 text-white rounded-lg px-3 py-2 text-sm font-medium hover:bg-emerald-700 disabled:opacity-50">
-            {loading ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <><ThumbsUp size={14} /> Approve (+{s.riddle?.rewardPoints ?? s.pointsAwarded ?? "??"} pts)</>}
-          </button>
-          <button onClick={onReject} disabled={loading}
-            className="flex-1 flex items-center justify-center gap-2 border border-red-300 text-red-600 rounded-lg px-3 py-2 text-sm font-medium hover:bg-red-50 disabled:opacity-50">
-            <ThumbsDown size={14} /> Reject
-          </button>
-        </div>
-      )}
-
-      {s.status === "APPROVED" && (
-        <p className="mt-3 text-xs text-emerald-600 font-medium">✓ Approved — {s.pointsAwarded} PalPoints awarded</p>
-      )}
-
-      {/* Full image overlay */}
-      {imgOpen && (
-        <div className="fixed inset-0 bg-black/80 z-[70] flex items-center justify-center p-4" onClick={() => setImgOpen(false)}>
-          <img src={s.photoUrl} alt="Full submission" className="max-w-full max-h-full rounded-lg object-contain" />
-        </div>
-      )}
     </div>
   );
 }

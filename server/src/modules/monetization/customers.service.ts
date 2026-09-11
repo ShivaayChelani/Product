@@ -16,6 +16,7 @@ export const customersService = {
     const summaryRows = await prisma.$queryRaw<any[]>`
       SELECT 
         COUNT(DISTINCT r."user_id")::int as "totalCustomers",
+        COUNT(DISTINCT CASE WHEN r.status = 'VERIFIED' AND COALESCE(r."verified_at", r."created_at") >= date_trunc('month', now()) THEN r."user_id" END)::int as "thisMonthCustomers",
         SUM(CASE WHEN r.status = 'VERIFIED' AND COALESCE(r."verified_at", r."created_at") >= date_trunc('month', now()) THEN 1 ELSE 0 END)::int as "thisMonthVisits",
         COUNT(r.id)::int as "totalVisits",
         SUM(COALESCE(r."points_spent", 0))::int as "totalPalPoints"
@@ -36,7 +37,8 @@ export const customersService = {
 
     const summary = {
       totalCustomers: summaryRows[0]?.totalCustomers || 0,
-      thisMonthCustomers: summaryRows[0]?.thisMonthVisits || 0, // Using visits as an approximation or we'd need another subquery
+      thisMonthCustomers: summaryRows[0]?.thisMonthCustomers || 0,
+      thisMonthVisits: summaryRows[0]?.thisMonthVisits || 0,
       repeatVisitors: repeatVisitorsRow[0]?.repeatVisitors || 0,
       totalPalPoints: summaryRows[0]?.totalPalPoints || 0,
       totalVisits: summaryRows[0]?.totalVisits || 0,

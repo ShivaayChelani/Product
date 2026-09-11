@@ -65,7 +65,9 @@ model User {
   refundsRequested       Refund[]               @relation("RefundRequester")
   reviews                Review[]               @relation("UserReviews")
   rewardClaims           RewardClaim[]
-  riddleSubmissions      RiddleSubmission[]
+  treasureHuntProgress   TreasureHuntProgress[]
+  riddleProgress         RiddleProgress[]
+  treasureHuntImports    TreasureHuntImportLog[]
   rideDestinations       RideDestination[]
   rideFavorites          RideFavorite[]
   rideHistory            RideHistory[]
@@ -1285,39 +1287,39 @@ model CreatorProfile {
 }
 
 model Reel {
-  id              String                   @id @default(cuid())
-  creatorId       String                   @map("creator_id")
-  videoUrl        String                   @map("video_url")
-  thumbnail       String?
-  title           String?
-  description     String?
-  likes           Int                      @default(0)
-  views           Int                      @default(0)
-  shares          Int                      @default(0)
-  saves           Int                      @default(0)
-  featured        Boolean                  @default(false)
-  placeId         String?                  @map("place_id")
-  vendorId        String?                  @map("vendor_id")
-  vendorListingStatus VendorListingStatus? @map("vendor_listing_status")
-  eventId         String?                  @map("event_id")
-  createdAt       DateTime                 @default(now()) @map("created_at")
-  updatedAt       DateTime                 @updatedAt @map("updated_at")
-  category        String?
-  searchVector    Unsupported("tsvector")? @map("search_vector")
-  status          ReelStatus               @default(APPROVED)
-  scheduledAt     DateTime?                @map("scheduled_at")
-  collaborationId String?                  @unique @map("collaboration_id")
-  isCollaboration Boolean                  @default(false) @map("is_collaboration")
-  dailyReward     CreatorDailyReward?
-  comments        ReelComment[]
-  likesList       ReelLike[]
-  reports         ReelReport[]
-  savesList       ReelSave[]
-  collaboration   Collaboration?           @relation(fields: [collaborationId], references: [id])
-  creator         CreatorProfile           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  event           PlaceEvent?              @relation(fields: [eventId], references: [id])
-  place           Place?                   @relation(fields: [placeId], references: [id])
-  vendor          Vendor?                  @relation(fields: [vendorId], references: [id])
+  id                  String                   @id @default(cuid())
+  creatorId           String                   @map("creator_id")
+  videoUrl            String                   @map("video_url")
+  thumbnail           String?
+  title               String?
+  description         String?
+  likes               Int                      @default(0)
+  views               Int                      @default(0)
+  shares              Int                      @default(0)
+  saves               Int                      @default(0)
+  featured            Boolean                  @default(false)
+  placeId             String?                  @map("place_id")
+  vendorId            String?                  @map("vendor_id")
+  vendorListingStatus VendorListingStatus?     @map("vendor_listing_status")
+  eventId             String?                  @map("event_id")
+  createdAt           DateTime                 @default(now()) @map("created_at")
+  updatedAt           DateTime                 @updatedAt @map("updated_at")
+  category            String?
+  searchVector        Unsupported("tsvector")? @map("search_vector")
+  status              ReelStatus               @default(APPROVED)
+  scheduledAt         DateTime?                @map("scheduled_at")
+  collaborationId     String?                  @unique @map("collaboration_id")
+  isCollaboration     Boolean                  @default(false) @map("is_collaboration")
+  dailyReward         CreatorDailyReward?
+  comments            ReelComment[]
+  likesList           ReelLike[]
+  reports             ReelReport[]
+  savesList           ReelSave[]
+  collaboration       Collaboration?           @relation(fields: [collaborationId], references: [id])
+  creator             CreatorProfile           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  event               PlaceEvent?              @relation(fields: [eventId], references: [id])
+  place               Place?                   @relation(fields: [placeId], references: [id])
+  vendor              Vendor?                  @relation(fields: [vendorId], references: [id])
 
   @@index([creatorId])
   @@index([placeId])
@@ -1440,53 +1442,107 @@ model NotificationTemplate {
   @@map("notification_templates")
 }
 
-model Riddle {
-  id               String             @id @default(cuid())
-  title            String
-  /// The riddle/clue text shown to user
-  clue             String
-  /// Optional image hint
-  hintImage        String?            @map("hint_image")
-  /// Admin-known answer (shown on reject)
-  correctPlaceName String             @map("correct_place_name")
-  correctLat       Float?             @map("correct_lat")
-  correctLng       Float?             @map("correct_lng")
-  /// City this riddle targets
-  city             String
-  rewardPoints     Int                @default(100) @map("reward_points")
-  isActive         Boolean            @default(true) @map("is_active")
-  startsAt         DateTime           @map("starts_at")
-  endsAt           DateTime?          @map("ends_at")
-  createdAt        DateTime           @default(now()) @map("created_at")
-  updatedAt        DateTime           @updatedAt @map("updated_at")
-  submissions      RiddleSubmission[]
+model TreasureHunt {
+  id          String   @id @default(cuid())
+  city        String   @unique
+  title       String   @default("Treasure Hunt")
+  description String?
+  rewardCoins Int      @default(150) @map("reward_coins")
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  @@index([city, isActive])
-  @@index([isActive, startsAt, endsAt])
+  riddles        Riddle[]
+  progress       TreasureHuntProgress[]
+  riddleProgress RiddleProgress[]
+
+  @@map("treasure_hunts")
+}
+
+model Riddle {
+  id       String @id @default(cuid())
+  huntId   String @map("hunt_id")
+  city     String
+  sequence Int    @default(1)
+
+  clueEnglish   String @map("clue_english")
+  answerEnglish String @map("answer_english")
+
+  clueHindi   String @map("clue_hindi")
+  answerHindi String @map("answer_hindi")
+
+  status      String   @default("ACTIVE")
+  rewardCoins Int      @default(50) @map("reward_coins")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  hunt     TreasureHunt     @relation(fields: [huntId], references: [id], onDelete: Cascade)
+  progress RiddleProgress[]
+
+  @@index([huntId])
+  @@index([city])
   @@map("riddles")
 }
 
-/// A user's photo submission attempt for a Riddle.
-model RiddleSubmission {
-  id            String                 @id @default(cuid())
-  riddleId      String                 @map("riddle_id")
-  userId        String                 @map("user_id")
-  photoUrl      String                 @map("photo_url")
-  status        RiddleSubmissionStatus @default(PENDING)
-  /// Correct location text shown on reject
-  adminComment  String?                @map("admin_comment")
-  pointsAwarded Int                    @default(0) @map("points_awarded")
-  reviewedAt    DateTime?              @map("reviewed_at")
-  reviewedById  String?                @map("reviewed_by_id")
-  createdAt     DateTime               @default(now()) @map("created_at")
-  riddle        Riddle                 @relation(fields: [riddleId], references: [id], onDelete: Cascade)
-  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+model TreasureHuntProgress {
+  id              String  @id @default(cuid())
+  userId          String  @map("user_id")
+  huntId          String  @map("hunt_id")
+  currentRiddleId String? @map("current_riddle_id")
 
-  @@unique([riddleId, userId])
-  @@index([riddleId])
+  startedAt   DateTime  @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  isCompleted Boolean   @default(false) @map("is_completed")
+  coinsEarned Int       @default(0) @map("coins_earned")
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hunt TreasureHunt @relation(fields: [huntId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, huntId])
   @@index([userId])
-  @@index([status])
-  @@map("riddle_submissions")
+  @@index([huntId])
+  @@map("treasure_hunt_progress")
+}
+
+model RiddleProgress {
+  id       String @id @default(cuid())
+  userId   String @map("user_id")
+  huntId   String @map("hunt_id")
+  riddleId String @map("riddle_id")
+
+  attempts    Int       @default(0)
+  isCorrect   Boolean   @default(false) @map("is_correct")
+  coinsEarned Int       @default(0) @map("coins_earned")
+  completedAt DateTime? @map("completed_at")
+
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hunt   TreasureHunt @relation(fields: [huntId], references: [id], onDelete: Cascade)
+  riddle Riddle       @relation(fields: [riddleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, riddleId])
+  @@index([userId])
+  @@index([huntId])
+  @@index([riddleId])
+  @@map("riddle_progress")
+}
+
+model TreasureHuntImportLog {
+  id           String   @id @default(cuid())
+  fileName     String   @map("file_name")
+  uploadedById String   @map("uploaded_by_id")
+  totalRows    Int      @default(0) @map("total_rows")
+  validRows    Int      @default(0) @map("valid_rows")
+  failedRows   Int      @default(0) @map("failed_rows")
+  cities       String[]
+  status       String   @default("COMPLETED")
+  errorMessage String?  @map("error_message")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([uploadedById])
+  @@index([createdAt])
+  @@map("treasure_hunt_import_logs")
 }
 
 model PasswordResetToken {
@@ -2328,12 +2384,6 @@ enum RoleAssignmentStatus {
   RETIRED
 }
 
-enum RiddleSubmissionStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
 enum PlaceCategory {
   TEMPLE
   MONUMENT
@@ -2835,4 +2885,3 @@ model MediaCleanupTask {
   @@index([status, updatedAt])
   @@map("media_cleanup_tasks")
 }
-

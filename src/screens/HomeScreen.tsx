@@ -721,7 +721,7 @@ export default function HomeScreen({
               
               <View style={styles.headerRight}>
                 <TouchableOpacity onPress={onNavigateToLeaderboard} style={styles.leaderboardBtn}>
-                  <Icon name="trophy-outline" size={scale(24)} color="#1E1B18" />
+                  <Icon name="trophy-outline" size={scale(24)} color="#FFFFFF" />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={openWallet} style={styles.pointsPill}>
                   <View style={styles.pointsIconCircle}>
@@ -1072,11 +1072,11 @@ const styles = StyleSheet.create({
     width: scale(36),
     height: scale(36),
     borderRadius: radiusScale(18),
-    backgroundColor: '#fff',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E8D5C4',
+    borderColor: '#000000',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,

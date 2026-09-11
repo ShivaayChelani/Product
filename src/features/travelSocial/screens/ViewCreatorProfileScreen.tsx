@@ -104,7 +104,16 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
   }, [profile]);
 
   const coverUri = profile ? resolveCover(profile) : null;
-  const displayName = profile?.fullName || profile?.username || username;
+  let rawUsername = profile?.username || username;
+  if (rawUsername && rawUsername.includes('instagram')) {
+    rawUsername = rawUsername
+      .replace(/^httpswwwinstagramcom/, '')
+      .replace(/^httpwwwinstagramcom/, '')
+      .replace(/^httpsinstagramcom/, '')
+      .replace(/^httpinstagramcom/, '')
+      .replace(/^wwwinstagramcom/, '');
+  }
+  const displayName = profile?.fullName || rawUsername;
   const locationLabel =
     profile?.locationLabel ||
     profile?.reels?.find(r => r.place?.city)?.place?.city ||
@@ -331,7 +340,7 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
             <Text style={styles.displayName}>{displayName}</Text>
             {profile.verified ? <Icon name="checkmark-circle" size={20} color={T.secondary} /> : null}
           </View>
-          <Text style={styles.handle}>@{profile.username}</Text>
+          <Text style={styles.handle}>@{rawUsername}</Text>
           {locationLabel ? (
             <View style={styles.locationRow}>
               <Icon name="location-outline" size={14} color={T.textSecondary} />

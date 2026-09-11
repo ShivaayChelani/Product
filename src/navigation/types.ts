@@ -67,8 +67,9 @@ export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList> | undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   HowItWorks: undefined;
-  TreasureHunt: undefined;
-  MyTreasureHunts: undefined;
+  TreasureHuntLanding: undefined;
+  TreasureHuntActive: { huntId: string; riddleId: string };
+  TreasureHuntSuccess: { huntId: string; rewardCoins: number; completed: boolean; city?: string };
   VendorTabs: NavigatorScreenParams<VendorTabParamList> | undefined;
   CreatorTabs: NavigatorScreenParams<CreatorTabParamList> | undefined;
   UploadPlacePhoto: undefined;

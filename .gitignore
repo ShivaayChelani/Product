@@ -36,6 +36,8 @@ yarn.lock
 .env.production.*
 .env.staging.*
 .env.runtime-qa
+.env.bak
+.env.bak.*
 
 # But DO commit .env.example templates
 !.env.example
@@ -188,6 +190,13 @@ ehthumbs.db
 .cursor/
 .gemini/
 .opencode/
+# AI assistant tool configs (local only, not repo content)
+opencode.json
+.mcp.json
+.windsurfrules
+CLAUDE.md
+admin/CLAUDE.md
+.github/copilot-instructions.md
 
 # ── Vercel ──
 .vercel
@@ -202,6 +211,7 @@ tmp/
 temp/
 *.tmp
 *.temp
+*.bak
 
 # ── Sentry (local only) ──
 sentry.properties.local

@@ -110,9 +110,21 @@ export const ReelCard: React.FC<ReelCardProps> = React.memo(({
     : null;
 
   const creator = reel.creator;
+
+  // Fix for bad scraped usernames that were Instagram URLs stripped of punctuation
+  let cleanUsername = creator?.username;
+  if (cleanUsername && cleanUsername.includes('instagram')) {
+    cleanUsername = cleanUsername
+      .replace(/^httpswwwinstagramcom/, '')
+      .replace(/^httpwwwinstagramcom/, '')
+      .replace(/^httpsinstagramcom/, '')
+      .replace(/^httpinstagramcom/, '')
+      .replace(/^wwwinstagramcom/, '');
+  }
+
   const vendorName = reel.vendor?.businessName || reel.collaboration?.vendor?.businessName || null;
-  const authorDisplayName = vendorName || (creator?.username ? `@${creator.username}` : 'Creator');
-  const authorSubtitle = vendorName && creator?.username ? `@${creator.username}` : null;
+  const authorDisplayName = vendorName || (cleanUsername ? `@${cleanUsername}` : 'Creator');
+  const authorSubtitle = vendorName && cleanUsername ? `@${cleanUsername}` : null;
   const isOwnReel = !!currentUserId && creator?.userId === currentUserId;
 
   const handleFollowAuthor = useCallback(() => {
@@ -124,9 +136,19 @@ export const ReelCard: React.FC<ReelCardProps> = React.memo(({
     onPressAuthor?.(reel);
   }, [onPressAuthor, reel]);
 
+  const playerRef = React.useRef<any>(null);
+
+  const handleSeek = useCallback((pct: number) => {
+    if (playerRef.current) {
+      playerRef.current.seekToPercent(pct);
+    }
+    setProgress(pct);
+  }, []);
+
   return (
     <View style={[styles.container, { height, width: windowWidth }]}>
       <ReelPlayer
+        ref={playerRef}
         videoUrl={reel.videoUrl}
         posterUrl={reel.thumbnail}
         isActive={isActive}
@@ -185,6 +207,7 @@ export const ReelCard: React.FC<ReelCardProps> = React.memo(({
           showControls={isActive}
           paddingBottom={overlayInsets.contentPaddingBottom}
           onComment={handleComment}
+          onSeek={handleSeek}
         />
       </View>
     </View>

@@ -1,33 +1,41 @@
 import { z } from 'zod';
 
-export const createRiddleSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  clue: z.string().min(1, 'Clue text is required'),
-  hintImage: z.string().url().optional(),
-  correctPlaceName: z.string().min(1, 'Correct place name is required'),
-  correctLat: z.number().optional(),
-  correctLng: z.number().optional(),
+export const createTreasureHuntSchema = z.object({
   city: z.string().min(1, 'City is required'),
-  rewardPoints: z.number().int().positive().optional().default(100),
-  startsAt: z.string().datetime().or(z.string().min(1)),
-  endsAt: z.string().datetime().or(z.string().min(1)).optional(),
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  rewardCoins: z.number().int().positive().optional().default(150),
+  status: z.string().optional().default('ACTIVE')
+});
+
+export const updateTreasureHuntSchema = createTreasureHuntSchema.partial();
+
+export const createRiddleSchema = z.object({
+  huntId: z.string(),
+  city: z.string(),
+  sequence: z.number().int().min(1),
+  clueEnglish: z.string().min(1),
+  answerEnglish: z.string().min(1),
+  clueHindi: z.string().min(1),
+  answerHindi: z.string().min(1),
 });
 
 export const updateRiddleSchema = createRiddleSchema.partial().extend({
-  isActive: z.boolean().optional(),
+  status: z.string().optional(),
 });
 
-export const submitRiddleSchema = z.object({
-  photoUrl: z.string().url('Photo URL must be a valid URL'),
-  userLat: z.coerce.number().min(-90).max(90, 'Invalid latitude'),
-  userLng: z.coerce.number().min(-180).max(180, 'Invalid longitude'),
+export const submitAnswerSchema = z.object({
+  answer: z.string().min(1, 'Answer is required'),
+  language: z.enum(['en', 'hi']).optional(),
 });
 
-export const rejectRiddleSchema = z.object({
-  adminComment: z.string().min(1, 'A comment with the correct location is required'),
+export const locationQuerySchema = z.object({
+  lat: z.string().regex(/^-?\d+(\.\d+)?$/, 'Valid lat is required'),
+  lng: z.string().regex(/^-?\d+(\.\d+)?$/, 'Valid lng is required'),
 });
 
+export type CreateTreasureHuntInput = z.infer<typeof createTreasureHuntSchema>;
+export type UpdateTreasureHuntInput = z.infer<typeof updateTreasureHuntSchema>;
 export type CreateRiddleInput = z.infer<typeof createRiddleSchema>;
 export type UpdateRiddleInput = z.infer<typeof updateRiddleSchema>;
-export type SubmitRiddleInput = z.infer<typeof submitRiddleSchema>;
-export type RejectRiddleInput = z.infer<typeof rejectRiddleSchema>;
+export type SubmitAnswerInput = z.infer<typeof submitAnswerSchema>;

@@ -1,4 +1,4 @@
-﻿-- CreateSchema
+-- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
 -- CreateEnum
@@ -3075,4 +3075,3 @@ ALTER TABLE "user_xp" ADD CONSTRAINT "user_xp_user_fkey" FOREIGN KEY ("user_id")
 
 -- AddForeignKey
 ALTER TABLE "xp_transactions" ADD CONSTRAINT "xp_transactions_user_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-

@@ -1,5 +1,5 @@
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, URL } from 'url';
 import dotenv from 'dotenv';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -94,9 +94,9 @@ export const UNIT_TEST_FILES = [
 
 export const E2E_TEST_GLOB = 'src/__tests__/**/*.integration.test.ts';
 
-/** Serial DB-backed suites against remote Render TEST.
+/** Serial DB-backed suites against the test database (local PostGIS or TEST_DATABASE_URL).
  *  Vitest 4: keep isolate true so vi.mock (e.g. upload tests) still applies.
- *  One worker avoids opening multiple Prisma pools against Render. */
+ *  One worker avoids opening multiple Prisma pools from the test worker pool. */
 export const SERIAL_DB_TEST_OPTIONS = {
   fileParallelism: false,
   maxWorkers: 1,

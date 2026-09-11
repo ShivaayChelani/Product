@@ -2,6 +2,7 @@ import rateLimit, { Options, type RateLimitRequestHandler } from 'express-rate-l
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from './env';
+import { getRedisClient } from './redis';
 
 type PeekAuth = {
   userId?: string;
@@ -61,8 +62,6 @@ function isAdminRequest(req: Request): boolean {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { getRedisClient } = require('./redis');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const RedisStore = require('rate-limit-redis').default;
 
 const createLimiter = (options: Partial<Options>): RateLimitRequestHandler => {
@@ -74,7 +73,8 @@ const createLimiter = (options: Partial<Options>): RateLimitRequestHandler => {
     ...(redisClient
       ? {
           store: new RedisStore({
-            sendCommand: (...args: string[]) => redisClient.call(...args),
+            sendCommand: (command: string, ...args: (string | number | Buffer)[]) =>
+              redisClient.call(command, ...args),
           }),
         }
       : {}),
@@ -103,7 +103,7 @@ export const globalLimiter = createLimiter({
   keyGenerator: (req) => {
     const { userId } = peekAuth(req);
     if (userId) return `uid:${userId}`;
-    return `ip:${req.ip || 'anonymous'}`;
+    return `ip:${'anonymous'}`;
   },
   message: { success: false, data: null, message: 'Too many requests. Please try again later.' },
 });
@@ -115,7 +115,7 @@ export const directionsLimiter = createLimiter({
   legacyHeaders: false,
   keyGenerator: (req) => {
     const { userId } = peekAuth(req);
-    return userId ? `directions:${userId}` : `ip:${req.ip || 'anonymous'}`;
+    return userId ? `directions:${userId}` : `ip:${'anonymous'}`;
   },
   message: { success: false, data: null, message: 'Too many directions requests. Please try again later.' },
 });
@@ -153,7 +153,7 @@ export const loginLimiter = createLimiter({
   keyGenerator: (req) => {
     const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     if (email) return `login:${email}`;
-    return `ip:${req.ip || 'anonymous'}`;
+    return `ip:${'anonymous'}`;
   },
   message: { success: false, data: null, message: 'Too many login attempts. Please try again in 15 minutes.' },
 });
@@ -237,7 +237,7 @@ export const adClaimLimiter = createLimiter({
   legacyHeaders: false,
   keyGenerator: (req) => {
     const { userId } = peekAuth(req);
-    return userId ? `ad-claim:${userId}` : `ip:${req.ip || 'anonymous'}`;
+    return userId ? `ad-claim:${userId}` : `ip:${'anonymous'}`;
   },
   message: { success: false, data: null, message: 'Too many ad reward claims. Please try again later.' },
 });
@@ -249,7 +249,7 @@ export const partnerRedeemLimiter = createLimiter({
   legacyHeaders: false,
   keyGenerator: (req) => {
     const { userId } = peekAuth(req);
-    return userId ? `partner-redeem:${userId}` : `ip:${req.ip || 'anonymous'}`;
+    return userId ? `partner-redeem:${userId}` : `ip:${'anonymous'}`;
   },
   message: { success: false, data: null, message: 'Too many redemption attempts. Please try again later.' },
 });
@@ -261,7 +261,7 @@ export const challengeCompleteLimiter = createLimiter({
   legacyHeaders: false,
   keyGenerator: (req) => {
     const { userId } = peekAuth(req);
-    return userId ? `challenge-complete:${userId}` : `ip:${req.ip || 'anonymous'}`;
+    return userId ? `challenge-complete:${userId}` : `ip:${'anonymous'}`;
   },
   message: { success: false, data: null, message: 'Too many challenge completions. Please try again later.' },
 });
@@ -273,7 +273,7 @@ export const gameCompletionLimiter = createLimiter({
   legacyHeaders: false,
   keyGenerator: (req) => {
     const { userId } = peekAuth(req);
-    return userId ? `game-complete:${userId}` : `ip:${req.ip || 'anonymous'}`;
+    return userId ? `game-complete:${userId}` : `ip:${'anonymous'}`;
   },
   message: { success: false, data: null, message: 'Too many game reward claims. Please try again later.' },
 });
@@ -293,7 +293,7 @@ export const usernameCheckLimiter = createLimiter({
   legacyHeaders: false,
   keyGenerator: (req) => {
     const { userId } = peekAuth(req);
-    return userId ? `username-check:${userId}` : `ip:${req.ip || 'anonymous'}`;
+    return userId ? `username-check:${userId}` : `ip:${'anonymous'}`;
   },
   message: { success: false, data: null, message: 'Too many username checks. Please try again later.' },
 });
@@ -306,7 +306,7 @@ export const otpVerifyLimiter = createLimiter({
   keyGenerator: (req) => {
     const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     if (email) return `otp-verify:${email}`;
-    return `ip:${req.ip || 'anonymous'}`;
+    return `ip:${'anonymous'}`;
   },
   message: { success: false, data: null, message: 'Too many verification attempts. Please try again later.' },
 });

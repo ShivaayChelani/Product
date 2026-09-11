@@ -55,9 +55,9 @@ const avoidEnum = z.enum(['CROWDED', 'LONG_TRAVEL', 'EXPENSIVE_ENTRY', 'NON_FAMI
 const timeSlotEnum = z.enum(['SUNRISE', 'MORNING', 'AFTERNOON', 'EVENING', 'SUNSET', 'NIGHT']);
 
 export const createTripSchema = z.object({
-  title: z.string().min(1, 'Trip name is required').max(200),
+  title: z.string({ required_error: 'Trip name is required' }).min(1, 'Trip name is required').max(200),
   description: z.string().max(2000).optional(),
-  destination: z.string().min(1, 'Destination is required').max(200),
+  destination: z.string({ required_error: 'Destination is required' }).min(1, 'Destination is required').max(200),
   startDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
   endDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
   travelers: travelersEnum.default('SOLO'),

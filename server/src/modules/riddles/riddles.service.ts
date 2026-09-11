@@ -1,236 +1,21 @@
 import { prisma } from '../../config/database';
-import { Prisma } from '@prisma/client';
 import { ApiError } from '../../shared/utils/ApiError';
 import { walletService } from '../wallet/wallet.service';
-import { notificationService } from '../notifications/notification.service';
 import { logger } from '../../config/logger';
 import { reverseGeocodeToCity } from '../../shared/utils/reverseGeocode';
-import { cityKeyEquals, cityDisplayName, canonicalCityKey } from '../../shared/utils/cityIdentity';
-import { haversineDistance } from '../../shared/utils/geo';
-import crypto from 'crypto';
+import { cityDisplayName, canonicalCityKey } from '../../shared/utils/cityIdentity';
 import * as XLSX from 'xlsx';
-import type { CreateRiddleInput, UpdateRiddleInput, RejectRiddleInput } from './riddles.validation';
-
-const CHECK_IN_RADIUS_METERS = 500; // 500 meters
 
 export const riddlesService = {
-  // ──────────────── Admin: CRUD ────────────────
 
-  async listAll(query: { page?: string; limit?: string; isActive?: string; city?: string; search?: string }) {
-    const page = parseInt(query.page || '1');
-    const limit = parseInt(query.limit || '20');
-    const skip = (page - 1) * limit;
-    const where: any = {};
-
-    if (query.isActive !== undefined) where.isActive = query.isActive === 'true';
-    if (query.city) where.city = { contains: query.city, mode: 'insensitive' };
-    if (query.search) where.title = { contains: query.search, mode: 'insensitive' };
-
-    const [data, total] = await Promise.all([
-      prisma.riddle.findMany({
-        where, skip, take: limit, orderBy: { createdAt: 'desc' },
-        include: { _count: { select: { submissions: true } } },
-      }),
-      prisma.riddle.count({ where }),
-    ]);
-
-    return {
-      data,
-      pagination: {
-        page, limit, total,
-        totalPages: Math.ceil(total / limit),
-        hasNext: page * limit < total,
-        hasPrev: page > 1,
-      },
-    };
-  },
-
-  async getCitySummary() {
-    const grouped = await prisma.riddle.groupBy({
-      by: ['city'],
-      _count: { _all: true },
-      where: { isActive: true },
-    });
-    return grouped.map(g => ({ city: g.city, activeCount: g._count._all })).sort((a, b) => b.activeCount - a.activeCount);
-  },
-
-  async getById(id: string) {
-    const riddle = await prisma.riddle.findUnique({
-      where: { id },
-      include: {
-        _count: { select: { submissions: true } },
-      },
-    });
-    if (!riddle) throw new ApiError(404, 'Riddle not found');
-    return riddle;
-  },
-
-  async create(data: CreateRiddleInput) {
-    return prisma.riddle.create({ data: { ...data, city: cityDisplayName(data.city) } });
-  },
-
-  async update(id: string, data: UpdateRiddleInput) {
-    const riddle = await prisma.riddle.findUnique({ where: { id } });
-    if (!riddle) throw new ApiError(404, 'Riddle not found');
-    const patch: UpdateRiddleInput = { ...data };
-    if (data.city) patch.city = cityDisplayName(data.city);
-    return prisma.riddle.update({ where: { id }, data: patch });
-  },
-
-  async delete(id: string) {
-    const riddle = await prisma.riddle.findUnique({ where: { id } });
-    if (!riddle) throw new ApiError(404, 'Riddle not found');
-    return prisma.riddle.delete({ where: { id } });
-  },
-
-  async getSubmissions(riddleId: string, query: { page?: string; limit?: string }) {
-    const page = parseInt(query.page || '1');
-    const limit = parseInt(query.limit || '20');
-    const skip = (page - 1) * limit;
-    const where = { riddleId };
-
-    const [data, total] = await Promise.all([
-      prisma.riddleSubmission.findMany({
-        where, skip, take: limit, orderBy: { createdAt: 'desc' },
-        include: {
-          user: { select: { id: true, name: true, avatar: true, avatarStyle: true } },
-          riddle: { select: { id: true, title: true, city: true, rewardPoints: true, correctPlaceName: true } },
-        },
-      }),
-      prisma.riddleSubmission.count({ where }),
-    ]);
-
-    return {
-      data,
-      pagination: {
-        page, limit, total,
-        totalPages: Math.ceil(total / limit),
-        hasNext: page * limit < total,
-        hasPrev: page > 1,
-      },
-    };
-  },
-
-  async approve(submissionId: string, adminId: string) {
-    const submission = await prisma.riddleSubmission.findUnique({
-      where: { id: submissionId },
-      include: { riddle: true },
-    });
-    if (!submission) throw new ApiError(404, 'Submission not found');
-    if (submission.status !== 'PENDING') throw new ApiError(409, 'Submission already reviewed');
-
-    const points = submission.riddle.rewardPoints;
-
-    let updated;
-    try {
-      updated = await prisma.$transaction(async (tx) => {
-        const sub = await tx.riddleSubmission.update({
-          where: { id: submissionId, status: 'PENDING' },
-          data: {
-            status: 'APPROVED',
-            pointsAwarded: points,
-            reviewedAt: new Date(),
-            reviewedById: adminId,
-          },
-        });
-        
-        await walletService.earn(sub.userId, points, 'game_complete', sub.id, 'RIDDLE', undefined, tx);
-        
-        return sub;
-      }, { timeout: 25000, maxWait: 20000 });
-    } catch (err: any) {
-      if (err.code === 'P2025') {
-        throw new ApiError(409, 'Submission already reviewed');
-      }
-      logger.error({ err, submissionId }, 'Failed to approve submission or award points');
-      throw new ApiError(500, 'Failed to process approval and reward');
-    }
-
-    try {
-      await notificationService.sendToUser(
-        updated.userId,
-        '🎯 Correct Answer! You Win!',
-        `You solved "${submission.riddle.title}" and earned ${points} PalPoints!`,
-        { type: 'riddle_approved', screen: 'RiddleHunt', riddleId: submission.riddleId, points: String(points) },
-        'riddle_approved',
-      );
-    } catch (err) {
-      logger.error({ err, submissionId }, 'Failed to send approval notification');
-    }
-
-    return updated;
-  },
-
-  async reject(submissionId: string, adminId: string, data: RejectRiddleInput) {
-    const submission = await prisma.riddleSubmission.findUnique({
-      where: { id: submissionId },
-      include: { riddle: true },
-    });
-    if (!submission) throw new ApiError(404, 'Submission not found');
-    if (submission.status !== 'PENDING') throw new ApiError(409, 'Submission already reviewed');
-
-    let updated;
-    try {
-      updated = await prisma.riddleSubmission.update({
-        where: { id: submissionId, status: 'PENDING' },
-        data: {
-          status: 'REJECTED',
-          adminComment: data.adminComment,
-          reviewedAt: new Date(),
-          reviewedById: adminId,
-        },
-      });
-    } catch (err: any) {
-      if (err.code === 'P2025') throw new ApiError(409, 'Submission already reviewed');
-      throw err;
-    }
-
-    try {
-      await notificationService.sendToUser(
-        submission.userId,
-        '❌ Wrong Location – Try Again Next Time!',
-        `For "${submission.riddle.title}" the correct place was: ${data.adminComment}`,
-        { type: 'riddle_rejected', screen: 'RiddleHunt', riddleId: submission.riddleId, adminComment: data.adminComment },
-        'riddle_rejected',
-      );
-    } catch (err) {
-      logger.error({ err, submissionId }, 'Failed to send rejection notification');
-    }
-
-    return updated;
-  },
-
-  async getAllPendingSubmissions(query: { page?: string; limit?: string }) {
-    const page = parseInt(query.page || '1');
-    const limit = parseInt(query.limit || '20');
-    const skip = (page - 1) * limit;
-
-    const [data, total] = await Promise.all([
-      prisma.riddleSubmission.findMany({
-        where: { status: 'PENDING' },
-        skip, take: limit, orderBy: { createdAt: 'asc' },
-        include: {
-          user: { select: { id: true, name: true, avatar: true, avatarStyle: true } },
-          riddle: { select: { id: true, title: true, city: true, rewardPoints: true, correctPlaceName: true } },
-        },
-      }),
-      prisma.riddleSubmission.count({ where: { status: 'PENDING' } }),
-    ]);
-
-    return {
-      data,
-      pagination: {
-        page, limit, total,
-        totalPages: Math.ceil(total / limit),
-        hasNext: page * limit < total,
-        hasPrev: page > 1,
-      },
-    };
-  },
-
-  // ──────────────── Admin Excel Bulk Import ────────────────
+  // ──────────────── ADMIN EXCEL IMPORT ────────────────
   async bulkImportValidate(fileBuffer: Buffer) {
-    const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+    let workbook: XLSX.WorkBook;
+    try {
+      workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+    } catch {
+      throw new ApiError(400, 'Could not read this Excel file. Make sure it is a valid .xlsx or .xls file.');
+    }
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const rows = XLSX.utils.sheet_to_json<any>(worksheet, { defval: '' });
@@ -239,302 +24,510 @@ export const riddlesService = {
       throw new ApiError(400, 'The selected Excel sheet is empty.');
     }
 
+    const expectedHeaders = ['City name', 'Riddle in English', 'Answer in English', 'Riddle in Hindi', 'Answer in Hindi'];
+    const actualHeaders = Object.keys(rows[0] || {});
+
+    for (const h of expectedHeaders) {
+      if (!actualHeaders.includes(h)) {
+        throw new ApiError(400, `Invalid Excel Format. Missing column: ${h}`);
+      }
+    }
+
     let validCount = 0;
-    let attentionCount = 0;
     let invalidCount = 0;
     const citiesDetected = new Set<string>();
-    const cityBreakdown: Record<string, number> = {};
+    const results: any[] = [];
+    const seen = new Set<string>();
 
-    const results = [];
-    for (const row of rows) {
-      const rawCity = row['City Name'] || row['City'];
-      const title = row['Riddle English'] || row['Title'];
-      const clue = row['Riddle English'] || row['Clue'];
-      const clueHindi = row['Riddle Hindi'] || '';
-      const answer = row['Answer English'] || row['Answer'];
-      const answerHindi = row['Answer Hindi'] || '';
-      const rewardPoints = parseInt(row['Reward'] || row['Points'] || '100');
+    rows.forEach((row, index) => {
+      const rowIndex = index + 2; // +1 for 0-index, +1 for header
+      const city = String(row['City name'] || '').trim();
+      const clueEnglish = String(row['Riddle in English'] || '').trim();
+      const answerEnglish = String(row['Answer in English'] || '').trim();
+      const clueHindi = String(row['Riddle in Hindi'] || '').trim();
+      const answerHindi = String(row['Answer in Hindi'] || '').trim();
 
       let status = 'VALID';
-      let match = null;
-      let error = null;
+      let error: string | null = null;
 
-      const city = rawCity ? String(rawCity).trim() : '';
+      if (!city) { status = 'INVALID'; error = `Row ${rowIndex}: City name is required`; }
+      else if (!clueEnglish) { status = 'INVALID'; error = `Row ${rowIndex}: Riddle in English is required`; }
+      else if (!answerEnglish) { status = 'INVALID'; error = `Row ${rowIndex}: Answer in English is required`; }
+      else if (!clueHindi) { status = 'INVALID'; error = `Row ${rowIndex}: Riddle in Hindi is required`; }
+      else if (!answerHindi) { status = 'INVALID'; error = `Row ${rowIndex}: Answer in Hindi is required`; }
 
-      if (!city || !title || !answer) {
-        status = 'INVALID';
-        error = 'Missing required fields (City Name, Riddle English, Answer English)';
-      } else {
-        // Try to match destination
-        const place = await prisma.place.findFirst({
-          where: {
-            OR: [
-              { name: { equals: answer, mode: 'insensitive' } },
-              { name: { contains: answer, mode: 'insensitive' } },
-            ],
-            status: 'APPROVED',
-            latitude: { not: null },
-            longitude: { not: null },
-          },
-        });
-
-        if (place) {
-          match = {
-            id: place.id,
-            name: place.name,
-            lat: place.latitude,
-            lng: place.longitude,
-          };
+      if (status === 'VALID') {
+        const dedupeKey = [city, clueEnglish, answerEnglish, clueHindi, answerHindi].join('|').toLowerCase();
+        if (seen.has(dedupeKey)) {
+          status = 'INVALID';
+          error = `Row ${rowIndex}: Duplicate row (same city, riddle and answers as a previous row)`;
         } else {
-          status = 'NEEDS_ATTENTION';
-          error = 'Destination not found in approved PalSafar Places';
+          seen.add(dedupeKey);
         }
       }
 
-      if (status === 'VALID') validCount++;
-      else if (status === 'NEEDS_ATTENTION') attentionCount++;
-      else if (status === 'INVALID') invalidCount++;
-
-      if (city && status !== 'INVALID') {
-        citiesDetected.add(city);
-        cityBreakdown[city] = (cityBreakdown[city] || 0) + 1;
+      if (status === 'VALID') {
+        validCount++;
+        citiesDetected.add(cityDisplayName(city));
+      } else {
+        invalidCount++;
       }
 
       results.push({
-        city,
-        title,
-        clue,
+        city: cityDisplayName(city),
+        clueEnglish,
+        answerEnglish,
         clueHindi,
-        answer,
         answerHindi,
-        rewardPoints,
         status,
-        error,
-        match
+        error
       });
-    }
+    });
 
     return {
       summary: {
         total: rows.length,
         valid: validCount,
-        needsAttention: attentionCount,
         invalid: invalidCount,
         citiesCount: citiesDetected.size,
-        citiesBreakdown: cityBreakdown,
       },
       data: results
     };
   },
 
-  async bulkImportConfirm(validRows: any[]) {
+  async bulkImportExecute(options: {
+    validRows: any[];
+    fileName: string;
+    uploadedById: string;
+    totalRows: number;
+    invalidRows: number;
+    cities: string[];
+  }) {
+    const { validRows, fileName, uploadedById, totalRows, invalidRows, cities } = options;
     let imported = 0;
-    for (const item of validRows) {
-      if (item.status !== 'VALID' || !item.match) continue;
-      
-      const existingRiddle = await prisma.riddle.findFirst({
-        where: {
-          title: { equals: item.title.trim(), mode: 'insensitive' },
-          city: { equals: cityDisplayName(item.city.trim()), mode: 'insensitive' },
-          correctPlaceName: item.match.name,
-        }
+    // Group by city
+    const grouped = (validRows as any[]).reduce((acc: any, row) => {
+      if (row.status !== 'VALID') return acc;
+      if (!acc[row.city]) acc[row.city] = [];
+      acc[row.city].push(row);
+      return acc;
+    }, {});
+
+    const allCities = cities.length > 0 ? cities : Object.keys(grouped);
+
+    for (const city of Object.keys(grouped)) {
+      const hunt = await prisma.treasureHunt.upsert({
+        where: { city },
+        update: { updatedAt: new Date() },
+        create: { city, title: `${city} Treasure Hunt`, rewardCoins: 150 },
       });
 
-      if (!existingRiddle) {
-        await prisma.riddle.create({
-          data: {
-            title: item.title.trim(),
-            clue: item.clue.trim(),
-            city: cityDisplayName(item.city.trim()),
-            correctPlaceName: item.match.name,
-            correctLat: item.match.lat,
-            correctLng: item.match.lng,
-            rewardPoints: item.rewardPoints,
-            isActive: true,
-            startsAt: new Date(),
-          }
-        });
-        imported++;
-      }
+      // Clear existing riddles for this city to fully replace them with the Excel rows
+      await prisma.riddle.deleteMany({ where: { huntId: hunt.id } });
+
+      const riddlesToCreate = grouped[city].map((row: any, i: number) => ({
+        huntId: hunt.id,
+        city,
+        sequence: i + 1,
+        clueEnglish: row.clueEnglish,
+        answerEnglish: row.answerEnglish,
+        clueHindi: row.clueHindi,
+        answerHindi: row.answerHindi,
+      }));
+
+      await prisma.riddle.createMany({ data: riddlesToCreate });
+      imported += riddlesToCreate.length;
     }
+
+    await prisma.treasureHuntImportLog.create({
+      data: {
+        fileName,
+        uploadedById,
+        totalRows,
+        validRows: imported,
+        failedRows: invalidRows,
+        cities: allCities,
+        status: 'COMPLETED',
+      },
+    });
+
+    try {
+      logger.info(
+        { fileName, uploadedById, totalRows, imported, invalidRows, allCities },
+        'Treasure hunt Excel import completed'
+      );
+    } catch {
+      /* no-op */
+    }
+
     return { imported };
   },
 
-  // ──────────────── User Gameplay ────────────────
+  // ──────────────── ADMIN CRUD ────────────────
+  async listAllHunts(query: { page?: string; limit?: string; city?: string }) {
+    const page = parseInt(query.page || '1');
+    const limit = parseInt(query.limit || '20');
+    const skip = (page - 1) * limit;
+    const where: any = {};
+    if (query.city) where.city = { contains: query.city, mode: 'insensitive' };
 
-  async getActiveForCurrentLocation(lat: number, lng: number) {
+    const [data, total] = await Promise.all([
+      prisma.treasureHunt.findMany({ where, skip, take: limit, include: { _count: { select: { riddles: true } } }, orderBy: { createdAt: 'desc' } }),
+      prisma.treasureHunt.count({ where }),
+    ]);
+
+    return {
+      data,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit), hasNext: page * limit < total, hasPrev: page > 1 },
+    };
+  },
+
+  async listAllRiddles(query: { page?: string; limit?: string; city?: string; search?: string }) {
+    const page = parseInt(query.page || '1');
+    const limit = parseInt(query.limit || '20');
+    const skip = (page - 1) * limit;
+    const where: any = {};
+    if (query.city) where.city = { contains: query.city, mode: 'insensitive' };
+    if (query.search) {
+      where.OR = [
+        { clueEnglish: { contains: query.search, mode: 'insensitive' } },
+        { clueHindi: { contains: query.search, mode: 'insensitive' } },
+        { answerEnglish: { contains: query.search, mode: 'insensitive' } },
+        { answerHindi: { contains: query.search, mode: 'insensitive' } },
+        { city: { contains: query.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [data, total] = await Promise.all([
+      prisma.riddle.findMany({ where, skip, take: limit, orderBy: [{ city: 'asc' }, { sequence: 'asc' }] }),
+      prisma.riddle.count({ where }),
+    ]);
+
+    return {
+      data,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit), hasNext: page * limit < total, hasPrev: page > 1 },
+    };
+  },
+
+  async deleteHunt(id: string) {
+    const hunt = await prisma.treasureHunt.findUnique({ where: { id } });
+    if (!hunt) throw new ApiError(404, 'Hunt not found');
+    return prisma.treasureHunt.delete({ where: { id } });
+  },
+
+  // ──────────────── ADMIN DASHBOARD ────────────────
+  async getOverview() {
+    const [totalHunts, activeHunts, totalCities, totalRiddles, totalImports, recentImports] = await Promise.all([
+      prisma.treasureHunt.count(),
+      prisma.treasureHunt.count({ where: { status: 'ACTIVE' } }),
+      prisma.riddle.groupBy({ by: ['city'] }),
+      prisma.riddle.count(),
+      prisma.treasureHuntImportLog.count(),
+      prisma.treasureHuntImportLog.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        include: { uploadedBy: { select: { id: true, name: true, email: true } } },
+      }),
+    ]);
+
+    return {
+      stats: {
+        totalHunts,
+        activeHunts,
+        totalCities: totalCities.length,
+        totalRiddles,
+        totalImports,
+      },
+      recentImports,
+    };
+  },
+
+  async getCities() {
+    const cities = await prisma.riddle.groupBy({
+      by: ['city'],
+      _count: { _all: true },
+    });
+
+    const hunts = await prisma.treasureHunt.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, city: true, title: true, status: true, updatedAt: true, createdAt: true },
+    });
+
+    const huntByCity = new Map<string, (typeof hunts)[number]>();
+    for (const hunt of hunts) huntByCity.set(canonicalCityKey(hunt.city), hunt);
+
+    return cities
+      .map((c) => {
+        const hunt = huntByCity.get(canonicalCityKey(c.city));
+        return {
+          city: c.city,
+          riddleCount: c._count._all,
+          huntId: hunt?.id ?? null,
+          title: hunt?.title ?? null,
+          status: hunt?.status ?? 'NO_HUNT',
+          lastUpdatedAt: hunt?.updatedAt ?? null,
+        };
+      })
+      .sort((a, b) => b.riddleCount - a.riddleCount);
+  },
+
+  async listImportHistory(query: { page?: string; limit?: string }) {
+    const page = parseInt(query.page || '1');
+    const limit = parseInt(query.limit || '20');
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      prisma.treasureHuntImportLog.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: { uploadedBy: { select: { id: true, name: true, email: true } } },
+      }),
+      prisma.treasureHuntImportLog.count(),
+    ]);
+
+    return {
+      data,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit), hasNext: page * limit < total, hasPrev: page > 1 },
+    };
+  },
+
+  // ──────────────── USER GAMEPLAY ────────────────
+
+  /** Resolve the user's city from GPS and verify they may play this hunt. */
+  async verifyHuntCity(huntCity: string, lat: number, lng: number): Promise<string> {
+    const currentCity = await reverseGeocodeToCity(lat, lng);
+    if (!currentCity) {
+      throw new ApiError(400, 'We couldn\'t determine your current city. Please try again.', true, 'CITY_RESOLUTION_FAILED');
+    }
+    if (canonicalCityKey(currentCity) !== canonicalCityKey(huntCity)) {
+      throw new ApiError(
+        403,
+        `Hunt unavailable. Treasure Hunts can only be played in the city you're currently visiting. You're currently in ${cityDisplayName(currentCity)}.`,
+        true,
+        'TREASURE_HUNT_CITY_MISMATCH'
+      );
+    }
+    return currentCity;
+  },
+
+  /** Get the current hunt available in the user's GPS city (no riddles/clues exposed). */
+  async getCurrentCityHunt(lat: number, lng: number) {
     const currentCity = await reverseGeocodeToCity(lat, lng);
     if (!currentCity) {
       throw new ApiError(400, 'We couldn\'t determine your current city. Please try again.', true, 'CITY_RESOLUTION_FAILED');
     }
 
-    const now = new Date();
-    const riddles = await prisma.riddle.findMany({
-      where: {
-        city: { in: await this.aliasesOfStoredCity(currentCity) },
-        isActive: true,
-        startsAt: { lte: now },
-        OR: [{ endsAt: null }, { endsAt: { gte: now } }],
-        correctLat: { not: null }, // Must be resolvable
-        correctLng: { not: null },
+    const hunt = await prisma.treasureHunt.findFirst({
+      where: { city: { equals: canonicalCityKey(currentCity), mode: 'insensitive' }, status: 'ACTIVE' },
+      include: { _count: { select: { riddles: true } } },
+    });
+
+    if (!hunt || hunt._count.riddles === 0) {
+      return { city: cityDisplayName(currentCity), hunt: null };
+    }
+
+    return {
+      city: cityDisplayName(currentCity),
+      hunt: {
+        id: hunt.id,
+        city: hunt.city,
+        title: hunt.title,
+        description: hunt.description,
+        rewardCoins: hunt.rewardCoins,
+        status: hunt.status,
+        riddleCount: hunt._count.riddles,
       },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-      select: {
-        id: true,
-        title: true,
-        clue: true,
-        city: true,
-        rewardPoints: true,
-        startsAt: true,
-        endsAt: true,
-        createdAt: true,
-        hintImage: true,
-      },
-    });
-
-    // Remove hintImage to enforce Phase 20 (Hint endpoint)
-    const mappedRiddles = riddles.map(r => {
-      const { hintImage, ...rest } = r;
-      return { ...rest, hasHint: !!hintImage };
-    });
-
-    return { city: cityDisplayName(currentCity), riddles: mappedRiddles };
+    };
   },
 
-  /**
-   * All canonical spellings currently stored for the city the user is in —
-   * "Delhi" and "New Delhi" must resolve to the same hunt list.
-   *
-   * Returns the RAW stored spellings (plus the canonical display form of the
-   * resolved city) so the `city IN [...]` filter matches rows regardless of the
-   * spelling an admin originally stored.
-   */
-  async aliasesOfStoredCity(city: string): Promise<string[]> {
-    const key = canonicalCityKey(city);
-    const stored = await prisma.riddle.findMany({
-      where: { isActive: true },
-      distinct: ['city'],
-      select: { city: true },
-    });
-    const matches = stored
-      .map((s) => s.city)
-      .filter((c) => canonicalCityKey(c) === key);
-    return Array.from(new Set([cityDisplayName(city), ...matches]));
-  },
-
-  async getByIdUser(id: string, lat: number, lng: number) {
-    const currentCity = await reverseGeocodeToCity(lat, lng);
-    const riddle = await prisma.riddle.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        title: true,
-        clue: true,
-        city: true,
-        rewardPoints: true,
-        startsAt: true,
-        endsAt: true,
-        isActive: true,
-        hintImage: true,
-      },
-    });
-
-    if (!riddle) throw new ApiError(404, 'Riddle not found', true, 'RIDDLE_NOT_FOUND');
-    if (!currentCity || !cityKeyEquals(currentCity, riddle.city)) {
-      throw new ApiError(403, `This riddle is in ${riddle.city}, but you are in ${currentCity || 'an unknown location'}.`, true, 'TREASURE_HUNT_CITY_MISMATCH');
-    }
-
-    const { hintImage, ...rest } = riddle;
-    return { ...rest, city: cityDisplayName(riddle.city), hasHint: !!hintImage };
-  },
-
-  async getHint(id: string, lat: number, lng: number) {
-    const currentCity = await reverseGeocodeToCity(lat, lng);
-    const riddle = await prisma.riddle.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        city: true,
-        hintImage: true,
-        isActive: true,
-      },
-    });
-
-    if (!riddle) throw new ApiError(404, 'Riddle not found', true, 'RIDDLE_NOT_FOUND');
-    if (!currentCity || !cityKeyEquals(currentCity, riddle.city)) {
-      throw new ApiError(403, `This riddle is in ${riddle.city}, but you are in ${currentCity || 'an unknown location'}.`, true, 'TREASURE_HUNT_CITY_MISMATCH');
-    }
-
-    return { hintImage: riddle.hintImage };
-  },
-
-  async validateCheckIn(riddleId: string, userLat: number, userLng: number) {
-    if (!Number.isFinite(userLat) || !Number.isFinite(userLng)) {
-      throw new ApiError(400, 'Invalid GPS coordinates');
-    }
-
-    const riddle = await prisma.riddle.findUnique({ where: { id: riddleId } });
-    if (!riddle) throw new ApiError(404, 'Riddle not found');
-    if (!riddle.isActive) throw new ApiError(400, 'This riddle is no longer active');
-    if (!riddle.correctLat || !riddle.correctLng) throw new ApiError(500, 'Riddle destination is missing');
-
-    const currentCity = await reverseGeocodeToCity(userLat, userLng);
-    if (!currentCity || !cityKeyEquals(currentCity, riddle.city)) {
-      throw new ApiError(403, `You are not in ${riddle.city}. Check-in denied.`);
-    }
-
-    const distanceMeters = haversineDistance(userLat, userLng, riddle.correctLat, riddle.correctLng);
-    const allowed = distanceMeters <= CHECK_IN_RADIUS_METERS;
-
-    return { allowed, distanceMeters };
-  },
-
-  async submit(riddleId: string, userId: string, photoUrl: string, userLat: number, userLng: number) {
-    // 1. Re-validate Check-in on final submit
-    const check = await this.validateCheckIn(riddleId, userLat, userLng);
-    if (!check.allowed) {
-      throw new ApiError(400, `You are too far away (${check.distanceMeters}m). Get closer to submit!`);
-    }
-
-    // 2. Prevent duplicate submission
-    const existing = await prisma.riddleSubmission.findUnique({
-      where: { riddleId_userId: { riddleId, userId } },
-    });
-    if (existing) throw new ApiError(409, 'You have already submitted an answer for this riddle');
-
-    // 3. Save as PENDING
-    try {
-      return await prisma.riddleSubmission.create({
-        data: { riddleId, userId, photoUrl },
-      });
-    } catch (err: any) {
-      // Race between the pre-check and the unique index @@unique([riddleId, userId])
-      // → surface a clean 409 instead of a generic 500.
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-        throw new ApiError(409, 'You have already submitted an answer for this riddle');
-      }
-      throw err;
-    }
-  },
-
-  async getMySubmissions(userId: string) {
-    return prisma.riddleSubmission.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
+  async getHuntDetails(huntId: string, lat: number, lng: number, userId: string) {
+    const hunt = await prisma.treasureHunt.findUnique({
+      where: { id: huntId },
       include: {
-        riddle: {
-          select: { id: true, title: true, clue: true, city: true, rewardPoints: true },
-        },
-      },
+        riddles: {
+          orderBy: { sequence: 'asc' },
+          select: { id: true, sequence: true, rewardCoins: true } // EXCLUDE CLUES AND ANSWERS
+        }
+      }
     });
+    if (!hunt) throw new ApiError(404, 'Hunt not found');
+
+    // Backend city gate: reject hunts outside the user's current GPS city.
+    await this.verifyHuntCity(hunt.city, lat, lng);
+
+    const progress = await prisma.treasureHuntProgress.findUnique({
+      where: { userId_huntId: { userId, huntId } },
+      select: { currentRiddleId: true, isCompleted: true, coinsEarned: true, startedAt: true, completedAt: true },
+    });
+
+    return {
+      id: hunt.id,
+      city: hunt.city,
+      title: hunt.title,
+      description: hunt.description,
+      rewardCoins: hunt.rewardCoins,
+      status: hunt.status,
+      riddles: hunt.riddles,
+      myProgress: progress,
+    };
   },
 
-  async getMySubmission(riddleId: string, userId: string) {
-    return prisma.riddleSubmission.findUnique({
-      where: { riddleId_userId: { riddleId, userId } },
-      select: { id: true, status: true, photoUrl: true, adminComment: true, pointsAwarded: true, createdAt: true, reviewedAt: true },
+  async getRiddle(huntId: string, riddleId: string, lat: number, lng: number) {
+    const hunt = await prisma.treasureHunt.findUnique({
+      where: { id: huntId },
+      select: { id: true, city: true },
     });
+    if (!hunt) throw new ApiError(404, 'Hunt not found');
+
+    // Backend city gate: reject riddles from hunts outside the user's GPS city.
+    await this.verifyHuntCity(hunt.city, lat, lng);
+
+    const riddle = await prisma.riddle.findFirst({
+      where: { id: riddleId, huntId },
+      select: { id: true, huntId: true, sequence: true, rewardCoins: true, clueEnglish: true, clueHindi: true }
+    });
+    if (!riddle) throw new ApiError(404, 'Riddle not found');
+    return riddle;
   },
+
+  /** Normalize answer string for comparison */
+  normalizeAnswer(answer: string) {
+    return answer.toLowerCase().replace(/[\s_.-]+/g, ' ').trim();
+  },
+
+  async submitAnswer(
+    huntId: string,
+    riddleId: string,
+    userId: string,
+    answer: string,
+    language: 'en' | 'hi' | undefined,
+    lat: number,
+    lng: number,
+  ) {
+    const hunt = await prisma.treasureHunt.findUnique({
+      where: { id: huntId },
+      include: { riddles: { orderBy: { sequence: 'asc' } } },
+    });
+    if (!hunt) throw new ApiError(404, 'Hunt not found');
+
+    // Backend city gate: a user may only answer riddles of the hunt in their
+    // current GPS city, regardless of what the client requested.
+    await this.verifyHuntCity(hunt.city, lat, lng);
+
+    const riddle = hunt.riddles.find((r) => r.id === riddleId);
+    if (!riddle) throw new ApiError(404, 'Riddle not found');
+
+    // Order enforcement: users must solve the current riddle first (prevents
+    // skipping ahead or re-answering out-of-sequence riddles via the API).
+    const progress = await prisma.treasureHuntProgress.findUnique({
+      where: { userId_huntId: { userId, huntId } },
+    });
+
+    if (progress) {
+      if (!progress.isCompleted && progress.currentRiddleId && progress.currentRiddleId !== riddleId) {
+        throw new ApiError(409, 'Please solve the current riddle first before moving ahead.', true, 'RIDDLE_OUT_OF_ORDER');
+      }
+    } else if (hunt.riddles[0] && hunt.riddles[0].id !== riddleId) {
+      throw new ApiError(409, 'Please start the hunt from the first riddle.', true, 'RIDDLE_OUT_OF_ORDER');
+    }
+
+    // 1. Check answer against the selected language only (never mix languages).
+    const normalizedInput = this.normalizeAnswer(answer);
+    const normalizedEnglish = this.normalizeAnswer(riddle.answerEnglish);
+    const normalizedHindi = this.normalizeAnswer(riddle.answerHindi);
+    const isCorrect =
+      language === 'hi'
+        ? normalizedInput === normalizedHindi
+        : language === 'en'
+          ? normalizedInput === normalizedEnglish
+          : normalizedInput === normalizedEnglish || normalizedInput === normalizedHindi;
+
+    // 2. Prevent duplicate rewards (transaction)
+    let rewardCoins = 0;
+    let huntCompleteReward = 0;
+    let nextRiddle: { id: string; sequence: number } | null = null;
+    let huntCompleted = false;
+
+    const currentIndex = hunt.riddles.findIndex((r) => r.id === riddleId);
+    if (currentIndex < hunt.riddles.length - 1) {
+      const n = hunt.riddles[currentIndex + 1];
+      nextRiddle = { id: n.id, sequence: n.sequence }; // clue hidden until it is the active riddle
+    } else {
+      huntCompleted = true;
+    }
+
+    if (isCorrect) {
+      await prisma.$transaction(async (tx) => {
+        const existingProgress = await tx.riddleProgress.findUnique({
+          where: { userId_riddleId: { userId, riddleId } }
+        });
+
+        if (existingProgress?.isCorrect) {
+          // Already solved before, no coins
+          return;
+        }
+
+        rewardCoins = riddle.rewardCoins;
+
+        await tx.riddleProgress.upsert({
+          where: { userId_riddleId: { userId, riddleId } },
+          create: { userId, huntId, riddleId, attempts: 1, isCorrect: true, coinsEarned: rewardCoins, completedAt: new Date() },
+          update: { attempts: { increment: 1 }, isCorrect: true, coinsEarned: rewardCoins, completedAt: new Date() }
+        });
+
+        // Award riddle coins (idempotent via referenceId + type)
+        await walletService.earn(userId, rewardCoins, 'game_complete', riddleId, 'RIDDLE', undefined, tx);
+
+        let huntProgress = await tx.treasureHuntProgress.findUnique({
+          where: { userId_huntId: { userId, huntId } }
+        });
+
+        if (!huntProgress) {
+          huntProgress = await tx.treasureHuntProgress.create({
+            data: { userId, huntId, currentRiddleId: nextRiddle?.id, coinsEarned: rewardCoins }
+          });
+        } else {
+          await tx.treasureHuntProgress.update({
+            where: { userId_huntId: { userId, huntId } },
+            data: { currentRiddleId: nextRiddle?.id, coinsEarned: { increment: rewardCoins } }
+          });
+        }
+
+        if (huntCompleted && !huntProgress.isCompleted) {
+          huntCompleteReward = hunt.rewardCoins;
+          await tx.treasureHuntProgress.update({
+            where: { userId_huntId: { userId, huntId } },
+            data: { isCompleted: true, completedAt: new Date(), coinsEarned: { increment: huntCompleteReward } }
+          });
+          await walletService.earn(userId, huntCompleteReward, 'hunt_complete', huntId, 'TREASURE_HUNT', undefined, tx);
+        }
+      });
+    } else {
+      // Record wrong attempt
+      await prisma.riddleProgress.upsert({
+        where: { userId_riddleId: { userId, riddleId } },
+        create: { userId, huntId, riddleId, attempts: 1 },
+        update: { attempts: { increment: 1 } }
+      });
+    }
+
+    return {
+      correct: isCorrect,
+      rewardCoins,
+      huntCompleteReward,
+      nextRiddle,
+      huntCompleted
+    };
+  },
+
+  async getMyHuntProgress(userId: string) {
+    return prisma.treasureHuntProgress.findMany({
+      where: { userId },
+      include: {
+        hunt: { include: { _count: { select: { riddles: true } } } },
+      },
+      orderBy: { startedAt: 'desc' },
+    });
+  }
 };
