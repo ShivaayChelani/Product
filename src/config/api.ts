@@ -19,7 +19,7 @@ export function normalizeApiV1BaseUrl(raw: string): string {
  */
 const WANT_LOCAL_API = Boolean(__DEV__ && DEV_FLAGS.USE_LOCAL_API);
 
-const REMOTE_API_URL = 'https://palsafar-api-fh7i.onrender.com/api/v1';
+const REMOTE_API_URL = 'https://product-jiet.onrender.com/api/v1';
 
 function resolveBaseUrl(): string {
   if (!WANT_LOCAL_API) {
