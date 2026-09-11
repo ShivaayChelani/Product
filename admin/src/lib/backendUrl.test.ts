@@ -7,27 +7,27 @@ import {
 
 describe("normalizeBackendApiBaseUrl", () => {
   it("appends /api/v1 when only the origin is configured", () => {
-    expect(normalizeBackendApiBaseUrl("https://palsafar-api-fh7i.onrender.com")).toBe(
-      "https://palsafar-api-fh7i.onrender.com/api/v1",
+    expect(normalizeBackendApiBaseUrl("https://product-jiet.onrender.com")).toBe(
+      "https://product-jiet.onrender.com/api/v1",
     );
   });
 
   it("keeps an existing /api/v1 suffix", () => {
     expect(
-      normalizeBackendApiBaseUrl("https://palsafar-api-fh7i.onrender.com/api/v1/"),
-    ).toBe("https://palsafar-api-fh7i.onrender.com/api/v1");
+      normalizeBackendApiBaseUrl("https://product-jiet.onrender.com/api/v1/"),
+    ).toBe("https://product-jiet.onrender.com/api/v1");
   });
 });
 
 describe("Vercel preview API isolation", () => {
   it("detects the production API host", () => {
-    expect(isProductionApiUrl("https://palsafar-api-fh7i.onrender.com/api/v1")).toBe(true);
+    expect(isProductionApiUrl("https://product-jiet.onrender.com/api/v1")).toBe(true);
     expect(isProductionApiUrl("https://palsafar-api-staging.onrender.com/api/v1")).toBe(false);
   });
 
   it("fails closed when a preview deployment points at production", () => {
     expect(() =>
-      assertPreviewApiIsolation("preview", "https://palsafar-api-fh7i.onrender.com/api/v1"),
+      assertPreviewApiIsolation("preview", "https://product-jiet.onrender.com/api/v1"),
     ).toThrow(/must not use the production/i);
   });
 
@@ -43,7 +43,7 @@ describe("Vercel preview API isolation", () => {
 
   it("does not constrain production or local environments", () => {
     expect(() =>
-      assertPreviewApiIsolation("production", "https://palsafar-api-fh7i.onrender.com/api/v1"),
+      assertPreviewApiIsolation("production", "https://product-jiet.onrender.com/api/v1"),
     ).not.toThrow();
     expect(() => assertPreviewApiIsolation(undefined, undefined)).not.toThrow();
   });

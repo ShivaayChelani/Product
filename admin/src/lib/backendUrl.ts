@@ -12,7 +12,7 @@ export function normalizeBackendApiBaseUrl(raw: string): string {
   return base;
 }
 
-export const PRODUCTION_API_HOST = "palsafar-api-fh7i.onrender.com";
+export const PRODUCTION_API_HOST = "product-jiet.onrender.com";
 
 export function isProductionApiUrl(url: string): boolean {
   try {
