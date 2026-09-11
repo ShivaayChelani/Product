@@ -298,6 +298,112 @@ describe('sequence preservation', () => {
   });
 });
 
+describe('duplicate detection', () => {
+  it('flags an exact duplicate English riddle within the same city', () => {
+    const preview = buildImportPreview(
+      makeRows([...H], [
+        validRow('Alipurduar', 'Where is the fort?', 'Answer1', 'H1', 'AH1'),
+        validRow('Alipurduar', 'Where is the fort?', 'Answer2', 'H2', 'AH2'),
+      ]),
+    );
+    expect(preview.summary).toEqual({ total: 2, valid: 1, invalid: 1, citiesCount: 1 });
+    expect(preview.data[0].status).toBe('VALID');
+    expect(preview.data[1].status).toBe('INVALID');
+    expect(preview.data[1].error).toBe('Row 3: Duplicate Riddle in English for Alipurduar.');
+  });
+
+  it('flags an English riddle duplicate that differs only by casing', () => {
+    const preview = buildImportPreview(
+      makeRows([...H], [
+        validRow('Alipurduar', 'Where Is The Fort?', 'A1', 'H1', 'AH1'),
+        validRow('Alipurduar', 'where is the fort?', 'A2', 'H2', 'AH2'),
+      ]),
+    );
+    expect(preview.data[1].status).toBe('INVALID');
+    expect(preview.data[1].error).toBe('Row 3: Duplicate Riddle in English for Alipurduar.');
+  });
+
+  it('flags an English riddle duplicate that differs only by whitespace', () => {
+    const preview = buildImportPreview(
+      makeRows([...H], [
+        validRow('Alipurduar', 'Where is the fort?', 'A1', 'H1', 'AH1'),
+        validRow('Alipurduar', 'Where  is   the   fort? ', 'A2', 'H2', 'AH2'),
+      ]),
+    );
+    expect(preview.data[1].status).toBe('INVALID');
+    expect(preview.data[1].error).toBe('Row 3: Duplicate Riddle in English for Alipurduar.');
+  });
+
+  it('flags a duplicate Hindi riddle within the same city', () => {
+    const preview = buildImportPreview(
+      makeRows([...H], [
+        validRow('Alipurduar', 'R1', 'A1', 'किला कहाँ है?', 'AH1'),
+        validRow('Alipurduar', 'R2', 'A2', 'किला कहाँ है?', 'AH2'),
+      ]),
+    );
+    expect(preview.data[1].status).toBe('INVALID');
+    expect(preview.data[1].error).toBe('Row 3: Duplicate Riddle in Hindi for Alipurduar.');
+  });
+
+  it('flags a fully duplicate row with the row-level message', () => {
+    const preview = buildImportPreview(
+      makeRows([...H], [
+        validRow('Alipurduar', 'R1', 'A1', 'H1', 'AH1'),
+        validRow('Alipurduar', 'R1', 'A1', 'H1', 'AH1'),
+      ]),
+    );
+    expect(preview.data[1].status).toBe('INVALID');
+    expect(preview.data[1].error).toBe(
+      'Row 3: Duplicate row (same city, riddle and answers as a previous row)',
+    );
+  });
+
+  it('allows the same riddle text in different cities', () => {
+    const preview = buildImportPreview(
+      makeRows([...H], [
+        validRow('Alipurduar', 'Where is the fort?', 'A1', 'H1', 'AH1'),
+        validRow('Cooch Behar', 'Where is the fort?', 'A2', 'H2', 'AH2'),
+      ]),
+    );
+    expect(preview.summary).toEqual({ total: 2, valid: 2, invalid: 0, citiesCount: 2 });
+  });
+
+  it('allows distinct riddles that share the same answer in a city (business rule)', () => {
+    const preview = buildImportPreview(
+      makeRows([...H], [
+        validRow('Alipurduar', 'Riddle one', 'Madan Mahal Fort', 'H1', 'मदन महल किला'),
+        validRow('Alipurduar', 'Riddle two', 'Madan Mahal Fort', 'H2', 'मदन महल किला'),
+      ]),
+    );
+    expect(preview.summary).toEqual({ total: 2, valid: 2, invalid: 0, citiesCount: 1 });
+  });
+
+  it('flags a duplicate riddle across grouped blank-city rows (same forward-filled city)', () => {
+    const preview = buildImportPreview(
+      makeRows([...H], [
+        validRow('Alipurduar', 'Same riddle text', 'A1', 'H1', 'AH1'),
+        validRow('', 'Another riddle', 'A2', 'H2', 'AH2'),
+        validRow('', 'Same riddle text', 'A3', 'H3', 'AH3'),
+      ]),
+    );
+    expect(preview.data.map((r) => r.city)).toEqual(['Alipurduar', 'Alipurduar', 'Alipurduar']);
+    expect(preview.data[2].status).toBe('INVALID');
+    expect(preview.data[2].error).toBe('Row 4: Duplicate Riddle in English for Alipurduar.');
+  });
+
+  it('an invalid row never registers its riddle, so a valid re-use later is not poisoned', () => {
+    const preview = buildImportPreview(
+      makeRows([...H], [
+        validRow('Alipurduar', 'Same riddle', '', 'H1', 'AH1'),
+        validRow('Alipurduar', 'Same riddle', 'A2', 'H2', 'AH2'),
+      ]),
+    );
+    expect(preview.data[0].status).toBe('INVALID');
+    expect(preview.data[0].error).toBe('Row 2: Answer in English is required');
+    expect(preview.data[1].status).toBe('VALID');
+  });
+});
+
 describe('real Excel file import', () => {
   it('successfully previews a grouped-city workbook with leading-space headers', () => {
     const buffer = workbookBufferFromAOA([

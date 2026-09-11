@@ -1372,6 +1372,19 @@ model CreatorDailyReward {
   @@map("creator_daily_rewards")
 }
 
+model DailyOpenReward {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  rewardDate String   @map("reward_date")
+  rewardType String   @default("DAILY_OPEN") @map("reward_type")
+  points     Int      @default(5)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, rewardDate, rewardType])
+  @@index([userId, rewardDate])
+  @@map("daily_open_rewards")
+}
+
 model ReelComment {
   id        String   @id @default(cuid())
   reelId    String   @map("reel_id")

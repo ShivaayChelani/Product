@@ -4,6 +4,7 @@ export const EARN_REASON_MESSAGES: Record<string, string> = {
   hidden_gem: 'Your hidden gem PalPoints were added.',
   hidden_gem_merge: 'Your hidden gem update PalPoints were added.',
   daily_login: 'Daily login PalPoints added.',
+  daily_open: 'Opening PalSafar today!',
   game_complete: 'Game reward PalPoints added.',
   reel_upload: 'Thanks for uploading a reel.',
   itinerary_checkpoint: 'Itinerary checkpoint PalPoints added.',

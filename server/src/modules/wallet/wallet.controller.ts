@@ -86,4 +86,20 @@ export const walletController = {
     const result = await getDailyLoginStatus(req.user.id);
     sendSuccess(res, result);
   }),
+
+  claimDailyOpen: catchAsync(async (req: any, res: Response) => {
+    const { claimDailyOpenReward } = await import('./dailyOpenReward.service');
+    const result = await claimDailyOpenReward(req.user.id);
+    sendSuccess(res, result, {
+      message: result.alreadyClaimed
+        ? 'Already claimed today'
+        : `+${result.points} PalPoints for opening PalSafar`,
+    });
+  }),
+
+  dailyOpenStatus: catchAsync(async (req: any, res: Response) => {
+    const { getDailyOpenRewardStatus } = await import('./dailyOpenReward.service');
+    const result = await getDailyOpenRewardStatus(req.user.id);
+    sendSuccess(res, result);
+  }),
 };

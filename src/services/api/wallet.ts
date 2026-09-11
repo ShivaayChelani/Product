@@ -74,4 +74,23 @@ export const walletApi = {
     return res.data;
   },
 
+  async getDailyOpenStatus() {
+    const res = await apiClient.get<{
+      claimedToday: boolean;
+      points: number;
+      rewardDate: string;
+    }>('/wallet/daily-open/status');
+    return res.data;
+  },
+
+  async claimDailyOpen() {
+    const res = await apiClient.post<{
+      awarded: boolean;
+      alreadyClaimed: boolean;
+      points: number;
+      rewardDate: string;
+    }>('/wallet/daily-open/claim', {});
+    return res.data;
+  },
+
 };

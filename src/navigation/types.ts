@@ -25,6 +25,8 @@ export type MainTabParamList = {
   Map: {
     selectedPlaceId?: string;
     selectedPlaceKey?: number;
+    /** Map → Vendor “View on Map”: open this vendor’s detail card on the Vendors layer */
+    selectedVendorId?: string;
     /** Open Map on Places or Vendors layer (e.g. Home → Local Vendors) */
     initialMapTab?: 'places' | 'vendors';
     mapTabKey?: number;

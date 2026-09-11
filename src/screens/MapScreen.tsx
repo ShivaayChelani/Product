@@ -146,6 +146,7 @@ interface MapScreenProps {
   onViewItinerary?: (placeId?: string) => void;
   selectedPlaceId?: string;
   selectedPlaceKey?: number;
+  selectedVendorId?: string;
   initialMapTab?: 'places' | 'vendors';
   mapTabKey?: number;
   reviewMode?: boolean;
@@ -203,6 +204,7 @@ export default function MapScreen({
   onViewItinerary: _onViewItinerary,
   selectedPlaceId,
   selectedPlaceKey,
+  selectedVendorId,
   initialMapTab,
   mapTabKey,
   reviewMode = false,
@@ -1162,6 +1164,44 @@ setSelectedMarker(null);
     lockMapView,
   ]);
 
+  // Map → Vendor “View on Map”: open the vendor’s detail card on the Vendors layer.
+  // Gated by the routed vendor id (never a saved session) so a stale card is never
+  // resurrected; the id ref keeps it from re-firing on focus/param persistence.
+  const lastOpenedVendorKeyRef = useRef<string | null>(null);
+  const vendorAutoOpenSearchedRef = useRef(false);
+
+  useEffect(() => {
+    if (!selectedVendorId || !mapReady) return;
+    const openKey = `${selectedVendorId}:${mapTabKey ?? ''}`;
+    if (lastOpenedVendorKeyRef.current === openKey) return;
+
+    handleMapTabChange('vendors');
+
+    const fromMarkers = allVendors.find(m => m.id === selectedVendorId);
+    if (fromMarkers && isValidLatLng(fromMarkers.lat, fromMarkers.lng)) {
+      lastOpenedVendorKeyRef.current = openKey;
+      handleMarkerPress(fromMarkers);
+      postToWebView({ type: 'flyTo', lat: fromMarkers.lat, lng: fromMarkers.lng, zoom: MARKER_FOCUS_ZOOM });
+      return;
+    }
+
+    // Vendor not in the current list yet — fetch once; an allVendors change re-runs
+    // this effect and the card opens as soon as the vendor is present.
+    if (!vendorAutoOpenSearchedRef.current) {
+      vendorAutoOpenSearchedRef.current = true;
+      void fetchVendors().catch(() => undefined);
+    }
+  }, [
+    selectedVendorId,
+    mapTabKey,
+    mapReady,
+    allVendors,
+    handleMapTabChange,
+    handleMarkerPress,
+    fetchVendors,
+    postToWebView,
+  ]);
+
   // Live search suggestions from database (places + cities)
   useEffect(() => {
     const q = searchQuery.trim();
@@ -1511,7 +1551,7 @@ setSelectedMarker(null);
           if (!sessionRestoredRef.current) {
             sessionRestoredRef.current = true;
             void loadMapSession().then(session => {
-              if (session && !selectedPlaceId) {
+              if (session && !selectedPlaceId && !selectedVendorId) {
                 if (session.category) setSelectedMapCategory(session.category);
                 if (session.tab) setActiveTab(session.tab);
                 postToWebView({
@@ -1556,7 +1596,7 @@ setSelectedMarker(null);
         }
       }
     } catch { }
-  }, [markerLookup, handleMarkerPress, scheduleMapFetch, fetchMapData, fetchVendorsForViewport, activeTab, selectedVendorCategory, pushUserLocationToMap, ALLOWED_MESSAGE_TYPES, selectedPlaceId, postToWebView]);
+  }, [markerLookup, handleMarkerPress, scheduleMapFetch, fetchMapData, fetchVendorsForViewport, activeTab, selectedVendorCategory, pushUserLocationToMap, ALLOWED_MESSAGE_TYPES, selectedPlaceId, selectedVendorId, postToWebView]);
 
   useEffect(() => {
     if (mapReady || mapError) return;
@@ -1915,6 +1955,8 @@ setSelectedMarker(null);
       Alert.alert('Sign In Required', 'Create an account or sign in to review this business.');
       return;
     }
+    // Exit review-pick mode so returning to Map does not show the stale banner again.
+    navigation.setParams({ reviewMode: false });
     handleMapTabChange('vendors');
     closeSheet();
     navigation.navigate('VendorProfile', { vendorId, openReview: true });

@@ -418,8 +418,8 @@ function VendorAnalyticsWrapper({ route, navigation }: any) {
   return (
     <Screen
       onBack={() => navigation.goBack()}
-      vendorId={route.params.vendorId}
-      vendorName={route.params.vendorName}
+      vendorId={route.params?.vendorId ?? ''}
+      vendorName={route.params?.vendorName ?? ''}
     />
   );
 }
@@ -620,8 +620,8 @@ function VendorReelsWrapper({ route, navigation }: { route: RouteProp<RootStackP
   const Screen = useLazyScreen(() => require('../screens/VendorReelsScreen'));
   return (
     <Screen
-      vendorId={route.params.vendorId}
-      vendorName={route.params.vendorName}
+      vendorId={route.params?.vendorId ?? ''}
+      vendorName={route.params?.vendorName ?? ''}
       onBack={() => navigation.goBack()}
       onOpenReel={(reelId: string, extras?: { reels?: any[]; initialIndex?: number }) => {
         navigation.navigate('ReelDetail', {
@@ -657,10 +657,10 @@ function VendorProfileWrapper({ route, navigation }: { route: RouteProp<RootStac
   const Screen = useLazyScreen(() => require('../screens/VendorProfileScreen'));
   return (
     <Screen
-      vendorId={route.params.vendorId}
-      self={!!route.params.self}
-      initialTab={route.params.initialTab || 'offers'}
-      openReview={!!route.params.openReview}
+      vendorId={route.params?.vendorId ?? ''}
+      self={!!route.params?.self}
+      initialTab={route.params?.initialTab || 'offers'}
+      openReview={!!route.params?.openReview}
       onNavigate={(screen: string, params?: any) => {
         if (screen === 'goBack') navigation.goBack();
         else navigation.navigate(screen as never, params as never);

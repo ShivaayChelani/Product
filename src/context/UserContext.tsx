@@ -12,6 +12,7 @@ import { clearMonitoringUser, setMonitoringUser, trackAuthEvent, trackRoleSwitch
 import { LogoutModal } from '../components/ui/LogoutModal';
 import { clearAppCaches } from '../features/settings/utils/storageManager';
 import { applyWalletPalPoints } from '../utils/syncPalPoints';
+import { attemptDailyOpenReward } from '../services/dailyOpenReward';
 
 interface UserContextType {
   user: UserProfile;
@@ -157,6 +158,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         notificationService.syncDeviceAfterSessionRestore().catch((err) => {
         });
         void applyWalletPalPoints(setUser);
+        void attemptDailyOpenReward(setUser);
       }
       if (cancelled) return;
       setIsInitializing(false);
@@ -363,6 +365,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       if (state === 'active') {
         refreshSession().catch(() => undefined);
         void applyWalletPalPoints(setUser);
+        void attemptDailyOpenReward(setUser);
       }
     };
     const sub = AppState.addEventListener('change', onChange);

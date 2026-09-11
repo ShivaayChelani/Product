@@ -10,12 +10,17 @@ export const REQUIRED_HEADERS = [
   'Answer in Hindi',
 ] as const;
 
-export function normalizeHeader(value: unknown): string {
+/** Normalize text for comparison only (trim, BOM strip, collapse whitespace, case-fold). */
+export function normalizeForCompare(value: unknown): string {
   return String(value ?? '')
     .replace(/\uFEFF/g, '')
     .trim()
     .replace(/\s+/g, ' ')
     .toLowerCase();
+}
+
+export function normalizeHeader(value: unknown): string {
+  return normalizeForCompare(value);
 }
 
 export interface TreasureHuntImportRow {
@@ -103,7 +108,9 @@ export function buildImportPreview(rawRows: readonly (readonly unknown[])[]): Tr
   let invalidCount = 0;
   const citiesDetected = new Set<string>();
   const results: TreasureHuntImportRow[] = [];
-  const seen = new Set<string>();
+  const seenRows = new Set<string>();
+  const cityEnglishRiddles = new Map<string, Set<string>>();
+  const cityHindiRiddles = new Map<string, Set<string>>();
   let lastCity = '';
 
   for (let i = headerIndex + 1; i < rawRows.length; i++) {
@@ -158,14 +165,38 @@ export function buildImportPreview(rawRows: readonly (readonly unknown[])[]): Tr
     const answerHindi = String(answerHindiCell ?? '').trim();
 
     if (status === 'VALID') {
-      const dedupeKey = [city, clueEnglish, answerEnglish, clueHindi, answerHindi]
-        .join('|')
-        .toLowerCase();
-      if (seen.has(dedupeKey)) {
+      // Duplicate detection compares normalized values only — stored content is never rewritten.
+      const rowKey = [
+        normalizeForCompare(city),
+        normalizeForCompare(clueEnglish),
+        normalizeForCompare(answerEnglish),
+        normalizeForCompare(clueHindi),
+        normalizeForCompare(answerHindi),
+      ].join('|');
+      const enRiddleKey = normalizeForCompare(clueEnglish);
+      const hiRiddleKey = normalizeForCompare(clueHindi);
+
+      let duplicate = false;
+      if (seenRows.has(rowKey)) {
         status = 'INVALID';
         error = `Row ${excelRow}: Duplicate row (same city, riddle and answers as a previous row)`;
-      } else {
-        seen.add(dedupeKey);
+        duplicate = true;
+      } else if (cityEnglishRiddles.get(city)?.has(enRiddleKey)) {
+        status = 'INVALID';
+        error = `Row ${excelRow}: Duplicate Riddle in English for ${city}.`;
+        duplicate = true;
+      } else if (cityHindiRiddles.get(city)?.has(hiRiddleKey)) {
+        status = 'INVALID';
+        error = `Row ${excelRow}: Duplicate Riddle in Hindi for ${city}.`;
+        duplicate = true;
+      }
+
+      if (!duplicate) {
+        seenRows.add(rowKey);
+        if (!cityEnglishRiddles.has(city)) cityEnglishRiddles.set(city, new Set());
+        cityEnglishRiddles.get(city)!.add(enRiddleKey);
+        if (!cityHindiRiddles.has(city)) cityHindiRiddles.set(city, new Set());
+        cityHindiRiddles.get(city)!.add(hiRiddleKey);
       }
     }
 

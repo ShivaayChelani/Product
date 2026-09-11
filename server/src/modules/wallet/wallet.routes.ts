@@ -23,5 +23,7 @@ router.get('/leaderboard/regional', leaderboardLimiter, optionalAuth, walletCont
 router.post('/game-completion', authenticate, gameCompletionLimiter, walletController.completeGame);
 router.get('/daily-login/status', authenticate, walletController.dailyLoginStatus);
 router.post('/daily-login/claim', authenticate, walletController.claimDailyLogin);
+router.get('/daily-open/status', authenticate, walletController.dailyOpenStatus);
+router.post('/daily-open/claim', authenticate, walletController.claimDailyOpen);
 
 export default router;

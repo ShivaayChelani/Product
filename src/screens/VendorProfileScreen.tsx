@@ -287,7 +287,7 @@ export default function VendorProfileScreen({
       if (onNavigate) {
         onNavigate('MainTabs', {
           screen: 'Map',
-          params: { selectedVendorId: vendor.id, selectedPlaceKey: Date.now(), mapTab: 'vendors' },
+          params: { initialMapTab: 'vendors', mapTabKey: Date.now(), selectedVendorId: vendor.id },
         });
       }
     }
