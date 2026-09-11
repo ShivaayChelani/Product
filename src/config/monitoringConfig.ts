@@ -25,7 +25,7 @@ const local = loadLocal();
 function resolveEnvironment(): 'development' | 'staging' | 'production' {
   if (local.SENTRY_ENVIRONMENT) return local.SENTRY_ENVIRONMENT;
   if (__DEV__) {
-    return DEV_FLAGS.USE_LOCAL_API ? 'development' : 'staging';
+    return DEV_FLAGS.API_TARGET === 'local' ? 'development' : 'staging';
   }
   return 'production';
 }

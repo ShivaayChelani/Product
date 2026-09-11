@@ -12,12 +12,11 @@ export function normalizeApiV1BaseUrl(raw: string): string {
 }
 
 /**
- * Closed-beta local API selection.
- * Physical devices cannot use localhost — set DEV_FLAGS.LOCAL_API_HOST to the
- * LAN IP of the machine running the API. Emulators:
- *   Android → 10.0.2.2   |   iOS Simulator → localhost
+ * Debug-build API selection. Release builds always use the remote production
+ * API. Debug builds follow DEV_FLAGS.API_TARGET — 'local' points at the dev
+ * Express server on :3000, anything else means the live production Render API.
  */
-const WANT_LOCAL_API = Boolean(__DEV__ && DEV_FLAGS.USE_LOCAL_API);
+const WANT_LOCAL_API = Boolean(__DEV__ && DEV_FLAGS.API_TARGET === 'local');
 
 const REMOTE_API_URL = 'https://product-jiet.onrender.com/api/v1';
 
@@ -36,6 +35,13 @@ function resolveBaseUrl(): string {
 }
 
 const RESOLVED_BASE_URL = resolveBaseUrl();
+
+// Startup diagnostic (debug only): prints the exact API root this build will
+// call. Hostname/path only — never contains credentials or tokens. Helps catch
+// debug builds accidentally pointing at the local API instead of production.
+if (__DEV__) {
+  console.log(`[API] base URL: ${RESOLVED_BASE_URL}`);
+}
 
 export const API_CONFIG = {
   baseUrl: RESOLVED_BASE_URL,
