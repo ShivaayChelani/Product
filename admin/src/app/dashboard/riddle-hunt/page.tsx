@@ -5,7 +5,7 @@ import {
   MapPin, Trophy, Trash2, CheckCircle, AlertCircle,
   Puzzle, ChevronLeft, ChevronRight, UploadCloud, Search,
   Building2, History, LayoutDashboard, Eye, TrendingUp,
-  Users
+  Users, type LucideIcon
 } from "lucide-react";
 import {
   getHunts, getRiddles, deleteHunt, getTreasureOverview, getCitiesList, getImportHistory,
@@ -71,11 +71,16 @@ export default function RiddleHuntAdminPage() {
 
 function StatusBadge({ status }: { status: string }) {
   const active = status === "ACTIVE";
+  const isDeleted = status === "DELETED";
+  const className = isDeleted
+    ? "bg-red-50 text-red-700"
+    : active
+      ? "bg-emerald-50 text-emerald-700"
+      : "bg-gray-100 text-gray-600";
+  const dot = isDeleted ? "bg-red-500" : active ? "bg-emerald-500" : "bg-gray-400";
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-      active ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-600"
-    }`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${active ? "bg-emerald-500" : "bg-gray-400"}`} />
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${className}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
       {status}
     </span>
   );
@@ -104,7 +109,7 @@ function OverviewTab({ onNavigate }: { onNavigate: (t: Tab) => void }) {
 
   useEffect(() => { fetch(); }, [fetch]);
 
-  const cards = [
+  const cards: { label: string; value: number; icon: LucideIcon; color: string; title?: string }[] = [
     { label: "Active Hunts", value: stats?.activeHunts ?? 0, icon: MapPin, color: "bg-purple-50 text-purple-600" },
     { label: "Active Cities", value: stats?.activeCities ?? 0, icon: Building2, color: "bg-blue-50 text-blue-600" },
     { label: "Active Riddles", value: stats?.activeRiddles ?? 0, icon: Puzzle, color: "bg-amber-50 text-amber-600" },
@@ -112,7 +117,7 @@ function OverviewTab({ onNavigate }: { onNavigate: (t: Tab) => void }) {
     { label: "Today's Correct", value: stats?.todayCorrect ?? 0, icon: CheckCircle, color: "bg-green-50 text-green-600" },
     { label: "Today's Wrong", value: stats?.todayWrong ?? 0, icon: AlertCircle, color: "bg-rose-50 text-rose-600" },
     { label: "Today's Points", value: stats?.todayPoints ?? 0, icon: Trophy, color: "bg-yellow-50 text-yellow-600" },
-    { label: "Total Imports", value: stats?.totalImports ?? 0, icon: History, color: "bg-gray-50 text-gray-600" },
+    { label: "Total Imports (All Time)", value: stats?.totalImports ?? 0, icon: History, color: "bg-gray-50 text-gray-600", title: "All-time import records, including DELETED imports (both are shown in Import History)." },
   ];
 
   return (
@@ -132,7 +137,7 @@ function OverviewTab({ onNavigate }: { onNavigate: (t: Tab) => void }) {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-4">
         {cards.map((c) => (
-          <div key={c.label} className="bg-white rounded-xl border border-gray-200 p-5">
+          <div key={c.label} title={c.title} className="bg-white rounded-xl border border-gray-200 p-5 cursor-default">
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${c.color}`}>
               <c.icon size={18} />
             </div>
@@ -602,17 +607,18 @@ function ImportHistoryTab() {
                 <th className="px-6 py-4 font-medium">Cities</th>
                 <th className="px-6 py-4 font-medium">Status</th>
                 <th className="px-6 py-4 font-medium">Upload Date</th>
+                <th className="px-6 py-4 font-medium">Deleted</th>
                 <th className="px-6 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center text-gray-400">Loading imports...</td>
+                  <td colSpan={10} className="px-6 py-12 text-center text-gray-400">Loading imports...</td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center">
+                  <td colSpan={10} className="px-6 py-12 text-center">
                     <History className="w-12 h-12 text-gray-200 mx-auto mb-3" />
                     <p className="text-gray-500 font-medium">No imports recorded yet.</p>
                   </td>
@@ -632,6 +638,15 @@ function ImportHistoryTab() {
                     </td>
                     <td className="px-6 py-4"><StatusBadge status={log.status} /></td>
                     <td className="px-6 py-4 text-gray-400">{new Date(log.createdAt).toLocaleString()}</td>
+                    <td className="px-6 py-4 text-gray-500">
+                      {log.status === "DELETED" && log.deletedAt ? (
+                        <span className="text-red-600" title={`Deleted by ${log.deletedById ?? "unknown"}`}>
+                          {new Date(log.deletedAt).toLocaleString()}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-right">
                       <button
                         onClick={() => setDeletingLog(log)}

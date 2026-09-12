@@ -92,6 +92,7 @@ export const UNIT_TEST_FILES = [
   'src/__tests__/fee-basis.unit.test.ts',
   'src/__tests__/riddles-import.unit.test.ts',
   'src/__tests__/riddles-import-delete.unit.test.ts',
+  'src/__tests__/riddles-overview.unit.test.ts',
   'src/__tests__/riddles-scoring.unit.test.ts',
   'src/__tests__/answer-matching.unit.test.ts',
   'src/__tests__/daily-open-reward.unit.test.ts',

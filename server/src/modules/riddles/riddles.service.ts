@@ -6,7 +6,7 @@ import { reverseGeocodeToCity } from '../../shared/utils/reverseGeocode';
 import { cityDisplayName, canonicalCityKey } from '../../shared/utils/cityIdentity';
 import { validateTreasureHuntExcelFile } from './riddles-import';
 import { isAnswerMatch } from '../../shared/utils/answerMatch';
-import { TREASURE_HUNT_RIDDLE_REWARD_POINTS } from './riddles.constants';
+import { TREASURE_HUNT_RIDDLE_REWARD_POINTS, RECENT_IMPORTS_STATUS_WHERE } from './riddles.constants';
 import { getIndiaRewardDate } from '../social/creatorDailyReelReward';
 
 // ──────────────── TYPES ────────────────
@@ -263,8 +263,13 @@ export const riddlesService = {
       prisma.treasureHunt.count({ where: { status: 'ACTIVE', riddles: { some: { status: 'ACTIVE' } } } }),
       prisma.riddle.groupBy({ by: ['city'], where: { status: 'ACTIVE' } }),
       prisma.riddle.count({ where: { status: 'ACTIVE' } }),
+      // Canonical metric: ALL import records incl. DELETED (audit-preserving,
+      // matches Import History > View all). See TOTAL_IMPORTS_METRIC_DEFINITION.
       prisma.treasureHuntImportLog.count(),
       prisma.treasureHuntImportLog.findMany({
+        // Recent Imports = non-deleted only. DELETED rows stay in Import History
+        // (listImportHistory has no status filter) for the audit trail.
+        where: { status: RECENT_IMPORTS_STATUS_WHERE },
         orderBy: { createdAt: 'desc' },
         take: 5,
         include: { uploadedBy: { select: { id: true, name: true, email: true } } },
@@ -341,6 +346,8 @@ export const riddlesService = {
       .sort((a, b) => b.riddleCount - a.riddleCount);
   },
 
+  // Full audit trail: import records are never physically deleted, so this
+  // intentionally has NO status filter — DELETED logs remain visible here.
   async listImportHistory(query: { page?: string; limit?: string }) {
     const page = parseInt(query.page || '1');
     const limit = parseInt(query.limit || '20');
