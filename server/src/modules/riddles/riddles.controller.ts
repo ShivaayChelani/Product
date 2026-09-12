@@ -22,6 +22,19 @@ export const riddlesController = {
     sendSuccess(res, null, { message: 'Hunt deleted' });
   }),
 
+  deleteImport: catchAsync(async (req: any, res: Response) => {
+    const result = await riddlesService.deleteImport(req.params.importId as string, req.user.id);
+    const message =
+      result.mode === 'DELETED'
+        ? `Import "${result.fileName}" deleted (${result.riddles} riddles removed).`
+        : result.mode === 'ARCHIVED'
+          ? `Import "${result.fileName}" archived — user progress and reward history were preserved (${result.riddles} riddles deactivated).`
+          : result.alreadyDeleted
+            ? `Import "${result.fileName}" was already deleted.`
+            : `Import "${result.fileName}" had no imported content to remove.`;
+    sendSuccess(res, result, { message });
+  }),
+
   // ──────────────── Admin Excel Bulk Import ────────────────
 
   bulkImportValidate: catchAsync(async (req: any, res: Response) => {

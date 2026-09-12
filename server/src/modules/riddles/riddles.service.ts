@@ -5,6 +5,7 @@ import { logger } from '../../config/logger';
 import { reverseGeocodeToCity } from '../../shared/utils/reverseGeocode';
 import { cityDisplayName, canonicalCityKey } from '../../shared/utils/cityIdentity';
 import { validateTreasureHuntExcelFile } from './riddles-import';
+import { TREASURE_HUNT_RIDDLE_REWARD_POINTS } from './riddles.constants';
 
 export const riddlesService = {
 
@@ -22,7 +23,7 @@ export const riddlesService = {
     cities: string[];
   }) {
     const { validRows, fileName, uploadedById, totalRows, invalidRows, cities } = options;
-    let imported = 0;
+    const imported = (validRows as any[]).filter((row) => row.status === 'VALID').length;
     // Group by city
     const grouped = (validRows as any[]).reduce((acc: any, row) => {
       if (row.status !== 'VALID') return acc;
@@ -32,6 +33,21 @@ export const riddlesService = {
     }, {});
 
     const allCities = cities.length > 0 ? cities : Object.keys(grouped);
+
+    // Create the audit log FIRST so every imported riddle can record which
+    // import created it (riddles.import_log_id). This ownership link is what
+    // makes import-scoped deletion safe — no filename/timestamp guessing.
+    const importLog = await prisma.treasureHuntImportLog.create({
+      data: {
+        fileName,
+        uploadedById,
+        totalRows,
+        validRows: imported,
+        failedRows: invalidRows,
+        cities: allCities,
+        status: 'PROCESSING',
+      },
+    });
 
     for (const city of Object.keys(grouped)) {
       const hunt = await prisma.treasureHunt.upsert({
@@ -47,26 +63,20 @@ export const riddlesService = {
         huntId: hunt.id,
         city,
         sequence: i + 1,
+        rewardCoins: TREASURE_HUNT_RIDDLE_REWARD_POINTS,
         clueEnglish: row.clueEnglish,
         answerEnglish: row.answerEnglish,
         clueHindi: row.clueHindi,
         answerHindi: row.answerHindi,
+        importLogId: importLog.id,
       }));
 
       await prisma.riddle.createMany({ data: riddlesToCreate });
-      imported += riddlesToCreate.length;
     }
 
-    await prisma.treasureHuntImportLog.create({
-      data: {
-        fileName,
-        uploadedById,
-        totalRows,
-        validRows: imported,
-        failedRows: invalidRows,
-        cities: allCities,
-        status: 'COMPLETED',
-      },
+    await prisma.treasureHuntImportLog.update({
+      where: { id: importLog.id },
+      data: { status: 'COMPLETED' },
     });
 
     try {
@@ -131,6 +141,90 @@ export const riddlesService = {
     const hunt = await prisma.treasureHunt.findUnique({ where: { id } });
     if (!hunt) throw new ApiError(404, 'Hunt not found');
     return prisma.treasureHunt.delete({ where: { id } });
+  },
+
+  /**
+   * Delete ONLY the Treasure Hunt content created by a specific Excel import.
+   *
+   * Ownership is derived from the `importLogId` stamp the backend writes onto
+   * every imported riddle — never from the client, the filename, or timestamps.
+   *
+   * - If the imported content has NO user progress and NO reward/wallet
+   *   references, the riddles (and hunts left empty) are hard-deleted.
+   * - If users already played or earned from it, the riddles/hunts are
+   *   ARCHIVED (status flipped) so history, wallets and referential integrity
+   *   survive. Nothing else is touched.
+   *
+   * The import log row is always preserved and marked DELETED (audit trail).
+   * The whole operation runs in one transaction, so it is all-or-nothing.
+   */
+  async deleteImport(importId: string, deletedById: string) {
+    const log = await prisma.treasureHuntImportLog.findUnique({
+      where: { id: importId },
+      select: { id: true, fileName: true, status: true, deletedAt: true },
+    });
+    if (!log) throw new ApiError(404, 'Import record not found');
+    // Idempotent: deleting an already-deleted import is a controlled no-op.
+    if (log.deletedAt || log.status === 'DELETED') {
+      return { importId, fileName: log.fileName, alreadyDeleted: true, mode: 'NONE', hunts: 0, riddles: 0 };
+    }
+
+    const outcome = await prisma.$transaction(async (tx) => {
+      const riddles = await tx.riddle.findMany({
+        where: { importLogId: importId },
+        select: { id: true, huntId: true },
+      });
+      const riddleIds = riddles.map((r) => r.id);
+      const huntIds = [...new Set(riddles.map((r) => r.huntId))];
+
+      let mode: 'NO_CONTENT' | 'DELETED' | 'ARCHIVED' = 'NO_CONTENT';
+      if (riddleIds.length > 0) {
+        const [riddleProgressCount, huntProgressCount, walletRefCount] = await Promise.all([
+          tx.riddleProgress.count({
+            where: { OR: [{ riddleId: { in: riddleIds } }, { huntId: { in: huntIds } }] },
+          }),
+          tx.treasureHuntProgress.count({ where: { huntId: { in: huntIds } } }),
+          tx.walletTransaction.count({
+            where: {
+              OR: [
+                { referenceType: 'RIDDLE', referenceId: { in: riddleIds } },
+                { referenceType: 'TREASURE_HUNT', referenceId: { in: huntIds } },
+              ],
+            },
+          }),
+        ]);
+
+        const hasUserData = riddleProgressCount + huntProgressCount + walletRefCount > 0;
+        if (hasUserData) {
+          // Users already engaged → never destroy progress/history. Archive.
+          mode = 'ARCHIVED';
+          await tx.riddle.updateMany({ where: { id: { in: riddleIds } }, data: { status: 'ARCHIVED' } });
+          await tx.treasureHunt.updateMany({ where: { id: { in: huntIds } }, data: { status: 'ARCHIVED' } });
+        } else {
+          // Nothing references any of this content → safe to hard-delete.
+          mode = 'DELETED';
+          await tx.riddle.deleteMany({ where: { id: { in: riddleIds } } });
+          const maybeEmpty = await tx.treasureHunt.findMany({
+            where: { id: { in: huntIds } },
+            select: { id: true, _count: { select: { riddles: true } } },
+          });
+          const killHunts = maybeEmpty.filter((h) => h._count.riddles === 0).map((h) => h.id);
+          if (killHunts.length > 0) {
+            await tx.treasureHunt.deleteMany({ where: { id: { in: killHunts } } });
+          }
+        }
+      }
+
+      // Always preserve the audit record — mark it deleted, never erase it.
+      await tx.treasureHuntImportLog.update({
+        where: { id: importId },
+        data: { status: 'DELETED', deletedAt: new Date(), deletedById },
+      });
+
+      return { mode, hunts: huntIds.length, riddles: riddleIds.length };
+    });
+
+    return { importId, fileName: log.fileName, alreadyDeleted: false, ...outcome };
   },
 
   // ──────────────── ADMIN DASHBOARD ────────────────
@@ -286,7 +380,11 @@ export const riddlesService = {
       description: hunt.description,
       rewardCoins: hunt.rewardCoins,
       status: hunt.status,
-      riddles: hunt.riddles,
+      riddles: hunt.riddles.map((r) => ({
+        id: r.id,
+        sequence: r.sequence,
+        rewardCoins: TREASURE_HUNT_RIDDLE_REWARD_POINTS,
+      })),
       myProgress: progress,
     };
   },
@@ -306,7 +404,7 @@ export const riddlesService = {
       select: { id: true, huntId: true, sequence: true, rewardCoins: true, clueEnglish: true, clueHindi: true }
     });
     if (!riddle) throw new ApiError(404, 'Riddle not found');
-    return riddle;
+    return { ...riddle, rewardCoins: TREASURE_HUNT_RIDDLE_REWARD_POINTS };
   },
 
   /** Normalize answer string for comparison */
@@ -386,7 +484,9 @@ export const riddlesService = {
           return;
         }
 
-        rewardCoins = riddle.rewardCoins;
+        // Award the canonical riddle reward. The backend — not the client and
+        // not the DB column value — is the source of truth: exactly 10 points.
+        rewardCoins = TREASURE_HUNT_RIDDLE_REWARD_POINTS;
 
         await tx.riddleProgress.upsert({
           where: { userId_riddleId: { userId, riddleId } },

@@ -375,7 +375,7 @@ async function run() {
     try {
       const res = await riddlesService.submitAnswer(kolkataHuntId, createdRiddleIds[0], USER_ID, '  VICTORIA   MEMORIAL. ', 'en', KOL.lat, KOL.lng);
       assert.strictEqual(res.correct, true);
-      assert.strictEqual(res.rewardCoins, 50);
+      assert.strictEqual(res.rewardCoins, 10);
       assert.strictEqual(res.huntCompleted, false);
       assert.deepStrictEqual(res.nextRiddle, { id: createdRiddleIds[1], sequence: 2 });
 
@@ -383,7 +383,7 @@ async function run() {
         where: { userId: USER_ID, referenceId: createdRiddleIds[0], referenceType: 'RIDDLE' },
       });
       assert.strictEqual(txs.length, 1);
-      assert.strictEqual(txs[0].amount, 50);
+      assert.strictEqual(txs[0].amount, 10);
 
       // Re-answer the just-solved riddle → blocked by order guard (equally prevents double credit)
       await expectReject(
@@ -397,7 +397,7 @@ async function run() {
       });
       assert.strictEqual(txsAfter.length, 1, 'double reward credited');
 
-      console.log('✅ TEST 12: Normalized correct answer → +50 coins, re-answer blocked, single credit');
+      console.log('✅ TEST 12: Normalized correct answer → +10 coins, re-answer blocked, single credit');
       passed++;
     } catch (e: any) {
       failed++; failures.push(`TEST 12: ${e.message}`);
@@ -415,7 +415,7 @@ async function run() {
 
       const ok = await riddlesService.submitAnswer(kolkataHuntId, createdRiddleIds[1], USER_ID, 'हुगली नदी', 'hi', KOL.lat, KOL.lng);
       assert.strictEqual(ok.correct, true);
-      assert.strictEqual(ok.rewardCoins, 50);
+      assert.strictEqual(ok.rewardCoins, 10);
       assert.deepStrictEqual(ok.nextRiddle, { id: createdRiddleIds[2], sequence: 3 });
       console.log('✅ TEST 6: Hindi answers validated against answerHindi only');
       passed++;
@@ -430,7 +430,7 @@ async function run() {
     try {
       const res = await riddlesService.submitAnswer(kolkataHuntId, createdRiddleIds[2], USER_ID, 'howrah bridge', 'en', KOL.lat, KOL.lng);
       assert.strictEqual(res.correct, true);
-      assert.strictEqual(res.rewardCoins, 50);
+      assert.strictEqual(res.rewardCoins, 10);
       assert.strictEqual(res.huntCompleteReward, 150);
       assert.strictEqual(res.huntCompleted, true);
       assert.strictEqual(res.nextRiddle, null);
@@ -446,7 +446,7 @@ async function run() {
       });
       assert.strictEqual(progress!.isCompleted, true);
       assert.ok(progress!.completedAt);
-      assert.strictEqual(progress!.coinsEarned, 300); // 3 riddles x50 + 150 completion
+      assert.strictEqual(progress!.coinsEarned, 180); // 3 riddles x10 + 150 completion bonus = 180
 
       // Re-answer a solved riddle after completion → no second credit
       const again = await riddlesService.submitAnswer(kolkataHuntId, createdRiddleIds[0], USER_ID, 'Victoria Memorial', 'en', KOL.lat, KOL.lng);
@@ -461,7 +461,7 @@ async function run() {
       assert.strictEqual(myProgress.length, 1);
       assert.strictEqual(myProgress[0].hunt.city, 'Kolkata');
       assert.strictEqual(myProgress[0].isCompleted, true);
-      console.log('✅ TEST 14: Completion reward +isCompleted=300 coins, idempotent, progress reflects');
+      console.log('✅ TEST 14: Completion reward +isCompleted=180 coins (3x10 riddles + 150 bonus), idempotent, progress reflects');
       passed++;
     } catch (e: any) {
       failed++; failures.push(`TEST 14: ${e.message}`);
@@ -506,6 +506,8 @@ run().catch(async (e) => {
     await prisma.walletTransaction.deleteMany({ where: { userId: USER_ID } });
     await prisma.wallet.deleteMany({ where: { userId: USER_ID } });
     await prisma.user.deleteMany({ where: { id: { in: [ADMIN_ID, USER_ID] } } });
-  } catch {}
+  } catch {
+    /* best-effort cleanup */
+  }
   process.exit(1);
 });

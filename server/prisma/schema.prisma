@@ -68,6 +68,7 @@ model User {
   treasureHuntProgress   TreasureHuntProgress[]
   riddleProgress         RiddleProgress[]
   treasureHuntImports    TreasureHuntImportLog[]
+  treasureHuntImportsDeleted TreasureHuntImportLog[] @relation("ImportDeleter")
   rideDestinations       RideDestination[]
   rideFavorites          RideFavorite[]
   rideHistory            RideHistory[]
@@ -1485,15 +1486,19 @@ model Riddle {
   answerHindi String @map("answer_hindi")
 
   status      String   @default("ACTIVE")
-  rewardCoins Int      @default(50) @map("reward_coins")
+  rewardCoins Int      @default(10) @map("reward_coins")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  hunt     TreasureHunt     @relation(fields: [huntId], references: [id], onDelete: Cascade)
+  importLogId String? @map("import_log_id")
+
+  importLog TreasureHuntImportLog? @relation(fields: [importLogId], references: [id], onDelete: SetNull)
+  hunt     TreasureHunt          @relation(fields: [huntId], references: [id], onDelete: Cascade)
   progress RiddleProgress[]
 
   @@index([huntId])
   @@index([city])
+  @@index([importLogId])
   @@map("riddles")
 }
 
@@ -1551,7 +1556,12 @@ model TreasureHuntImportLog {
   errorMessage String?  @map("error_message")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  deletedAt   DateTime? @map("deleted_at")
+  deletedById String?   @map("deleted_by_id")
+
+  uploadedBy User    @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  deletedBy  User?   @relation("ImportDeleter", fields: [deletedById], references: [id], onDelete: SetNull)
+  riddles    Riddle[]
 
   @@index([uploadedById])
   @@index([createdAt])

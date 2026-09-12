@@ -34,6 +34,10 @@ export const locationQuerySchema = z.object({
   lng: z.string().regex(/^-?\d+(\.\d+)?$/, 'Valid lng is required'),
 });
 
+export const importIdParamsSchema = z.object({
+  importId: z.string().min(1, 'Import id is required'),
+});
+
 export type CreateTreasureHuntInput = z.infer<typeof createTreasureHuntSchema>;
 export type UpdateTreasureHuntInput = z.infer<typeof updateTreasureHuntSchema>;
 export type CreateRiddleInput = z.infer<typeof createRiddleSchema>;

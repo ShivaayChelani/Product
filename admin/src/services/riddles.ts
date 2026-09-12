@@ -38,7 +38,18 @@ export interface ImportLog {
   status: string;
   errorMessage: string | null;
   createdAt: string;
+  deletedAt?: string | null;
+  deletedById?: string | null;
   uploadedBy?: { id: string; name: string; email: string };
+}
+
+export interface ImportDeleteResult {
+  importId: string;
+  fileName: string;
+  alreadyDeleted: boolean;
+  mode: "NONE" | "NO_CONTENT" | "DELETED" | "ARCHIVED";
+  hunts: number;
+  riddles: number;
 }
 
 export interface CityRow {
@@ -71,6 +82,15 @@ export async function getRiddles(params?: {
 
 export async function deleteHunt(id: string) {
   await client.delete(`/admin/riddles/hunts/${id}`);
+}
+
+export async function deleteImport(importId: string): Promise<{
+  success: boolean;
+  message: string;
+  data: ImportDeleteResult;
+}> {
+  const res = await client.delete(`/admin/riddles/imports/${importId}`);
+  return res.data;
 }
 
 export async function getTreasureOverview() {

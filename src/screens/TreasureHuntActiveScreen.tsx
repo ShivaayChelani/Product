@@ -61,8 +61,8 @@ export default function TreasureHuntActiveScreen() {
       const riddleRes = await riddlesApi.getRiddle(huntId, targetId, pos.latitude, pos.longitude);
       setRiddle(riddleRes.data);
     } catch (err: any) {
-      const code = err?.response?.data?.code;
-      const msg = err?.response?.data?.message || 'Failed to load the riddle.';
+      const code = err?.code;
+      const msg = err?.message || 'Failed to load the riddle.';
       if (code === 'TREASURE_HUNT_CITY_MISMATCH') {
         Alert.alert('City Changed', msg, [{ text: 'OK', onPress: () => navigation.navigate('TreasureHuntLanding') }]);
       } else {
@@ -84,6 +84,7 @@ export default function TreasureHuntActiveScreen() {
   const handleSubmit = async () => {
     const trimmed = answer.trim();
     if (!trimmed || submitting) return;
+    if (!riddle) return;
     setSubmitting(true);
     setWrong(false);
     try {
@@ -93,7 +94,7 @@ export default function TreasureHuntActiveScreen() {
         setSubmitting(false);
         return;
       }
-      const res = await riddlesApi.submitAnswer(huntId, riddleId, trimmed, lang, pos.latitude, pos.longitude);
+      const res = await riddlesApi.submitAnswer(huntId, riddle.id, trimmed, lang, pos.latitude, pos.longitude);
       const data = res.data;
       if (data.correct) {
         setCelebrated({
@@ -107,8 +108,8 @@ export default function TreasureHuntActiveScreen() {
         setWrong(true);
       }
     } catch (err: any) {
-      const code = err?.response?.data?.code;
-      const msg = err?.response?.data?.message || 'Failed to submit your answer.';
+      const code = err?.code;
+      const msg = err?.message || 'Failed to submit your answer.';
       if (code === 'TREASURE_HUNT_CITY_MISMATCH') {
         Alert.alert('City Changed', msg, [{ text: 'OK', onPress: () => navigation.navigate('TreasureHuntLanding') }]);
       } else {
@@ -241,9 +242,16 @@ export default function TreasureHuntActiveScreen() {
               </Text>
               <View style={styles.overlayReward}>
                 <Icon name="logo-bitcoin" size={24} color={TH.gold} />
-                <Text style={styles.overlayRewardText}>
-                  +{celebrated.huntCompleted ? celebrated.huntCompleteReward : celebrated.rewardCoins} Coins
-                </Text>
+                <View style={styles.overlayRewardBlock}>
+                  <Text style={styles.overlayRewardText}>
+                    +{celebrated.rewardCoins} Coins
+                  </Text>
+                  {celebrated.huntCompleted && celebrated.huntCompleteReward > 0 && (
+                    <Text style={styles.overlayRewardSub}>
+                      +{celebrated.huntCompleteReward} Coins completion bonus
+                    </Text>
+                  )}
+                </View>
               </View>
               <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
                 <Text style={styles.nextBtnText}>
@@ -476,6 +484,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     marginBottom: 22,
+  },
+  overlayRewardBlock: {
+    alignItems: 'center',
+  },
+  overlayRewardSub: {
+    fontFamily: SANS_SEMI,
+    fontSize: 12,
+    color: TH.textSecondary,
+    marginTop: 2,
   },
   overlayRewardText: {
     fontFamily: SANS_BOLD,

@@ -14,6 +14,7 @@ import {
 import { getApiErrorMessage } from "@/services/client";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { ExcelImportModal } from "./ExcelImportModal";
+import ImportDeleteDialog from "./ImportDeleteDialog";
 
 type Tab = "overview" | "upload" | "hunts" | "riddles" | "cities" | "imports";
 type RiddleListParams = NonNullable<Parameters<typeof getRiddles>[0]>;
@@ -85,6 +86,8 @@ function OverviewTab({ onNavigate }: { onNavigate: (t: Tab) => void }) {
   const [recent, setRecent] = useState<ImportLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [deletingLog, setDeletingLog] = useState<ImportLog | null>(null);
 
   const fetch = useCallback(async () => {
     setLoading(true);
@@ -115,6 +118,12 @@ function OverviewTab({ onNavigate }: { onNavigate: (t: Tab) => void }) {
         <div className="p-4 bg-red-50 border border-red-100 rounded-lg flex items-center gap-3">
           <AlertCircle className="w-5 h-5 text-red-600" />
           <p className="text-sm font-medium text-red-700">{error}</p>
+        </div>
+      )}
+      {success && (
+        <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-3">
+          <CheckCircle className="w-5 h-5 text-emerald-600" />
+          <p className="text-sm font-medium text-emerald-700">{success}</p>
         </div>
       )}
 
@@ -158,11 +167,13 @@ function OverviewTab({ onNavigate }: { onNavigate: (t: Tab) => void }) {
                 <th className="px-6 py-3 font-medium">Uploaded By</th>
                 <th className="px-6 py-3 font-medium">Rows</th>
                 <th className="px-6 py-3 font-medium">Date</th>
+                <th className="px-6 py-3 font-medium">Status</th>
+                <th className="px-6 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {recent.length === 0 ? (
-                <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-400">No imports yet.</td></tr>
+                <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-400">No imports yet.</td></tr>
               ) : recent.map((log) => (
                 <tr key={log.id} className="hover:bg-gray-50">
                   <td className="px-6 py-3 font-medium text-gray-900">{log.fileName}</td>
@@ -172,12 +183,33 @@ function OverviewTab({ onNavigate }: { onNavigate: (t: Tab) => void }) {
                     {log.failedRows > 0 && <span className="text-red-600 font-medium"> / {log.failedRows} failed</span>}
                   </td>
                   <td className="px-6 py-3 text-gray-400">{new Date(log.createdAt).toLocaleString()}</td>
+                  <td className="px-6 py-3"><StatusBadge status={log.status} /></td>
+                  <td className="px-6 py-3 text-right">
+                    <button
+                      onClick={() => setDeletingLog(log)}
+                      disabled={log.status === "DELETED"}
+                      title={log.status === "DELETED" ? "This import was already deleted" : "Delete this import"}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      <ImportDeleteDialog
+        open={!!deletingLog}
+        log={deletingLog}
+        onClose={() => setDeletingLog(null)}
+        onDeleted={(_result, message) => {
+          setSuccess(message);
+          fetch();
+        }}
+      />
     </div>
   );
 }
@@ -512,6 +544,8 @@ function ImportHistoryTab() {
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [deletingLog, setDeletingLog] = useState<ImportLog | null>(null);
 
   const fetch = useCallback(async () => {
     setLoading(true);
@@ -538,6 +572,12 @@ function ImportHistoryTab() {
           <p className="text-sm font-medium text-red-700">{error}</p>
         </div>
       )}
+      {success && (
+        <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-3">
+          <CheckCircle className="w-5 h-5 text-emerald-600" />
+          <p className="text-sm font-medium text-emerald-700">{success}</p>
+        </div>
+      )}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
@@ -551,16 +591,17 @@ function ImportHistoryTab() {
                 <th className="px-6 py-4 font-medium">Cities</th>
                 <th className="px-6 py-4 font-medium">Status</th>
                 <th className="px-6 py-4 font-medium">Upload Date</th>
+                <th className="px-6 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-400">Loading imports...</td>
+                  <td colSpan={9} className="px-6 py-12 text-center text-gray-400">Loading imports...</td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center">
+                  <td colSpan={9} className="px-6 py-12 text-center">
                     <History className="w-12 h-12 text-gray-200 mx-auto mb-3" />
                     <p className="text-gray-500 font-medium">No imports recorded yet.</p>
                   </td>
@@ -580,6 +621,16 @@ function ImportHistoryTab() {
                     </td>
                     <td className="px-6 py-4"><StatusBadge status={log.status} /></td>
                     <td className="px-6 py-4 text-gray-400">{new Date(log.createdAt).toLocaleString()}</td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => setDeletingLog(log)}
+                        disabled={log.status === "DELETED"}
+                        title={log.status === "DELETED" ? "This import was already deleted" : "Delete this import"}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -588,6 +639,16 @@ function ImportHistoryTab() {
         </div>
       </div>
       <Pagination page={page} totalPages={totalPages} hasPrev={hasPrev} hasNext={hasNext} onPageChange={setPage} />
+
+      <ImportDeleteDialog
+        open={!!deletingLog}
+        log={deletingLog}
+        onClose={() => setDeletingLog(null)}
+        onDeleted={(_result, message) => {
+          setSuccess(message);
+          fetch();
+        }}
+      />
     </div>
   );
 }

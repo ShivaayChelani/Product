@@ -4,7 +4,7 @@ import { riddlesController } from './riddles.controller';
 import { authenticate, requireAdmin } from '../../middleware/auth';
 import { requireContentOps } from '../../middleware/adminCapabilities';
 import { validate } from '../../middleware/validate';
-import { submitAnswerSchema, locationQuerySchema } from './riddles.validation';
+import { submitAnswerSchema, locationQuerySchema, importIdParamsSchema } from './riddles.validation';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -46,6 +46,13 @@ adminRouter.post('/bulk-import/confirm', requireContentOps, riddlesController.bu
 adminRouter.get('/overview', riddlesController.getOverview);
 adminRouter.get('/cities', riddlesController.getCities);
 adminRouter.get('/import-history', riddlesController.listImportHistory);
+// Import-scoped deletion (delete/archive ONLY the content created by this import)
+adminRouter.delete(
+  '/imports/:importId',
+  requireContentOps,
+  validate(importIdParamsSchema, 'params'),
+  riddlesController.deleteImport
+);
 
 // Hunts & Riddles listing
 adminRouter.get('/hunts', riddlesController.listAllHunts);
