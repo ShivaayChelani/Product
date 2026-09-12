@@ -1,10 +1,11 @@
-import { apiClient } from './client';
+﻿import { apiClient } from './client';
 
 export interface TreasureHunt {
   id: string;
   city: string;
   title: string;
   description: string | null;
+  /** The per-riddle reward (20 pts). There is no hunt completion bonus. */
   rewardCoins: number;
   status: string;
   /** present on /active/current-location */
@@ -37,17 +38,27 @@ export interface HuntProgressInfo {
   completedAt: string | null;
 }
 
-export interface NextRiddle {
-  id: string;
-  sequence: number;
+export type DailyStatus =
+  | 'AVAILABLE'
+  | 'COMPLETED_TODAY'
+  | 'LOCKED_TODAY'
+  | 'NO_RIDDLES'
+  | 'HUNT_COMPLETE';
+
+export interface EligibleRiddleResult {
+  hunt: { id: string; city: string; title: string };
+  eligibleRiddle: { id: string; sequence: number } | null;
+  dailyStatus: DailyStatus;
 }
 
 export interface SubmitAnswerResult {
   correct: boolean;
+  /** 20 on first-time correct, 0 on wrong or duplicate */
   rewardCoins: number;
-  huntCompleteReward: number;
-  nextRiddle: NextRiddle | null;
-  huntCompleted: boolean;
+  /** true after any submission attempt (riddle locked for today) */
+  dailyLocked: boolean;
+  /** true if user already submitted today before this request */
+  alreadyAttemptedToday: boolean;
 }
 
 export interface HuntProgress {
@@ -68,6 +79,14 @@ export const riddlesApi = {
   /** Get the active hunt in the user's current GPS city */
   async getActiveForCurrentLocation(lat: number, lng: number) {
     return apiClient.get<{ city: string; hunt: TreasureHunt | null }>(`/riddles/active/current-location?lat=${lat}&lng=${lng}`);
+  },
+
+  /**
+   * Get today's eligible riddle for a hunt (daily lock + progression logic).
+   * Returns dailyStatus = 'AVAILABLE' | 'COMPLETED_TODAY' | 'LOCKED_TODAY' | ...
+   */
+  async getEligibleRiddle(huntId: string, lat: number, lng: number) {
+    return apiClient.get<EligibleRiddleResult>(`/riddles/hunt/${huntId}/eligible-riddle?lat=${lat}&lng=${lng}`);
   },
 
   /** Get hunt details (city-gated on the backend). Requires GPS coords. */

@@ -20,6 +20,9 @@ router.get('/my-progress', authenticate, riddlesController.getMyHuntProgress);
 // Get hunt details
 router.get('/hunt/:id', authenticate, validate(locationQuerySchema, 'query'), riddlesController.getHuntDetails);
 
+// Get eligible riddle for today (daily lock / progression logic)
+router.get('/hunt/:id/eligible-riddle', authenticate, validate(locationQuerySchema, 'query'), riddlesController.getEligibleRiddle);
+
 // Get riddle details
 router.get('/hunt/:huntId/riddle/:riddleId', authenticate, validate(locationQuerySchema, 'query'), riddlesController.getRiddle);
 

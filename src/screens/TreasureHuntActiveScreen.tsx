@@ -1,11 +1,13 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, ScrollView } from 'react-native';
+﻿import React, { useCallback, useEffect, useState } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity, TextInput,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Alert, ScrollView,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { riddlesApi, Riddle, TreasureHunt, NextRiddle } from '../services/api/riddles';
+import { riddlesApi, type Riddle } from '../services/api/riddles';
 import { useLocationContext } from '../context/LocationContext';
-import Animated, { FadeInUp, FadeIn, ZoomIn } from 'react-native-reanimated';
 import { TH, SERIF, SANS, SANS_BOLD, SANS_SEMI } from '../features/treasureHunt/theme';
 
 type Lang = 'en' | 'hi';
@@ -14,59 +16,53 @@ export default function TreasureHuntActiveScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { huntId, riddleId } = route.params;
+
+  // Guard params defensively
+  const huntId: string | undefined = route?.params?.huntId;
+  const riddleId: string | undefined = route?.params?.riddleId;
+
   const { effectivePosition } = useLocationContext();
 
-  const [hunt, setHunt] = useState<TreasureHunt | null>(null);
   const [riddle, setRiddle] = useState<Riddle | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [answer, setAnswer] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [lang, setLang] = useState<Lang>('en');
-  const [wrong, setWrong] = useState(false);
-
-  const [celebrated, setCelebrated] = useState<{
-    rewardCoins: number;
-    huntCompleteReward: number;
-    nextRiddle: NextRiddle | null;
-    huntCompleted: boolean;
-  } | null>(null);
 
   const loadData = useCallback(async () => {
+    if (!huntId || !riddleId) {
+      Alert.alert('Error', 'Invalid navigation parameters.', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+      return;
+    }
     setLoading(true);
-    setWrong(false);
-    setCelebrated(null);
+    setLoadError(null);
     setAnswer('');
     try {
       if (!effectivePosition) {
-        Alert.alert('Location Required', 'We need your location to verify you are in the hunt city.');
-        navigation.goBack();
+        Alert.alert('Location Required', 'We need your location to verify you are in the hunt city.', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
         return;
       }
       const pos = effectivePosition;
-      const huntRes = await riddlesApi.getHuntDetails(huntId, pos.latitude, pos.longitude);
-      setHunt(huntRes.data);
-
-      const meta = huntRes.data.riddles || [];
-      let targetId = riddleId;
-      if (riddleId === 'first') {
-        targetId = meta[0]?.id;
+      const riddleRes = await riddlesApi.getRiddle(huntId, riddleId, pos.latitude, pos.longitude);
+      const data = riddleRes?.data;
+      if (!data?.id) {
+        throw new Error('Riddle data missing from server response.');
       }
-      if (!targetId) {
-        Alert.alert('No Riddles', 'This hunt has no riddles yet. Please check back later.');
-        navigation.goBack();
-        return;
-      }
-
-      const riddleRes = await riddlesApi.getRiddle(huntId, targetId, pos.latitude, pos.longitude);
-      setRiddle(riddleRes.data);
+      setRiddle(data);
     } catch (err: any) {
       const code = err?.code;
-      const msg = err?.message || 'Failed to load the riddle.';
+      const msg = typeof err?.message === 'string' ? err.message : 'Failed to load the riddle.';
       if (code === 'TREASURE_HUNT_CITY_MISMATCH') {
-        Alert.alert('City Changed', msg, [{ text: 'OK', onPress: () => navigation.navigate('TreasureHuntLanding') }]);
+        Alert.alert('City Changed', msg, [
+          { text: 'OK', onPress: () => navigation.navigate('TreasureHuntLanding') },
+        ]);
       } else {
-        Alert.alert('Error', msg, [{ text: 'OK', onPress: () => navigation.goBack() }]);
+        setLoadError(msg);
       }
     } finally {
       setLoading(false);
@@ -83,35 +79,38 @@ export default function TreasureHuntActiveScreen() {
 
   const handleSubmit = async () => {
     const trimmed = answer.trim();
-    if (!trimmed || submitting) return;
-    if (!riddle) return;
+    if (!trimmed || submitting || !riddle?.id || !huntId) return;
     setSubmitting(true);
-    setWrong(false);
     try {
       const pos = effectivePosition;
       if (!pos) {
         Alert.alert('Location Required', 'We need your location to verify your answer.');
-        setSubmitting(false);
         return;
       }
       const res = await riddlesApi.submitAnswer(huntId, riddle.id, trimmed, lang, pos.latitude, pos.longitude);
-      const data = res.data;
-      if (data.correct) {
-        setCelebrated({
-          rewardCoins: data.rewardCoins,
-          huntCompleteReward: data.huntCompleteReward,
-          nextRiddle: data.nextRiddle,
-          huntCompleted: data.huntCompleted,
-        });
-        setAnswer('');
-      } else {
-        setWrong(true);
-      }
+      const data = res?.data;
+      const correct = data?.correct === true;
+      const rewardCoins = typeof data?.rewardCoins === 'number' ? data.rewardCoins : 0;
+
+      // Navigate to daily result screen regardless of correct/wrong
+      // The riddle is now locked for the rest of today
+      navigation.replace('TreasureHuntSuccess', {
+        huntId,
+        correct,
+        rewardCoins,
+        city: undefined,
+      });
     } catch (err: any) {
       const code = err?.code;
-      const msg = err?.message || 'Failed to submit your answer.';
+      const msg = typeof err?.message === 'string' ? err.message : 'Failed to submit your answer.';
       if (code === 'TREASURE_HUNT_CITY_MISMATCH') {
-        Alert.alert('City Changed', msg, [{ text: 'OK', onPress: () => navigation.navigate('TreasureHuntLanding') }]);
+        Alert.alert('City Changed', msg, [
+          { text: 'OK', onPress: () => navigation.navigate('TreasureHuntLanding') },
+        ]);
+      } else if (code === 'RIDDLE_OUT_OF_ORDER') {
+        Alert.alert('Riddle Mismatch', msg, [
+          { text: 'OK', onPress: () => navigation.navigate('TreasureHuntLanding') },
+        ]);
       } else {
         Alert.alert('Error', msg);
       }
@@ -120,95 +119,96 @@ export default function TreasureHuntActiveScreen() {
     }
   };
 
-  const handleNext = () => {
-    if (!celebrated) return;
-    if (celebrated.huntCompleted) {
-      navigation.replace('TreasureHuntSuccess', {
-        huntId,
-        rewardCoins: celebrated.huntCompleteReward,
-        completed: true,
-        city: hunt?.city,
-      });
-    } else if (celebrated.nextRiddle) {
-      navigation.replace('TreasureHuntActive', { huntId, riddleId: celebrated.nextRiddle.id });
-    }
-  };
-
-  if (loading || !hunt || !riddle) {
+  // ── Loading ──────────────────────────────────────────────────────────────
+  if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <View style={[styles.container, styles.center]}>
         <ActivityIndicator size="large" color={TH.brown} />
+        <Text style={styles.locatingText}>Loading today's riddle...</Text>
       </View>
     );
   }
 
-  const totalRiddles = hunt.riddles?.length || 0;
-  const progressPct = totalRiddles > 0 ? Math.min(100, (riddle.sequence / totalRiddles) * 100) : 0;
+  // ── Load error ───────────────────────────────────────────────────────────
+  if (loadError || !riddle) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <Icon name="alert-circle-outline" size={44} color={TH.gold} style={{ marginBottom: 16 }} />
+        <Text style={styles.errorTitle}>Couldn't load riddle</Text>
+        <Text style={styles.errorText}>{loadError || 'Unknown error. Please try again.'}</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={loadData}>
+          <Text style={styles.retryBtnText}>Try Again</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backLink} onPress={() => navigation.goBack()}>
+          <Text style={styles.backLinkText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // ── Main riddle UI ───────────────────────────────────────────────────────
+  const clueText = lang === 'hi' ? (riddle.clueHindi ?? '') : (riddle.clueEnglish ?? '');
 
   return (
-    <KeyboardAvoidingView style={styles.flex1} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView
+      style={styles.flex1}
+      behavior={Platform.OS === 'ios' ? 'padding' : (Platform.Version as number) >= 35 ? 'height' : undefined}
+    >
       <View style={styles.container}>
         <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-            <Icon name="close" size={24} color={TH.text} />
+            <Icon name="chevron-back" size={26} color={TH.text} />
           </TouchableOpacity>
-          <View style={styles.progressContainer}>
-            <Text style={styles.progressText}>
-              Riddle {riddle.sequence} of {totalRiddles}
-            </Text>
-            <View style={styles.progressBarBg}>
-              <Animated.View style={[styles.progressBarFill, { width: `${progressPct}%` }]} />
-            </View>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Treasure Hunt</Text>
+            <Text style={styles.headerSub}>Daily Challenge</Text>
           </View>
-          <TouchableOpacity style={styles.iconBtn}>
-            <Icon name="help-circle-outline" size={22} color={TH.textMuted} />
-          </TouchableOpacity>
+          <View style={styles.iconBtn} />
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Animated.View entering={FadeInUp.duration(400).springify()} style={styles.card}>
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {/* Riddle card */}
+          <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Icon name="extension-puzzle" size={22} color={TH.gold} />
               <Text style={styles.cardTitle}>Solve the Clue</Text>
             </View>
             <View style={styles.divider} />
-            <Text style={styles.clueText}>{lang === 'en' ? riddle.clueEnglish : riddle.clueHindi}</Text>
-          </Animated.View>
+            <Text style={styles.clueText}>{clueText}</Text>
+          </View>
 
+          {/* Language toggle */}
           <View style={styles.langToggle}>
             <TouchableOpacity
               style={[styles.langOption, lang === 'en' && styles.langOptionActive]}
-              onPress={handleToggleLang}
+              onPress={() => setLang('en')}
             >
               <Text style={[styles.langOptionText, lang === 'en' && styles.langOptionTextActive]}>English</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.langOption, lang === 'hi' && styles.langOptionActive]}
-              onPress={handleToggleLang}
+              onPress={() => setLang('hi')}
             >
               <Text style={[styles.langOptionText, lang === 'hi' && styles.langOptionTextActive]}>हिंदी</Text>
             </TouchableOpacity>
           </View>
 
-          <Animated.View entering={FadeInUp.delay(150).duration(400).springify()} style={styles.inputCard}>
-            <Text style={styles.inputLabel}>Your Answer</Text>
+          {/* Answer input */}
+          <View style={styles.inputCard}>
+            <Text style={styles.inputLabel}>Enter the name of the place.</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter your answer..."
+              placeholder="Your answer..."
               placeholderTextColor={TH.textMuted}
               value={answer}
-              onChangeText={(t) => { setAnswer(t); setWrong(false); }}
+              onChangeText={setAnswer}
               returnKeyType="send"
               onSubmitEditing={handleSubmit}
-              autoCapitalize="none"
+              autoCapitalize="words"
               autoCorrect={false}
+              editable={!submitting}
             />
-            {wrong && (
-              <Animated.View entering={FadeIn.duration(250)} style={styles.wrongRow}>
-                <Text style={styles.wrongText}>❌ Not quite! Try again.</Text>
-              </Animated.View>
-            )}
-          </Animated.View>
+          </View>
         </ScrollView>
 
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
@@ -227,41 +227,6 @@ export default function TreasureHuntActiveScreen() {
             )}
           </TouchableOpacity>
         </View>
-
-        {celebrated && (
-          <View style={styles.overlay}>
-            <View style={styles.overlayCard}>
-              <View style={styles.overlayBadge}>
-                <View style={styles.overlayCircle}>
-                  <Icon name="sparkles" size={40} color={TH.brownDark} />
-                </View>
-              </View>
-              <Text style={styles.overlayTitle}>✨ CORRECT! ✨</Text>
-              <Text style={styles.overlaySubtitle}>
-                {celebrated.huntCompleted ? 'You solved every clue!' : 'You solved the clue!'}
-              </Text>
-              <View style={styles.overlayReward}>
-                <Icon name="logo-bitcoin" size={24} color={TH.gold} />
-                <View style={styles.overlayRewardBlock}>
-                  <Text style={styles.overlayRewardText}>
-                    +{celebrated.rewardCoins} Coins
-                  </Text>
-                  {celebrated.huntCompleted && celebrated.huntCompleteReward > 0 && (
-                    <Text style={styles.overlayRewardSub}>
-                      +{celebrated.huntCompleteReward} Coins completion bonus
-                    </Text>
-                  )}
-                </View>
-              </View>
-              <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
-                <Text style={styles.nextBtnText}>
-                  {celebrated.huntCompleted ? 'See Results' : 'Next Riddle'}
-                </Text>
-                <Icon name="arrow-forward" size={18} color="#FFF" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -269,10 +234,9 @@ export default function TreasureHuntActiveScreen() {
 
 const styles = StyleSheet.create({
   flex1: { flex: 1 },
-  container: {
-    flex: 1,
-    backgroundColor: TH.bg,
-  },
+  center: { justifyContent: 'center', alignItems: 'center', padding: 24 },
+  container: { flex: 1, backgroundColor: TH.bg },
+  scroll: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -286,29 +250,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  progressContainer: {
-    flex: 1,
-    marginHorizontal: 12,
-    alignItems: 'center',
-  },
-  progressText: {
-    fontFamily: SANS_BOLD,
-    fontSize: 12,
-    color: TH.brown,
-    marginBottom: 6,
-  },
-  progressBarBg: {
-    height: 6,
-    width: '100%',
-    backgroundColor: TH.border,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: TH.brown,
-    borderRadius: 3,
-  },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  headerTitle: { fontFamily: SANS_BOLD, fontSize: 16, color: TH.text },
+  headerSub: { fontFamily: SANS, fontSize: 11, color: TH.textSecondary, marginTop: 1 },
   content: {
     paddingHorizontal: 20,
     paddingTop: 12,
@@ -323,29 +267,10 @@ const styles = StyleSheet.create({
     ...TH.shadow,
     marginBottom: 16,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  cardTitle: {
-    fontFamily: SANS_BOLD,
-    fontSize: 16,
-    color: TH.text,
-    marginLeft: 10,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: TH.border,
-    marginBottom: 20,
-  },
-  clueText: {
-    fontFamily: SERIF,
-    fontSize: 22,
-    lineHeight: 32,
-    color: TH.text,
-    textAlign: 'center',
-  },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  cardTitle: { fontFamily: SANS_BOLD, fontSize: 16, color: TH.text, marginLeft: 10 },
+  divider: { height: 1, backgroundColor: TH.border, marginBottom: 20 },
+  clueText: { fontFamily: SERIF, fontSize: 22, lineHeight: 32, color: TH.text, textAlign: 'center' },
   langToggle: {
     flexDirection: 'row',
     alignSelf: 'center',
@@ -354,23 +279,10 @@ const styles = StyleSheet.create({
     padding: 3,
     marginBottom: 16,
   },
-  langOption: {
-    paddingVertical: 7,
-    paddingHorizontal: 18,
-    borderRadius: 8,
-  },
-  langOptionActive: {
-    backgroundColor: TH.card,
-    ...TH.shadow,
-  },
-  langOptionText: {
-    fontFamily: SANS_SEMI,
-    fontSize: 12,
-    color: TH.textSecondary,
-  },
-  langOptionTextActive: {
-    color: TH.brown,
-  },
+  langOption: { paddingVertical: 7, paddingHorizontal: 18, borderRadius: 8 },
+  langOptionActive: { backgroundColor: TH.card, ...TH.shadow },
+  langOptionText: { fontFamily: SANS_SEMI, fontSize: 12, color: TH.textSecondary },
+  langOptionTextActive: { color: TH.brown },
   inputCard: {
     backgroundColor: TH.card,
     borderRadius: 16,
@@ -378,12 +290,7 @@ const styles = StyleSheet.create({
     borderColor: TH.border,
     padding: 18,
   },
-  inputLabel: {
-    fontFamily: SANS_BOLD,
-    fontSize: 13,
-    color: TH.brown,
-    marginBottom: 12,
-  },
+  inputLabel: { fontFamily: SANS_BOLD, fontSize: 13, color: TH.brown, marginBottom: 12 },
   input: {
     backgroundColor: TH.bg,
     borderWidth: 1,
@@ -394,19 +301,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: TH.text,
     fontFamily: SANS,
-  },
-  wrongRow: {
-    marginTop: 12,
-    backgroundColor: TH.cream,
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  wrongText: {
-    fontFamily: SANS_SEMI,
-    fontSize: 13,
-    color: '#B3261E',
-    textAlign: 'center',
   },
   footer: {
     paddingHorizontal: 20,
@@ -423,96 +317,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...TH.shadow,
   },
-  submitBtnDisabled: {
-    backgroundColor: TH.textMuted,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  submitBtnText: {
-    fontFamily: SANS_BOLD,
-    color: '#FFF',
-    fontSize: 16,
-    marginRight: 8,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(252, 249, 242, 0.96)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 28,
-  },
-  overlayCard: {
-    width: '100%',
-    backgroundColor: TH.card,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: TH.border,
-    padding: 28,
-    alignItems: 'center',
-    ...TH.shadow,
-  },
-  overlayBadge: {
-    marginBottom: 16,
-  },
-  overlayCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: TH.gold,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  overlayTitle: {
-    fontFamily: SERIF,
-    fontSize: 28,
-    color: TH.text,
-    marginBottom: 8,
-  },
-  overlaySubtitle: {
-    fontFamily: SANS,
-    fontSize: 14,
-    color: TH.textSecondary,
-    marginBottom: 18,
-  },
-  overlayReward: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: TH.cream,
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginBottom: 22,
-  },
-  overlayRewardBlock: {
-    alignItems: 'center',
-  },
-  overlayRewardSub: {
-    fontFamily: SANS_SEMI,
-    fontSize: 12,
-    color: TH.textSecondary,
-    marginTop: 2,
-  },
-  overlayRewardText: {
-    fontFamily: SANS_BOLD,
-    fontSize: 20,
-    color: TH.text,
-  },
-  nextBtn: {
+  submitBtnDisabled: { backgroundColor: TH.textMuted, shadowOpacity: 0, elevation: 0 },
+  submitBtnText: { fontFamily: SANS_BOLD, color: '#FFF', fontSize: 16, marginRight: 8 },
+  locatingText: { fontFamily: SANS, fontSize: 14, color: TH.textSecondary, marginTop: 16 },
+  errorTitle: { fontFamily: SERIF, fontSize: 22, color: TH.text, textAlign: 'center', marginBottom: 8 },
+  errorText: { fontFamily: SANS, fontSize: 13, color: TH.textSecondary, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  retryBtn: {
     backgroundColor: TH.brown,
     borderRadius: 14,
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    width: '100%',
+    paddingVertical: 13,
+    paddingHorizontal: 28,
+    marginBottom: 12,
   },
-  nextBtnText: {
-    fontFamily: SANS_BOLD,
-    color: '#FFF',
-    fontSize: 15,
-  },
+  retryBtnText: { fontFamily: SANS_BOLD, color: '#FFF', fontSize: 14 },
+  backLink: { paddingVertical: 8 },
+  backLinkText: { fontFamily: SANS, fontSize: 13, color: TH.textSecondary, textDecorationLine: 'underline' },
 });

@@ -67,6 +67,7 @@ model User {
   rewardClaims           RewardClaim[]
   treasureHuntProgress   TreasureHuntProgress[]
   riddleProgress         RiddleProgress[]
+  riddleDailyAttempts    RiddleDailyAttempt[]
   treasureHuntImports    TreasureHuntImportLog[]
   treasureHuntImportsDeleted TreasureHuntImportLog[] @relation("ImportDeleter")
   rideDestinations       RideDestination[]
@@ -1461,7 +1462,7 @@ model TreasureHunt {
   city        String   @unique
   title       String   @default("Treasure Hunt")
   description String?
-  rewardCoins Int      @default(150) @map("reward_coins")
+  rewardCoins Int      @default(20) @map("reward_coins")
   status      String   @default("ACTIVE")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -1469,6 +1470,7 @@ model TreasureHunt {
   riddles        Riddle[]
   progress       TreasureHuntProgress[]
   riddleProgress RiddleProgress[]
+  dailyAttempts  RiddleDailyAttempt[]
 
   @@map("treasure_hunts")
 }
@@ -1495,6 +1497,7 @@ model Riddle {
   importLog TreasureHuntImportLog? @relation(fields: [importLogId], references: [id], onDelete: SetNull)
   hunt     TreasureHunt          @relation(fields: [huntId], references: [id], onDelete: Cascade)
   progress RiddleProgress[]
+  dailyAttempts RiddleDailyAttempt[]
 
   @@index([huntId])
   @@index([city])
@@ -1542,6 +1545,32 @@ model RiddleProgress {
   @@index([huntId])
   @@index([riddleId])
   @@map("riddle_progress")
+}
+
+/// Per-user per-riddle per-IST-calendar-day lock record.
+/// The UNIQUE constraint on (user_id, riddle_id, reward_date) is the
+/// race-safe arbiter: a concurrent second submission on the same day aborts
+/// on a unique violation and is reported as already-attempted.
+/// The backend always computes reward_date from IST — the client never supplies it.
+model RiddleDailyAttempt {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  riddleId   String   @map("riddle_id")
+  huntId     String   @map("hunt_id")
+  /// IST calendar date YYYY-MM-DD, server-computed via getIndiaRewardDate()
+  rewardDate String   @map("reward_date")
+  isCorrect  Boolean  @default(false) @map("is_correct")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  riddle Riddle       @relation(fields: [riddleId], references: [id], onDelete: Cascade)
+  hunt   TreasureHunt @relation(fields: [huntId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, riddleId, rewardDate], name: "riddle_daily_attempts_user_riddle_date_key")
+  @@index([userId])
+  @@index([riddleId])
+  @@index([huntId])
+  @@map("riddle_daily_attempts")
 }
 
 model TreasureHuntImportLog {

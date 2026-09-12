@@ -1,3 +1,18 @@
+﻿/**
+ * TreasureHuntSuccessScreen — Daily Result Screen
+ *
+ * Shown after the user submits their answer (correct or wrong).
+ * The riddle is now locked for the rest of today regardless of outcome.
+ *
+ * correct=true:  "+20 Points — Come back tomorrow for another riddle."
+ * correct=false: "0 Points   — Come back tomorrow to try again."
+ *
+ * IMPORTANT:
+ *  - Does NOT reveal the correct answer.
+ *  - Does NOT show a "Next Riddle" button.
+ *  - Does NOT show a completion bonus.
+ *  - Only shows "Back to Treasure Hunt".
+ */
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,56 +25,80 @@ export default function TreasureHuntSuccessScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { huntId, rewardCoins, completed, city } = route.params;
+
+  // Defensive param extraction
+  const correct: boolean = route?.params?.correct === true;
+  const rewardCoins: number =
+    typeof route?.params?.rewardCoins === 'number' ? route.params.rewardCoins : correct ? 20 : 0;
+
+  const handleBack = () => {
+    // Always navigate back to landing — never show a "next riddle" button
+    navigation.navigate('TreasureHuntLanding');
+  };
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 }]}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 },
+        ]}
+      >
+        {/* Hero icon */}
         <Animated.View entering={ZoomIn.duration(700).springify()}>
-          <View style={styles.heroCircle}>
-            <Text style={styles.heroEmoji}>🎉</Text>
+          <View style={[styles.heroCircle, correct ? styles.heroCircleCorrect : styles.heroCircleWrong]}>
+            <Text style={styles.heroEmoji}>{correct ? '✨' : '😔'}</Text>
           </View>
         </Animated.View>
 
+        {/* Title block */}
         <Animated.View entering={FadeInDown.delay(250).duration(600)} style={styles.textBlock}>
-          <Text style={styles.title}>TREASURE FOUND!</Text>
-          <Text style={styles.bigTitle}>🎉 Congratulations!</Text>
+          <Text style={styles.title}>{correct ? 'CORRECT!' : 'NOT QUITE!'}</Text>
+          <Text style={styles.bigTitle}>
+            {correct ? 'Well done!' : 'Better luck next time'}
+          </Text>
           <Text style={styles.subtitle}>
-            You completed the {city || 'city'} Treasure Hunt. Every clue cracked, every riddle solved!
+            {correct
+              ? 'Come back tomorrow for another riddle.'
+              : 'Come back tomorrow to try again.'}
           </Text>
         </Animated.View>
 
+        {/* Points card */}
         <Animated.View entering={FadeInDown.delay(450).duration(600)} style={styles.rewardCard}>
-          <Text style={styles.rewardLabel}>Hunt Rewards</Text>
+          <Text style={styles.rewardLabel}>Today's Result</Text>
           <View style={styles.rewardRow}>
-            <Icon name="logo-bitcoin" size={30} color={TH.gold} />
-            <Text style={styles.rewardAmount}>+{rewardCoins || 0} Coins</Text>
+            <Icon
+              name={correct ? 'star' : 'star-outline'}
+              size={30}
+              color={correct ? TH.gold : TH.textMuted}
+            />
+            <Text style={[styles.rewardAmount, !correct && styles.rewardAmountZero]}>
+              {correct ? `+${rewardCoins}` : '0'} Points
+            </Text>
           </View>
+          {correct && (
+            <Text style={styles.rewardNote}>Coins added to your wallet.</Text>
+          )}
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(600).duration(600)} style={styles.badgeRow}>
-          <View style={styles.badgeChip}>
-            <Text style={styles.badgeEmoji}>🏆</Text>
-            <Text style={styles.badgeText}>Treasure Hunter Badge</Text>
-          </View>
+        {/* Info note */}
+        <Animated.View entering={FadeInDown.delay(580).duration(600)} style={styles.infoCard}>
+          <Icon name="moon-outline" size={16} color={TH.textSecondary} />
+          <Text style={styles.infoText}>
+            {correct
+              ? "Your next riddle will be available tomorrow."
+              : "The same riddle will be available for you again tomorrow."}
+          </Text>
         </Animated.View>
 
         <View style={styles.spacer} />
 
-        <Animated.View entering={FadeInDown.delay(750).duration(600)} style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={() => navigation.navigate('TreasureHuntLanding')}
-          >
-            <Text style={styles.primaryBtnText}>Back to Treasure Hunts</Text>
+        {/* Back to Treasure Hunt — the ONLY action button */}
+        <Animated.View entering={FadeInDown.delay(700).duration(600)} style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.primaryBtn} onPress={handleBack}>
             <Icon name="arrow-back" size={18} color="#FFF" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.secondaryBtn}
-            onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
-          >
-            <Text style={styles.secondaryBtnText}>Explore More in {city || 'Your City'}</Text>
-            <Icon name="compass-outline" size={18} color={TH.brown} />
+            <Text style={styles.primaryBtnText}>Back to Treasure Hunt</Text>
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
@@ -68,42 +107,32 @@ export default function TreasureHuntSuccessScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: TH.bg,
-  },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-  },
+  container: { flex: 1, backgroundColor: TH.bg },
+  content: { flexGrow: 1, paddingHorizontal: 24, alignItems: 'center' },
   heroCircle: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
     backgroundColor: TH.card,
     borderWidth: 1,
     borderColor: TH.border,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
     marginBottom: 32,
     ...TH.shadow,
   },
-  heroEmoji: {
-    fontSize: 70,
-  },
-  textBlock: {
-    alignItems: 'center',
-    width: '100%',
-  },
+  heroCircleCorrect: { borderColor: TH.gold },
+  heroCircleWrong: { borderColor: TH.border },
+  heroEmoji: { fontSize: 60 },
+  textBlock: { alignItems: 'center', width: '100%' },
   title: {
-    fontFamily: SERIF,
-    fontSize: 18,
-    color: TH.gold,
+    fontFamily: SANS_BOLD,
+    fontSize: 13,
+    color: TH.textSecondary,
     textAlign: 'center',
-    letterSpacing: 1.2,
-    marginBottom: 10,
+    letterSpacing: 2,
+    marginBottom: 8,
+    textTransform: 'uppercase',
   },
   bigTitle: {
     fontFamily: SERIF,
@@ -115,19 +144,19 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontFamily: SANS,
-    fontSize: 14,
+    fontSize: 15,
     color: TH.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     paddingHorizontal: 8,
   },
   rewardCard: {
-    marginTop: 32,
+    marginTop: 28,
     backgroundColor: TH.card,
     borderWidth: 1,
     borderColor: TH.border,
     borderRadius: 18,
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 26,
     alignItems: 'center',
     width: '100%',
@@ -139,7 +168,7 @@ const styles = StyleSheet.create({
     color: TH.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   rewardRow: {
     flexDirection: 'row',
@@ -149,39 +178,38 @@ const styles = StyleSheet.create({
   },
   rewardAmount: {
     fontFamily: SANS_BOLD,
-    fontSize: 30,
+    fontSize: 32,
     color: TH.text,
   },
-  badgeRow: {
-    marginTop: 20,
+  rewardAmountZero: {
+    color: TH.textMuted,
   },
-  badgeChip: {
+  rewardNote: {
+    fontFamily: SANS,
+    fontSize: 12,
+    color: TH.textSecondary,
+    marginTop: 6,
+  },
+  infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginTop: 18,
     backgroundColor: TH.cream,
-    borderWidth: 1,
-    borderColor: TH.border,
-    borderRadius: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-  },
-  badgeEmoji: {
-    fontSize: 16,
-  },
-  badgeText: {
-    fontFamily: SANS_BOLD,
-    fontSize: 13,
-    color: TH.brown,
-  },
-  spacer: {
-    flex: 1,
-    minHeight: 24,
-  },
-  buttonContainer: {
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     width: '100%',
-    marginTop: 24,
   },
+  infoText: {
+    fontFamily: SANS,
+    fontSize: 12,
+    color: TH.textSecondary,
+    flex: 1,
+    lineHeight: 18,
+  },
+  spacer: { flex: 1, minHeight: 24 },
+  buttonContainer: { width: '100%', marginTop: 24 },
   primaryBtn: {
     backgroundColor: TH.brown,
     borderRadius: 16,
@@ -190,28 +218,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 12,
     ...TH.shadow,
   },
-  primaryBtnText: {
-    fontFamily: SANS_BOLD,
-    color: '#FFF',
-    fontSize: 15,
-  },
-  secondaryBtn: {
-    backgroundColor: TH.card,
-    borderWidth: 1,
-    borderColor: TH.border,
-    borderRadius: 16,
-    paddingVertical: 15,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 10,
-  },
-  secondaryBtnText: {
-    fontFamily: SANS_SEMI,
-    color: TH.brown,
-    fontSize: 14,
-  },
+  primaryBtnText: { fontFamily: SANS_BOLD, color: '#FFF', fontSize: 15 },
 });

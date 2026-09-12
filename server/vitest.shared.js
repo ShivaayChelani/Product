@@ -93,7 +93,10 @@ export const UNIT_TEST_FILES = [
   'src/__tests__/riddles-import.unit.test.ts',
   'src/__tests__/riddles-import-delete.unit.test.ts',
   'src/__tests__/riddles-scoring.unit.test.ts',
+  'src/__tests__/answer-matching.unit.test.ts',
   'src/__tests__/daily-open-reward.unit.test.ts',
+  'src/__tests__/reverse-geocode.unit.test.ts',
+  'src/__tests__/riddles-daily.unit.test.ts',
 ];
 
 export const E2E_TEST_GLOB = 'src/__tests__/**/*.integration.test.ts';

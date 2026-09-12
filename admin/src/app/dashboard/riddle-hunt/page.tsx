@@ -105,11 +105,14 @@ function OverviewTab({ onNavigate }: { onNavigate: (t: Tab) => void }) {
   useEffect(() => { fetch(); }, [fetch]);
 
   const cards = [
-    { label: "Total Hunts", value: stats?.totalHunts ?? 0, icon: MapPin, color: "bg-purple-50 text-purple-600" },
-    { label: "Active Hunts", value: stats?.activeHunts ?? 0, icon: TrendingUp, color: "bg-emerald-50 text-emerald-600" },
-    { label: "Cities", value: stats?.totalCities ?? 0, icon: Building2, color: "bg-blue-50 text-blue-600" },
-    { label: "Riddles", value: stats?.totalRiddles ?? 0, icon: Puzzle, color: "bg-amber-50 text-amber-600" },
-    { label: "Total Imports", value: stats?.totalImports ?? 0, icon: History, color: "bg-rose-50 text-rose-600" },
+    { label: "Active Hunts", value: stats?.activeHunts ?? 0, icon: MapPin, color: "bg-purple-50 text-purple-600" },
+    { label: "Active Cities", value: stats?.activeCities ?? 0, icon: Building2, color: "bg-blue-50 text-blue-600" },
+    { label: "Active Riddles", value: stats?.activeRiddles ?? 0, icon: Puzzle, color: "bg-amber-50 text-amber-600" },
+    { label: "Today's Attempts", value: stats?.todayAttempts ?? 0, icon: TrendingUp, color: "bg-emerald-50 text-emerald-600" },
+    { label: "Today's Correct", value: stats?.todayCorrect ?? 0, icon: CheckCircle, color: "bg-green-50 text-green-600" },
+    { label: "Today's Wrong", value: stats?.todayWrong ?? 0, icon: AlertCircle, color: "bg-rose-50 text-rose-600" },
+    { label: "Today's Points", value: stats?.todayPoints ?? 0, icon: Trophy, color: "bg-yellow-50 text-yellow-600" },
+    { label: "Total Imports", value: stats?.totalImports ?? 0, icon: History, color: "bg-gray-50 text-gray-600" },
   ];
 
   return (
@@ -127,7 +130,7 @@ function OverviewTab({ onNavigate }: { onNavigate: (t: Tab) => void }) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-4">
         {cards.map((c) => (
           <div key={c.label} className="bg-white rounded-xl border border-gray-200 p-5">
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${c.color}`}>
@@ -500,7 +503,11 @@ function CitiesTab() {
               <tr>
                 <th className="px-6 py-4 font-medium">City</th>
                 <th className="px-6 py-4 font-medium">Hunt Title</th>
-                <th className="px-6 py-4 font-medium">Riddles</th>
+                <th className="px-6 py-4 font-medium">Active Riddles</th>
+                <th className="px-6 py-4 font-medium">Today Attempts</th>
+                <th className="px-6 py-4 font-medium">Today Correct</th>
+                <th className="px-6 py-4 font-medium">Today Wrong</th>
+                <th className="px-6 py-4 font-medium">Today Points</th>
                 <th className="px-6 py-4 font-medium">Status</th>
                 <th className="px-6 py-4 font-medium">Last Updated</th>
               </tr>
@@ -508,11 +515,11 @@ function CitiesTab() {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">Loading cities...</td>
+                  <td colSpan={9} className="px-6 py-12 text-center text-gray-400">Loading cities...</td>
                 </tr>
               ) : cities.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
+                  <td colSpan={9} className="px-6 py-12 text-center">
                     <Building2 className="w-12 h-12 text-gray-200 mx-auto mb-3" />
                     <p className="text-gray-500 font-medium">No cities with riddles yet. Upload an Excel file to get started.</p>
                   </td>
@@ -523,6 +530,10 @@ function CitiesTab() {
                     <td className="px-6 py-4 font-medium text-gray-900">{c.city}</td>
                     <td className="px-6 py-4 text-gray-500">{c.title || "—"}</td>
                     <td className="px-6 py-4 text-gray-900 font-medium">{c.riddleCount}</td>
+                    <td className="px-6 py-4 text-gray-500">{(c as any).todayAttempts ?? 0}</td>
+                    <td className="px-6 py-4 text-emerald-600 font-medium">{(c as any).todayCorrect ?? 0}</td>
+                    <td className="px-6 py-4 text-red-600 font-medium">{(c as any).todayWrong ?? 0}</td>
+                    <td className="px-6 py-4 text-amber-600 font-medium">{(c as any).todayPoints ?? 0}</td>
                     <td className="px-6 py-4"><StatusBadge status={c.status} /></td>
                     <td className="px-6 py-4 text-gray-400">{c.lastUpdatedAt ? new Date(c.lastUpdatedAt).toLocaleDateString() : "—"}</td>
                   </tr>

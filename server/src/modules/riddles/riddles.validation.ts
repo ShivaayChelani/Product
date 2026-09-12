@@ -4,7 +4,7 @@ export const createTreasureHuntSchema = z.object({
   city: z.string().min(1, 'City is required'),
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
-  rewardCoins: z.number().int().positive().optional().default(150),
+  rewardCoins: z.number().int().positive().optional().default(20),
   status: z.string().optional().default('ACTIVE')
 });
 

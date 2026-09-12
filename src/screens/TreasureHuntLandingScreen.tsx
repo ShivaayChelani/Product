@@ -1,79 +1,68 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+﻿import React, { useCallback, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { riddlesApi, TreasureHunt } from '../services/api/riddles';
+import { riddlesApi, type TreasureHunt, type DailyStatus } from '../services/api/riddles';
 import { useLocationContext } from '../context/LocationContext';
 import { useUserContext } from '../context/UserContext';
 import { TH, SERIF, SANS, SANS_BOLD, SANS_SEMI } from '../features/treasureHunt/theme';
+import { classifyTreasureHuntLoadError } from '../features/treasureHunt/treasureHuntErrors';
 import { TreasureHuntGuestBlock } from '../components/ui/TreasureHuntGuestBlock';
 
 export default function TreasureHuntLandingScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const { effectivePosition, hasPermission, gpsEnabled, requestPermission, openLocationSettings } = useLocationContext();
-  const { user, isAuthenticated, isGuest } = useUserContext();
+  const { isAuthenticated, isGuest } = useUserContext();
 
   const [city, setCity] = useState<string | null>(null);
   const [hunt, setHunt] = useState<TreasureHunt | null>(null);
+  const [dailyStatus, setDailyStatus] = useState<DailyStatus | null>(null);
+  const [eligibleRiddleId, setEligibleRiddleId] = useState<string | null>(null);
   const [loadingHunt, setLoadingHunt] = useState(false);
   const [starting, setStarting] = useState(false);
-  const [resumeRiddleId, setResumeRiddleId] = useState<string | null>(null);
-  const [isCompleted, setIsCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [requestingPermission, setRequestingPermission] = useState(false);
+  const loadingHuntRef = useRef(false);
 
   const loadHunt = useCallback(async () => {
     if (isGuest || !isAuthenticated) return;
     if (!hasPermission || !effectivePosition) return;
+    if (loadingHuntRef.current) return;
+    loadingHuntRef.current = true;
     setLoadingHunt(true);
     setError(null);
     try {
-      const res = await riddlesApi.getActiveForCurrentLocation(effectivePosition.latitude, effectivePosition.longitude);
-      setCity(res.data.city);
-      const found = res.data.hunt;
-      setHunt(found);
-      if (found) {
-        const progRes = await riddlesApi.getMyHuntProgress();
-        const prog = progRes.data.find((p: any) => p.huntId === found.id);
-        setResumeRiddleId(prog?.currentRiddleId ?? null);
-        setIsCompleted(!!prog?.isCompleted);
+      const pos = effectivePosition;
+      const res = await riddlesApi.getActiveForCurrentLocation(pos.latitude, pos.longitude);
+      const cityName: string = res?.data?.city ?? null;
+      const foundHunt: TreasureHunt | null = res?.data?.hunt ?? null;
+      setCity(cityName);
+      setHunt(foundHunt);
+
+      if (foundHunt?.id) {
+        try {
+          const eligRes = await riddlesApi.getEligibleRiddle(foundHunt.id, pos.latitude, pos.longitude);
+          const status: DailyStatus = eligRes?.data?.dailyStatus ?? 'NO_RIDDLES';
+          setDailyStatus(status);
+          setEligibleRiddleId(eligRes?.data?.eligibleRiddle?.id ?? null);
+        } catch {
+          // If eligible riddle check fails (e.g. hunt deleted mid-session), treat as no riddle
+          setDailyStatus('NO_RIDDLES');
+          setEligibleRiddleId(null);
+        }
       } else {
-        setResumeRiddleId(null);
-        setIsCompleted(false);
+        setDailyStatus(null);
+        setEligibleRiddleId(null);
       }
     } catch (err: any) {
-      console.log('\n[TREASURE_HUNT_ERROR]');
-      console.log('status:', err.status);
-      console.log('code:', err.code);
-      console.log('message:', err.message);
-      console.log('name:', err.name);
-
-      if (err.message === 'Network request failed' || err.name === 'AbortError') {
-        setError("Couldn't connect. Please check your internet connection.");
-      } else if (err.status === 401) {
-        setError("Please log in to continue.");
-      } else if (err.status === 403 || err.code === 'TREASURE_HUNT_CITY_MISMATCH') {
-        setError("This Treasure Hunt isn't available in your current city.");
-      } else if (err.status === 404) {
-        setError("No Treasure Hunts Found");
-      } else if (err.status === 400 && err.code === 'CITY_RESOLUTION_FAILED') {
-        setError("Unable to detect your city. Please try again.");
-      } else if (err.status >= 500) {
-        setError("Something went wrong. Please try again.");
-      } else {
-        // Fallback to the actual backend message if available, instead of masking
-        setError(err.message || 'Could not load treasure hunts. Please try again.');
-      }
+      setError(classifyTreasureHuntLoadError(err).message);
     } finally {
       setLoadingHunt(false);
+      loadingHuntRef.current = false;
     }
   }, [hasPermission, effectivePosition, isGuest, isAuthenticated]);
-
-  useEffect(() => {
-    loadHunt();
-  }, [loadHunt]);
 
   useFocusEffect(
     useCallback(() => {
@@ -90,13 +79,22 @@ export default function TreasureHuntLandingScreen() {
     }
   };
 
+  const handleRetry = async () => {
+    try {
+      await requestPermission();
+    } catch {
+      // Location is optional on retry
+    }
+    loadHunt();
+  };
+
   const handleStart = async () => {
-    if (!hunt || isCompleted || starting) return;
+    if (!hunt?.id || !eligibleRiddleId || starting) return;
     setStarting(true);
     try {
       navigation.navigate('TreasureHuntActive', {
         huntId: hunt.id,
-        riddleId: resumeRiddleId ?? 'first',
+        riddleId: eligibleRiddleId,
       });
     } finally {
       setStarting(false);
@@ -104,6 +102,11 @@ export default function TreasureHuntLandingScreen() {
   };
 
   const guest = isGuest || !isAuthenticated;
+
+  // Derive UI state from dailyStatus
+  const isAttemptedToday = dailyStatus === 'COMPLETED_TODAY' || dailyStatus === 'LOCKED_TODAY';
+  const isAvailable = dailyStatus === 'AVAILABLE' && !!eligibleRiddleId;
+  const noRiddles = !hunt || dailyStatus === 'NO_RIDDLES';
 
   return (
     <View style={styles.container}>
@@ -176,84 +179,91 @@ export default function TreasureHuntLandingScreen() {
               </View>
               <Text style={styles.permissionTitle}>Something went wrong</Text>
               <Text style={styles.permissionText}>{error}</Text>
-              <TouchableOpacity style={styles.permissionBtn} onPress={loadHunt}>
+              <TouchableOpacity style={styles.permissionBtn} onPress={handleRetry}>
                 <Text style={styles.permissionBtnText}>Try Again</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <>
+              {/* Location pill */}
               <View style={styles.locationPill}>
                 <View style={styles.liveDot} />
                 <Text style={styles.locationPillText}>Location detected</Text>
                 <Text style={styles.locationPillTextBold}>You're in {city || 'your city'}</Text>
               </View>
 
+              {/* Hero */}
               <View style={styles.heroSection}>
-                <Text style={styles.heroTitle}>{`Your Hunt\nAwaits ✨`}</Text>
-                <Text style={styles.heroTagline}>Real Places. Real Clues. Real Rewards.</Text>
+                <Text style={styles.heroTitle}>Your Daily Hunt</Text>
+                <Text style={styles.heroTagline}>Solve today's clue and earn 20 points.</Text>
               </View>
 
+              {/* Feature pills */}
               <View style={styles.featuresRow}>
-                <FeatureItem icon="extension-puzzle" title="Solve Riddles" desc="Crack clever clues" />
-                <FeatureItem icon="compass" title="Explore Your City" desc="At your own pace" />
-                <FeatureItem icon="trophy" title="Earn Rewards" desc="Coins & badges" />
+                <FeatureItem icon="extension-puzzle" title="Daily Challenge" desc="One riddle at a time" />
+                <FeatureItem icon="trophy" title="Earn Points" desc="20 pts correct" />
+                <FeatureItem icon="refresh-circle" title="Come Back" desc="New day, next riddle" />
               </View>
 
-              {!hunt ? (
+              {noRiddles ? (
                 <View style={styles.noHuntCard}>
                   <View style={styles.noHuntIconWrap}>
                     <Icon name="map-outline" size={30} color={TH.gold} />
                   </View>
-                  <Text style={styles.noHuntTitle}>Hunt unavailable</Text>
+                  <Text style={styles.noHuntTitle}>No Treasure Hunts Here Yet</Text>
                   <Text style={styles.noHuntText}>
-                    Treasure Hunts can only be played in the city you're currently visiting.
-                    {'\n'}
-                    You're currently in {city || 'your city'}.
+                    {city
+                      ? `No active Treasure Hunt found in ${city} right now. Check back soon!`
+                      : 'No active Treasure Hunt found in your city right now. Check back soon!'}
                   </Text>
-                  <TouchableOpacity
-                    style={styles.exploreBtn}
-                    onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
-                  >
-                    <Text style={styles.exploreBtnText}>Explore {city || 'Your City'} Hunts</Text>
-                  </TouchableOpacity>
                 </View>
-              ) : (
+              ) : isAttemptedToday ? (
+                <View style={styles.huntCard}>
+                  <View style={styles.huntCardHeader}>
+                    <View style={styles.huntIconWrap}>
+                      <Icon name="checkmark-circle" size={22} color={TH.green} />
+                    </View>
+                    <View style={styles.huntCardHeaderText}>
+                      <Text style={styles.huntTitle}>Today's Hunt Complete</Text>
+                      <Text style={styles.huntMeta}>Come back tomorrow for your next riddle.</Text>
+                    </View>
+                  </View>
+                  <View style={styles.completedRow}>
+                    <Icon name="moon-outline" size={16} color={TH.textSecondary} />
+                    <Text style={styles.completedText}>
+                      {dailyStatus === 'COMPLETED_TODAY'
+                        ? 'You answered correctly today. Well done!'
+                        : "Today's attempt is used up. Try again tomorrow."}
+                    </Text>
+                  </View>
+                </View>
+              ) : isAvailable ? (
                 <View style={styles.huntCard}>
                   <View style={styles.huntCardHeader}>
                     <View style={styles.huntIconWrap}>
                       <Icon name="sparkles" size={20} color={TH.gold} />
                     </View>
                     <View style={styles.huntCardHeaderText}>
-                      <Text style={styles.huntTitle}>{hunt.title}</Text>
-                      <Text style={styles.huntMeta}>
-                        {hunt.riddleCount ?? 0} riddles · +{hunt.rewardCoins} Coins on completion
-                      </Text>
+                      <Text style={styles.huntTitle}>{hunt?.title ?? 'Daily Hunt'}</Text>
+                      <Text style={styles.huntMeta}>+20 points for a correct answer</Text>
                     </View>
                   </View>
-
-                  {isCompleted ? (
-                    <View style={styles.completedRow}>
-                      <Icon name="checkmark-circle" size={20} color={TH.green} />
-                      <Text style={styles.completedText}>You completed this treasure hunt. Well done!</Text>
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      style={styles.startBtn}
-                      onPress={handleStart}
-                      disabled={starting}
-                    >
-                      {starting ? (
-                        <ActivityIndicator color="#FFF" />
-                      ) : (
-                        <>
-                          <Text style={styles.startBtnText}>START HUNT</Text>
-                          <Icon name="arrow-forward" size={20} color="#FFF" />
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  )}
+                  <TouchableOpacity
+                    style={styles.startBtn}
+                    onPress={handleStart}
+                    disabled={starting}
+                  >
+                    {starting ? (
+                      <ActivityIndicator color="#FFF" />
+                    ) : (
+                      <>
+                        <Text style={styles.startBtnText}>Start Today's Hunt</Text>
+                        <Icon name="arrow-forward" size={20} color="#FFF" />
+                      </>
+                    )}
+                  </TouchableOpacity>
                 </View>
-              )}
+              ) : null}
             </>
           )}
         </ScrollView>
@@ -397,7 +407,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontFamily: SERIF,
-    fontSize: 38,
+    fontSize: 36,
     color: TH.text,
     textAlign: 'center',
     lineHeight: 44,
@@ -502,12 +512,14 @@ const styles = StyleSheet.create({
     backgroundColor: TH.cream,
     borderRadius: 12,
     paddingVertical: 13,
+    paddingHorizontal: 16,
     gap: 8,
   },
   completedText: {
     fontFamily: SANS_SEMI,
-    fontSize: 13,
-    color: TH.green,
+    fontSize: 12,
+    color: TH.textSecondary,
+    flex: 1,
   },
   noHuntCard: {
     backgroundColor: TH.card,
@@ -532,6 +544,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: TH.text,
     marginBottom: 6,
+    textAlign: 'center',
   },
   noHuntText: {
     fontFamily: SANS,
@@ -539,17 +552,5 @@ const styles = StyleSheet.create({
     color: TH.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: 18,
-  },
-  exploreBtn: {
-    backgroundColor: TH.brown,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 22,
-  },
-  exploreBtnText: {
-    fontFamily: SANS_BOLD,
-    color: '#FFF',
-    fontSize: 13,
   },
 });

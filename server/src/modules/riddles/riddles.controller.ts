@@ -88,6 +88,18 @@ export const riddlesController = {
     sendSuccess(res, hunt);
   }),
 
+  getEligibleRiddle: catchAsync(async (req: any, res: Response) => {
+    const lat = Number(req.query.lat);
+    const lng = Number(req.query.lng);
+    const result = await riddlesService.getEligibleRiddle(
+      req.params.id as string,
+      lat,
+      lng,
+      req.user.id,
+    );
+    sendSuccess(res, result);
+  }),
+
   getHuntDetails: catchAsync(async (req: any, res: Response) => {
     const lat = Number(req.query.lat);
     const lng = Number(req.query.lng);

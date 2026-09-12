@@ -33,6 +33,15 @@ if (typeof global.performance === 'undefined') {
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
+// Dev-only: suppress RN's one-time "Open debugger to view warnings." toast
+// (Fusebox/DevTools migration hint). When no debugger is attached, the toast is
+// rendered at the bottom of the screen where interactive footers (e.g. Submit
+// Answer) live, swallowing taps. Prod builds strip LogBox entirely.
+if (__DEV__) {
+  const { LogBox } = require('react-native');
+  LogBox.ignoreLogs(['Open debugger to view warnings.']);
+}
+
 // Crash reporting MUST initialize before the React tree mounts.
 import { initMonitoring, Sentry, isMonitoringEnabled } from './src/services/monitoring';
 initMonitoring();
