@@ -260,7 +260,7 @@ export const riddlesService = {
   async getOverview() {
     const today = getIndiaRewardDate();
     const [activeHunts, activeCities, activeRiddles, totalImports, recentImports, todayAttempts, todayCorrect] = await Promise.all([
-      prisma.treasureHunt.count({ where: { status: 'ACTIVE' } }),
+      prisma.treasureHunt.count({ where: { status: 'ACTIVE', riddles: { some: { status: 'ACTIVE' } } } }),
       prisma.riddle.groupBy({ by: ['city'], where: { status: 'ACTIVE' } }),
       prisma.riddle.count({ where: { status: 'ACTIVE' } }),
       prisma.treasureHuntImportLog.count(),

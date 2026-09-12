@@ -47,6 +47,9 @@ export const riddlesController = {
 
   bulkImportConfirm: catchAsync(async (req: any, res: Response) => {
     const { validRows, totalRows, invalidRows, cities, fileName } = req.body;
+    if (Number(invalidRows) > 0) {
+      throw new ApiError(400, 'Cannot import a file with invalid rows. Please fix errors and re-upload.');
+    }
     if (!Array.isArray(validRows) || validRows.length === 0) {
       throw new ApiError(400, 'No valid rows to import');
     }

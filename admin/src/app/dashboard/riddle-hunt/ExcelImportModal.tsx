@@ -277,7 +277,7 @@ export function ExcelImportModal({ open, onCancel, onSuccess }: Props) {
             </button>
             <button
               onClick={handleImport}
-              disabled={!preview.length || loading || importing || validCount === 0 || !file}
+              disabled={!preview.length || loading || importing || validCount === 0 || invalidCount > 0 || !file}
               className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg shadow-sm shadow-brand-600/20 transition-all disabled:opacity-50 flex items-center gap-2"
             >
               {importing ? (

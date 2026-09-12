@@ -1,4 +1,4 @@
-﻿-- Migration: 20260913120000_treasure_hunt_daily_lock
+-- Migration: 20260913120000_treasure_hunt_daily_lock
 -- Purpose: Add per-user-per-riddle-per-IST-day lock table for Treasure Hunt.
 --
 -- This is ADDITIVE ONLY -- no existing tables or columns are modified.
