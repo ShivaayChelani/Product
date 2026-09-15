@@ -159,8 +159,31 @@ function detectRemoveHints(text: string): string[] {
  * noise out so unresolved-mention warnings stay meaningful. The DB resolution
  * step (promptPlaceResolution.ts) is authoritative: these phrases are only
  * clues, never trusted as ids or coordinates.
+ *
+ * PCRE inline modifiers `(?i:...)` are not valid in JS regexes (they throw
+ * SyntaxError on Node < 24 / V8 < 12.6), so the trigger, article, and
+ * terminator groups below are expanded to per-letter character classes for
+ * case-insensitivity. The captured place group keeps a case-sensitive
+ * `[A-Z]` start so lowercase-only mentions stay ignored.
  */
-const PLACE_MENTION_RE = /\b(?i:must[- ]?visit|must[- ]?see|should\s+visit|should\s+see|should\s+go\s+to|definitely\s+(?:visit|see|go|include|check\s+out)|don'?t\s+miss|do\s+not\s+miss|make\s+sure\s+to\s+(?:visit|see|include|go|check\s+out)|visiting|include|visit|see|go\s+to|check\s+out|tick\s+off)\s+(?:(?i:the|a|an|this|that)\s+)?([A-Z][A-Za-z0-9'&.-]*(?:\s+[A-Za-z0-9'&.-]+){1,8}?)(?=\s+(?i:and|also|then|because|before|after|since|while|with|for|at|around|famous\s+for|region|area|city|day|evening|morning|in|on|of|from)\b|[.,;!?\n]|$)/g;
+function asciiCaseInsensitive(alternatives: string): string {
+  let out = '';
+  for (let i = 0; i < alternatives.length; i++) {
+    const ch = alternatives[i];
+    const escaped = alternatives[i - 1] === '\\';
+    if (/[a-z]/.test(ch) && !escaped) {
+      out += `[${ch}${ch.toUpperCase()}]`;
+    } else {
+      out += ch;
+    }
+  }
+  return out;
+}
+
+const PLACE_MENTION_RE = new RegExp(
+  `\\b(?:${asciiCaseInsensitive(`must[- ]?visit|must[- ]?see|should\\s+visit|should\\s+see|should\\s+go\\s+to|definitely\\s+(?:visit|see|go|include|check\\s+out)|don'?t\\s+miss|do\\s+not\\s+miss|make\\s+sure\\s+to\\s+(?:visit|see|include|go|check\\s+out)|visiting|include|visit|see|go\\s+to|check\\s+out|tick\\s+off`)})\\s+(?:(?:${asciiCaseInsensitive(`the|a|an|this|that`)})\\s+)?([A-Z][A-Za-z0-9'&.-]*(?:\\s+[A-Za-z0-9'&.-]+){1,8}?)(?=\\s+(?:${asciiCaseInsensitive(`and|also|then|because|before|after|since|while|with|for|at|around|famous\\s+for|region|area|city|day|evening|morning|in|on|of|from`)})\\b|[.,;!?\\n]|$)`,
+  'g',
+);
 
 const MENTION_DENY = new Set([
   'street food', 'local food', 'the city', 'the old city', 'old city', 'the fort', 'the palace',
