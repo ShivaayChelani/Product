@@ -12,7 +12,7 @@ import {
   createEventSchema, updateEventSchema,
   reviewSchema, vendorUpdatePlaceSchema,
 } from './places.validation';
-import { statsLimiter, createPlaceLimiter, videoUploadLimiter, placesDiscoveryLimiter } from '../../config/rateLimit';
+import { statsLimiter, createPlaceLimiter, videoUploadLimiter, placesDiscoveryLimiter, metricWriteLimiter } from '../../config/rateLimit';
 
 // ── Public / User Router (mounted at /places) ──
 const router = Router();
@@ -47,7 +47,7 @@ router.delete('/:id', authenticate, placesController.delete);
 router.get('/:id/stats', statsLimiter, placesController.getStats);
 router.get('/:id/analytics', placesController.getAnalytics);
 router.get('/:id/recommendations', placesController.getRecommendations);
-router.post('/:id/stats', statsLimiter, optionalAuth, validate(statActionSchema), placesController.recordStat);
+router.post('/:id/stats', metricWriteLimiter, optionalAuth, validate(statActionSchema), placesController.recordStat);
 
 // Media
 router.get('/:id/images', placesController.getImages);

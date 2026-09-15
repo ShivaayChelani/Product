@@ -13,6 +13,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 import { useAiPlannerStore } from '../features/aiTripPlanner/store';
+import { customBudgetAmountForRequest } from '../services/api/trips';
 
 const root = path.join(__dirname, '..');
 
@@ -104,11 +105,34 @@ describe('budget range wiring', () => {
     expect(validation).toMatch(/customBudgetAmount is required when budget is CUSTOM/);
   });
 
+  it('regenerate/refine flows forward the saved customBudgetAmount for CUSTOM trips (BUG 3)', () => {
+    const detail = read('screens/TripDetailScreen.tsx');
+    expect(detail).toMatch(/customBudgetAmountForRequest\(trip\)/);
+    expect(detail).toMatch(/customBudgetAmountForRequest\(\{ \.\.\.trip, budget \}\)/);
+    expect(detail).not.toContain("customBudgetAmount: trip.budget === 'CUSTOM' ? trip.customBudgetAmount ?? undefined : undefined");
+  });
+
   it('BudgetRangeSlider uses PanResponder so the track is not visual-only', () => {
     const src = read('features/aiTripPlanner/BudgetRangeSlider.tsx');
     expect(src).toMatch(/PanResponder\.create/);
     expect(src).toMatch(/onPanResponderGrant/);
     expect(src).toMatch(/onPanResponderMove/);
     expect(src).toMatch(/onSelectPosition/);
+  });
+});
+
+describe('customBudgetAmountForRequest (BUG 3 reload/regen)', () => {
+  it('preserves a saved CUSTOM amount and falls back to aiPreferences after reload', () => {
+    expect(customBudgetAmountForRequest({ budget: 'CUSTOM', customBudgetAmount: 12000 })).toBe(12000);
+    expect(customBudgetAmountForRequest({
+      budget: 'CUSTOM',
+      customBudgetAmount: null,
+      aiPreferences: { customBudgetAmount: 4500 },
+    })).toBe(4500);
+  });
+
+  it('does not invent an amount for MEDIUM or a genuinely missing CUSTOM amount', () => {
+    expect(customBudgetAmountForRequest({ budget: 'MEDIUM', customBudgetAmount: 9999 })).toBeUndefined();
+    expect(customBudgetAmountForRequest({ budget: 'CUSTOM', customBudgetAmount: null, aiPreferences: {} })).toBeUndefined();
   });
 });

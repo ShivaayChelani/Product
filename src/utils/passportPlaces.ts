@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { TouristSpot } from '../types';
+import { isPlainObject, parseJsonObject } from './safeJson';
 
 const SEARCHED_KEY = '@palsafar_passport_searched_places';
 
@@ -35,7 +36,10 @@ export async function loadSearchedPassportPlaces(): Promise<PassportPlace[]> {
   if (!searchedLoaded) {
     try {
       const raw = await AsyncStorage.getItem(SEARCHED_KEY);
-      if (raw) searchedMemory = JSON.parse(raw) || {};
+      if (raw) {
+        const parsed = parseJsonObject(raw);
+        searchedMemory = parsed && isPlainObject(parsed) ? (parsed as Record<string, PassportPlace>) : {};
+      }
     } catch {
       // keep memory
     }

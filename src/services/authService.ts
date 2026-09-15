@@ -1,12 +1,13 @@
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-GoogleSignin.configure({
-  webClientId: '27219212015-kocrm1ig6vs0nkar7mjjial0gctbd1nj.apps.googleusercontent.com',
-});
 import { UserActiveMode, UserPermission, UserProfile } from '../types';
 import { DEV_FLAGS } from '../config/devFlags';
 import { apiClient, authApi } from './api';
+import {
+  ensureGoogleSignInConfigured,
+} from '../config/googleAuth';
+import { isGoogleSignInCancelled, mapGoogleAuthFailure } from './googleAuthErrors';
+import { parseJsonObject } from '../utils/safeJson';
 
 const AUTH_SESSION_KEY = '@palsasafar_session';
 const AUTH_USER_KEY = '@palsasafar_auth_user';
@@ -162,8 +163,12 @@ export async function login(
       expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
     }};
   } catch (e: any) {
+    // Server returns 401 + EMAIL_NOT_VERIFIED so unverified accounts can resume OTP
+    // without treating the login as a wrong password.
+    if (e.status === 401 && (e.code === 'EMAIL_NOT_VERIFIED' || e.details?.requiresEmailVerification)) {
+      throw e;
+    }
     if (e.status === 401) return null;
-    // Let UserContext redirect unverified accounts to EmailVerification.
     if (e.status === 403 && (e.code === 'EMAIL_NOT_VERIFIED' || e.details?.requiresEmailVerification)) {
       throw e;
     }
@@ -188,22 +193,40 @@ export async function googleLogin(): Promise<{ user: UserProfile; session: Sessi
   }
 
   try {
-    await GoogleSignin.hasPlayServices();
+    ensureGoogleSignInConfigured();
+    try {
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    } catch (playError) {
+      throw mapGoogleAuthFailure(playError);
+    }
+
     const response = await GoogleSignin.signIn();
-    if (response.type !== 'success') {
-      // User cancelled the sign-in flow.
+    if (!response || response.type !== 'success') {
       return null;
     }
-    const idToken = response.data.idToken;
+    const idToken = response.data?.idToken;
     if (!idToken) {
-      throw new Error('Google Sign-In failed: No ID token returned.');
+      const missing = new Error(
+        'Google Sign-In did not return an ID token. Check that the web client ID is configured.',
+      ) as Error & { status?: number };
+      missing.status = 500;
+      throw missing;
     }
 
     const result = await authApi.googleLogin(idToken);
+    if (!result?.accessToken || !result?.user?.id) {
+      throw new Error('Google Sign-In returned an incomplete session. Please try again.');
+    }
     await apiClient.setToken(result.accessToken);
 
-    const profile = buildProfileFromApiUser(result.user);
-    await persistAuthUser(profile);
+    let profile: UserProfile;
+    try {
+      profile = buildProfileFromApiUser(result.user);
+      await persistAuthUser(profile);
+    } catch {
+      await apiClient.setToken(null);
+      throw new Error('Google Sign-In returned an incomplete session. Please try again.');
+    }
     return {
       user: profile,
       session: {
@@ -211,15 +234,13 @@ export async function googleLogin(): Promise<{ user: UserProfile; session: Sessi
         email: result.user.email,
         role: profile.role,
         expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
-      }
+      },
     };
-  } catch (e: any) {
-    const msg = e?.message || '';
-    if (msg.includes('SIGN_IN_CANCELLED') || e.code === 'SIGN_IN_CANCELLED') {
+  } catch (e: unknown) {
+    if (isGoogleSignInCancelled(e)) {
       return null;
     }
-    // eslint-disable-next-line preserve-caught-error
-    throw new Error(msg || 'Google Sign-In failed.');
+    throw mapGoogleAuthFailure(e);
   }
 }
 
@@ -293,7 +314,16 @@ export async function resendRegisterOtp(email: string): Promise<boolean> {
 }
 
 export async function logout(): Promise<void> {
-  await authApi.logout();
+  try {
+    await GoogleSignin.signOut();
+  } catch {
+    // Native Google session may already be cleared or unavailable.
+  }
+  try {
+    await authApi.logout();
+  } catch {
+    // Always clear local session even if the API logout fails.
+  }
   await AsyncStorage.removeItem(AUTH_SESSION_KEY);
   await AsyncStorage.removeItem(AUTH_USER_KEY);
 }
@@ -374,7 +404,13 @@ export async function updateUserProfile(uid: string, updates: Partial<UserProfil
 
   const userRaw = await AsyncStorage.getItem(AUTH_USER_KEY);
   if (userRaw) {
-    const existing = JSON.parse(userRaw);
+    let existing: Record<string, unknown> = {};
+    try {
+      const parsed = parseJsonObject(userRaw);
+      if (parsed) existing = parsed;
+    } catch {
+      existing = {};
+    }
     await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify({ ...existing, ...updates }));
   }
 }
@@ -383,7 +419,15 @@ export async function setActiveMode(activeMode: UserActiveMode): Promise<UserPro
   // Server JWT + roles are authoritative. Never persist a local-only mode/role.
   const apiUser = await authApi.setActiveMode(activeMode);
   const raw = await AsyncStorage.getItem(AUTH_USER_KEY);
-  const existing = raw ? JSON.parse(raw) : {};
+  let existing: Partial<UserProfile> = {};
+  if (raw) {
+    try {
+      const parsed = parseJsonObject(raw);
+      if (parsed) existing = parsed as Partial<UserProfile>;
+    } catch {
+      existing = {};
+    }
+  }
   const profile = buildProfileFromApiUser({ ...apiUser, activeMode });
   const merged: UserProfile = {
     ...existing,

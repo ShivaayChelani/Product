@@ -23,6 +23,7 @@ import { ReelActionRailPosition } from '../components/reels/reelLayout';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { DEV_FLAGS } from '../config/devFlags';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { parseJsonStringArray } from '../utils/safeJson';
 import { socialApi } from '../services/api/social';
 import type { RootStackParamList } from '../navigation/types';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -71,7 +72,7 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
     (async () => {
       try {
         const savedRaw = await AsyncStorage.getItem(SAVED_KEY);
-        if (savedRaw) setSavedReelIds(JSON.parse(savedRaw));
+        if (savedRaw) setSavedReelIds(parseJsonStringArray(savedRaw));
       } catch { /* offline */ }
     })();
   }, []);

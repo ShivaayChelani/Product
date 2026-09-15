@@ -3,6 +3,7 @@
  *   driving leg edge cases, route failure fallback, multi-stop consecutiveness,
  *   and the stale-generation race guard.
  */
+/* eslint-disable react-hooks/rules-of-hooks -- this suite mocks React hooks and invokes them directly */
 import { useDrivingLegs, RouteLeg } from '../features/buildTrip/hooks/useDrivingLegs';
 import { getOSRMRoute } from '../services/routing/osrmService';
 import { useState, useEffect, useRef } from 'react';

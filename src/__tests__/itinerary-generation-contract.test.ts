@@ -168,6 +168,9 @@ describe('normalizeTripPlan response normalization', () => {
 
   it('normalizes a null top-level object without crashing', () => {
     expect(() => normalizeTripPlan(null as any)).not.toThrow();
+    const out = normalizeTripPlan(null as any);
+    expect(out.tripDays).toEqual([]);
+    expect(out.id).toBe('');
   });
 
   it('keeps the plan returned from getById normalized end-to-end', async () => {

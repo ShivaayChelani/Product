@@ -152,7 +152,9 @@ export default function CreateReelScreen({
         ]);
         setSuggestions(mergeLocationSuggestions(placesRes, vendorsRes, 8, q));
       } catch (err) {
-        (typeof __DEV__ !== 'undefined' && __DEV__) && console.warn('Failed to fetch locations', err);
+        if (typeof __DEV__ !== 'undefined' && __DEV__) {
+          console.warn('Failed to fetch locations', err);
+        }
       }
     };
     const timer = setTimeout(fetchLocations, 300);

@@ -1,7 +1,8 @@
-import React, { memo, useEffect } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, LayoutChangeEvent } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { MapExploreTheme as T } from '../theme';
+import { mapSegmentThumbX } from '../utils/mapSegmentThumb';
 
 type Tab = 'places' | 'vendors';
 
@@ -12,29 +13,35 @@ type Props = {
 
 function MapSegmentControlComponent({ active, onChange }: Props) {
   const thumbX = useSharedValue(0);
-  const segmentW = useSharedValue(0);
+  const [segmentWidth, setSegmentWidth] = useState(0);
+  const activeRef = useRef(active);
+  activeRef.current = active;
 
   const onLayout = (e: LayoutChangeEvent) => {
-    const w = e.nativeEvent.layout.width;
-    segmentW.value = (w - 8) / 2;
-    thumbX.value = active === 'places' ? 0 : segmentW.value;
+    const w = (e.nativeEvent.layout.width - 8) / 2;
+    if (!(w > 0)) return;
+    setSegmentWidth(prev => (Math.abs(prev - w) < 0.5 ? prev : w));
+    // Snap immediately so PalPoints → Vendors does not paint a Places thumb first.
+    thumbX.value = mapSegmentThumbX(activeRef.current, w);
   };
 
   useEffect(() => {
-    thumbX.value = withSpring(active === 'places' ? 0 : segmentW.value, {
+    if (segmentWidth <= 0) return;
+    thumbX.value = withSpring(mapSegmentThumbX(active, segmentWidth), {
       damping: 18,
-      stiffness: 220,
+      stiffness: 280,
     });
-  }, [active, segmentW.value, thumbX]);
+  }, [active, segmentWidth, thumbX]);
 
   const thumbStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: thumbX.value }],
-    width: segmentW.value,
   }));
 
   return (
     <View style={styles.track} onLayout={onLayout}>
-      <Animated.View style={[styles.thumb, thumbStyle]} />
+      <Animated.View
+        style={[styles.thumb, { width: segmentWidth || undefined }, thumbStyle]}
+      />
       <Pressable style={styles.segment} onPress={() => onChange('places')}>
         <Text style={[styles.label, active === 'places' && styles.labelActive]}>Places</Text>
       </Pressable>

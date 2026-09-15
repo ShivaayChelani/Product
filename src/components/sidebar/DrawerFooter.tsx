@@ -3,68 +3,59 @@ import { View, Text, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { SERIF } from './sidebarTheme';
 
+import { ImageBackground } from 'react-native';
+
 export const DrawerFooter = () => {
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
-        <View style={styles.iconLeft}>
-          <Icon name="location" size={24} color="#C49B66" />
-        </View>
+      <ImageBackground 
+        source={require('../../assets/traveler_banner.jpg')} 
+        style={styles.card}
+        imageStyle={styles.cardBg}
+      >
         <View style={styles.textWrap}>
           <Text style={styles.textLine}>Explore more.</Text>
-          <Text style={styles.textLine}>Collect more. Travel more.</Text>
+          <Text style={styles.textLine}>Collect more.</Text>
+          <Text style={styles.textLine}>Travel more.</Text>
+          <Text style={styles.subText}>WITH PALSAFAR</Text>
         </View>
-        <View style={styles.iconRight}>
-          <View style={styles.dashLine} />
-          <Icon name="airplane" size={20} color="#3D2B1F" style={styles.planeIcon} />
-        </View>
-      </View>
+      </ImageBackground>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingVertical: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
     marginTop: 'auto',
   },
   card: {
-    backgroundColor: '#F7EFE5',
+    width: '100%',
+    height: 120,
     borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
     overflow: 'hidden',
+    justifyContent: 'center',
+    padding: 16,
   },
-  iconLeft: {
-    marginBottom: -4,
+  cardBg: {
+    borderRadius: 16,
   },
   textWrap: {
-    flex: 1,
-    paddingHorizontal: 12,
+    justifyContent: 'center',
   },
   textLine: {
     fontFamily: SERIF,
-    fontSize: 13,
-    color: '#5C432F',
-    fontStyle: 'italic',
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#63300E',
+    lineHeight: 20,
   },
-  iconRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  dashLine: {
-    width: 24,
-    borderBottomWidth: 1.5,
-    borderBottomColor: '#C49B66',
-    borderStyle: 'dashed',
-    marginRight: 4,
-    transform: [{ rotate: '-20deg' }],
-  },
-  planeIcon: {
-    transform: [{ rotate: '-45deg' }],
+  subText: {
+    fontSize: 9,
+    color: '#63300E',
+    fontWeight: 'bold',
+    marginTop: 8,
+    letterSpacing: 2,
   },
 });

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import type { BudgetTier, TimePreference, TravelPace, Travelers } from '../../services/api/trips';
 import { AI_PLANNER_DRAFT_KEY, DEFAULT_DAYS, INTERESTS, MAX_INTERESTS, PROMPT_MAX } from './constants';
+import { isPlainObject } from '../../utils/safeJson';
 
 export type AiPlannerDraft = {
   destination: string;
@@ -176,6 +177,7 @@ export const useAiPlannerStore = create<Store>((set, get) => ({
       const raw = await AsyncStorage.getItem(AI_PLANNER_DRAFT_KEY);
       if (!raw) return;
       const parsed = JSON.parse(raw) as Partial<AiPlannerDraft>;
+      if (!isPlainObject(parsed)) return;
       set({
         ...defaultDraft(),
         ...parsed,

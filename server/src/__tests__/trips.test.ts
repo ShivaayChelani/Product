@@ -1,3 +1,4 @@
+import { setCanonicalItineraryEnabledForTesting } from '../modules/trips/trips.service';
 import request from 'supertest';
 import app from '../app';
 import { getAuthToken } from './helpers/auth';
@@ -197,6 +198,15 @@ describe('Trips / AI Itinerary API', () => {
         .send({ placeId: placeIds[0] });
 
       expect(res.status).toBe(409);
+    });
+
+    it('rejects reorder when stopIds is missing', async () => {
+      const res = await request(app)
+        .patch(`/api/v1/trips/days/${dayId}/stops/reorder`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({});
+
+      expect(res.status).toBe(400);
     });
 
     it('adds a second stop and reorders both', async () => {
@@ -1060,6 +1070,375 @@ describe('Trips / AI Itinerary API', () => {
         .delete(`/api/v1/trips/${tripId}`)
         .set('Authorization', `Bearer ${userToken}`);
       expect(secondDelete.status).toBe(404);
+    });
+  });
+
+  describe('Canonical plan (POST /trips/plan)', () => {
+    afterAll(async () => {
+      setCanonicalItineraryEnabledForTesting(null);
+    });
+
+    it('returns 401 without an auth token', async () => {
+      const res = await request(app)
+        .post('/api/v1/trips/plan')
+        .send({ destination: testCity, mode: 'SELF_BUILD', days: 1 });
+      expect(res.status).toBe(401);
+    });
+
+    it('SELF_BUILD creates a trip with exactly the selected stops and canonical shape', async () => {
+      const selected = [placeIds[0], placeIds[1]];
+      const res = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ destination: testCity, mode: 'SELF_BUILD', days: 1, selectedPlaceIds: selected });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+
+      const { trip, explanation, dayExplanations, dayInfo, qualityScore } = res.body.data;
+      expect(trip.destination).toBe(testCity);
+      expect(trip.generationSource).toBe('MANUAL');
+      expect(trip.tripDays.length).toBe(1);
+
+      const allStops = trip.tripDays.flatMap((d: any) => d.stops);
+      expect(allStops.map((s: any) => s.placeId).sort()).toEqual([...selected].sort());
+      expect(allStops.length).toBe(2);
+
+      expect(typeof explanation).toBe('string');
+      expect(explanation.length).toBeGreaterThan(0);
+      expect(Array.isArray(dayExplanations)).toBe(true);
+      expect(dayExplanations.length).toBeGreaterThan(0);
+      expect(Array.isArray(dayInfo)).toBe(true);
+      expect(typeof qualityScore).toBe('number');
+      expect(Number.isFinite(qualityScore)).toBe(true);
+    });
+
+    it('persists start time when fixedTimePlaces is provided', async () => {
+      const res = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          destination: testCity,
+          mode: 'SELF_BUILD',
+          days: 1,
+          selectedPlaceIds: [placeIds[5]],
+          fixedTimePlaces: [{ placeId: placeIds[5], startTime: '09:00' }],
+        });
+
+      expect(res.status).toBe(201);
+      const tripId = res.body.data.trip.id;
+
+      const stop = await prisma.tripPlanStop.findFirst({
+        where: { tripPlanDay: { tripPlanId: tripId } },
+        orderBy: { order: 'asc' },
+      });
+      expect(stop?.startTime).toBe('09:00');
+    });
+
+    it('SELF_BUILD keeps a pinned place even when it is not in selected ids', async () => {
+      const res = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          destination: testCity,
+          mode: 'SELF_BUILD',
+          days: 1,
+          selectedPlaceIds: [placeIds[0]],
+          pinnedPlaceIds: [placeIds[1]],
+        });
+
+      expect(res.status).toBe(201);
+      const ids = res.body.data.trip.tripDays.flatMap((d: any) => d.stops.map((s: any) => s.placeId));
+      expect(ids).toContain(placeIds[0]);
+      expect(ids).toContain(placeIds[1]);
+      expect(ids.length).toBe(2);
+    });
+
+    it('SELF_BUILD keeps locked stops in their relative locked order', async () => {
+      const res = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          destination: testCity,
+          mode: 'SELF_BUILD',
+          days: 1,
+          selectedPlaceIds: [placeIds[0], placeIds[1]],
+          lockedPlaceIds: [placeIds[1], placeIds[0]],
+        });
+
+      expect(res.status).toBe(201);
+      const seq = res.body.data.trip.tripDays.flatMap((d: any) => d.stops.map((s: any) => s.placeId));
+      expect(seq.indexOf(placeIds[1])).toBeGreaterThanOrEqual(0);
+      expect(seq.indexOf(placeIds[0])).toBeGreaterThan(seq.indexOf(placeIds[1]));
+    });
+
+    it('persists the optimized plan across a subsequent refetch', async () => {
+      const planRes = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ destination: testCity, mode: 'SELF_BUILD', days: 1, selectedPlaceIds: [placeIds[0], placeIds[1]] });
+      expect(planRes.status).toBe(201);
+      const tripId = planRes.body.data.trip.id;
+
+      const refetch = await request(app)
+        .get(`/api/v1/trips/${tripId}`)
+        .set('Authorization', `Bearer ${userToken}`);
+      expect(refetch.status).toBe(200);
+      expect(refetch.body.data.tripDays.flatMap((d: any) => d.stops.map((s: any) => s.placeId)).sort())
+        .toEqual([placeIds[0], placeIds[1]].sort());
+    });
+
+    it('missing-coordinates place is disclosed, never silently dropped', async () => {
+      const noCoords = await prisma.place.create({
+        data: {
+          name: 'ItinTest No Coords',
+          slug: testSlug('itintest-nocoords'),
+          description: 'Place intentionally without coordinates.',
+          category: 'landmark',
+          tags: [],
+          city: testCity,
+          state: 'TestState',
+          country: 'India',
+          status: 'APPROVED',
+          source: 'ADMIN',
+        },
+      });
+
+      try {
+        const res = await request(app)
+          .post('/api/v1/trips/plan')
+          .set('Authorization', `Bearer ${userToken}`)
+          .send({
+            destination: testCity,
+            mode: 'SELF_BUILD',
+            days: 1,
+            selectedPlaceIds: [noCoords.id, placeIds[0]],
+          });
+
+        // Either the plan discloses the impossible place (422 + message) or it
+        // succeeds while still carrying it (never silently drops a selection).
+        expect([201, 422]).toContain(res.status);
+        if (res.status === 201) {
+          const ids = res.body.data.trip.tripDays.flatMap((d: any) => d.stops.map((s: any) => s.placeId));
+          expect(ids).toContain(noCoords.id);
+          expect(Array.isArray(res.body.data.warnings)).toBe(true);
+        } else {
+          expect(res.body.success).toBe(false);
+          expect(res.body.message.length).toBeGreaterThan(0);
+        }
+      } finally {
+        await prisma.place.delete({ where: { id: noCoords.id } });
+      }
+    });
+
+    it('AI_BUILD adds complements around the selected anchor', async () => {
+      const selected = [placeIds[2]];
+      const res = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ destination: testCity, mode: 'AI_BUILD', days: 1, selectedPlaceIds: selected });
+
+      expect(res.status).toBe(201);
+      const allStops = res.body.data.trip.tripDays.flatMap((d: any) => d.stops);
+      const stopIds = allStops.map((s: any) => s.placeId);
+      expect(stopIds).toContain(selected[0]);
+      expect(allStops.length).toBeGreaterThan(1);
+      expect(new Set(stopIds).size).toBe(stopIds.length);
+    });
+
+    it('rejects with 404 when another user owns the trip', async () => {
+      const createRes = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${otherUserToken}`)
+        .send({ destination: testCity, mode: 'SELF_BUILD', days: 1, selectedPlaceIds: [placeIds[1]] });
+      expect(createRes.status).toBe(201);
+      const otherTripId = createRes.body.data.trip.id;
+
+      const res = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ destination: testCity, mode: 'SELF_BUILD', days: 1, selectedPlaceIds: [placeIds[0]], tripId: otherTripId });
+      expect(res.status).toBe(404);
+    });
+
+    it('returns 422 PLACE_RESOLUTION_FAILED for a missing place id', async () => {
+      const res = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ destination: testCity, mode: 'SELF_BUILD', days: 1, selectedPlaceIds: ['nonexistent-place-id-xyz'] });
+      expect(res.status).toBe(422);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/could not be found/i);
+    });
+
+    it('rejects CUSTOM budget without customBudgetAmount (400)', async () => {
+      const res = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ destination: testCity, mode: 'SELF_BUILD', budget: 'CUSTOM' });
+      expect(res.status).toBe(400);
+    });
+
+    it('replaces non-pinned stops on a second full plan', async () => {
+      const firstRes = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ destination: testCity, mode: 'SELF_BUILD', days: 1, selectedPlaceIds: [placeIds[0], placeIds[1]] });
+      expect(firstRes.status).toBe(201);
+      const tid = firstRes.body.data.trip.id;
+
+      const secondRes = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ destination: testCity, mode: 'SELF_BUILD', days: 1, selectedPlaceIds: [placeIds[2]], tripId: tid });
+      expect(secondRes.status).toBe(201);
+      const stops = secondRes.body.data.trip.tripDays.flatMap((d: any) => d.stops);
+      expect(stops.map((s: any) => s.placeId).sort()).toEqual([placeIds[2]]);
+    });
+
+    it('regeneration preserves stops on other days', async () => {
+      const allSelected = [placeIds[0], placeIds[1], placeIds[2], placeIds[3], placeIds[4], placeIds[5]];
+      const firstRes = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ destination: testCity, mode: 'SELF_BUILD', days: 2, pace: 'RELAXED', selectedPlaceIds: allSelected });
+      expect(firstRes.status).toBe(201);
+      expect(firstRes.body.data.trip.tripDays.length).toBe(2);
+      const tid = firstRes.body.data.trip.id;
+      const day1Before = firstRes.body.data.trip.tripDays
+        .find((d: any) => d.dayNumber === 1)
+        ?.stops.map((s: any) => s.placeId)
+        .sort();
+
+      const regenRes = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ destination: testCity, mode: 'SELF_BUILD', days: 2, pace: 'RELAXED', selectedPlaceIds: allSelected, regenerateDayNumber: 2, tripId: tid });
+      expect(regenRes.status).toBe(201);
+      const day1After = regenRes.body.data.trip.tripDays
+        .find((d: any) => d.dayNumber === 1)
+        ?.stops.map((s: any) => s.placeId)
+        .sort();
+      expect(day1After).toEqual(day1Before);
+    });
+
+    it('no duplicate stops in the plan', async () => {
+      const res = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ destination: testCity, mode: 'AI_BUILD', days: 1, selectedPlaceIds: [placeIds[2]] });
+      expect(res.status).toBe(201);
+      const ids = res.body.data.trip.tripDays.flatMap((d: any) => d.stops.map((s: any) => s.placeId));
+      expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    it('Phase 5: prompt mentions resolve into AI_BUILD priority anchors', async () => {
+      const res = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ destination: testCity, mode: 'AI_BUILD', days: 1, prompt: 'Must visit ItinTest Heritage Fort' });
+      expect(res.status).toBe(201);
+      const ids = res.body.data.trip.tripDays.flatMap((d: any) => d.stops.map((s: any) => s.placeId));
+      expect(ids).toContain(placeIds[0]);
+      // The resolved mention is anchored, never silently dropped.
+      expect(Array.isArray(res.body.data.warnings)).toBe(true);
+    });
+
+    it('Phase 5: unresolved prompt mentions are disclosed, never invented', async () => {
+      const res = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ destination: testCity, mode: 'AI_BUILD', days: 1, prompt: 'Must visit Totally Fake Landmark Never Built' });
+      expect(res.status).toBe(201);
+      const warnings: string[] = res.body.data.warnings ?? [];
+      expect(warnings.some((w) => /totally fake landmark never built/i.test(w))).toBe(true);
+      // No stop may be a fabricated place with the bogus name.
+      const stops = res.body.data.trip.tripDays.flatMap((d: any) => d.stops);
+      for (const stop of stops) {
+        expect(stop.place.name).not.toMatch(/totally fake landmark never built/i);
+      }
+    });
+
+    it('Phase 5: AI_BUILD golden shape — anchors survive, complements come only from the destination DB', async () => {
+      const res = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          destination: testCity,
+          mode: 'AI_BUILD',
+          days: 2,
+          pace: 'BALANCED',
+          selectedPlaceIds: [placeIds[0]],
+          pinnedPlaceIds: [placeIds[1]],
+          prompt: 'Must visit ItinTest Waterfall',
+          interests: ['nature'],
+        });
+      expect(res.status).toBe(201);
+      const { trip, explanation, qualityScore } = res.body.data;
+      const ids = trip.tripDays.flatMap((d: any) => d.stops.map((s: any) => s.placeId));
+      // Priority anchors survive into the built plan.
+      expect(ids).toContain(placeIds[0]);
+      expect(ids).toContain(placeIds[1]);
+      expect(ids).toContain(placeIds[2]);
+      // Complements are drawn from the approved destination pool only.
+      for (const id of ids) expect(placeIds).toContain(id);
+      expect(trip.tripDays.length).toBe(2);
+      expect(new Set(ids).size).toBe(ids.length);
+      expect(typeof qualityScore).toBe('number');
+      expect(Number.isFinite(qualityScore)).toBe(true);
+      expect(typeof explanation).toBe('string');
+      expect(explanation.length).toBeGreaterThan(0);
+    });
+
+    it('Phase 5: VERY_RELAXED AI_BUILD respects the daily stop cap (≤ 4)', async () => {
+      const res = await request(app)
+        .post('/api/v1/trips/plan')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ destination: testCity, mode: 'AI_BUILD', days: 1, pace: 'VERY_RELAXED' });
+      expect(res.status).toBe(201);
+      for (const day of res.body.data.trip.tripDays) {
+        expect(day.stops.length).toBeLessThanOrEqual(4);
+      }
+    });
+
+    it('flag OFF routes ai-generate to legacy (no qualityScore)', async () => {
+      setCanonicalItineraryEnabledForTesting(false);
+      const res = await request(app)
+        .post('/api/v1/trips/ai-generate')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          destination: testCity,
+          days: 1,
+          pace: 'BALANCED',
+          travelers: 'SOLO',
+          budget: 'MEDIUM',
+          interests: ['heritage'],
+          prompt: 'pal flag off integration test unique',
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.data.trip).toBeDefined();
+      expect(res.body.data.qualityScore ?? undefined).toBeUndefined();
+      setCanonicalItineraryEnabledForTesting(null);
+    });
+
+    it('flag ON routes ai-generate to canonical (qualityScore present)', async () => {
+      setCanonicalItineraryEnabledForTesting(true);
+      const res = await request(app)
+        .post('/api/v1/trips/ai-generate')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          destination: testCity,
+          days: 1,
+          pace: 'BALANCED',
+          travelers: 'SOLO',
+          budget: 'MEDIUM',
+          interests: ['nature'],
+          prompt: 'pal flag on integration test unique',
+        });
+      expect(res.status).toBe(201);
+      expect(typeof res.body.data.qualityScore).toBe('number');
+      expect(Number.isFinite(res.body.data.qualityScore)).toBe(true);
+      setCanonicalItineraryEnabledForTesting(null);
     });
   });
 });

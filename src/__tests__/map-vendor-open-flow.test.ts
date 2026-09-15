@@ -38,6 +38,7 @@ describe('Map → Vendor “View on Map” flow', () => {
   it('session restore never resurrects a stale card over a routed vendor target', () => {
     const map = read('screens/MapScreen.tsx');
 
-    expect(map).toMatch(/\&\& !selectedVendorId/);
+    expect(map).toMatch(/shouldRestoreSavedMapTab/);
+    expect(map).toMatch(/selectedVendorIdRef/);
   });
 });

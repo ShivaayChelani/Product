@@ -7,7 +7,7 @@ import { MapExploreTheme as T } from '../theme';
 type Props = {
   selected: string;
   onSelect: (key: string) => void;
-  /** DB-driven categories from GET /places/map/categories; falls back to static chips. */
+  /** Main Map chips (All + 9 categories). Falls back to the fixed chip set. */
   chips?: MapCategoryChip[];
 };
 

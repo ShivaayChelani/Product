@@ -6,7 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Pal from '../design/DesignSystem';
 import { GradientButton } from '../components/ui/GradientButton';
-import { tripsApi, TripPlan, TripPlanStop, TripProgressResponse, TravelPace, BudgetTier, AvoidOption } from '../services/api/trips';
+import { tripsApi, TripPlan, TripPlanStop, TripProgressResponse, TravelPace, BudgetTier, AvoidOption, customBudgetAmountForRequest } from '../services/api/trips';
 import { buildTripExportText } from '../utils/tripExport';
 import { buildTripShareUrl } from '../services/sharing/shareLinks';
 import { useToast } from '../context/ToastContext';
@@ -248,6 +248,7 @@ export default function TripDetailScreen({
                 pace: trip.pace,
                 travelers: (trip.travelers as any) || 'SOLO',
                 budget: (trip.budget as BudgetTier) || 'MEDIUM',
+                customBudgetAmount: customBudgetAmountForRequest(trip),
                 interests: trip.interests || [],
                 transportation: trip.transportation || ['CAR'],
                 avoid: trip.avoid || [],
@@ -331,6 +332,7 @@ export default function TripDetailScreen({
         pace: trip.pace || 'BALANCED',
         travelers: (trip.travelers as any) || 'SOLO',
         budget: (trip.budget as BudgetTier) || 'MEDIUM',
+        customBudgetAmount: customBudgetAmountForRequest(trip),
         interests: trip.interests || [],
         transportation: trip.transportation || ['CAR'],
         fillWithAi: true,
@@ -363,6 +365,9 @@ export default function TripDetailScreen({
         pace,
         travelers: (trip.travelers as any) || 'SOLO',
         budget,
+        customBudgetAmount: budget === 'CUSTOM'
+          ? customBudgetAmountForRequest({ ...trip, budget })
+          : undefined,
         interests: trip.interests || [],
         transportation: trip.transportation || ['CAR'],
         timePreference: trip.timePreference || undefined,

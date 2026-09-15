@@ -1,10 +1,14 @@
 import { prisma } from '../../../config/database';
 import { eventBus, AppEvents } from '../../../config/events';
 import { resolvePlace } from './places.helpers';
+import { claimActionSlot, PLACE_STAT_DEDUP_MS } from '../../../shared/utils/actionDedup';
 
 export const placesStatsService = {
-  async recordStat(placeIdOrSlug: string, action: string, userId?: string) {
+  async recordStat(placeIdOrSlug: string, action: string, userId?: string, actorKey?: string) {
     const { id: placeId } = await resolvePlace(placeIdOrSlug);
+    const key = `place-stat:${placeId}:${action}:${actorKey || (userId ? `user:${userId}` : 'anon')}`;
+    const claimed = await claimActionSlot(key, PLACE_STAT_DEDUP_MS);
+    if (!claimed) return;
 
     await prisma.placeStat.create({
       data: { placeId, userId: userId || null, action },

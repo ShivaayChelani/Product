@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 vi.mock('../../src/config/database', () => ({
   prisma: {
-    treasureHunt: { findUnique: vi.fn() },
+    treasureHunt: { findUnique: vi.fn(), findMany: vi.fn() },
     treasureHuntProgress: { findUnique: vi.fn() },
     riddleProgress: { upsert: vi.fn(), update: vi.fn() },
     riddleDailyAttempt: { findUnique: vi.fn(), create: vi.fn() },
@@ -18,12 +18,14 @@ vi.mock('../../src/modules/wallet/wallet.service', () => ({
 }));
 
 vi.mock('../../src/shared/utils/reverseGeocode', () => ({
-  reverseGeocodeToCity: vi.fn(async () => 'Kolkata'),
+  reverseGeocodeCandidates: vi.fn(async () => ({ settlement: 'Kolkata', district: null, state: 'West Bengal' })),
+  primaryCandidateCity: (c: { settlement: string | null; district: string | null }) =>
+    c?.settlement || c?.district || null,
 }));
 
 import { prisma } from '../../src/config/database';
 import { walletService } from '../../src/modules/wallet/wallet.service';
-import { reverseGeocodeToCity } from '../../src/shared/utils/reverseGeocode';
+import { reverseGeocodeCandidates } from '../../src/shared/utils/reverseGeocode';
 import { riddlesService } from '../../src/modules/riddles/riddles.service';
 import { TREASURE_HUNT_RIDDLE_REWARD_POINTS, TREASURE_HUNT_COMPLETION_BONUS_POINTS } from '../../src/modules/riddles/riddles.constants';
 import { submitAnswerSchema } from '../../src/modules/riddles/riddles.validation';
@@ -105,8 +107,11 @@ function setupState(riddleRewards: number[] = [9999, 9999, 9999]) {
     ctx.earnCalls.push({ userId, amount, reason, referenceId, referenceType });
     return { palPoints: amount };
   });
-  (reverseGeocodeToCity as any).mockResolvedValue('Kolkata');
+  (reverseGeocodeCandidates as any).mockResolvedValue({ settlement: 'Kolkata', district: null, state: 'West Bengal' });
   (prisma.treasureHunt.findUnique as any).mockResolvedValue(ctx.hunt);
+  (prisma.treasureHunt.findMany as any).mockResolvedValue([
+    { ...ctx.hunt, _count: { riddles: ctx.hunt.riddles.length } },
+  ]);
   (prisma.riddleProgress.upsert as any).mockImplementation(async (args: any) => upsertRiddleProgress(ctx, args));
   (prisma.riddleProgress.update as any).mockImplementation(async (args: any) => {
     const riddleId = args.where.userId_riddleId.riddleId;

@@ -646,7 +646,12 @@ export function buildLocalTripPlan(options: {
   interests?: string[];
   places?: TouristSpot[];
 }): TripPlanResult {
-  const days      = Math.min(14, Math.max(1, options.days || 3));
+  // `0` and negatives are invalid trip lengths, not "use the 3-day default".
+  // Only null/undefined/NaN fall back to 3. Clamp the rest to [1, 14].
+  const requestedDays = Number(options.days);
+  const days = Number.isFinite(requestedDays)
+    ? Math.min(14, Math.max(1, requestedDays))
+    : 3;
   const pace      = options.pace || 'moderate';
   const interests = options.interests || [];
   const location  = options.location || '';
@@ -785,8 +790,7 @@ export function buildLocalTripPlan(options: {
             dayStops[i - 1].latitude, dayStops[i - 1].longitude,
             p.latitude, p.longitude,
           );
-      const distM = Math.round(distKm * 1000);
-      totalDistance += distM;
+      totalDistance += distKm;
 
       const slot: TripPlanStop['timeSlot'] =
         i < Math.ceil(dayStops.length / 3)
@@ -803,7 +807,7 @@ export function buildLocalTripPlan(options: {
         longitude:        p.longitude,
         timeSlot:         slot,
         order:            i + 1,
-        distanceFromPrev: distM,
+        distanceFromPrev: Math.round(distKm * 100) / 100,
         description:      p.shortDescription || p.description || `${p.name} in ${p.city || location}`,
       };
     });

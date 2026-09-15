@@ -114,6 +114,23 @@ export function formatDistanceFromYou(meters: number): string {
 
 export const LOCATION_FRESH_MS = 5 * 60 * 1000;
 export const DISTANCE_ACCURACY_MAX_M = 150;
+/** Matches LocationContext watch `applyPosition(loc, 500)`. Directions origin, not "from you" labels. */
+export const NAVIGATION_ACCURACY_MAX_M = 500;
+
+export type UserPositionSnapshot = {
+  latitude?: unknown;
+  longitude?: unknown;
+  accuracy?: unknown;
+  timestamp?: number;
+};
+
+export type UserPositionRejection = {
+  ok: boolean;
+  reason: 'accepted' | 'missing' | 'invalid_coords' | 'stale' | 'coarse_accuracy';
+  accuracyM: number | null;
+  ageMs: number | null;
+  maxAccuracyM: number;
+};
 
 export function isFreshUserPosition(
   pos: { latitude?: unknown; longitude?: unknown; timestamp?: number } | null | undefined,
@@ -125,18 +142,57 @@ export function isFreshUserPosition(
   return true;
 }
 
+function accuracyWithinLimit(accuracyRaw: unknown, maxAccuracyM: number): boolean {
+  const accuracy = parseCoordinate(accuracyRaw);
+  if (accuracy == null || accuracy <= 0) return true;
+  return accuracy <= maxAccuracyM;
+}
+
 /**
  * Use this for user-facing distance/ETA labels. A coarse network fix can be
  * kilometers off, so it must not be displayed as "from you".
  */
 export function isReliableUserPosition(
-  pos: { latitude?: unknown; longitude?: unknown; accuracy?: unknown; timestamp?: number } | null | undefined,
+  pos: UserPositionSnapshot | null | undefined,
   now = Date.now(),
 ): pos is { latitude: number; longitude: number; accuracy?: unknown; timestamp?: number } {
   if (!isFreshUserPosition(pos, now)) return false;
-  const accuracy = parseCoordinate(pos?.accuracy);
-  if (accuracy == null || accuracy <= 0) return true;
-  return accuracy <= DISTANCE_ACCURACY_MAX_M;
+  return accuracyWithinLimit(pos?.accuracy, DISTANCE_ACCURACY_MAX_M);
+}
+
+/**
+ * Use this for routing/directions origin. Same freshness as labels, but the
+ * accuracy ceiling matches the live GPS watch (500 m), not the 150 m label gate.
+ */
+export function isNavigableUserPosition(
+  pos: UserPositionSnapshot | null | undefined,
+  now = Date.now(),
+): pos is { latitude: number; longitude: number; accuracy?: unknown; timestamp?: number } {
+  if (!isFreshUserPosition(pos, now)) return false;
+  return accuracyWithinLimit(pos?.accuracy, NAVIGATION_ACCURACY_MAX_M);
+}
+
+/** Safe to log — never includes latitude/longitude. */
+export function describeUserPositionRejection(
+  pos: UserPositionSnapshot | null | undefined,
+  maxAccuracyM = DISTANCE_ACCURACY_MAX_M,
+  now = Date.now(),
+): UserPositionRejection {
+  if (!pos) {
+    return { ok: false, reason: 'missing', accuracyM: null, ageMs: null, maxAccuracyM };
+  }
+  const accuracyM = parseCoordinate(pos.accuracy);
+  const ageMs = pos.timestamp != null ? now - pos.timestamp : null;
+  if (!parseLatLng(pos.latitude, pos.longitude)) {
+    return { ok: false, reason: 'invalid_coords', accuracyM, ageMs, maxAccuracyM };
+  }
+  if (ageMs != null && ageMs > LOCATION_FRESH_MS) {
+    return { ok: false, reason: 'stale', accuracyM, ageMs, maxAccuracyM };
+  }
+  if (accuracyM != null && accuracyM > 0 && accuracyM > maxAccuracyM) {
+    return { ok: false, reason: 'coarse_accuracy', accuracyM, ageMs, maxAccuracyM };
+  }
+  return { ok: true, reason: 'accepted', accuracyM, ageMs, maxAccuracyM };
 }
 
 export function formatDuration(seconds: number): string {

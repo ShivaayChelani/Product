@@ -152,6 +152,51 @@ function detectRemoveHints(text: string): string[] {
   return hints;
 }
 
+/**
+ * Candidate proper-noun place phrases the user asked to include, e.g.
+ * "Must visit Amber Fort", "don't miss Hawa Mahal". Lowercase-only mentions
+ * are treated as generic phrasing ("visit temples") and ignored — this keeps
+ * noise out so unresolved-mention warnings stay meaningful. The DB resolution
+ * step (promptPlaceResolution.ts) is authoritative: these phrases are only
+ * clues, never trusted as ids or coordinates.
+ */
+const PLACE_MENTION_RE = /\b(?i:must[- ]?visit|must[- ]?see|should\s+visit|should\s+see|should\s+go\s+to|definitely\s+(?:visit|see|go|include|check\s+out)|don'?t\s+miss|do\s+not\s+miss|make\s+sure\s+to\s+(?:visit|see|include|go|check\s+out)|visiting|include|visit|see|go\s+to|check\s+out|tick\s+off)\s+(?:(?i:the|a|an|this|that)\s+)?([A-Z][A-Za-z0-9'&.-]*(?:\s+[A-Za-z0-9'&.-]+){1,8}?)(?=\s+(?i:and|also|then|because|before|after|since|while|with|for|at|around|famous\s+for|region|area|city|day|evening|morning|in|on|of|from)\b|[.,;!?\n]|$)/g;
+
+const MENTION_DENY = new Set([
+  'street food', 'local food', 'the city', 'the old city', 'old city', 'the fort', 'the palace',
+  'the temple', 'the museum', 'the park', 'the garden', 'the waterfall', 'the beach',
+  'sunset point', 'sunrise point', 'good food', 'the market', 'the bazaar',
+  'night life', 'the night market',
+]);
+
+/** Bare generic place nouns are never treated as place names ("Visit the Fort"). */
+const GENERIC_PLACE_NOUNS = new Set([
+  'fort', 'palace', 'temple', 'museum', 'gallery', 'park', 'garden', 'beach',
+  'waterfall', 'viewpoint', 'monument', 'ghat', 'market', 'bazaar', 'street',
+  'square', 'lake', 'river', 'hill', 'tower', 'gate', 'zoo', 'mall', 'restaurant',
+  'cafe', 'hotel', 'resort', 'ruins', 'cave', 'island', 'sanctuary', 'point',
+  'peak', 'valley', 'temple complex',
+]);
+
+function detectPlaceMentionCandidates(text: string): string[] {
+  const candidates: string[] = [];
+  for (const match of text.matchAll(PLACE_MENTION_RE)) {
+    if (candidates.length >= 12) break;
+    const cleaned = cleanHint(match[1]);
+    if (!cleaned) continue;
+    if (MENTION_DENY.has(cleaned)) continue;
+    if (!cleaned.includes(' ') && GENERIC_PLACE_NOUNS.has(cleaned)) continue;
+    if (!candidates.includes(cleaned)) candidates.push(cleaned);
+  }
+  return candidates;
+}
+
+/** Proper-noun place phrases extracted from a planning prompt (see above). */
+export function extractPlaceNameCandidates(prompt: string | null | undefined): string[] {
+  if (!prompt || typeof prompt !== 'string') return [];
+  return detectPlaceMentionCandidates(prompt.slice(0, 2000));
+}
+
 export function parseTripIntent(prompt: string | null | undefined): ParsedTripIntent {
   const intent: ParsedTripIntent = { interests: [], removeHints: [] };
   if (!prompt || typeof prompt !== 'string') return intent;

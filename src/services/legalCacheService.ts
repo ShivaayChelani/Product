@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { legalApi, LegalDocumentPayload, LegalDocumentType } from './api/legal';
+import { isPlainObject, parseJsonObject } from '../utils/safeJson';
 
 const CACHE_PREFIX = 'PALSAFAR_LEGAL_DOC_';
 
@@ -16,7 +17,9 @@ async function readCache(type: LegalDocumentType, locale: string): Promise<Cache
   try {
     const raw = await AsyncStorage.getItem(cacheKey(type, locale));
     if (!raw) return null;
-    return JSON.parse(raw) as CachedLegalDocument;
+    const parsed = parseJsonObject(raw);
+    if (!parsed || !isPlainObject(parsed.payload) || typeof parsed.cachedAt !== 'number') return null;
+    return parsed as unknown as CachedLegalDocument;
   } catch {
     return null;
   }

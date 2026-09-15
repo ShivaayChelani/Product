@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseTripIntent, hasGlobalIntentSignals } from '../modules/trips/tripIntentParser';
+import { parseTripIntent, hasGlobalIntentSignals, extractPlaceNameCandidates } from '../modules/trips/tripIntentParser';
 
 describe('tripIntentParser (deterministic NL intent)', () => {
   it('returns an empty intent for empty/missing prompts', () => {
@@ -118,5 +118,42 @@ describe('tripIntentParser (deterministic NL intent)', () => {
   it('ignores pronoun-only removals that cannot be resolved', () => {
     const intent = parseTripIntent('Remove this place');
     expect(intent.removeHints).toEqual([]);
+  });
+});
+
+describe('extractPlaceNameCandidates (prompt place mentions)', () => {
+  it('extracts capitalized mention phrases', () => {
+    expect(extractPlaceNameCandidates('Must visit Amber Fort')).toEqual(['amber fort']);
+    expect(extractPlaceNameCandidates("Don't miss Hawa Mahal")).toEqual(['hawa mahal']);
+    expect(extractPlaceNameCandidates('Definitely go to City Palace')).toEqual(['city palace']);
+  });
+
+  it('extracts several mentions in one prompt', () => {
+    expect(extractPlaceNameCandidates('Must visit Amber Fort and include Hawa Mahal'))
+      .toEqual(['amber fort', 'hawa mahal']);
+  });
+
+  it('ignores lowercase-only generic phrasing (noise)', () => {
+    expect(extractPlaceNameCandidates('I want to visit temples and forts')).toEqual([]);
+    expect(extractPlaceNameCandidates('please add nature')).toEqual([]);
+  });
+
+  it('ignores bare generic place nouns even when capitalized', () => {
+    expect(extractPlaceNameCandidates('Visit the Fort')).toEqual([]);
+    expect(extractPlaceNameCandidates('Definitely see The Old City')).toEqual([]);
+    expect(extractPlaceNameCandidates('Go to The Temple')).toEqual([]);
+  });
+
+  it('returns nothing for empty prompts', () => {
+    expect(extractPlaceNameCandidates(null)).toEqual([]);
+    expect(extractPlaceNameCandidates('')).toEqual([]);
+  });
+
+  it('cleans trailing location qualifiers', () => {
+    expect(extractPlaceNameCandidates('Visit Amber Fort in Jaipur')).toEqual(['amber fort']);
+  });
+
+  it('does not invent proper nouns from neutral text', () => {
+    expect(extractPlaceNameCandidates('I had a great time last visit')).toEqual([]);
   });
 });

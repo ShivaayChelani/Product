@@ -44,7 +44,29 @@ export function normalizeTripDays(days: TripPlanDay[] | null | undefined): TripP
   return normalized;
 }
 
-export function normalizeTripPlan(trip: TripPlan): TripPlan {
+/** Empty shell used when the API/cache payload is null or not an object. */
+const EMPTY_TRIP_PLAN: TripPlan = {
+  id: '',
+  title: '',
+  userId: '',
+  days: 0,
+  transportation: [],
+  interests: [],
+  pace: 'BALANCED',
+  avoid: [],
+  generationSource: 'MANUAL',
+  isPublished: false,
+  createdAt: '',
+  updatedAt: '',
+  tripDays: [],
+  collaborators: [],
+  user: { id: '', name: '' },
+};
+
+export function normalizeTripPlan(trip: TripPlan | null | undefined): TripPlan {
+  if (!trip || typeof trip !== 'object') {
+    return { ...EMPTY_TRIP_PLAN, tripDays: [] };
+  }
   return {
     ...trip,
     tripDays: normalizeTripDays(trip.tripDays),

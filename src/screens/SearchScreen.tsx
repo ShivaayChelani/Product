@@ -13,6 +13,7 @@ import { NEARBY_SEARCH_RADIUS_M } from '../services/location/categoryNearbyFilte
 import { searchHomeCategory, type CityCategorySearchResult } from '../services/homeCategorySearch';
 import { getHomeCategoryById, getHomeCategoryForQuery } from '../components/home/constants';
 import { recordSearchedPlace } from '../utils/passportPlaces';
+import { parseJsonStringArray } from '../utils/safeJson';
 import { useHeaderSafePadding, useBottomSafePadding, useResponsive } from '../design/responsive';
 import { useNavigation } from '@react-navigation/native';
 import { isGenericDestination, placeBelongsToDestination } from '../utils/destination';
@@ -383,7 +384,7 @@ export default function SearchScreen({
   const loadHistory = async () => {
     try {
       const saved = await AsyncStorage.getItem('@search_history');
-      if (saved) setHistory(JSON.parse(saved));
+      if (saved) setHistory(parseJsonStringArray(saved));
     } catch { }
   };
 

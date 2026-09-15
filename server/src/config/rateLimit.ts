@@ -9,6 +9,12 @@ type PeekAuth = {
   permission?: string;
 };
 
+/** Per-client key for unauthenticated traffic. Never share one global "anonymous" bucket. */
+export function rateLimitClientIp(req: Request): string {
+  const ip = typeof req.ip === 'string' ? req.ip.trim() : '';
+  return ip || 'unknown';
+}
+
 function peekAuth(req: Request): PeekAuth {
   try {
     const header = req.headers.authorization;
@@ -103,7 +109,7 @@ export const globalLimiter = createLimiter({
   keyGenerator: (req) => {
     const { userId } = peekAuth(req);
     if (userId) return `uid:${userId}`;
-    return `ip:${'anonymous'}`;
+    return `ip:${rateLimitClientIp(req)}`;
   },
   message: { success: false, data: null, message: 'Too many requests. Please try again later.' },
 });
@@ -115,7 +121,7 @@ export const directionsLimiter = createLimiter({
   legacyHeaders: false,
   keyGenerator: (req) => {
     const { userId } = peekAuth(req);
-    return userId ? `directions:${userId}` : `ip:${'anonymous'}`;
+    return userId ? `directions:${userId}` : `ip:${rateLimitClientIp(req)}`;
   },
   message: { success: false, data: null, message: 'Too many directions requests. Please try again later.' },
 });
@@ -153,7 +159,7 @@ export const loginLimiter = createLimiter({
   keyGenerator: (req) => {
     const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     if (email) return `login:${email}`;
-    return `ip:${'anonymous'}`;
+    return `ip:${rateLimitClientIp(req)}`;
   },
   message: { success: false, data: null, message: 'Too many login attempts. Please try again in 15 minutes.' },
 });
@@ -171,6 +177,20 @@ export const statsLimiter = createLimiter({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  message: { success: false, data: null, message: 'Too many requests. Slow down.' },
+});
+
+export const metricWriteLimiter = createLimiter({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const { userId } = peekAuth(req);
+    const actor = userId ?? `ip:${rateLimitClientIp(req)}`;
+    const id = typeof req.params?.id === 'string' ? req.params.id : 'none';
+    return `metric:${id}:${actor}`;
+  },
   message: { success: false, data: null, message: 'Too many requests. Slow down.' },
 });
 
@@ -237,7 +257,7 @@ export const adClaimLimiter = createLimiter({
   legacyHeaders: false,
   keyGenerator: (req) => {
     const { userId } = peekAuth(req);
-    return userId ? `ad-claim:${userId}` : `ip:${'anonymous'}`;
+    return userId ? `ad-claim:${userId}` : `ip:${rateLimitClientIp(req)}`;
   },
   message: { success: false, data: null, message: 'Too many ad reward claims. Please try again later.' },
 });
@@ -249,7 +269,7 @@ export const partnerRedeemLimiter = createLimiter({
   legacyHeaders: false,
   keyGenerator: (req) => {
     const { userId } = peekAuth(req);
-    return userId ? `partner-redeem:${userId}` : `ip:${'anonymous'}`;
+    return userId ? `partner-redeem:${userId}` : `ip:${rateLimitClientIp(req)}`;
   },
   message: { success: false, data: null, message: 'Too many redemption attempts. Please try again later.' },
 });
@@ -261,7 +281,7 @@ export const challengeCompleteLimiter = createLimiter({
   legacyHeaders: false,
   keyGenerator: (req) => {
     const { userId } = peekAuth(req);
-    return userId ? `challenge-complete:${userId}` : `ip:${'anonymous'}`;
+    return userId ? `challenge-complete:${userId}` : `ip:${rateLimitClientIp(req)}`;
   },
   message: { success: false, data: null, message: 'Too many challenge completions. Please try again later.' },
 });
@@ -273,9 +293,21 @@ export const gameCompletionLimiter = createLimiter({
   legacyHeaders: false,
   keyGenerator: (req) => {
     const { userId } = peekAuth(req);
-    return userId ? `game-complete:${userId}` : `ip:${'anonymous'}`;
+    return userId ? `game-complete:${userId}` : `ip:${rateLimitClientIp(req)}`;
   },
   message: { success: false, data: null, message: 'Too many game reward claims. Please try again later.' },
+});
+
+export const huntAnswerLimiter = createLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const { userId } = peekAuth(req);
+    return userId ? `hunt-answer:${userId}` : `ip:${rateLimitClientIp(req)}`;
+  },
+  message: { success: false, data: null, message: 'Too many answer attempts. Please try again later.' },
 });
 
 export const ssvCallbackLimiter = createLimiter({
@@ -293,7 +325,7 @@ export const usernameCheckLimiter = createLimiter({
   legacyHeaders: false,
   keyGenerator: (req) => {
     const { userId } = peekAuth(req);
-    return userId ? `username-check:${userId}` : `ip:${'anonymous'}`;
+    return userId ? `username-check:${userId}` : `ip:${rateLimitClientIp(req)}`;
   },
   message: { success: false, data: null, message: 'Too many username checks. Please try again later.' },
 });
@@ -306,7 +338,7 @@ export const otpVerifyLimiter = createLimiter({
   keyGenerator: (req) => {
     const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     if (email) return `otp-verify:${email}`;
-    return `ip:${'anonymous'}`;
+    return `ip:${rateLimitClientIp(req)}`;
   },
   message: { success: false, data: null, message: 'Too many verification attempts. Please try again later.' },
 });

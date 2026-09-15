@@ -8,6 +8,11 @@ import { planEnforcementService } from '../monetization/plan-enforcement.service
 import { getPublicVendorListingWhere } from '../vendors/vendor-public-visibility';
 import { notifyVendorOfTaggedReel } from '../vendors/vendor-tagged-reels';
 import {
+  claimActionSlot,
+  REEL_SHARE_DEDUP_MS,
+  REEL_VIEW_DEDUP_MS,
+} from '../../shared/utils/actionDedup';
+import {
   awardCreatorDailyReelInTx,
   CREATOR_DAILY_REEL_FALLBACK_POINTS,
   getIndiaRewardDate,
@@ -786,13 +791,13 @@ export const socialService = {
 
     let resolvedPlaceId: string | null = null;
     if (input.placeId?.trim()) {
+      const placeKey = input.placeId.trim();
       const foundPlace = await prisma.place.findFirst({
         where: {
           OR: [
-            { id: input.placeId },
-            { slug: input.placeId },
-            { name: { equals: input.placeId, mode: 'insensitive' } },
-            { name: { contains: input.placeId, mode: 'insensitive' } },
+            { id: placeKey },
+            { slug: placeKey },
+            { name: { equals: placeKey, mode: 'insensitive' } },
           ],
         },
         select: { id: true },
@@ -1313,9 +1318,17 @@ export const socialService = {
     });
   },
 
-  async incrementViews(reelId: string) {
-    const reel = await prisma.reel.findUnique({ where: { id: reelId } });
+  async incrementViews(reelId: string, actorKey: string) {
+    const reel = await prisma.reel.findUnique({
+      where: { id: reelId },
+      select: { id: true, views: true, creatorId: true },
+    });
     if (!reel) throw new ApiError(404, 'Reel not found.');
+
+    const claimed = await claimActionSlot(`reel-view:${reelId}:${actorKey}`, REEL_VIEW_DEDUP_MS);
+    if (!claimed) {
+      return { id: reel.id, views: reel.views };
+    }
 
     const updated = await prisma.reel.update({
       where: { id: reelId },
@@ -1331,9 +1344,14 @@ export const socialService = {
     return updated;
   },
 
-  async incrementShares(reelId: string) {
-    const reel = await prisma.reel.findUnique({ where: { id: reelId }, select: { id: true } });
+  async incrementShares(reelId: string, actorKey: string) {
+    const reel = await prisma.reel.findUnique({ where: { id: reelId }, select: { id: true, shares: true } });
     if (!reel) throw new ApiError(404, 'Reel not found.');
+
+    const claimed = await claimActionSlot(`reel-share:${reelId}:${actorKey}`, REEL_SHARE_DEDUP_MS);
+    if (!claimed) {
+      return { id: reel.id, shares: reel.shares };
+    }
 
     return prisma.reel.update({
       where: { id: reelId },

@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { parseJsonStringArray } from './safeJson';
 
 const KEY = 'PALSAFAR_SAVED_OFFERS';
 
@@ -6,8 +7,7 @@ export async function loadSavedOfferIds(): Promise<string[]> {
   try {
     const raw = await AsyncStorage.getItem(KEY);
     if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
+    return parseJsonStringArray(raw);
   } catch {
     return [];
   }

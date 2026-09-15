@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AiGenerateInput, AiGenerateResult } from '../../services/api/trips';
+import { isPlainObject, parseJsonSafe } from '../../utils/safeJson';
 
 const CACHE_KEY = '@palsafar/ai_plan_cache_v1';
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -30,7 +31,15 @@ function stableKey(input: AiGenerateInput): string {
 async function readCache(): Promise<Record<string, CacheEntry>> {
   try {
     const raw = await AsyncStorage.getItem(CACHE_KEY);
-    return raw ? JSON.parse(raw) : {};
+    if (!raw) return {};
+    const parsed = parseJsonSafe(raw, {}, isPlainObject);
+    const cleaned: Record<string, CacheEntry> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      if (!isPlainObject(value)) continue;
+      if (!('result' in value) || typeof value.expiresAt !== 'number') continue;
+      cleaned[key] = value as unknown as CacheEntry;
+    }
+    return cleaned;
   } catch {
     return {};
   }

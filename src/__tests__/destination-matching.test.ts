@@ -28,7 +28,7 @@ describe('canonicalizeDestination', () => {
 
   it('handles null or empty destination', () => {
     expect(canonicalizeDestination('')).toBe('');
-    // @ts-ignore
+    // @ts-expect-error — null is a runtime cache/API value, not in the type
     expect(canonicalizeDestination(null)).toBe('');
   });
 });

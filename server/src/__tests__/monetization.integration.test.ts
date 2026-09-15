@@ -930,6 +930,23 @@ describe('Monetization / Payment Integration', () => {
       expect(res.status).toBe(401);
     });
 
+    it('rejects malformed webhook JSON with a controlled 400', async () => {
+      const raw = '{not-json';
+      const signature = crypto
+        .createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET!)
+        .update(raw)
+        .digest('hex');
+
+      const res = await request(app)
+        .post('/api/v1/monetization/razorpay/webhook')
+        .set('x-razorpay-signature', signature)
+        .set('Content-Type', 'application/json')
+        .send(raw);
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
     it('rejects webhook with invalid signature', async () => {
       const webhookPayload = buildWebhookPayload('payment.captured');
 

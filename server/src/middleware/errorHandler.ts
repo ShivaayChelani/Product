@@ -31,6 +31,9 @@ export const errorHandler = (
       field: e.path.join('.'),
       message: e.message,
     }));
+  } else if (err instanceof SyntaxError && 'body' in err) {
+    statusCode = 400;
+    response.message = 'Invalid JSON payload';
   } else if (err.name === 'MulterError') {
     const multerErr = err as Error & { code?: string };
     if (multerErr.code === 'LIMIT_FILE_SIZE') {

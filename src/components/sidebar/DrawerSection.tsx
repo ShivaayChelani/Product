@@ -11,8 +11,8 @@ export const DrawerSection: React.FC<DrawerSectionProps> = ({ title, children })
   return (
     <View style={styles.container}>
       <View style={styles.titleRow}>
-        <View style={styles.titleBar} />
         <Text style={styles.title}>{title}</Text>
+        <View style={styles.line} />
       </View>
       <View style={styles.items}>{children}</View>
     </View>
@@ -26,22 +26,21 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
     paddingHorizontal: 20,
-    marginBottom: 6,
-  },
-  titleBar: {
-    width: 3,
-    height: 14,
-    borderRadius: 2,
-    backgroundColor: SB.accentSoft,
+    marginBottom: 12,
   },
   title: {
     fontFamily: SANS_BOLD,
     fontSize: 11,
-    color: SB.sectionLabel,
+    color: '#63300E',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
+  },
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E8DDD0',
   },
   items: {
     paddingTop: 2,

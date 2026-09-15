@@ -19,6 +19,7 @@ import { useUserContext } from '../context/UserContext';
 import { apiClient } from '../services/api';
 import { tripsApi, AiGenerateInput } from '../services/api/trips';
 import { getCachedAiPlan, setCachedAiPlan } from '../features/aiTripPlanner/planCache';
+import { shouldUseCanonicalAiBuild, toAiBuildPlanInput } from '../features/aiTripPlanner/canonicalAiBuild';
 import { API_CONFIG } from '../config/api';
 
 const WIN = Dimensions.get('window');
@@ -254,16 +255,26 @@ export default function GenerateLoadingScreen({ route: propRoute }: { navigation
       regenerateDayNumber: params.regenerateDayNumber ? Number(params.regenerateDayNumber) : undefined,
     });
 
-    const cached = await getCachedAiPlan(input);
-    if (cached?.trip?.id) {
-      setProgressPct(100);
-      setScreenState('success');
-      navigation.replace('TripDetail', {
-        tripId: cached.trip.id,
-        warnings: cached.warnings,
-        note: cached.note,
-      });
-      return;
+    // Phase 5: canonical AI_BUILD runs server-side through /trips/plan. The
+    // canonical engine is deterministic and recomputes on every request, so it
+    // deliberately bypasses the legacy client-side cache.
+    const useCanonicalAiBuild = shouldUseCanonicalAiBuild(params);
+    const generate = useCanonicalAiBuild
+      ? () => tripsApi.plan(toAiBuildPlanInput(input))
+      : () => tripsApi.aiGenerate(input);
+
+    if (!useCanonicalAiBuild) {
+      const cached = await getCachedAiPlan(input);
+      if (cached?.trip?.id) {
+        setProgressPct(100);
+        setScreenState('success');
+        navigation.replace('TripDetail', {
+          tripId: cached.trip.id,
+          warnings: cached.warnings,
+          note: cached.note,
+        });
+        return;
+      }
     }
 
     let lastError: any;
@@ -276,9 +287,11 @@ export default function GenerateLoadingScreen({ route: propRoute }: { navigation
           await delay(RETRY_DELAY_MS * (attempt - 1));
         }
 
-        const result = await tripsApi.aiGenerate(input);
+        const result = await generate();
         if (cancelledRef.current) return;
-        await setCachedAiPlan(input, result);
+        if (!useCanonicalAiBuild) {
+          await setCachedAiPlan(input, result as any);
+        }
         setProgressPct(100);
         setScreenState('success');
         navigation.replace('TripDetail', {

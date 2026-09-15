@@ -14,7 +14,7 @@ describe('PalPoints vendor review flow', () => {
     expect(navHelper).toMatch(/initialMapTab:\s*['"]vendors['"]/);
     expect(navHelper).toMatch(/navigateToVendorReviewMap/);
     expect(navHelper).toMatch(/screen:\s*'Map'/);
-    expect(navHelper).toMatch(/merge:\s*true/);
+    expect(navHelper).not.toMatch(/merge:\s*true/);
     expect(palPoints).toMatch(/navigateToVendorReviewMap/);
     expect(wallet).toMatch(/navigateToVendorReviewMap/);
   });

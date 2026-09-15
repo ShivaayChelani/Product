@@ -62,9 +62,10 @@ export const challengesController = {
   }),
 
   getLeaderboard: catchAsync(async (req: Request, res: Response) => {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 50;
-    const result = await challengesService.getLeaderboard(page, limit);
+    const result = await challengesService.getLeaderboard(
+      req.query.page as string | undefined,
+      req.query.limit as string | undefined,
+    );
     sendSuccess(res, result.data, { pagination: result.pagination });
   }),
 };

@@ -10,6 +10,25 @@ export type GenerationSource = 'MANUAL' | 'AI_PROMPT' | 'HYBRID';
 export type BudgetTier = 'LOW' | 'MEDIUM' | 'HIGH' | 'CUSTOM';
 export type Travelers = 'SOLO' | 'COUPLE' | 'FAMILY' | 'FRIENDS';
 
+/** Persist CUSTOM budget on regenerate/reload: send the saved amount, never drop the key. */
+export function customBudgetAmountForRequest(trip: {
+  budget?: string | null;
+  customBudgetAmount?: number | string | null;
+  aiPreferences?: Record<string, unknown> | null;
+}): number | undefined {
+  if (String(trip.budget || '').toUpperCase() !== 'CUSTOM') return undefined;
+  const fromNumber = (v: unknown): number | undefined => {
+    if (typeof v === 'number' && Number.isFinite(v) && v >= 0) return v;
+    if (typeof v === 'string' && v.trim() !== '') {
+      const n = Number(v);
+      if (Number.isFinite(n) && n >= 0) return n;
+    }
+    return undefined;
+  };
+  return fromNumber(trip.customBudgetAmount)
+    ?? fromNumber(trip.aiPreferences?.customBudgetAmount);
+}
+
 export interface TripPlan {
   id: string;
   title: string;
@@ -239,6 +258,57 @@ export interface AiGenerateResult {
   nearbyDestinations?: NearbyDestinationSuggestion[];
 }
 
+export type PlanMode = 'SELF_BUILD' | 'AI_BUILD';
+
+export interface FixedTimePlaceInput {
+  placeId: string;
+  startTime: string;
+}
+
+export interface PlanItineraryInput {
+  tripId?: string;
+  destination: string;
+  origin?: { lat: number; lng: number };
+  startDate?: string;
+  endDate?: string;
+  days?: number;
+  mode: PlanMode;
+  selectedPlaceIds?: string[];
+  pinnedPlaceIds?: string[];
+  lockedPlaceIds?: string[];
+  fixedTimePlaces?: FixedTimePlaceInput[];
+  excludePlaceIds?: string[];
+  interests?: string[];
+  pace?: TravelPace;
+  travelers?: Travelers;
+  budget?: BudgetTier;
+  customBudgetAmount?: number;
+  timePreference?: TimePreference;
+  avoid?: AvoidOption[];
+  transportation?: string[];
+  prompt?: string;
+  regenerateDayNumber?: number;
+  refresh?: boolean;
+  variationSeed?: number;
+}
+
+export interface PlanDayExplanation {
+  dayNumber: number;
+  text: string;
+}
+
+export interface PlanItineraryResult {
+  trip: TripPlan;
+  /** Human-readable summary of the plan. */
+  explanation?: string;
+  dayExplanations: PlanDayExplanation[];
+  dayInfo?: AiGenerateDayInfo[];
+  warnings?: string[];
+  note?: string;
+  qualityScore?: number | null;
+  candidateStats?: { generated: number; feasible: number; rejected: number };
+}
+
 export interface QuickAddResult {
   tripId: string;
   stopId: string;
@@ -355,6 +425,11 @@ export const tripsApi = {
 
   async aiGenerate(data: AiGenerateInput) {
     const res = await apiClient.post<AiGenerateResult>(API_CONFIG.endpoints.trips.aiGenerate, data);
+    return res.data;
+  },
+
+  async plan(data: PlanItineraryInput) {
+    const res = await apiClient.post<PlanItineraryResult>(API_CONFIG.endpoints.trips.plan, data);
     return res.data;
   },
 

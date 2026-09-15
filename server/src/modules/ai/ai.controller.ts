@@ -2,13 +2,16 @@ import { Request, Response } from 'express';
 import { aiService } from './ai.service';
 import { catchAsync } from '../../shared/utils/catchAsync';
 import { sendSuccess } from '../../shared/utils/response';
+import { ADMIN_ROLES, hasRole } from '../../middleware/auth';
+
+function isAdminUser(user: { roles?: string[]; permission?: string } | undefined): boolean {
+  return !!user && ADMIN_ROLES.some((role) => hasRole(user, role));
+}
 
 export const aiController = {
   getRecommendations: catchAsync(async (req: any, res: Response) => {
     const query = { ...(req.query as Record<string, unknown>) };
-    const isAdmin = req.user && ['ADMIN', 'SUPER_ADMIN', 'OPS_ADMIN', 'ANALYTICS_VIEWER'].some(
-      (r: string) => req.user.roles?.includes(r) || req.user.permission === r,
-    );
+    const isAdmin = isAdminUser(req.user);
     if (req.user?.id) {
       if (!isAdmin) {
         query.userId = req.user.id;
@@ -29,7 +32,7 @@ export const aiController = {
 
   getUserVector: catchAsync(async (req: any, res: Response) => {
     const userId = req.params.userId as string;
-    if (req.user.permission !== 'ADMIN' && req.user.id !== userId) {
+    if (!isAdminUser(req.user) && req.user.id !== userId) {
       res.status(403).json({ success: false, message: 'Forbidden' });
       return;
     }

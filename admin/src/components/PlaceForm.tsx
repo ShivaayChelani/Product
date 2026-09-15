@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { X, MapPin } from "lucide-react";
 import { createPlace, updatePlace, uploadImage } from "@/services/places";
 import type { Place, PlaceFormData } from "@/types";
+import { parseAndValidateCoordinates } from "@/lib/placeCoordinates";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -277,6 +278,8 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
     isFreeEntry: false,
   });
   const [tagInput, setTagInput] = useState("");
+  const [latInput, setLatInput] = useState("20.5937");
+  const [lngInput, setLngInput] = useState("78.9629");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -324,6 +327,8 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
     });
     setError("");
     setTagInput("");
+    setLatInput(place?.latitude != null ? String(place.latitude) : "20.5937");
+    setLngInput(place?.longitude != null ? String(place.longitude) : "78.9629");
   }, [open, place]);
 
   useEffect(() => {
@@ -359,11 +364,15 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
 
     marker.on("dragend", () => {
       const pos = marker.getLatLng();
+      const lat = parseFloat(pos.lat.toFixed(6));
+      const lng = parseFloat(pos.lng.toFixed(6));
       setForm(prev => ({
         ...prev,
-        latitude: parseFloat(pos.lat.toFixed(6)),
-        longitude: parseFloat(pos.lng.toFixed(6)),
+        latitude: lat,
+        longitude: lng,
       }));
+      setLatInput(String(lat));
+      setLngInput(String(lng));
     });
 
     leafletMapRef.current = map;
@@ -376,12 +385,13 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
     };
   }, [open]);
 
+  const { latitude: formLatitude, longitude: formLongitude } = form;
   useEffect(() => {
-    if (leafletMapRef.current && markerRef.current) {
-      markerRef.current.setLatLng([form.latitude, form.longitude]);
-      leafletMapRef.current.setView([form.latitude, form.longitude], leafletMapRef.current.getZoom() < 8 ? 8 : leafletMapRef.current.getZoom());
+    if (leafletMapRef.current && markerRef.current && Number.isFinite(formLatitude) && Number.isFinite(formLongitude)) {
+      markerRef.current.setLatLng([formLatitude, formLongitude]);
+      leafletMapRef.current.setView([formLatitude, formLongitude], leafletMapRef.current.getZoom() < 8 ? 8 : leafletMapRef.current.getZoom());
     }
-  }, [form.latitude, form.longitude]);
+  }, [formLatitude, formLongitude]);
 
   if (!open) return null;
 
@@ -450,6 +460,13 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
         return;
       }
 
+      const coordResult = parseAndValidateCoordinates(form.latitude, form.longitude);
+      if (!coordResult.ok) {
+        setError(coordResult.error);
+        setSaving(false);
+        return;
+      }
+
       const openingHours = buildOpeningHoursPayload(form.hoursByDay, form.dayClosed);
 
       const durationRaw = form.estimatedDurationMinutes?.trim();
@@ -482,8 +499,8 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
         description: form.description,
         shortDescription: form.shortDescription || form.description.substring(0, 200),
         category: finalCategory,
-        latitude: form.latitude,
-        longitude: form.longitude,
+        latitude: coordResult.latitude,
+        longitude: coordResult.longitude,
         city: form.city,
         state: form.state,
         country: form.country,
@@ -705,10 +722,13 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                     <input
                       type="number"
                       step="any"
-                      value={form.latitude}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, latitude: parseFloat(e.target.value) || 0 }))
-                      }
+                      value={latInput}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        setLatInput(raw);
+                        const n = raw.trim() === "" ? Number.NaN : Number(raw);
+                        setForm((p) => ({ ...p, latitude: Number.isFinite(n) ? n : Number.NaN }));
+                      }}
                       required
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
                     />
@@ -720,10 +740,13 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                     <input
                       type="number"
                       step="any"
-                      value={form.longitude}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, longitude: parseFloat(e.target.value) || 0 }))
-                      }
+                      value={lngInput}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        setLngInput(raw);
+                        const n = raw.trim() === "" ? Number.NaN : Number(raw);
+                        setForm((p) => ({ ...p, longitude: Number.isFinite(n) ? n : Number.NaN }));
+                      }}
                       required
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
                     />

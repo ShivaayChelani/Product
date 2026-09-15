@@ -955,6 +955,8 @@ window.__palMap = {
   restoreView: restoreView,
   setView: function(lat, lng, zoom) { map.setView([lat, lng], zoom || 13, { animate: false }); emitBounds(); },
   setUserLocation: setUserLocation,
+  drawRoute: drawRoute,
+  clearRoute: clearRoute,
 };
 
 function drawRoute(coords) {

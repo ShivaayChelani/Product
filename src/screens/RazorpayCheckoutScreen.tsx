@@ -5,6 +5,7 @@ import { useBottomSafePadding } from '../design/responsive';
 import { WebView } from 'react-native-webview';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { monetizationApi } from '../services/api/monetization';
+import { parseJsonObject } from '../utils/safeJson';
 import { useEntitlements } from '../context/EntitlementContext';
 
 type Props = {
@@ -83,12 +84,12 @@ rzp.open();
 
   const onMessage = async (event: any) => {
     if (handled.current || busy) return;
-    let payload: any;
-    try {
-      payload = JSON.parse(event.nativeEvent.data);
-    } catch {
-      return;
-    }
+    const parsed = parseJsonObject(String(event?.nativeEvent?.data || ''));
+    if (!parsed) return;
+    const payload = parsed as {
+      type?: string;
+      response?: { error?: { description?: string }; razorpay_payment_id?: string; razorpay_order_id?: string; razorpay_signature?: string };
+    };
 
     if (payload.type === 'dismiss') {
       onBack?.();
@@ -107,6 +108,9 @@ rzp.open();
     setPhase('verifying');
     try {
       const r = payload.response || {};
+      if (!r.razorpay_order_id || !r.razorpay_payment_id || !r.razorpay_signature) {
+        throw new Error('Incomplete payment response');
+      }
       await monetizationApi.verifyRazorpayPayment({
         razorpayOrderId: r.razorpay_order_id,
         razorpayPaymentId: r.razorpay_payment_id,

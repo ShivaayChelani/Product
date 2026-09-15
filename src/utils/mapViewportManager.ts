@@ -1,4 +1,5 @@
 import type { MapFeedResponse } from '../services/api/places';
+import { parseJsonObject } from './safeJson';
 
 const MEMORY_TTL_MS = 8 * 60 * 1000;
 const MAX_MEMORY_ENTRIES = 48;
@@ -177,9 +178,23 @@ export async function loadMapSession(): Promise<MapSession | null> {
     const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
     const raw = await AsyncStorage.getItem(SESSION_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as MapSession;
-    if (Date.now() - parsed.ts > SESSION_TTL_MS) return null;
-    return parsed;
+    const parsed = parseJsonObject(raw);
+    if (!parsed) return null;
+    const lat = Number(parsed.lat);
+    const lng = Number(parsed.lng);
+    const zoom = Number(parsed.zoom);
+    const ts = Number(parsed.ts);
+    if (![lat, lng, zoom, ts].every(Number.isFinite)) return null;
+    if (Date.now() - ts > SESSION_TTL_MS) return null;
+    return {
+      lat,
+      lng,
+      zoom,
+      selectedMarkerId: typeof parsed.selectedMarkerId === 'string' ? parsed.selectedMarkerId : undefined,
+      category: typeof parsed.category === 'string' ? parsed.category : undefined,
+      tab: parsed.tab === 'vendors' ? 'vendors' : parsed.tab === 'places' ? 'places' : undefined,
+      ts,
+    };
   } catch {
     return null;
   }

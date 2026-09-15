@@ -288,10 +288,13 @@ class ApiClient {
       || path === '/auth/verify-reset-otp'
       || path === '/auth/reset-password'
       || path === API_CONFIG.endpoints.trips.aiGenerate
+      || path === API_CONFIG.endpoints.trips.plan
       || path === API_CONFIG.endpoints.health
       || path === API_CONFIG.endpoints.vendors.mapList
       || path === API_CONFIG.endpoints.vendors.list
       || path === API_CONFIG.endpoints.upload.video
+      || path === '/social/reels'
+      || path === '/creator/reels'
       || (path.includes('/trips/') && path.endsWith('/generate'))
       ? 120_000
       : API_CONFIG.timeout;
@@ -329,7 +332,7 @@ class ApiClient {
       const { response, json } = await withTimeout(perform(), timeoutMs, () => controller.abort());
 
       if (!response.ok) {
-        if (response.status === 401 && !isRetry && !path.includes('/auth/refresh') && !path.includes('/auth/login') && !path.includes('/auth/register')) {
+        if (response.status === 401 && !isRetry && !path.includes('/auth/refresh') && !path.includes('/auth/login') && !path.includes('/auth/register') && !path.includes('/auth/google')) {
           // Guests / anonymous callers hit auth-required endpoints without credentials.
           // Do not treat that as a session expiry — it would kick them to the splash screen.
           const hadAccessToken = Boolean(this.token);

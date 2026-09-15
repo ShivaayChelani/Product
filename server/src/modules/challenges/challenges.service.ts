@@ -1,5 +1,6 @@
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/ApiError';
+import { getPaginationParams } from '../../shared/utils/pagination';
 import { walletService } from '../wallet/wallet.service';
 import { ChallengeDifficulty, ChallengeProofType, ChallengeStatus } from '@prisma/client';
 
@@ -12,10 +13,11 @@ export interface CreateChallengeInput {
 }
 
 export const challengesService = {
-  async listApproved(query: { category?: string; difficulty?: ChallengeDifficulty; search?: string; page?: number; limit?: number }) {
-    const page = Number(query.page) || 1;
-    const limit = Number(query.limit) || 20;
-    const skip = (page - 1) * limit;
+  async listApproved(query: { category?: string; difficulty?: ChallengeDifficulty; search?: string; page?: number | string; limit?: number | string }) {
+    const { page, limit, skip } = getPaginationParams(
+      { page: query.page, limit: query.limit },
+      100,
+    );
 
     const where: any = { status: ChallengeStatus.APPROVED };
 
@@ -277,8 +279,12 @@ export const challengesService = {
     return { completion, pointsAwarded: completerPoints };
   },
 
-  async getLeaderboard(page = 1, limit = 50) {
-    const skip = (page - 1) * limit;
+  async getLeaderboard(page?: number | string, limit?: number | string) {
+    const { page: safePage, limit: safeLimit, skip } = getPaginationParams(
+      { page, limit },
+      100,
+      50,
+    );
 
     // Fetch all users with approved challenge creations
     const users = await prisma.user.findMany({
@@ -310,19 +316,19 @@ export const challengesService = {
       .filter((c) => c.approvedChallengesCount > 0)
       .sort((a, b) => b.approvedChallengesCount - a.approvedChallengesCount);
 
-    const paginatedData = creators.slice(skip, skip + limit);
+    const paginatedData = creators.slice(skip, skip + safeLimit);
     const total = creators.length;
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = Math.ceil(total / safeLimit);
 
     return {
       data: paginatedData,
       pagination: {
-        page,
-        limit,
+        page: safePage,
+        limit: safeLimit,
         total,
         totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
+        hasNext: safePage < totalPages,
+        hasPrev: safePage > 1,
       },
     };
   },

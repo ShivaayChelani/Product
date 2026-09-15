@@ -1,8 +1,11 @@
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
+import { Role } from '@prisma/client';
 import app from '../app';
 import { getAuthToken } from './helpers/auth';
 import { prisma } from '../config/database';
 import { testRunId, testSlug } from './helpers/testRunId';
+import { env } from '../config/env';
 
 describe('Places API', () => {
   let userToken: string;
@@ -142,8 +145,8 @@ describe('Places API', () => {
         .send({
           name: `Test Place to Delete ${testRunId}`,
           description: 'A test place description',
-          latitude: 26.8467,
-          longitude: 80.9462,
+          latitude: 26.7101 + (Date.now() % 1000) / 100000,
+          longitude: 80.7101 + (Date.now() % 700) / 100000,
           category: 'MONUMENT',
           city: 'Lucknow',
           state: 'Uttar Pradesh',
@@ -157,6 +160,41 @@ describe('Places API', () => {
         .set('Authorization', `Bearer ${adminToken}`);
       expect(deleteRes.status).toBe(204);
     });
+
+    it('does not let a submitter delete an approved place', async () => {
+      const createRes = await request(app)
+        .post('/api/v1/places')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          name: `Submitter Delete Guard ${testRunId}`,
+          description: 'A test place description',
+          latitude: 26.7301 + ((Date.now() + 17) % 1000) / 100000,
+          longitude: 80.7301 + ((Date.now() + 23) % 700) / 100000,
+          category: 'MONUMENT',
+          city: 'Lucknow',
+          state: 'Uttar Pradesh',
+          country: 'India',
+        });
+      expect(createRes.status).toBe(201);
+      const submittedId = createRes.body.data.id;
+
+      const approveRes = await request(app)
+        .patch(`/api/v1/admin/places/${submittedId}/approve`)
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(approveRes.status).toBe(200);
+
+      const deleteRes = await request(app)
+        .delete(`/api/v1/places/${submittedId}`)
+        .set('Authorization', `Bearer ${userToken}`);
+      expect(deleteRes.status).toBe(403);
+
+      const stillThere = await prisma.place.findUnique({ where: { id: submittedId } });
+      expect(stillThere?.status).toBe('APPROVED');
+
+      await request(app)
+        .delete(`/api/v1/admin/places/${submittedId}`)
+        .set('Authorization', `Bearer ${adminToken}`);
+    });
   });
 
   describe('DELETE /api/v1/admin/places/:id', () => {
@@ -167,8 +205,8 @@ describe('Places API', () => {
         .send({
           name: `Test Place to Delete Admin ${testRunId}`,
           description: 'A test place description',
-          latitude: 31.6340,
-          longitude: 74.8723,
+          latitude: 31.5101 + ((Date.now() + 41) % 1000) / 100000,
+          longitude: 74.7101 + ((Date.now() + 59) % 700) / 100000,
           category: 'MONUMENT',
           city: 'Amritsar',
           state: 'Punjab',
@@ -370,6 +408,97 @@ describe('Places API', () => {
       expect(desc.status).toBe(200);
       const descMine = desc.body.data.filter((p: { name: string }) => p.name.includes(marker));
       expect(descMine.map((p: { editorialPriority: number }) => p.editorialPriority)).toEqual([5, 1]);
+    });
+  });
+
+  describe('JWT admin privilege freshness', () => {
+    it('does not auto-publish a place when the access token claims ADMIN but DB roles do not', async () => {
+      const user = await prisma.user.findUnique({
+        where: { email: 'user@palsafar.com' },
+        select: { id: true, email: true, name: true },
+      });
+      expect(user).toBeTruthy();
+
+      const staleAdminJwt = jwt.sign(
+        {
+          userId: user!.id,
+          email: user!.email,
+          permission: Role.ADMIN,
+          activeMode: Role.ADMIN,
+          roles: [Role.ADMIN],
+          role: Role.ADMIN,
+          activeRole: Role.ADMIN,
+          name: user!.name,
+          jti: `stale-admin-${testRunId}`,
+        },
+        env.jwt.secret,
+        { expiresIn: '1h', algorithm: 'HS256' },
+      );
+
+      const lat = 18.52 + (Date.now() % 10000) / 1_000_000;
+      const res = await request(app)
+        .post('/api/v1/places')
+        .set('Authorization', `Bearer ${staleAdminJwt}`)
+        .send({
+          name: `Stale JWT Place ${testRunId}`,
+          description: 'Must remain pending after privilege revocation',
+          latitude: lat,
+          longitude: 73.8567,
+          category: 'MONUMENT',
+          city: 'Pune',
+          state: 'Maharashtra',
+          country: 'India',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.status).toBe('PENDING');
+      if (res.body.data.id) {
+        await prisma.place.delete({ where: { id: res.body.data.id } }).catch(() => {});
+      }
+    });
+
+    it('still auto-publishes when the caller is a live admin', async () => {
+      const lat = 21.15 + (Date.now() % 10000) / 1_000_000;
+      const res = await request(app)
+        .post('/api/v1/places')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: `Live Admin Place ${testRunId}`,
+          description: 'Admin create should still publish',
+          latitude: lat,
+          longitude: 79.0882,
+          category: 'MONUMENT',
+          city: 'Nagpur',
+          state: 'Maharashtra',
+          country: 'India',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.status).toBe('APPROVED');
+      if (res.body.data.id) {
+        await prisma.place.delete({ where: { id: res.body.data.id } }).catch(() => {});
+      }
+    });
+  });
+
+  describe('place stat anti-inflation', () => {
+    it('records a view once per actor within the dedup window', async () => {
+      const targetId = placeId;
+      expect(targetId).toBeTruthy();
+      const first = await request(app)
+        .post(`/api/v1/places/${targetId}/stats`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ action: 'view' });
+      const second = await request(app)
+        .post(`/api/v1/places/${targetId}/stats`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ action: 'view' });
+      expect(first.status).toBe(200);
+      expect(second.status).toBe(200);
+      const count = await prisma.placeStat.count({
+        where: { placeId: targetId, action: 'view', userId: { not: null } },
+      });
+      expect(count).toBe(1);
     });
   });
 });

@@ -163,6 +163,7 @@ app.use((req, _res, next) => {
   const isUpload = req.path.startsWith('/api/v1/upload');
   const isAiTrip =
     req.path.includes('/trips/ai-generate')
+    || req.path.includes('/trips/plan')
     || (req.path.includes('/trips/') && req.path.endsWith('/generate'))
     || req.path.startsWith('/api/v1/ai/');
   const isAuthEmail =

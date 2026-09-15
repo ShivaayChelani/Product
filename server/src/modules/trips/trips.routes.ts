@@ -7,7 +7,8 @@ import { aiLimiter } from '../../config/rateLimit';
 import {
   createTripSchema, updateTripSchema, addStopSchema, updateStopSchema,
   addCollaboratorSchema, generateItinerarySchema, optimizeRouteSchema,
-  aiGenerateSchema, quickAddSchema, replaceStopSchema, visitStopSchema,
+  aiGenerateSchema, quickAddSchema, replaceStopSchema, visitStopSchema, planSchema,
+  reorderStopsSchema,
 } from './trips.validation';
 
 const router = Router();
@@ -20,6 +21,7 @@ router.use(authenticate);
 router.get('/history/completed', tripsController.history);
 router.post('/ai-generate', aiLimiter, validate(aiGenerateSchema), tripsController.aiGenerate);
 router.post('/quick-add', validate(quickAddSchema), tripsController.quickAdd);
+router.post('/plan', validate(planSchema), tripsController.canonicalPlan);
 
 router.post('/', validate(createTripSchema), tripsController.create);
 router.get('/', tripsController.list);
@@ -39,7 +41,7 @@ router.post('/days/:dayId/stops', validate(addStopSchema), tripsController.addSt
 router.patch('/stops/:stopId', validate(updateStopSchema), tripsController.updateStop);
 router.post('/stops/:stopId/replace', validate(replaceStopSchema), tripsController.replaceStop);
 router.delete('/stops/:stopId', tripsController.deleteStop);
-router.patch('/days/:dayId/stops/reorder', tripsController.reorderStops);
+router.patch('/days/:dayId/stops/reorder', validate(reorderStopsSchema), tripsController.reorderStops);
 
 // Active trip management
 router.post('/:id/start', tripsController.start);

@@ -5,6 +5,7 @@ import { authenticate, requireAdmin } from '../../middleware/auth';
 import { requireContentOps } from '../../middleware/adminCapabilities';
 import { validate } from '../../middleware/validate';
 import { submitAnswerSchema, locationQuerySchema, importIdParamsSchema } from './riddles.validation';
+import { huntAnswerLimiter } from '../../config/rateLimit';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -30,6 +31,7 @@ router.get('/hunt/:huntId/riddle/:riddleId', authenticate, validate(locationQuer
 router.post(
   '/hunt/:huntId/riddle/:riddleId/answer',
   authenticate,
+  huntAnswerLimiter,
   validate(locationQuerySchema, 'query'),
   validate(submitAnswerSchema),
   riddlesController.submitAnswer

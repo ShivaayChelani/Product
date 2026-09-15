@@ -882,10 +882,15 @@ export const paymentsService = {
     const expected = crypto.createHmac('sha256', secret).update(body).digest('hex');
     if (!timingSafeHmacEqual(expected, signature)) throw new ApiError(401, 'Invalid webhook signature');
 
-    const payload = JSON.parse(body) as {
+    let payload: {
       event: string;
       payload?: { payment?: { entity?: any }; order?: { entity?: any } };
     };
+    try {
+      payload = JSON.parse(body) as typeof payload;
+    } catch {
+      throw new ApiError(400, 'Invalid webhook payload');
+    }
 
     if (payload.event === 'payment.captured') {
       const payment = payload.payload?.payment?.entity;

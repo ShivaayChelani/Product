@@ -29,6 +29,11 @@ const CITY_ALIASES: Record<string, string> = {
   pondicherry: 'puducherry',
   baroda: 'vadodara',
   poona: 'pune',
+  gurgaon: 'gurugram',
+  mohali: 'sahibzada ajit singh nagar sas nagar',
+  'sahibzada ajit singh nagar': 'sahibzada ajit singh nagar sas nagar',
+  'baloda bazar': 'balodabazar bhatapara',
+  balodabazar: 'balodabazar bhatapara',
 };
 
 /** Preferred display spelling for known canonical keys. */
@@ -80,4 +85,30 @@ export function cityDisplayName(city: string): string {
 export function cityKeyEquals(a: string, b: string): boolean {
   if (!a || !b) return false;
   return canonicalCityKey(a) === canonicalCityKey(b);
+}
+
+/**
+ * Deterministic, de-duplicated candidate key list from GPS city candidates.
+ *
+ * Order matters: the DISTRICT is authoritative first (every Treasure Hunt
+ * record is district-grain), then the settlement is a fallback. This is
+ * critical for cross-district name collisions — a settlement named "Patan"
+ * or "Una" must NOT hijack a hunt owned by a DIFFERENT district that happens
+ * to share that name. Empty/duplicate keys are collapsed so e.g. settlement
+ * "Jabalpur" + district "Jabalpur" yields exactly `['jabalpur']`. Matching is
+ * still exact via `canonicalCityKey` — this is NOT a fuzzy/locality-prefix
+ * matcher.
+ */
+export function candidateCityKeys(candidates: { settlement: string | null; district: string | null }): string[] {
+  const raw = candidates.district
+    ? [candidates.district, ...(candidates.settlement ? [candidates.settlement] : [])]
+    : candidates.settlement
+      ? [candidates.settlement]
+      : [];
+  const keys: string[] = [];
+  for (const city of raw) {
+    const key = canonicalCityKey(city);
+    if (key && !keys.includes(key)) keys.push(key);
+  }
+  return keys;
 }

@@ -2,12 +2,12 @@
 import { ApiError } from '../../shared/utils/ApiError';
 import { walletService } from '../wallet/wallet.service';
 import { logger } from '../../config/logger';
-import { reverseGeocodeToCity } from '../../shared/utils/reverseGeocode';
-import { cityDisplayName, canonicalCityKey } from '../../shared/utils/cityIdentity';
+import { canonicalCityKey } from '../../shared/utils/cityIdentity';
 import { validateTreasureHuntExcelFile } from './riddles-import';
 import { isAnswerMatch } from '../../shared/utils/answerMatch';
 import { TREASURE_HUNT_RIDDLE_REWARD_POINTS, RECENT_IMPORTS_STATUS_WHERE } from './riddles.constants';
 import { getIndiaRewardDate } from '../social/creatorDailyReelReward';
+import { resolveCurrentHuntFromLocation } from './huntCityResolution';
 
 // ──────────────── TYPES ────────────────
 
@@ -371,47 +371,42 @@ export const riddlesService = {
 
   // ──────────────── USER GAMEPLAY ────────────────
 
-  async verifyHuntCity(huntCity: string, lat: number, lng: number): Promise<string> {
-    const currentCity = await reverseGeocodeToCity(lat, lng);
-    if (!currentCity) {
+  async verifyHuntCity(hunt: { id: string; city: string }, lat: number, lng: number): Promise<string> {
+    const resolved = await resolveCurrentHuntFromLocation(lat, lng);
+    if (!resolved) {
       throw new ApiError(400, "We couldn't determine your current city. Please try again.", true, 'CITY_RESOLUTION_FAILED');
     }
-    if (canonicalCityKey(currentCity) !== canonicalCityKey(huntCity)) {
+    if (!resolved.hunt || resolved.hunt.id !== hunt.id) {
       throw new ApiError(
         403,
-        `Hunt unavailable. Treasure Hunts can only be played in the city you're currently visiting. You're currently in ${cityDisplayName(currentCity)}.`,
+        `Hunt unavailable. Treasure Hunts can only be played in the city you're currently visiting. You're currently in ${resolved.displayCity}.`,
         true,
         'TREASURE_HUNT_CITY_MISMATCH'
       );
     }
-    return currentCity;
+    return resolved.displayCity;
   },
 
   async getCurrentCityHunt(lat: number, lng: number) {
-    const currentCity = await reverseGeocodeToCity(lat, lng);
-    if (!currentCity) {
+    const resolved = await resolveCurrentHuntFromLocation(lat, lng);
+    if (!resolved) {
       throw new ApiError(400, "We couldn't determine your current city. Please try again.", true, 'CITY_RESOLUTION_FAILED');
     }
 
-    const hunt = await prisma.treasureHunt.findFirst({
-      where: { city: { equals: canonicalCityKey(currentCity), mode: 'insensitive' }, status: 'ACTIVE' },
-      include: { _count: { select: { riddles: { where: { status: 'ACTIVE' } } } } },
-    });
-
-    if (!hunt || hunt._count.riddles === 0) {
-      return { city: cityDisplayName(currentCity), hunt: null };
+    if (!resolved.hunt) {
+      return { city: resolved.displayCity, hunt: null };
     }
 
     return {
-      city: cityDisplayName(currentCity),
+      city: resolved.displayCity,
       hunt: {
-        id: hunt.id,
-        city: hunt.city,
-        title: hunt.title,
-        description: hunt.description,
+        id: resolved.hunt.id,
+        city: resolved.hunt.city,
+        title: resolved.hunt.title,
+        description: resolved.hunt.description,
         rewardCoins: TREASURE_HUNT_RIDDLE_REWARD_POINTS,
-        status: hunt.status,
-        riddleCount: hunt._count.riddles,
+        status: resolved.hunt.status,
+        riddleCount: resolved.hunt._count.riddles,
       },
     };
   },
@@ -429,7 +424,7 @@ export const riddlesService = {
     });
     if (!hunt) throw new ApiError(404, 'Hunt not found');
 
-    await this.verifyHuntCity(hunt.city, lat, lng);
+    await this.verifyHuntCity(hunt, lat, lng);
 
     const riddles = hunt.riddles;
     if (riddles.length === 0) {
@@ -501,7 +496,7 @@ export const riddlesService = {
     });
     if (!hunt) throw new ApiError(404, 'Hunt not found');
 
-    await this.verifyHuntCity(hunt.city, lat, lng);
+    await this.verifyHuntCity(hunt, lat, lng);
 
     const progress = await prisma.treasureHuntProgress.findUnique({
       where: { userId_huntId: { userId, huntId } },
@@ -531,7 +526,7 @@ export const riddlesService = {
     });
     if (!hunt) throw new ApiError(404, 'Hunt not found');
 
-    await this.verifyHuntCity(hunt.city, lat, lng);
+    await this.verifyHuntCity(hunt, lat, lng);
 
     const riddle = await prisma.riddle.findFirst({
       where: { id: riddleId, huntId, status: 'ACTIVE' },
@@ -556,7 +551,7 @@ export const riddlesService = {
     });
     if (!hunt) throw new ApiError(404, 'Hunt not found');
 
-    await this.verifyHuntCity(hunt.city, lat, lng);
+    await this.verifyHuntCity(hunt, lat, lng);
 
     const riddle = hunt.riddles.find((r) => r.id === riddleId);
     if (!riddle) throw new ApiError(404, 'Riddle not found');

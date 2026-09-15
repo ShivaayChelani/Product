@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { PlaceStatus, Prisma, Role } from '@prisma/client';
 import { prisma } from '../../../config/database';
 import { ApiError } from '../../../shared/utils/ApiError';
 import { getPaginationParams, paginatedResponse } from '../../../shared/utils/pagination';
@@ -559,8 +559,23 @@ export const placesCrudService = {
     });
     if (!place) throw new ApiError(404, 'Place not found.');
 
-    const user = await prisma.user.findUnique({ where: { id: actorId } });
-    if (user?.permission !== 'ADMIN' && place.submittedById !== actorId) {
+    const user = await prisma.user.findUnique({
+      where: { id: actorId },
+      select: { permission: true },
+    });
+    const isSubmitter = place.submittedById === actorId;
+    const isPlatformOps =
+      user?.permission === Role.ADMIN
+      || user?.permission === Role.SUPER_ADMIN
+      || user?.permission === Role.OPS_ADMIN;
+
+    if (isPlatformOps) {
+      // Platform ops may remove any place, including ones they submitted that auto-approved.
+    } else if (isSubmitter) {
+      if (place.status !== PlaceStatus.PENDING && place.status !== PlaceStatus.REJECTED) {
+        throw new ApiError(403, 'Approved places can only be removed by an administrator.');
+      }
+    } else {
       throw new ApiError(403, 'You do not have permission to delete this place.');
     }
 
@@ -1062,9 +1077,20 @@ export const placesCrudService = {
       return existing;
     }
 
-    const checkin = await prisma.checkIn.create({
-      data: { placeId, userId },
-    });
+    let checkin;
+    try {
+      checkin = await prisma.checkIn.create({
+        data: { placeId, userId },
+      });
+    } catch (error: any) {
+      if (error?.code === 'P2002') {
+        const raced = await prisma.checkIn.findUnique({
+          where: { placeId_userId: { placeId, userId } },
+        });
+        if (raced) return raced;
+      }
+      throw error;
+    }
 
     await prisma.placeStat.create({
       data: { placeId, userId, action: 'checkin' },

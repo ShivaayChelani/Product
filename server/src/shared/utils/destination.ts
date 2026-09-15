@@ -65,7 +65,10 @@ export function isGenericDestination(raw?: string | null): boolean {
 }
 
 /** Canonical city key from place.city, falling back to place.state. */
-export function cityKeyFromPlace(place: { city?: string | null; state?: string | null }): string {
+export function cityKeyFromPlace(
+  place: { city?: string | null; state?: string | null } | null | undefined,
+): string {
+  if (!place || typeof place !== 'object') return '';
   const city = canonicalizeDestination(place.city || '');
   if (city) return city;
   return canonicalizeDestination(place.state || '');
@@ -128,9 +131,10 @@ function canonicalPlaceField(value: string | null | undefined): string {
  * Exact city match wins; soft contains only when the city token is substantial.
  */
 export function placeBelongsToDestination(
-  place: { city?: string | null; state?: string | null; name?: string | null },
+  place: { city?: string | null; state?: string | null; name?: string | null } | null | undefined,
   destination: string,
 ): boolean {
+  if (!place || typeof place !== 'object') return false;
   const dest = canonicalizeDestination(destination);
   if (!dest || dest.length < 2) return false;
 

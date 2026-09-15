@@ -127,6 +127,14 @@ export const uploadToCloudinary = (
   });
 };
 
+/** Incoming video transformations are synchronous at Cloudinary and routinely
+ *  exceed Render's request budget, so the mobile client never receives a URL
+ *  and the job appears stuck. Playback already applies `q_auto,vc_h264`. */
+export const CLOUDINARY_VIDEO_UPLOAD_OPTIONS = {
+  resource_type: 'video' as const,
+  allowed_formats: ['mp4', 'mov', 'webm'],
+};
+
 export const uploadVideoToCloudinary = (
   buffer: Buffer,
   folder: string,
@@ -136,11 +144,7 @@ export const uploadVideoToCloudinary = (
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder,
-        resource_type: 'video',
-        allowed_formats: ['mp4', 'mov', 'webm'],
-        transformation: [
-          { width: 720, height: 1280, crop: 'limit', quality: 'auto' },
-        ],
+        ...CLOUDINARY_VIDEO_UPLOAD_OPTIONS,
         ...(ownerUserId ? { context: { owner: ownerUserId } } : {}),
       },
       (error, result) => {

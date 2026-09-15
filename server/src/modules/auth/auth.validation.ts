@@ -26,8 +26,8 @@ export const logoutSchema = z.object({
 });
 
 export const googleLoginSchema = z.object({
-  idToken: z.string().min(1, 'Google ID Token is required'),
-});
+  idToken: z.string().min(1, 'Google ID Token is required').max(8192, 'Google ID Token is too long'),
+}).strict();
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;

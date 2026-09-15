@@ -17,6 +17,8 @@ describe('destination accuracy helpers', () => {
     expect(isGenericDestination('My Trip')).toBe(true);
     expect(isGenericDestination('Jaipur')).toBe(false);
     expect(cityKeyFromPlace({ city: 'Bangalore', state: 'Karnataka' })).toBe('bengaluru');
+    expect(cityKeyFromPlace(null)).toBe('');
+    expect(cityKeyFromPlace(undefined)).toBe('');
     expect(destinationMatchesCity('Bengaluru', 'bengaluru')).toBe(true);
     expect(destinationMatchesCity('My Trip', 'jaipur')).toBe(false);
   });

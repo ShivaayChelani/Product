@@ -76,6 +76,11 @@ export const tripsController = {
     sendSuccess(res, result, { statusCode: 201, message: 'Itinerary generated successfully' });
   }),
 
+  canonicalPlan: catchAsync(async (req: any, res: Response) => {
+    const result = await tripsService.canonicalPlan(req.user.id, req.body);
+    sendCreated(res, result, 'Itinerary planned successfully');
+  }),
+
   quickAdd: catchAsync(async (req: any, res: Response) => {
     const result = await tripsService.quickAdd(req.user.id, req.body.placeId, req.body.tripId);
     sendSuccess(res, result, {

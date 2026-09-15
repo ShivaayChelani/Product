@@ -108,6 +108,7 @@ export const walletService = {
 
     let awarded = true;
     const execute = async (tx: any) => {
+      await tx.$queryRaw`SELECT id FROM wallets WHERE user_id = ${userId} FOR UPDATE`;
       // Idempotency: same reference must not mint duplicate EARN rows.
       if (referenceId) {
         const existing = await tx.walletTransaction.findFirst({
@@ -184,6 +185,7 @@ export const walletService = {
     await this.getOrCreateWallet(userId);
 
     const result = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM wallets WHERE user_id = ${userId} FOR UPDATE`;
       const since = new Date(Date.now() - effectiveCooldown * 1000);
       const recent = await tx.walletTransaction.findFirst({
         where: { userId, reason, createdAt: { gte: since } },

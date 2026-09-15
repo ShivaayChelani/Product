@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { placesApi } from './api';
 import { redemptionsApi } from './api/redemptions';
+import { parseJsonArray } from '../utils/safeJson';
 
 const SYNC_QUEUE_KEY = 'PALSAFAR_SYNC_QUEUE';
 /** Legacy DataContext queue — migrated once into SYNC_QUEUE_KEY then cleared. */
@@ -46,8 +47,8 @@ class SyncService {
     try {
       const raw = await AsyncStorage.getItem(SYNC_QUEUE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw);
-        this.queue = Array.isArray(parsed)
+        const parsed = parseJsonArray(raw);
+        this.queue = parsed
           ? parsed.map((a: any) => ({
               ...a,
               dedupeKey: a.dedupeKey || dedupeKeyFor(a.type, a.payload || {}),
@@ -64,9 +65,9 @@ class SyncService {
     try {
       const legacyRaw = await AsyncStorage.getItem(LEGACY_QUEUE_KEY);
       if (!legacyRaw) return;
-      const legacy = JSON.parse(legacyRaw);
-      if (Array.isArray(legacy)) {
-        for (const item of legacy) {
+      const legacy = parseJsonArray(legacyRaw);
+      if (legacy) {
+        for (const item of legacy as Array<{ action?: string; spotId?: string }>) {
           if (item?.action === 'checkin' && item.spotId) {
             await this.queueAction('CHECK_IN', { placeId: item.spotId, spotId: item.spotId });
           } else if (item?.action === 'save' && item.spotId) {

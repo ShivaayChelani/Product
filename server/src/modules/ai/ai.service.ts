@@ -289,6 +289,35 @@ export const aiService = {
     });
   },
 
+  /**
+   * Recompute LLM stop distances in km from the returned coordinates. Gemini is
+   * inconsistent about the unit of `distanceFromPrev` (meters vs km), so the
+   * stored value is always derived from the consecutive-stop Haversine instead
+   * of trusting the model's number.
+   */
+  normalizeLlmDistancesToKm(itinerary: any): TripPlanResult {
+    const days = Array.isArray(itinerary?.days) ? itinerary.days : [];
+    for (const day of days) {
+      const stops = Array.isArray(day?.stops) ? day.stops : [];
+      stops.forEach((stop: any, i: number) => {
+        const prev = i > 0 ? stops[i - 1] : null;
+        const a = prev;
+        if (
+          a && stop
+          && Number.isFinite(a.latitude) && Number.isFinite(a.longitude)
+          && Number.isFinite(stop.latitude) && Number.isFinite(stop.longitude)
+        ) {
+          stop.distanceFromPrev = Math.round((haversineDistance(
+            a.latitude, a.longitude, stop.latitude, stop.longitude,
+          ) / 1000) * 100) / 100;
+        } else {
+          stop.distanceFromPrev = 0;
+        }
+      });
+    }
+    return itinerary;
+  },
+
   async planTripLLM(prompt: string, apiKey: string, query: any): Promise<TripPlanResult> {
     // 1. First stage: Parse prompt using LLM
     const parsePrompt = `Parse the following natural language travel request and return ONLY a JSON object containing the extracted travel parameters.
@@ -430,7 +459,7 @@ Instructions:
 1. Distribute stops across ${parsedParams.days} days.
 2. Group nearby places in the same day to minimize travel distance.
 3. For each day, assign a theme name and stops.
-4. For each stop, choose a slot ("morning", "afternoon", or "evening") and set a realistic "distanceFromPrev" in meters.
+4. For each stop, choose a slot ("morning", "afternoon", or "evening") and set a realistic "distanceFromPrev" in kilometres from the previous stop (0 for the first stop of each day). The server recomputes this from coordinates, so an approximate value is fine.
 5. Do not invent places not present in the list above. Use their exact names and place IDs.
 
 You must return the response as a JSON object matching this schema:
@@ -449,14 +478,14 @@ You must return the response as a JSON object matching this schema:
           "longitude": number,
           "timeSlot": "morning" | "afternoon" | "evening",
           "order": number,
-          "distanceFromPrev": number (distance in meters from previous stop, 0 for first stop),
+          "distanceFromPrev": number (distance in kilometres from previous stop, 0 for first stop),
           "description": string (short description)
         }
       ]
     }
   ],
   "totalPlaces": number (total number of stops scheduled),
-  "totalDistance": number (sum of distanceFromPrev of all stops in meters),
+  "totalDistance": number (sum of distanceFromPrev of all stops in kilometres),
   "note": string (a short helpful note or summary of the trip)
 }`;
 
@@ -523,7 +552,7 @@ You must return the response as a JSON object matching this schema:
     const resultJson: any = await response.json();
     const text = resultJson.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const itinerary = JSON.parse(text);
-    return itinerary;
+    return this.normalizeLlmDistancesToKm(itinerary);
   },
 
   async planTripAlgorithmic(query: {
@@ -657,7 +686,9 @@ You must return the response as a JSON object matching this schema:
           images: stop.images,
           timeSlot: i < Math.ceil(dayStops.length / 3) ? 'morning' : i < Math.ceil(2 * dayStops.length / 3) ? 'afternoon' : 'evening' as 'morning' | 'afternoon' | 'evening',
           order: i + 1,
-          distanceFromPrev: i === 0 ? Math.round(stop.dist) : Math.round(haversineDistance(dayStops[i - 1].latitude!, dayStops[i - 1].longitude!, stop.latitude, stop.longitude)),
+          distanceFromPrev: i === 0
+            ? Math.round((stop.dist / 1000) * 100) / 100
+            : Math.round((haversineDistance(dayStops[i - 1].latitude!, dayStops[i - 1].longitude!, stop.latitude, stop.longitude) / 1000) * 100) / 100,
           description: stop.description.slice(0, 200),
         };
       });
@@ -678,7 +709,7 @@ You must return the response as a JSON object matching this schema:
       title: `${days}-Day Trip near ${query.location}`,
       days: daysResult,
       totalPlaces: allStops.length,
-      totalDistance: Math.round(totalDistance),
+      totalDistance: Math.round(totalDistance * 10) / 10,
       note,
     };
   },

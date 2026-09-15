@@ -23,6 +23,8 @@ import { BT, SERIF, SANS, SANS_BOLD, SANS_SEMI } from '../theme';
 import { ItineraryTimelineList } from './ItineraryTimelineList';
 import { useDrivingLegs } from '../hooks/useDrivingLegs';
 import { countAllStops } from '../utils/itineraryHelpers';
+import { canOrganizeItinerary, organizeItineraryAction } from '../utils/organizeItinerary';
+import { useBuildTripUiStore } from '../store';
 
 function applyTrip(trip: TripPlan): TripPlan {
   return normalizeTripPlan(trip);
@@ -86,6 +88,8 @@ export function TripBuilderLoadedView({ trip, onTripChange }: Props) {
   const [saving, setSaving] = useState(false);
   const [savedOnce, setSavedOnce] = useState(countTripStops(trip) > 0);
   const [durationModal, setDurationModal] = useState<{ stop: TripPlanStop; mins: string } | null>(null);
+  const organizing = useBuildTripUiStore(s => s.optimizing);
+  const setOrganizing = useBuildTripUiStore(s => s.setOptimizing);
 
   const stopCount = countAllStops(trip);
 
@@ -203,6 +207,35 @@ export function TripBuilderLoadedView({ trip, onTripChange }: Props) {
   const handleSelectPlaces = useCallback(() => {
     navigation.navigate('MainTabs', { screen: 'Map' });
   }, [navigation]);
+
+  const handleOrganize = useCallback(async () => {
+    if (organizing) return;
+    if (!canOrganizeItinerary(trip)) return;
+    setOrganizing(true);
+    try {
+      const outcome = await organizeItineraryAction(trip, onTripChange);
+      if (outcome.skipped) return;
+      const details = [
+        outcome.explanation,
+        ...(outcome.dayExplanations || []).map(d => d.text),
+        ...(outcome.warnings || []),
+      ].filter(Boolean);
+      if (details.length > 0) {
+        Alert.alert('Itinerary organized', details.join('\n\n'));
+      } else {
+        showSuccess('Itinerary organized');
+      }
+    } catch (err: unknown) {
+      const msg = (err as { message?: string })?.message || 'Could not organize itinerary';
+      if (/could not be found/i.test(msg)) {
+        Alert.alert('Some places are unavailable', msg);
+      } else {
+        showError(msg);
+      }
+    } finally {
+      setOrganizing(false);
+    }
+  }, [organizing, onTripChange, setOrganizing, showError, showSuccess, trip]);
 
   const handleStopMenu = (stop: TripPlanStop) => {
     const dayOptions =
@@ -330,6 +363,27 @@ export function TripBuilderLoadedView({ trip, onTripChange }: Props) {
         </PressableScale>
       </View>
 
+      {canOrganizeItinerary(trip) ? (
+        <View style={styles.organizeBar}>
+          <PressableScale
+            style={[styles.organizeBtn, organizing ? styles.organizeBtnDisabled : null]}
+            onPress={handleOrganize}
+            disabled={organizing}
+            accessibilityRole="button"
+            accessibilityLabel="Organize My Itinerary"
+          >
+            {organizing ? (
+              <ActivityIndicator size="small" color={BT.primary} />
+            ) : (
+              <Icon name="sparkles-outline" size={18} color={BT.primary} />
+            )}
+            <Text style={styles.organizeBtnText}>
+              {organizing ? 'Organizing…' : 'Organize My Itinerary'}
+            </Text>
+          </PressableScale>
+        </View>
+      ) : null}
+
       <View style={styles.dragHintBar}>
         <MaterialCommunityIcons name="drag" size={14} color={BT.textSecondary} />
         <Text style={styles.dragHintText}>Long press and drag to reorder places</Text>
@@ -452,6 +506,20 @@ const styles = StyleSheet.create({
     borderColor: BT.border,
   },
   toolBtnTextPrimary: { fontFamily: SANS_SEMI, fontSize: 12, color: BT.primary },
+  organizeBar: { paddingHorizontal: 20, marginBottom: 8 },
+  organizeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 13,
+    borderRadius: 20,
+    backgroundColor: BT.card,
+    borderWidth: 1.5,
+    borderColor: BT.primary,
+  },
+  organizeBtnDisabled: { opacity: 0.6 },
+  organizeBtnText: { fontFamily: SANS_BOLD, fontSize: 12, color: BT.primary },
   dragHintBar: {
     flexDirection: 'row',
     alignItems: 'center',

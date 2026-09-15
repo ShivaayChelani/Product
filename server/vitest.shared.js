@@ -7,6 +7,37 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '.env.test') });
 
 // Resolve test DB in JS config (vitest runs before ts-node helpers load).
+// Keep in sync with src/config/test-database.ts.
+const KNOWN_PRODUCTION_DB_HOSTS = new Set([
+  'ep-sweet-morning-az9jhg9t-pooler.c-3.ap-southeast-1.aws.neon.tech',
+  'ep-sweet-morning-az9jhg9t.c-3.ap-southeast-1.aws.neon.tech',
+  'dpg-d9rqpkf10e5c738lgckg-a.singapore-postgres.render.com',
+]);
+
+function dbHostname(dbUrl) {
+  try {
+    return new URL(dbUrl).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+/** Canonical host:port/dbname identity — credentials and query params ignored. */
+function dbIdentity(dbUrl) {
+  try {
+    const u = new URL(dbUrl);
+    const db = (u.pathname || '/').replace(/^\//, '') || '';
+    return `${u.hostname.toLowerCase()}:${u.port || '5432'}/${db.toLowerCase()}`;
+  } catch {
+    return null;
+  }
+}
+
+function sameDatabase(a, b) {
+  const idA = dbIdentity(a);
+  return idA !== null && idA === dbIdentity(b);
+}
+
 function withTestPoolParams(url) {
   const parsed = new URL(url);
   if (!parsed.searchParams.has('connection_limit')) {
@@ -33,11 +64,18 @@ function resolveTestDatabaseEnv() {
   const databaseUrl = withTestPoolParams(process.env.TEST_DATABASE_URL?.trim() || LOCAL_DEFAULT);
   const directUrl = withTestPoolParams(process.env.TEST_DIRECT_URL?.trim() || databaseUrl);
 
-  const normalize = (u) => u.trim().replace(/\/+$/, '');
   const prod = process.env.PRODUCTION_DATABASE_URL?.trim();
-  if (prod && normalize(prod) === normalize(databaseUrl)) {
+  if (prod && sameDatabase(prod, databaseUrl)) {
     throw new Error(
       'Refusing to run tests: TEST_DATABASE_URL matches PRODUCTION_DATABASE_URL.',
+    );
+  }
+
+  const testHost = dbHostname(databaseUrl);
+  if (testHost && KNOWN_PRODUCTION_DB_HOSTS.has(testHost)) {
+    throw new Error(
+      'Refusing to run tests: TEST_DATABASE_URL resolves to a known PRODUCTION database host. ' +
+        'Set TEST_DATABASE_URL to a local PostGIS or a dedicated isolated test database.',
     );
   }
 
@@ -59,6 +97,8 @@ export const UNIT_TEST_FILES = [
   'src/__tests__/plan-catalog.test.ts',
   'src/__tests__/vendor-public-visibility.unit.test.ts',
   'src/__tests__/vendor-tagged-reels.unit.test.ts',
+  'src/__tests__/vendor-reel-idempotency.unit.test.ts',
+  'src/__tests__/reel-video-upload-options.unit.test.ts',
   'src/__tests__/plan-enforcement.unit.test.ts',
   'src/__tests__/routes-directions.unit.test.ts',
   'src/__tests__/rides.providers.test.ts',
@@ -74,9 +114,17 @@ export const UNIT_TEST_FILES = [
   'src/__tests__/brevo-template-flows.unit.test.ts',
   'src/__tests__/pal-points-partner-redeem.unit.test.ts',
   'src/__tests__/security-refresh-token.unit.test.ts',
-  'src/__tests__/auth-reset-otp-replay.unit.test.ts',
+  'src/__tests__/rate-limit-client-ip.unit.test.ts',
+  'src/__tests__/pagination.unit.test.ts',
+  'src/__tests__/crash-audit-guards.unit.test.ts',
+  'src/__tests__/action-dedup.unit.test.ts',
+  'src/__tests__/jwt-admin-revalidation.unit.test.ts',
+  'src/__tests__/error-handler-json.unit.test.ts',
+  'src/__tests__/google-identity.unit.test.ts',
+  'src/__tests__/google-account-resolution.unit.test.ts',
   'src/__tests__/safe-fetch-url.unit.test.ts',
   'src/__tests__/env-db-isolation.unit.test.ts',
+  'src/__tests__/test-database-guard.unit.test.ts',
   'src/__tests__/place-review.unit.test.ts',
   'src/__tests__/budget-filter.unit.test.ts',
   'src/__tests__/admin-places-query.unit.test.ts',
@@ -84,20 +132,44 @@ export const UNIT_TEST_FILES = [
   'src/__tests__/palpoints-earn-message.unit.test.ts',
   'src/__tests__/vendor-itinerary-place.unit.test.ts',
   'src/__tests__/trip-intent-parser.unit.test.ts',
+  'src/__tests__/prompt-place-resolution.unit.test.ts',
   'src/__tests__/itinerary-opening-hours.unit.test.ts',
   'src/__tests__/itinerary-budget-attempts.unit.test.ts',
   'src/__tests__/itinerary-interest-scoring.unit.test.ts',
   'src/__tests__/itinerary-reasons.unit.test.ts',
   'src/__tests__/place-hours-validation.unit.test.ts',
+  'src/__tests__/bulk-import-coordinates.unit.test.ts',
   'src/__tests__/fee-basis.unit.test.ts',
   'src/__tests__/riddles-import.unit.test.ts',
   'src/__tests__/riddles-import-delete.unit.test.ts',
   'src/__tests__/riddles-overview.unit.test.ts',
   'src/__tests__/riddles-scoring.unit.test.ts',
+  'src/__tests__/riddles-city-resolution.unit.test.ts',
+  'src/__tests__/hunt-city-resolution.unit.test.ts',
   'src/__tests__/answer-matching.unit.test.ts',
   'src/__tests__/daily-open-reward.unit.test.ts',
   'src/__tests__/reverse-geocode.unit.test.ts',
   'src/__tests__/riddles-daily.unit.test.ts',
+  // Phase 1 itinerary intelligence engine (pure, DB-free)
+  'src/__tests__/itinerary-phase1-intent.unit.test.ts',
+  'src/__tests__/itinerary-phase1-candidates.unit.test.ts',
+  'src/__tests__/itinerary-phase1-enrichment.unit.test.ts',
+  'src/__tests__/itinerary-phase1-scoring.unit.test.ts',
+  'src/__tests__/itinerary-phase1-clustering.unit.test.ts',
+  'src/__tests__/itinerary-phase1-route.unit.test.ts',
+  'src/__tests__/itinerary-phase1-schedule.unit.test.ts',
+  'src/__tests__/itinerary-phase1-constraints.unit.test.ts',
+  // Phase 2 canonical planner layer (pure, DB-free)
+  'src/modules/trips/itinerary/__tests__/dayAllocator.test.ts',
+  'src/modules/trips/itinerary/__tests__/candidateGenerator.test.ts',
+  'src/modules/trips/itinerary/__tests__/qualityScorer.test.ts',
+  'src/modules/trips/itinerary/__tests__/aiExplainer.test.ts',
+  'src/modules/trips/itinerary/__tests__/planner.test.ts',
+  // Phase 3 canonical /plan wiring (pure, DB-free)
+  'src/__tests__/plan-schema.unit.test.ts',
+  'src/__tests__/canonical-plan-mapper.unit.test.ts',
+  'src/__tests__/itinerary-previous-stop-distance.unit.test.ts',
+  'src/__tests__/custom-budget-regen.unit.test.ts',
 ];
 
 export const E2E_TEST_GLOB = 'src/__tests__/**/*.integration.test.ts';

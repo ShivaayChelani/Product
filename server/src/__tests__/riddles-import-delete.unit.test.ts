@@ -31,7 +31,9 @@ vi.mock('../../src/modules/wallet/wallet.service', () => ({
 }));
 
 vi.mock('../../src/shared/utils/reverseGeocode', () => ({
-  reverseGeocodeToCity: vi.fn(async () => 'Kolkata'),
+  reverseGeocodeCandidates: vi.fn(async () => ({ settlement: 'Kolkata', district: null })),
+  primaryCandidateCity: (c: { settlement: string | null; district: string | null }) =>
+    c?.settlement || c?.district || null,
 }));
 
 import { prisma } from '../../src/config/database';

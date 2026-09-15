@@ -31,6 +31,7 @@ import type { Travelers } from '../services/api/trips';
 import { useAiPlannerStore } from '../features/aiTripPlanner/store';
 import { pushDestinationHistory } from '../features/aiTripPlanner/destinationHistory';
 import { useDestinationAutocomplete } from '../features/aiTripPlanner/hooks/useDestinationAutocomplete';
+import { ITINERARY_ENGINE_CONFIG } from '../config/itineraryEngine';
 import {
   COMPANIONS,
   DAY_OPTIONS,
@@ -381,6 +382,7 @@ export default function AITripPlannerScreen({
         timePreference: timePreference || undefined,
         avoid: avoid.length ? avoid : undefined,
         prompt,
+        useCanonicalAiBuild: ITINERARY_ENGINE_CONFIG.canonicalAiBuildEnabled,
       });
       setGenerating(false);
       return;

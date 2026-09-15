@@ -28,7 +28,7 @@ export const nearestQuerySchema = z.object({
 export const routeQuerySchema = z.object({
   lat: z.string().regex(/^-?\d+\.?\d*$/),
   lng: z.string().regex(/^-?\d+\.?\d*$/),
-  waypoints: z.string(),
+  waypoints: z.string().min(1).max(2000),
   radius: z.string().optional(),
   limit: z.string().optional(),
 });
@@ -49,7 +49,7 @@ export const heatmapQuerySchema = z.object({
 });
 
 export const trendsQuerySchema = z.object({
-  days: z.string().optional(),
-  category: z.string().optional(),
-  limit: z.string().optional(),
+  days: z.string().regex(/^\d{1,3}$/).optional(),
+  category: z.string().max(100).optional(),
+  limit: z.string().regex(/^\d{1,3}$/).optional(),
 });

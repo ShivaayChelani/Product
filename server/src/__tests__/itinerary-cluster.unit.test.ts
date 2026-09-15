@@ -1025,6 +1025,18 @@ describe('1-DAY COMPLETE EXCURSION SELECTION', () => {
     expect(days[0]?.[0]?.id).toBe('madan');
   });
 
+  it('leftover isolated pin is forced onto a remaining day instead of silently dropped', () => {
+    const origin = { lat: 0, lng: 0 };
+    const a1 = place('a1', 'Hub', { lat: 0.01, lng: 0, rating: 4.8, editorialPriority: 5, category: 'fort' });
+    const a2 = place('a2', 'Mate', { lat: 0.012, lng: 0, rating: 4.6, editorialPriority: 5, category: 'temple' });
+    const pin = place('far-pin', 'Far Pin', { lat: 2, lng: 2, rating: 4.2, isPinned: true, category: 'palace' });
+    const { days } = assignDaysByClusterValue([a1, a2, pin], {
+      days: 2, maxStopsPerDay: 4, maxMinutesPerDay: 480, origin, speedKmh: 35,
+    });
+    const ids = days.flat().map((p) => p.id);
+    expect(ids).toContain('far-pin');
+  });
+
   it('far rich Cluster A (25km, 4×5★) beats near thin Cluster B (5km, 1×5★)', () => {
     const origin = { lat: 0, lng: 0 };
     const a1 = place('a1', 'A1 5★', { lat: 0.225, lng: 0, rating: 4.8, editorialPriority: 5, category: 'fort' });

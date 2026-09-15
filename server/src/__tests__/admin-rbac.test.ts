@@ -7,6 +7,7 @@ import { ApiError } from "../shared/utils/ApiError";
 vi.mock("../shared/services/authRevalidation", () => ({
   revalidateRequestUser: vi.fn(async (req: Express.Request) => req),
   revalidateVendorCapability: vi.fn(async (req: Express.Request) => req),
+  revalidateIfJwtClaimsAdmin: vi.fn(async () => undefined),
 }));
 
 function mockReq(roles: Role[]) {

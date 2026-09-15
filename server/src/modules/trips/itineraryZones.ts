@@ -1380,9 +1380,60 @@ export function planZoneItinerary(
   // Any place the user explicitly pinned must appear somewhere.
   const leftoverPins = pool.filter((p) => p.isPinned && !usedIds.has(p.id));
   for (const pin of leftoverPins) {
+    if (usedIds.has(pin.id)) continue;
+
+    const forceOntoShortestDay = () => {
+      if (days.length === 0) {
+        days.push([pin]);
+        plannedDays.push({
+          dayNumber: 1,
+          dayStart: previousDayEnd,
+          dayEnd: { lat: pin.latitude, lng: pin.longitude, label: pin.name },
+          regionAnchorId: pin.id,
+          regionAnchorName: pin.name,
+          stops: [pin],
+          decisions: ['forced leftover pin (new day)'],
+        });
+      } else {
+        let target = 0;
+        for (let i = 1; i < days.length; i++) {
+          if (days[i].length < days[target].length) target = i;
+        }
+        const cap = options.maxStopsPerDay;
+        while (days[target].length >= cap) {
+          const dropAt = [...days[target]].reverse().findIndex((p) => !p.isPinned);
+          if (dropAt < 0) break;
+          const actual = days[target].length - 1 - dropAt;
+          const dropped = days[target].splice(actual, 1)[0];
+          if (dropped) usedIds.delete(dropped.id);
+        }
+        days[target] = [...days[target], pin];
+        if (plannedDays[target]) {
+          plannedDays[target].stops = days[target];
+          plannedDays[target].dayEnd = { lat: pin.latitude, lng: pin.longitude, label: pin.name };
+        }
+      }
+      usedIds.add(pin.id);
+      if (debug) debugLog.push('FORCED leftover pin ' + pin.name);
+    };
+
     if (days.length < options.days) {
       const zone = zones.find((z) => z.places.some((p) => p.id === pin.id));
-      if (!zone) continue;
+      if (!zone) {
+        days.push([pin]);
+        usedIds.add(pin.id);
+        plannedDays.push({
+          dayNumber: days.length,
+          dayStart: previousDayEnd,
+          dayEnd: { lat: pin.latitude, lng: pin.longitude, label: pin.name },
+          regionAnchorId: pin.id,
+          regionAnchorName: pin.name,
+          stops: [pin],
+          decisions: ['forced leftover pin (no zone)'],
+        });
+        previousDayEnd = { lat: pin.latitude, lng: pin.longitude, label: pin.name };
+        continue;
+      }
       const packed = packDay(zone, zones, usedIds, previousDayEnd, {
         days: options.days,
         maxStopsPerDay: options.maxStopsPerDay,
@@ -1390,34 +1441,38 @@ export function planZoneItinerary(
         speedKmh,
         tierFloor: membershipMinTier(options.days),
         allowCompactBonus,
+        seedId: pin.id,
         debug,
       });
-      if (!packed.stops.length) continue;
-      for (const stop of packed.stops) usedIds.add(stop.id);
-      days.push(packed.stops);
-      const last = packed.stops[packed.stops.length - 1];
+      const stops = packed.stops.slice();
+      if (!stops.some((s) => s.id === pin.id)) {
+        while (stops.length >= options.maxStopsPerDay) {
+          const dropAt = [...stops].reverse().findIndex((p) => !p.isPinned);
+          if (dropAt < 0) break;
+          const actual = stops.length - 1 - dropAt;
+          stops.splice(actual, 1);
+        }
+        stops.push(pin);
+      }
+      if (!stops.length) {
+        forceOntoShortestDay();
+        continue;
+      }
+      for (const stop of stops) usedIds.add(stop.id);
+      days.push(stops);
+      const last = stops[stops.length - 1];
       plannedDays.push({
         dayNumber: days.length,
         dayStart: previousDayEnd,
         dayEnd: { lat: last.latitude, lng: last.longitude, label: last.name },
         regionAnchorId: pin.id,
         regionAnchorName: pin.name,
-        stops: packed.stops,
+        stops,
         decisions: ['forced leftover pin'],
       });
       previousDayEnd = { lat: last.latitude, lng: last.longitude, label: last.name };
     } else {
-      let target = 0;
-      for (let i = 1; i < days.length; i++) {
-        if (days[i].length < days[target].length) target = i;
-      }
-      days[target] = [...days[target], pin];
-      usedIds.add(pin.id);
-      if (plannedDays[target]) {
-        plannedDays[target].stops = days[target];
-        plannedDays[target].dayEnd = { lat: pin.latitude, lng: pin.longitude, label: pin.name };
-      }
-      if (debug) debugLog.push('FORCED leftover pin ' + pin.name + ' onto day ' + (target + 1));
+      forceOntoShortestDay();
     }
   }
 

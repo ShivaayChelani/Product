@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Ionicons } from "../utils/Icons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useTheme } from "../context/ThemeContext";
@@ -38,14 +38,6 @@ import {
 } from "../components/profile/profileTheme";
 import { useHeaderSafePadding } from "../design/responsive";
 
-interface WalletScreenProps {
-  user: UserProfile;
-  onBack: () => void;
-  onNavigateToRewards: () => void;
-  onNavigateToScanner?: () => void;
-  walletProfile?: WalletProfile;
-}
-
 const { width } = Dimensions.get("window");
 
 type MainTab = "vendor" | "history" | "earn";
@@ -53,12 +45,22 @@ type HistorySubTab = "all" | "earned" | "redeemed";
 type VendorCategory =
   "All" | "Cafes" | "Restaurants" | "Hotels" | "Activities" | "More";
 
+interface WalletScreenProps {
+  user: UserProfile;
+  onBack: () => void;
+  onNavigateToRewards: () => void;
+  onNavigateToScanner?: () => void;
+  walletProfile?: WalletProfile;
+  initialTab?: MainTab;
+}
+
 export default function WalletScreen({
   user,
   onBack,
   onNavigateToRewards,
   onNavigateToScanner,
   walletProfile: initialWalletProfile,
+  initialTab,
 }: WalletScreenProps) {
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
@@ -75,7 +77,9 @@ export default function WalletScreen({
   );
   const [historyError, setHistoryError] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<MainTab>("history");
+  const [activeTab, setActiveTab] = useState<MainTab>(
+    initialTab === "earn" || initialTab === "vendor" ? initialTab : "history",
+  );
   const [vendorCategory, setVendorCategory] = useState<VendorCategory>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [historySubTab, setHistorySubTab] = useState<HistorySubTab>("all");
@@ -249,8 +253,16 @@ export default function WalletScreen({
   }, [initialWalletProfile, user.uid, user.totalPoints]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (initialTab === "earn" || initialTab === "history" || initialTab === "vendor") {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void fetchData();
+    }, [fetchData]),
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

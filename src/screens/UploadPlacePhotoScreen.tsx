@@ -198,6 +198,10 @@ export default function UploadPlacePhotoScreen() {
         [{ text: 'OK', onPress: () => navigation.goBack() }],
       );
     } catch (err: any) {
+      if (err?.status === 401 || err?.response?.status === 401) {
+        Alert.alert('Sign In Required', 'Create an account or sign in to upload a place photo.');
+        return;
+      }
       const msg =
         err?.response?.data?.message ||
         err?.message ||

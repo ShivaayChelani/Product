@@ -29,10 +29,11 @@ export const submitAnswerSchema = z.object({
   language: z.enum(['en', 'hi']).optional(),
 });
 
+/** GPS only. City / state / huntId from the client are stripped and never used. */
 export const locationQuerySchema = z.object({
   lat: z.string().regex(/^-?\d+(\.\d+)?$/, 'Valid lat is required'),
   lng: z.string().regex(/^-?\d+(\.\d+)?$/, 'Valid lng is required'),
-});
+}).strip();
 
 export const importIdParamsSchema = z.object({
   importId: z.string().min(1, 'Import id is required'),

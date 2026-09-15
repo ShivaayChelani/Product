@@ -31,7 +31,7 @@ const C = {
 
 function dayKm(stops: TripPlanStop[]): number {
   let km = 0;
-  stops.forEach(s => { if (s.distanceFromPrev) km += s.distanceFromPrev / 1000; });
+  stops.forEach(s => { if (s.distanceFromPrev) km += s.distanceFromPrev; });
   return Math.round(km);
 }
 
@@ -53,7 +53,11 @@ function StopCard({ stop, index, total, dayStops }: {
   const name = place?.name ?? 'Place';
   const rating = place?.rating ?? 4.0;
   const thumb = place?.thumbnail ?? place?.images?.[0];
-  const distKm = stop.distanceFromPrev ? Math.round(stop.distanceFromPrev / 1000) : null;
+  const distKm = index > 0 && stop.distanceFromPrev
+    ? (stop.distanceFromPrev % 1 === 0
+      ? stop.distanceFromPrev.toFixed(0)
+      : stop.distanceFromPrev.toFixed(1))
+    : null;
   const prevName = index > 0 ? (dayStops[index - 1].place?.name ?? null) : null;
   const dur = stop.duration ?? place?.estimatedDurationMinutes ?? 60;
   const durH = Math.round((dur / 60) * 10) / 10;
@@ -82,7 +86,7 @@ function StopCard({ stop, index, total, dayStops }: {
           {distKm && prevName ? (
             <View style={s.stopMetaRow}>
               <Icon name="location-outline" size={11} color={C.textMuted} />
-              <Text style={s.stopMetaText}>~{distKm} km from {prevName}</Text>
+              <Text style={s.stopMetaText}>~{distKm} km from previous stop</Text>
             </View>
           ) : index === 0 ? (
             <View style={s.stopMetaRow}>

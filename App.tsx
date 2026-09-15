@@ -49,6 +49,8 @@ import { adsService } from './src/services/adsService';
 
 import { captureNonFatal, Sentry, isMonitoringEnabled } from './src/services/monitoring';
 
+import { configureGoogleSignIn } from './src/config/googleAuth';
+
 function AppInitializer({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let notificationCleanup: (() => void) | null = null;
@@ -69,6 +71,12 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
           '[Firebase Analytics] Test event failed:',
           err
         );
+      }
+
+      try {
+        configureGoogleSignIn();
+      } catch (err) {
+        console.warn('[AppInitializer] Google Sign-In configure skipped:', err);
       }
 
       try {

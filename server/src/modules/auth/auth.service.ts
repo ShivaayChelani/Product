@@ -1,4 +1,3 @@
-import { OAuth2Client } from 'google-auth-library';
 import bcrypt from 'bcryptjs';
 import jwt, { type SignOptions } from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -35,6 +34,8 @@ import {
   collectUserOwnedMediaAssets,
   purgeUserMediaAssets,
 } from '../upload/media-cleanup.service';
+import { verifyGoogleIdToken } from './googleIdentity';
+import { resolveGoogleAccount } from './googleAccountResolution';
 
 const ACCESS_TOKEN_EXPIRY = (env.jwt.expiresIn || '1h') as SignOptions['expiresIn'];
 const REFRESH_TOKEN_EXPIRY_DAYS = 7;
@@ -466,53 +467,23 @@ export const authService = {
   },
 
   async googleLogin(idToken: string) {
-    const client = new OAuth2Client();
-    let payload;
-    try {
-      const ticket = await client.verifyIdToken({
-        idToken,
-        // Using multiple possible client IDs across platforms
-        audience: [
-          '27219212015-kocrm1ig6vs0nkar7mjjial0gctbd1nj.apps.googleusercontent.com', // Web client ID
-          '27219212015-65ift40sfsoimib2b208rrtet1cjh3gs.apps.googleusercontent.com', // Android dev
-          '27219212015-tnmd3127e6ha25idhdctcc7fhiopnhs8.apps.googleusercontent.com', // Android release
-        ],
-      });
-      payload = ticket.getPayload();
-    } catch (error) {
-      logger.error({ err: error }, 'Google token verification failed');
-      throw new ApiError(401, 'Invalid Google token.');
-    }
+    const identity = await verifyGoogleIdToken(idToken);
+    const { userId, created } = await resolveGoogleAccount(identity);
 
-    if (!payload || !payload.email) {
-      throw new ApiError(400, 'Google token missing email.');
-    }
-
-    const email = normalizeEmail(payload.email);
-    const existing = await findUserByEmail(email);
-
-    if (existing) {
-      // User exists, just log them in
-      if (!existing.emailVerified) {
-        await prisma.user.update({
-          where: { id: existing.id },
-          data: { emailVerified: true },
+    if (created) {
+      try {
+        await prisma.wallet.upsert({
+          where: { userId },
+          update: {},
+          create: { userId, palPoints: 0, lifetimeEarned: 0, lifetimeSpent: 0 },
         });
+      } catch (err) {
+        logger.warn({ err, userId }, 'Failed to create wallet at Google registration — will be created lazily');
       }
-      return createLoginSession(existing.id);
+      eventBus.emit(AppEvents.USER_CREATED, { userId });
     }
 
-    // Auto-register user
-    const newUser = await prisma.user.create({
-      data: {
-        email,
-        name: payload.name || 'Google User',
-        emailVerified: true, // Google emails are pre-verified
-      },
-    });
-
-    eventBus.emit(AppEvents.USER_CREATED, { userId: newUser.id });
-    return createLoginSession(newUser.id);
+    return createLoginSession(userId);
   },
 
   async refresh(refreshTokenStr: string) {

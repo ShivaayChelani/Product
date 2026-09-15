@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ImageBackground } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { UserProfile } from '../../types';
@@ -25,9 +25,13 @@ export const DrawerHeader: React.FC<DrawerHeaderProps> = ({
 
   return (
     <View style={styles.container}>
-      <View style={[styles.headerBg, { paddingTop: insets.top + 10 }]}>
+      <ImageBackground 
+        source={require('../../assets/settings_cover.png')} 
+        style={[styles.headerBg, { paddingTop: insets.top + 10 }]}
+        resizeMode="cover"
+      >
         <TouchableOpacity style={[styles.closeBtn, { top: insets.top + 10 }]} onPress={onClose} hitSlop={10}>
-          <Icon name="close" size={24} color="#63300E" />
+          <Icon name="close" size={20} color="#63300E" />
         </TouchableOpacity>
         
         <View style={styles.logoContainer}>
@@ -37,7 +41,7 @@ export const DrawerHeader: React.FC<DrawerHeaderProps> = ({
             resizeMode="contain"
           />
         </View>
-      </View>
+      </ImageBackground>
 
       <View style={styles.profileWrapper}>
         <View style={styles.profileCard}>
@@ -68,8 +72,9 @@ export const DrawerHeader: React.FC<DrawerHeaderProps> = ({
               </View>
             ) : (
               <View style={styles.guestChip}>
-                <Icon name="person-outline" size={12} color={SB.accentSoft} />
+                <Icon name="person-outline" size={14} color="#FFF" />
                 <Text style={styles.guestChipText}>Sign in for full access</Text>
+                <Icon name="chevron-forward" size={14} color="#FFF" />
               </View>
             )}
           </View>
@@ -95,7 +100,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#3D2B1F',
+    backgroundColor: '#EAE1D6', // Lighter color to match the image
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
@@ -121,7 +126,7 @@ const styles = StyleSheet.create({
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF0E3', // Bright color instead of white
+    backgroundColor: '#FFFFFF', // Changed to white
     borderRadius: 24,
     padding: 16,
     gap: 16,
@@ -132,9 +137,9 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   avatarWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     overflow: 'hidden',
     backgroundColor: '#F3E8DA',
   },
@@ -149,8 +154,8 @@ const styles = StyleSheet.create({
   },
   avatarInitial: {
     fontFamily: SERIF,
-    fontSize: 28,
-    color: '#A86C20',
+    fontSize: 32,
+    color: '#8A5A19',
   },
   profileText: {
     flex: 1,
@@ -186,15 +191,14 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     gap: 8,
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#E8DDD0',
+    backgroundColor: '#986C45',
     marginTop: 6,
   },
   guestChipText: {
     fontFamily: SANS_SEMI,
     fontSize: 12,
-    color: '#A86C20',
+    color: '#FFF',
   },
 });

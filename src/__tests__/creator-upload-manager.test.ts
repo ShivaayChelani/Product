@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { creatorUploadManager, isUploadJobVisible, AUTO_HIDE_POSTED_MS, type ReelUploadJob } from '../services/creator/creatorUploadManager';
+import { creatorUploadManager, isUploadJobVisible, AUTO_HIDE_POSTED_MS, PROCESSING_TIMEOUT_MS, type ReelUploadJob } from '../services/creator/creatorUploadManager';
 import { mapReelUploadError } from '../services/creator/reelUploadErrors';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -102,7 +102,7 @@ describe('creatorUploadManager', () => {
     expect(creatorUploadManager.getJobs().filter((j) => j.videoUri === payload.videoUri)).toHaveLength(1);
   });
 
-  it('deletes Cloudinary media when publish fails and re-uploads on retry', async () => {
+  it('retries publish with the saved URL instead of re-uploading', async () => {
     uploadApi.uploadVideo.mockResolvedValueOnce({
       url: 'https://cdn.example/retry.mp4',
       publicId: 'palsasafar/reels/retry',
@@ -119,24 +119,22 @@ describe('creatorUploadManager', () => {
 
     await wait(120);
     expect(creatorUploadManager.getJobs()[0]?.status).toBe('FAILED');
-    expect(creatorUploadManager.getJobs()[0]?.videoUrl).toBeUndefined();
-    expect(uploadApi.deleteMedia).toHaveBeenCalledWith('palsasafar/reels/retry', 'video');
+    expect(creatorUploadManager.getJobs()[0]?.videoUrl).toBe('https://cdn.example/retry.mp4');
 
     uploadApi.uploadVideo.mockClear();
-    uploadApi.uploadVideo.mockResolvedValue({
-      url: 'https://cdn.example/retry2.mp4',
-      publicId: 'palsasafar/reels/retry2',
-    });
     socialApi.createReel.mockClear();
     socialApi.createReel.mockResolvedValue({
-      data: { id: 'reel_retry', videoUrl: 'https://cdn.example/retry2.mp4', rewardPoints: 0 },
+      data: { id: 'reel_retry', videoUrl: 'https://cdn.example/retry.mp4', rewardPoints: 0 },
     });
 
     await creatorUploadManager.retryUpload(localUploadId);
     await wait(120);
 
-    expect(uploadApi.uploadVideo).toHaveBeenCalledTimes(1);
+    expect(uploadApi.uploadVideo).not.toHaveBeenCalled();
     expect(socialApi.createReel).toHaveBeenCalledTimes(1);
+    expect(socialApi.createReel).toHaveBeenCalledWith(expect.objectContaining({
+      videoUrl: 'https://cdn.example/retry.mp4',
+    }));
     expect(creatorUploadManager.getJobs()[0]?.status).toBe('POSTED');
   });
 
@@ -274,6 +272,148 @@ describe('creatorUploadManager', () => {
     expect(creatorUploadManager.getJobs()[0]?.rewardPoints).toBe(50);
   });
 
+  it('persists the uploaded videoUrl before the publish call so a crash cannot force re-upload (BUG 4)', async () => {
+    let resolveUpload!: (r: { url: string; publicId: string }) => void;
+    let resolveCreate!: (r: any) => void;
+    uploadApi.uploadVideo.mockReturnValue(new Promise((res) => { resolveUpload = res; }));
+    socialApi.createReel.mockReturnValue(new Promise((res) => { resolveCreate = res; }));
+
+    const localUploadId = await creatorUploadManager.startReelUpload({
+      videoUri: 'file:///tmp/video.mp4',
+      caption: 'Crash proof',
+      tags: [],
+      userId: 'user_1',
+      userName: 'Creator',
+    });
+
+    resolveUpload({ url: 'https://cdn.example/crash.mp4', publicId: 'palsasafar/reels/crash' });
+    await wait(40);
+
+    // Publish is still in flight (PROCESSING), but the URL is already durable.
+    const inFlight = creatorUploadManager.getJobs().find((j) => j.localUploadId === localUploadId);
+    expect(inFlight?.status).toBe('PROCESSING');
+    expect(inFlight?.videoUrl).toBe('https://cdn.example/crash.mp4');
+
+    resolveCreate({ data: { id: 'crash_reel', videoUrl: 'https://cdn.example/crash.mp4' } });
+    await wait(40);
+    expect(creatorUploadManager.getJobs().find((j) => j.localUploadId === localUploadId)?.status).toBe('POSTED');
+  });
+
+  it('resumes a stored PROCESSING job reusing the saved URL instead of re-uploading (BUG 4 no-duplicate)', async () => {
+    creatorUploadManager.__resetForTests();
+    const stored: ReelUploadJob = {
+      localUploadId: 'resumed_1',
+      status: 'PROCESSING',
+      progress: 90,
+      videoUri: 'file:///tmp/video.mp4',
+      videoUrl: 'https://cdn.example/resume.mp4',
+      caption: 'Resume me',
+      tags: [],
+      userId: 'user_1',
+      userName: 'Creator',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify([stored]));
+    socialApi.createReel.mockResolvedValue({
+      data: { id: 'resumed_reel', videoUrl: 'https://cdn.example/resume.mp4' },
+    });
+
+    await creatorUploadManager.init();
+    await wait(120);
+
+    // No new upload (would mint a new URL); the publish continues with the saved URL.
+    expect(uploadApi.uploadVideo).not.toHaveBeenCalled();
+    expect(socialApi.createReel).toHaveBeenCalledWith(expect.objectContaining({
+      videoUrl: 'https://cdn.example/resume.mp4',
+    }));
+    expect(creatorUploadManager.getJobs()[0]?.status).toBe('POSTED');
+    expect(creatorUploadManager.getJobs()[0]?.reelId).toBe('resumed_reel');
+  });
+
+  it('watchdog fails a PROCESSING job that hangs instead of leaving it stuck forever (BUG 4)', async () => {
+    jest.useFakeTimers();
+    try {
+      uploadApi.uploadVideo.mockResolvedValue({
+        url: 'https://cdn.example/hang.mp4',
+        publicId: 'palsasafar/reels/hang',
+      });
+      // createReel never settles — simulates a server call that hangs.
+      socialApi.createReel.mockReturnValue(new Promise(() => {}));
+
+      await creatorUploadManager.startReelUpload({
+        videoUri: 'file:///tmp/video.mp4',
+        caption: 'Hang me',
+        tags: [],
+        userId: 'user_1',
+        userName: 'Creator',
+      });
+
+      for (let i = 0; i < 30; i++) {
+        if (creatorUploadManager.getJobs()[0]?.status === 'PROCESSING') break;
+        await Promise.resolve();
+      }
+      expect(creatorUploadManager.getJobs()[0]?.status).toBe('PROCESSING');
+
+      jest.advanceTimersByTime(PROCESSING_TIMEOUT_MS + 1000);
+      await Promise.resolve();
+
+      // Never fake-complete: it must fail, and keep the uploaded URL for retry.
+      expect(creatorUploadManager.getJobs()[0]?.status).toBe('FAILED');
+      expect(creatorUploadManager.getJobs()[0]?.error).toMatch(/timed out/i);
+      expect(creatorUploadManager.getJobs()[0]?.videoUrl).toBe('https://cdn.example/hang.mp4');
+      expect(uploadApi.deleteMedia).not.toHaveBeenCalled();
+    } finally {
+      await Promise.resolve();
+      creatorUploadManager.__resetForTests();
+      jest.useRealTimers();
+    }
+  });
+
+  it('truncates captions to the server 2000-character limit', async () => {
+    uploadApi.uploadVideo.mockResolvedValue({
+      url: 'https://cdn.example/v.mp4',
+      publicId: 'palsasafar/reels/v',
+    });
+    socialApi.createReel.mockResolvedValue({
+      data: { id: 'reel_long', videoUrl: 'https://cdn.example/v.mp4' },
+    });
+
+    await creatorUploadManager.startReelUpload({
+      videoUri: 'file:///tmp/video.mp4',
+      caption: 'x'.repeat(2200),
+      tags: [],
+      userId: 'user_1',
+      userName: 'Creator',
+    });
+    await wait(120);
+
+    expect(socialApi.createReel).toHaveBeenCalledWith(expect.objectContaining({
+      description: 'x'.repeat(2000),
+    }));
+    expect(creatorUploadManager.getJobs()[0]?.status).toBe('POSTED');
+  });
+
+  it('fails processing when createReel returns no reel id', async () => {
+    uploadApi.uploadVideo.mockResolvedValue({
+      url: 'https://cdn.example/v.mp4',
+      publicId: 'palsasafar/reels/v',
+    });
+    socialApi.createReel.mockResolvedValue({ data: { videoUrl: 'https://cdn.example/v.mp4' } });
+
+    await creatorUploadManager.startReelUpload({
+      videoUri: 'file:///tmp/video.mp4',
+      caption: 'No id',
+      tags: [],
+      userId: 'user_1',
+      userName: 'Creator',
+    });
+    await wait(120);
+
+    expect(creatorUploadManager.getJobs()[0]?.status).toBe('FAILED');
+    expect(creatorUploadManager.getJobs()[0]?.error).toMatch(/not created/i);
+  });
+
   it('hides posted jobs from Uploading Reels after a short success flash', () => {
     const now = Date.now();
     const posted: ReelUploadJob = {
@@ -331,6 +471,32 @@ describe('creatorUploadManager', () => {
       creatorUploadManager.__resetForTests();
       jest.useRealTimers();
     }
+  });
+
+  it('fails a stale PROCESSING job on hydrate instead of leaving it stuck (BUG 4 restart)', async () => {
+    creatorUploadManager.__resetForTests();
+    const stored: ReelUploadJob = {
+      localUploadId: 'stale_1',
+      status: 'PROCESSING',
+      progress: 90,
+      videoUri: 'file:///tmp/video.mp4',
+      videoUrl: 'https://cdn.example/stale.mp4',
+      processingStartedAt: new Date(Date.now() - PROCESSING_TIMEOUT_MS - 5000).toISOString(),
+      caption: 'Stale',
+      tags: [],
+      userId: 'user_1',
+      userName: 'Creator',
+      createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+      updatedAt: new Date(Date.now() - PROCESSING_TIMEOUT_MS - 5000).toISOString(),
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify([stored]));
+
+    await creatorUploadManager.init();
+    await wait(40);
+
+    expect(creatorUploadManager.getJobs()[0]?.status).toBe('FAILED');
+    expect(creatorUploadManager.getJobs()[0]?.error).toMatch(/timed out/i);
+    expect(socialApi.createReel).not.toHaveBeenCalled();
   });
 });
 

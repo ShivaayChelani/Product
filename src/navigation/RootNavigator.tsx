@@ -369,16 +369,34 @@ function MemoriesWrapper({ navigation }: any) {
 
 
 
-function WalletWrapper({ navigation }: any) {
-  const { user } = useUserContext();
+function WalletWrapper({ navigation, route }: any) {
+  const { user, onLogout } = useUserContext();
   const Screen = useLazyScreen(() => require('../screens/WalletScreen'));
-  if (!user) return null;
+  if (!user) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#FCF9F5' }}>
+        <Text style={{ fontSize: 16, color: '#3E2723', textAlign: 'center', marginBottom: 16 }}>
+          Sign in to view PalPoints and earn rewards.
+        </Text>
+        <TouchableOpacity
+          onPress={() => onLogout()}
+          style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: '#3E2723', borderRadius: 8 }}
+        >
+          <Text style={{ color: '#FFF', fontWeight: '600' }}>Sign In</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 12 }}>
+          <Text style={{ color: '#8D8177' }}>Go back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
   return (
     <Screen
       user={user}
       onBack={() => navigation.goBack()}
       onNavigateToRewards={() => navigation.navigate('Rewards')}
       onNavigateToScanner={() => navigation.navigate('PayPoints')}
+      initialTab={route?.params?.initialTab}
     />
   );
 }

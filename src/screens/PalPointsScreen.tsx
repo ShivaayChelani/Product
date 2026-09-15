@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useUserContext } from '../context/UserContext';
 import { walletApi, WalletProfile, WalletTransaction, pointRulesApi } from '../services/api';
 import { DEV_FLAGS } from '../config/devFlags';
@@ -117,9 +117,11 @@ export default function PalPointsScreen() {
     }
   }, [user]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useFocusEffect(
+    useCallback(() => {
+      void fetchData();
+    }, [fetchData]),
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -240,7 +242,7 @@ export default function PalPointsScreen() {
                 <Text style={styles.wayPoints}>+{rewardPoints.review}</Text>
                 <Text style={styles.wayTitle}>Write a Vendor Review</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.wayCard} onPress={() => navigation.navigate('Wallet')}>
+              <TouchableOpacity style={styles.wayCard} onPress={() => navigation.navigate('Wallet', { initialTab: 'earn' })}>
                 <Text style={styles.wayPoints}>+{rewardPoints.daily}</Text>
                 <Text style={styles.wayTitle}>Daily Login</Text>
               </TouchableOpacity>

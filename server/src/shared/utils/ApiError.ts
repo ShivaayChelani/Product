@@ -10,6 +10,7 @@ export const ErrorCodes = {
   CITY_MISMATCH: 'CITY_MISMATCH',
   PLAN_LIMIT_REACHED: 'PLAN_LIMIT_REACHED',
   ACTIVE_SUBSCRIPTION_EXISTS: 'ACTIVE_SUBSCRIPTION_EXISTS',
+  GOOGLE_IDENTITY_CONFLICT: 'GOOGLE_IDENTITY_CONFLICT',
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

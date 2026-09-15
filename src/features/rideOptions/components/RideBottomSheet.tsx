@@ -6,11 +6,11 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Share,
   Vibration,
   Platform,
   Pressable,
   Alert,
+  useWindowDimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -48,6 +48,7 @@ export default function RideBottomSheet({
   destAddress,
 }: RideBottomSheetProps) {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const { effectivePosition } = useLocationContext();
   const { theme } = useTheme();
   const queryClient = useQueryClient();
@@ -76,6 +77,7 @@ export default function RideBottomSheet({
   const cardBg = theme.card ?? T.card;
   const textColor = theme.text ?? T.text;
   const muted = theme.textSecondary ?? T.textSecondary;
+  const bottomInset = Math.max(insets.bottom, 16);
 
   const haptic = useCallback(() => {
     if (Platform.OS === 'android') Vibration.vibrate(10);
@@ -89,16 +91,6 @@ export default function RideBottomSheet({
     });
     providersQuery.refetch();
   }, [queryClient, pickupLatitude, pickupLongitude, providersQuery, haptic, hasPickup]);
-
-  const onShare = useCallback(async () => {
-    haptic();
-    await Share.share({ message: `Ride to ${destName} — PalSafar` });
-  }, [destName, haptic]);
-
-  const onCopyAddress = useCallback(async () => {
-    haptic();
-    await Share.share({ message: destAddress || destName });
-  }, [destAddress, destName, haptic]);
 
   const handleOpenProvider = useCallback(
     async (provider: RideProviderId, target: LaunchTarget, vehicleType?: RideVehicleType) => {
@@ -147,8 +139,15 @@ export default function RideBottomSheet({
   const hasError = providersQuery.isError;
 
   const providerList = (
-    <>
-      <View style={[styles.infoBanner, { backgroundColor: cardBg, borderColor: T.border }]}>
+    <ScrollView
+      style={styles.list}
+      contentContainerStyle={styles.listContent}
+      showsVerticalScrollIndicator={false}
+      nestedScrollEnabled
+      keyboardShouldPersistTaps="handled"
+      bounces
+    >
+      <View style={[styles.infoBanner, styles.infoBannerInList, { backgroundColor: cardBg, borderColor: T.border }]}>
         <Icon name="shield-checkmark-outline" size={20} color={T.primary} />
         <Text style={[styles.infoBannerText, { color: textColor }]}>{RIDE_ASSISTANT_DISCLAIMER}</Text>
       </View>
@@ -157,40 +156,39 @@ export default function RideBottomSheet({
         <Text style={[styles.listTitle, { color: textColor }]}>Available providers</Text>
       </View>
 
-      <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-        {providers.map(p => (
-          <RideProviderCard
-            key={p.id}
-            provider={p}
-            canOpen={hasPickup && !invalidDest}
-            openingApp={openingProvider === p.id && openingTarget === 'app'}
-            openingWeb={openingProvider === p.id && openingTarget === 'website'}
-            onOpenApp={(id, vehicle) => handleOpenProvider(id, 'app', vehicle)}
-            onOpenWebsite={(id, vehicle) => handleOpenProvider(id, 'website', vehicle)}
-          />
-        ))}
-        {providers.length === 0 && !providersQuery.isLoading ? <RideEmptyState /> : null}
-        <View style={{ height: 12 }} />
-      </ScrollView>
-
-      <View style={[styles.footer, { backgroundColor: cardBg, borderColor: T.border }]}>
-        <FooterAction icon="refresh-outline" label="Refresh" onPress={onRefresh} color={textColor} />
-        <FooterAction icon="share-outline" label="Share" onPress={onShare} color={textColor} />
-        <FooterAction icon="copy-outline" label="Copy" onPress={onCopyAddress} color={textColor} />
-      </View>
-    </>
+      {providers.map(p => (
+        <RideProviderCard
+          key={p.id}
+          provider={p}
+          canOpen={hasPickup && !invalidDest}
+          openingApp={openingProvider === p.id && openingTarget === 'app'}
+          openingWeb={openingProvider === p.id && openingTarget === 'website'}
+          onOpenApp={(id, vehicle) => handleOpenProvider(id, 'app', vehicle)}
+          onOpenWebsite={(id, vehicle) => handleOpenProvider(id, 'website', vehicle)}
+        />
+      ))}
+      {providers.length === 0 && !providersQuery.isLoading ? <RideEmptyState /> : null}
+    </ScrollView>
   );
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
+      <View style={styles.backdrop}>
         <Pressable
+          style={styles.backdropDismiss}
+          onPress={onClose}
+          accessibilityLabel="Dismiss ride assistant"
+        />
+        <View
           style={[
             styles.sheet,
             T.shadow,
-            { backgroundColor: sheetBg, paddingBottom: Math.max(insets.bottom, 16) + 8 },
+            {
+              backgroundColor: sheetBg,
+              maxHeight: windowHeight * 0.92,
+              paddingBottom: bottomInset,
+            },
           ]}
-          onPress={e => e.stopPropagation()}
         >
           <View style={styles.handleRow}>
             <View style={[styles.handle, { backgroundColor: muted }]} />
@@ -238,30 +236,9 @@ export default function RideBottomSheet({
           ) : (
             providerList
           )}
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
-  );
-}
-
-function FooterAction({
-  icon,
-  label,
-  onPress,
-  color,
-}: {
-  icon: string;
-  label: string;
-  onPress: () => void;
-  color: string;
-}) {
-  return (
-    <TouchableOpacity style={styles.footerBtn} onPress={onPress} accessibilityLabel={label}>
-      <Icon name={icon} size={20} color={color} />
-      <Text style={[styles.footerLabel, { color }]} numberOfLines={1}>
-        {label}
-      </Text>
-    </TouchableOpacity>
   );
 }
 
@@ -271,10 +248,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(45, 36, 29, 0.45)',
     justifyContent: 'flex-end',
   },
+  backdropDismiss: {
+    ...StyleSheet.absoluteFillObject,
+  },
   sheet: {
     borderTopLeftRadius: T.radiusSheet,
     borderTopRightRadius: T.radiusSheet,
-    maxHeight: '92%',
     paddingTop: 4,
   },
   handleRow: { alignItems: 'center', paddingVertical: 8 },
@@ -307,16 +286,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   infoBannerText: { flex: 1, fontSize: 14, lineHeight: 20, fontWeight: '500' },
-  listHeader: { paddingHorizontal: 20, marginTop: 4, marginBottom: 4 },
+  infoBannerInList: { marginHorizontal: 0 },
+  listHeader: { paddingHorizontal: 4, marginTop: 4, marginBottom: 8 },
   listTitle: { fontSize: 16, fontWeight: '800' },
-  list: { paddingHorizontal: 16, maxHeight: 380 },
-  footer: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    paddingTop: 10,
-    paddingHorizontal: 8,
-    marginTop: 4,
+  list: {
+    flexGrow: 0,
+    flexShrink: 1,
   },
-  footerBtn: { flex: 1, alignItems: 'center', paddingVertical: 6, minHeight: 48 },
-  footerLabel: { fontSize: 10, fontWeight: '600', marginTop: 4 },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    flexGrow: 0,
+  },
 });

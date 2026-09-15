@@ -1,5 +1,6 @@
 import { prisma } from '../../../config/database';
 import { generateSlug } from './places.helpers';
+import { validateBulkCoordinates } from './place-coordinates';
 
 export interface BulkPlaceInput {
   name: string;
@@ -50,6 +51,9 @@ export const placesBulkService = {
     input: BulkPlaceInput[],
     options?: { overwrite?: boolean; source?: string; status?: string; userId?: string }
   ): Promise<BulkImportResult> {
+    if (!Array.isArray(input)) {
+      throw new Error('Bulk import payload must be an array of place records.');
+    }
     if (input.length > MAX_IMPORT_SIZE) {
       throw new Error(`Bulk import limited to ${MAX_IMPORT_SIZE} records. Received ${input.length}.`);
     }
@@ -83,6 +87,13 @@ export const placesBulkService = {
       const toUpdate: any[] = [];
 
       for (const place of batch) {
+        const coords = validateBulkCoordinates(place.latitude, place.longitude);
+        if (!coords.ok) {
+          result.errors++;
+          result.errorDetails.push({ name: place.name, error: coords.reason });
+          continue;
+        }
+
         const nameKey = `${normalizeName(place.name)}|${normalizeName(place.city || '')}|${normalizeName(place.state || '')}`;
 
         if (duplicateIndex.has(nameKey)) {
@@ -96,8 +107,8 @@ export const placesBulkService = {
           continue;
         }
 
-        if (place.latitude && place.longitude) {
-          const coordKey = `${place.latitude.toFixed(4)}|${place.longitude.toFixed(4)}`;
+        if (place.latitude != null && place.longitude != null) {
+          const coordKey = `${coords.latitude.toFixed(4)}|${coords.longitude.toFixed(4)}`;
           if (duplicateIndex.has(coordKey)) {
             const existing = duplicateIndex.get(coordKey)!;
             result.skipped++;
@@ -109,7 +120,7 @@ export const placesBulkService = {
           }
         }
 
-        toCreate.push(place);
+        toCreate.push({ ...place, latitude: coords.latitude, longitude: coords.longitude });
       }
 
       if (toCreate.length > 0) {

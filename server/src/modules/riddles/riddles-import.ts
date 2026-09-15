@@ -10,6 +10,32 @@ export const REQUIRED_HEADERS = [
   'Answer in Hindi',
 ] as const;
 
+/**
+ * Header aliases: maps a normalized variant → the canonical normalized form.
+ * This allows source files that use slightly different (but unambiguous) header
+ * wording — e.g. "riddles in english" (plural) instead of "riddle in english"
+ * (singular) — to be parsed correctly without modifying the source Excel files.
+ *
+ * Rules for adding entries here:
+ *   - The mapping must be unambiguous (one clear canonical target).
+ *   - Never add an alias that could reasonably mean two different things.
+ *   - Additions here are additive / backward-compatible.
+ */
+export const HEADER_ALIASES: Record<string, string> = {
+  // Plural variants seen in 8 state workbooks (Rajasthan, Sikkim, TN, Telangana,
+  // Tripura, UP, Uttarakhand, West Bengal) that use "riddles in english".
+  'riddles in english': 'riddle in english',
+  'answers in english': 'answer in english',
+  'riddles in hindi': 'riddle in hindi',
+  'answers in hindi': 'answer in hindi',
+  // Additional unambiguous city column aliases
+  'city / district name': 'city name',
+  'city/district name': 'city name',
+  'city & district': 'city name',
+  'city / district': 'city name',
+  'district': 'city name',
+};
+
 /** Normalize text for comparison only (trim, BOM strip, collapse whitespace, case-fold). */
 export function normalizeForCompare(value: unknown): string {
   return String(value ?? '')
@@ -20,7 +46,9 @@ export function normalizeForCompare(value: unknown): string {
 }
 
 export function normalizeHeader(value: unknown): string {
-  return normalizeForCompare(value);
+  const base = normalizeForCompare(value);
+  // Resolve through the alias table so callers always see canonical forms.
+  return HEADER_ALIASES[base] ?? base;
 }
 
 export interface TreasureHuntImportRow {

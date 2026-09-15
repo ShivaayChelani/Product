@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { TouristSpot } from '../types';
+import { parseJsonObject } from './safeJson';
 
 const KEY = '@palsafar_itinerary_place_cache';
 
@@ -10,7 +11,10 @@ let memoryCache: PlaceCache = {};
 export async function loadItineraryPlaceCache(): Promise<PlaceCache> {
   try {
     const raw = await AsyncStorage.getItem(KEY);
-    if (raw) memoryCache = { ...memoryCache, ...JSON.parse(raw) };
+    if (raw) {
+      const parsed = parseJsonObject(raw);
+      if (parsed) memoryCache = { ...memoryCache, ...(parsed as PlaceCache) };
+    }
   } catch {
     // keep in-memory cache
   }

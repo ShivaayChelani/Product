@@ -4,6 +4,7 @@ import { catchAsync } from '../../shared/utils/catchAsync';
 import { sendSuccess, sendCreated } from '../../shared/utils/response';
 import { ApiError } from '../../shared/utils/ApiError';
 import { prisma } from '../../config/database';
+import { metricActorKey } from '../../shared/utils/metricActor';
 
 export const socialController = {
   // ── Creator Handlers ──
@@ -177,13 +178,13 @@ export const socialController = {
 
   incrementViews: catchAsync(async (req: any, res: Response) => {
     const { id: reelId } = req.params;
-    const data = await socialService.incrementViews(reelId);
+    const data = await socialService.incrementViews(reelId, metricActorKey(req));
     sendSuccess(res, data, { message: 'View count updated.' });
   }),
 
   incrementShares: catchAsync(async (req: any, res: Response) => {
     const { id: reelId } = req.params;
-    const data = await socialService.incrementShares(reelId);
+    const data = await socialService.incrementShares(reelId, metricActorKey(req));
     sendSuccess(res, data, { message: 'Share count updated.' });
   }),
 

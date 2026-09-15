@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -47,7 +47,12 @@ export default function PlaceReelsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const route = useRoute<PlaceReelsRouteProp>();
-  const { placeId, placeName, placeCity, placeState, placeImage } = route.params;
+  const params = route.params;
+  const placeId = params?.placeId;
+  const placeName = params?.placeName ?? 'this place';
+  const placeCity = params?.placeCity;
+  const placeState = params?.placeState;
+  const placeImage = params?.placeImage;
   const { user } = useUserContext();
   const { currentVendor } = useDataContext();
   const canCreateCreatorReel = !isVendorApproved(user, currentVendor?.verificationStatus);
@@ -55,13 +60,11 @@ export default function PlaceReelsScreen() {
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchReels();
-    }, [placeId])
-  );
-
-  const fetchReels = async () => {
+  const fetchReels = useCallback(async () => {
+    if (!placeId) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const res = await placesApi.getReels(placeId);
@@ -70,11 +73,19 @@ export default function PlaceReelsScreen() {
         setReels(data);
       }
     } catch (err) {
-      (typeof __DEV__ !== 'undefined' && __DEV__) && console.warn('Failed to load place reels:', err);
+      if (typeof __DEV__ !== 'undefined' && __DEV__) {
+        console.warn('Failed to load place reels:', err);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [placeId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void fetchReels();
+    }, [fetchReels]),
+  );
 
   const handleCreateReel = () => {
     navigation.navigate('CreateReel', {
@@ -89,7 +100,9 @@ export default function PlaceReelsScreen() {
         message: `Check out creator reels and experiences from ${placeName} on PalSafar! 🌍📸`,
       });
     } catch (error) {
-      (typeof __DEV__ !== 'undefined' && __DEV__) && console.warn('Error sharing place', error);
+      if (typeof __DEV__ !== 'undefined' && __DEV__) {
+        console.warn('Error sharing place', error);
+      }
     }
   };
 
@@ -272,6 +285,17 @@ export default function PlaceReelsScreen() {
       </View>
     );
   };
+
+  if (!placeId) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }]}>
+        <Text style={styles.emptyTitle}>This place is unavailable.</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.emptyDesc}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>

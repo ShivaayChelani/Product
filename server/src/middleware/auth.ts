@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { Role } from '@prisma/client';
 import { env } from '../config/env';
 import { ApiError, ErrorCodes } from '../shared/utils/ApiError';
-import { revalidateRequestUser, revalidateVendorCapability } from '../shared/services/authRevalidation';
+import { revalidateRequestUser, revalidateVendorCapability, revalidateIfJwtClaimsAdmin } from '../shared/services/authRevalidation';
 
 interface JwtPayload {
   userId: string;
@@ -102,7 +102,7 @@ export const authenticate = (req: any, _res: Response, next: NextFunction) => {
       return next(new ApiError(401, 'Invalid or expired token.'));
     }
     req.user = toRequestUser(decoded);
-    next();
+    revalidateIfJwtClaimsAdmin(req).then(() => next()).catch(next);
   } catch {
     return next(new ApiError(401, 'Invalid or expired token.'));
   }
@@ -127,9 +127,14 @@ export const optionalAuth = (req: any, _res: Response, next: NextFunction) => {
       req.user = toRequestUser(decoded);
     }
   } catch {
-    // Silently continue without user
+    return next();
   }
-  next();
+  revalidateIfJwtClaimsAdmin(req)
+    .then(() => next())
+    .catch(() => {
+      delete req.user;
+      next();
+    });
 };
 
 export const requireAdmin = (req: any, _res: Response, next: NextFunction) => {

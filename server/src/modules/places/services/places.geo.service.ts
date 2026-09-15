@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../../config/database';
 import { ApiError } from '../../../shared/utils/ApiError';
-import { getPaginationParams, paginatedResponse } from '../../../shared/utils/pagination';
+import { getPaginationParams, paginatedResponse, parsePositiveInt } from '../../../shared/utils/pagination';
 import { cache, cacheKey } from '../../../config/cache';
 import { mapPlaceRow, mapViewportRow, mapMapPlaceRow, placeApproved, excludeCommercialPlacesSql, excludeCommercialPlacesWhere, resolvePlace } from './places.helpers';
 import { dedupePlacesByLocation } from '../../../shared/utils/placeDedupe';
@@ -734,8 +734,9 @@ export const placesGeoService = {
       throw new ApiError(404, 'Place not found.');
     }
 
-    const radius = parseFloat(query.radius || '5000');
-    const limit = parseInt(query.limit || '10', 10);
+    const radiusRaw = parseFloat(query.radius || '5000');
+    const radius = Number.isFinite(radiusRaw) ? Math.min(50_000, Math.max(50, radiusRaw)) : 5000;
+    const limit = Math.min(50, Math.max(1, parsePositiveInt(query.limit, 10)));
     const categoryCondition = query.category ? Prisma.sql`AND v.category = ${query.category}` : Prisma.empty;
 
     const vendors = await prisma.$queryRaw<any[]>`

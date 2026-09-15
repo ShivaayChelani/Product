@@ -169,6 +169,8 @@ export const env = {
   boundaryDataLicenseAcknowledged: process.env.BOUNDARY_DATA_LICENSE_ACKNOWLEDGED === 'true',
   /** Hybrid lexical + vector search (requires OpenAI embedding key + refresh job). */
   hybridSearchEnabled: process.env.HYBRID_SEARCH_ENABLED === 'true',
+  /** Phase 3: canonical itinerary engine. OFF by default — legacy engine stays the default. */
+  canonicalItineraryEnabled: process.env.CANONICAL_ITINERARY_ENGINE_ENABLED === 'true',
   embeddingModel: process.env.EMBEDDING_MODEL || 'text-embedding-3-small',
   /** Ride booking — deeplink-only; no routing or fare APIs. */
   rides: {

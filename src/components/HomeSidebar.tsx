@@ -336,7 +336,7 @@ export default function HomeSidebar({
 
           <DrawerDivider />
 
-          <DrawerSection title="More">
+          <DrawerSection title="SUPPORT & MORE">
             {!isGuest && onNavigateToSubscription ? (
               <DrawerItem
                 icon="card-outline"
@@ -349,21 +349,26 @@ export default function HomeSidebar({
             ) : null}
             <DrawerItem
               icon="settings-outline"
-              iconColor="#5C432F"
-              iconBg="#F5EFE6"
+              iconColor="#1E1B18"
+              iconBg="#F3E8DA"
               label="Settings"
+              subtitle="App preferences"
               onPress={withClose(onNavigateToSettings)}
             />
             <DrawerItem
               icon="headset-outline"
-              iconColor="#1D4E89"
-              iconBg="#E6F0FA"
+              iconColor="#175E9B"
+              iconBg="#E4F0F9"
               label="Help & Support"
+              subtitle="Get help, FAQs & contact us"
               onPress={withClose(onNavigateToHelp)}
             />
             <DrawerItem
               icon="log-out-outline"
+              iconColor="#B61F3F"
+              iconBg="#FCE3E8"
               label="Logout"
+              subtitle="Sign out from your account"
               danger
               onPress={handleLogout}
             />

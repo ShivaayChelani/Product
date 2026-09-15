@@ -6,6 +6,7 @@ import { mapReelUploadError } from './reelUploadErrors';
 import { mapReelUrls } from '../reelService';
 import { unwrapReelRewardPoints } from '../../utils/reelRewardPoints';
 import { detectReelMediaKind, type ReelMediaKind } from '../reels/reelMediaKind';
+import { parseJsonArray } from '../../utils/safeJson';
 import type { Reel } from '../../types';
 
 export type ReelUploadKind = 'CREATOR' | 'VENDOR';
@@ -42,6 +43,7 @@ export interface ReelUploadJob {
   publishDraft?: boolean;
   error?: string;
   rewardPoints?: number;
+  processingStartedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -69,6 +71,12 @@ type PostedListener = (job: ReelUploadJob, reel: Reel) => void;
 
 const STORAGE_KEY = 'creator_reel_upload_jobs_v1';
 const MAX_STORED_JOBS = 20;
+/**
+ * Longest time a reel is allowed to sit in PROCESSING (upload done, publish
+ * call in flight) before the watchdog fails it so the job cannot get stuck
+ * in a non-terminal state forever.
+ */
+export const PROCESSING_TIMEOUT_MS = 90 * 1000;
 
 let jobs: ReelUploadJob[] = [];
 let hydrated = false;
@@ -86,6 +94,25 @@ const DEDUPE_POSTED_MS = 5 * 60 * 1000;
 export const AUTO_HIDE_POSTED_MS = 2500;
 
 const hideTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const runGeneration = new Map<string, number>();
+
+const MAX_REEL_DESCRIPTION = 2000;
+
+function nextRunGeneration(localUploadId: string): number {
+  const n = (runGeneration.get(localUploadId) || 0) + 1;
+  runGeneration.set(localUploadId, n);
+  return n;
+}
+
+function isCurrentRun(localUploadId: string, gen: number): boolean {
+  return runGeneration.get(localUploadId) === gen;
+}
+
+function reelCaption(text: string): string | undefined {
+  const trimmed = String(text || '').trim();
+  if (!trimmed) return undefined;
+  return trimmed.slice(0, MAX_REEL_DESCRIPTION);
+}
 
 export function isUploadJobVisible(job: ReelUploadJob, now = Date.now()): boolean {
   if (job.status === 'CANCELLED') return false;
@@ -175,18 +202,6 @@ function createLocalUploadId(): string {
   return `reel_upload_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
-async function discardUnpublishedMedia(
-  publicId: string | undefined,
-  mediaKind: ReelMediaKind,
-): Promise<void> {
-  if (!publicId) return;
-  try {
-    await uploadApi.deleteMedia(publicId, mediaKind);
-  } catch {
-    // Best-effort cleanup so failed publishes do not leave Cloudinary assets.
-  }
-}
-
 function vendorReelAsFeedItem(job: ReelUploadJob, vendorReel: {
   id: string;
   videoUrl: string;
@@ -227,80 +242,128 @@ function vendorReelAsFeedItem(job: ReelUploadJob, vendorReel: {
 }
 
 async function runUploadJob(localUploadId: string): Promise<void> {
+  const gen = nextRunGeneration(localUploadId);
   const job = jobs.find((j) => j.localUploadId === localUploadId);
   if (!job || job.status === 'CANCELLED' || job.status === 'POSTED') return;
 
   const mediaKind = job.mediaKind || detectReelMediaKind(job.mimeType, job.videoUri, job.fileName);
-  let uploadedPublicId: string | undefined;
-  let uploadedUrl: string | undefined;
+  // Resume path: if we already have a stored URL from a prior attempt in this
+  // session, reuse it so the server-side videoUrl dedupe blocks duplicates
+  // instead of re-uploading (which would mint a brand-new URL).
+  let uploadedUrl = job.videoUrl;
+  const description = reelCaption(job.caption);
+  const title = (job.title?.trim() || job.caption).slice(0, 200) || undefined;
 
   try {
-    updateJob(localUploadId, { status: 'UPLOADING', progress: 5, error: undefined, videoUrl: undefined });
-
-    if (/^https?:\/\//i.test(job.videoUri)) {
-      uploadedUrl = job.videoUri;
-      updateJob(localUploadId, { progress: 88 });
-    } else {
-      const localUri = mediaKind === 'video'
-        ? (await compressVideo(job.videoUri)).compressedUri
-        : job.videoUri;
-      const uploaded = mediaKind === 'image'
-        ? await uploadApi.uploadImage(localUri, job.mimeType, job.fileName)
-        : await uploadApi.uploadVideo(
-          localUri,
-          (p) => updateJob(localUploadId, { progress: Math.max(5, Math.min(85, Math.round(p * 0.85))) }),
-          job.mimeType,
-          job.fileName,
-        );
-      uploadedUrl = uploaded.url;
-      uploadedPublicId = uploaded.publicId;
-      updateJob(localUploadId, { progress: 88 });
-    }
-
     if (!uploadedUrl) {
-      throw new Error('Media upload did not return a playable URL.');
+      updateJob(localUploadId, { status: 'UPLOADING', progress: 5, error: undefined });
+
+      if (/^https?:\/\//i.test(job.videoUri)) {
+        uploadedUrl = job.videoUri;
+      } else {
+        const localUri = mediaKind === 'video'
+          ? (await compressVideo(job.videoUri)).compressedUri
+          : job.videoUri;
+        const uploaded = mediaKind === 'image'
+          ? await uploadApi.uploadImage(localUri, job.mimeType, job.fileName)
+          : await uploadApi.uploadVideo(
+            localUri,
+            (p) => updateJob(localUploadId, { progress: Math.max(5, Math.min(85, Math.round(p * 0.85))) }),
+            job.mimeType,
+            job.fileName,
+          );
+        uploadedUrl = uploaded.url;
+      }
+
+      if (!uploadedUrl) {
+        throw new Error('Media upload did not return a playable URL.');
+      }
+
+      // Persist the URL up-front so a crash between upload and publish cannot
+      // lead to a re-upload with a new URL (duplicate reel on retry bypass).
+      updateJob(localUploadId, { videoUrl: uploadedUrl });
     }
 
-    updateJob(localUploadId, { status: 'PROCESSING', progress: 90 });
+    if (!isCurrentRun(localUploadId, gen)) return;
+    updateJob(localUploadId, { status: 'PROCESSING', progress: 90, processingStartedAt: nowIso() });
+
+    // Watchdog: a PROCESSING job that never finishes (e.g. the server call
+    // hangs forever) must still reach a terminal state. We never fake-complete
+    // — a genuine time-out becomes FAILED and can be retried with the same URL.
+    let watchdog: ReturnType<typeof setTimeout> | null = null;
+    const armWatchdog = () => {
+      if (watchdog) clearTimeout(watchdog);
+      watchdog = setTimeout(() => {
+        if (!isCurrentRun(localUploadId, gen)) return;
+        const j = jobs.find((x) => x.localUploadId === localUploadId);
+        if (j && j.status === 'PROCESSING') {
+          nextRunGeneration(localUploadId);
+          updateJob(localUploadId, {
+            status: 'FAILED',
+            error: 'Publishing timed out. Your video is safe — tap retry to resume.',
+          });
+        }
+      }, PROCESSING_TIMEOUT_MS);
+    };
+    const disarmWatchdog = () => {
+      if (watchdog) clearTimeout(watchdog);
+      watchdog = null;
+    };
+    // Arm only once the publish call is actually in flight — the work below is
+    // what can hang indefinitely.
+    armWatchdog();
 
     let reel: Reel;
     let rewardPoints = 0;
-    if (job.kind === 'VENDOR') {
-      const vendorReel = await vendorsApi.createVendorReel({
-        videoUrl: uploadedUrl,
-        thumbnail: mediaKind === 'image' ? uploadedUrl : undefined,
-        title: job.title?.trim() || job.caption.slice(0, 200) || undefined,
-        description: job.caption,
-      });
-      if (!vendorReel?.id) {
-        throw new Error('Vendor reel was not created.');
+    try {
+      if (job.kind === 'VENDOR') {
+        const vendorReel = await vendorsApi.createVendorReel({
+          videoUrl: uploadedUrl,
+          thumbnail: mediaKind === 'image' ? uploadedUrl : undefined,
+          title,
+          description,
+        });
+        if (!vendorReel?.id) {
+          throw new Error('Vendor reel was not created.');
+        }
+        reel = vendorReelAsFeedItem(job, vendorReel);
+      } else if (job.publishDraft && job.editReelId) {
+        await socialApi.updateReel(job.editReelId, {
+          title,
+          description,
+          placeId: job.spotId || undefined,
+          vendorId: job.vendorId || undefined,
+        });
+        const published = await creatorApi.publishDraft(job.editReelId);
+        rewardPoints = unwrapReelRewardPoints(published);
+        const res = await socialApi.getReelById(job.editReelId);
+        const payload = (res as { data?: Reel })?.data ?? (res as unknown as Reel);
+        reel = mapReelUrls({ ...payload, rewardPoints: rewardPoints || unwrapReelRewardPoints(payload) });
+        rewardPoints = unwrapReelRewardPoints(reel) || rewardPoints;
+      } else {
+        const res = await socialApi.createReel({
+          videoUrl: uploadedUrl,
+          thumbnail: mediaKind === 'image' ? uploadedUrl : undefined,
+          title,
+          description,
+          placeId: job.spotId || undefined,
+          vendorId: job.vendorId || undefined,
+        });
+        const payload = (res as { data?: Reel })?.data ?? (res as unknown as Reel);
+        rewardPoints = unwrapReelRewardPoints(res) || unwrapReelRewardPoints(payload);
+        reel = mapReelUrls({ ...payload, rewardPoints });
       }
-      reel = vendorReelAsFeedItem(job, vendorReel);
-    } else if (job.publishDraft && job.editReelId) {
-      await socialApi.updateReel(job.editReelId, {
-        title: job.caption.slice(0, 200) || undefined,
-        description: job.caption,
-        placeId: job.spotId || undefined,
-        vendorId: job.vendorId || undefined,
-      });
-      const published = await creatorApi.publishDraft(job.editReelId);
-      rewardPoints = unwrapReelRewardPoints(published);
-      const res = await socialApi.getReelById(job.editReelId);
-      const payload = (res as { data?: Reel })?.data ?? (res as unknown as Reel);
-      reel = mapReelUrls({ ...payload, rewardPoints: rewardPoints || unwrapReelRewardPoints(payload) });
-      rewardPoints = unwrapReelRewardPoints(reel) || rewardPoints;
-    } else {
-      const res = await socialApi.createReel({
-        videoUrl: uploadedUrl,
-        thumbnail: mediaKind === 'image' ? uploadedUrl : undefined,
-        title: job.caption.slice(0, 200) || undefined,
-        description: job.caption,
-        placeId: job.spotId || undefined,
-        vendorId: job.vendorId || undefined,
-      });
-      const payload = (res as { data?: Reel })?.data ?? (res as unknown as Reel);
-      rewardPoints = unwrapReelRewardPoints(res) || unwrapReelRewardPoints(payload);
-      reel = mapReelUrls({ ...payload, rewardPoints });
+    } finally {
+      disarmWatchdog();
+    }
+
+    if (!isCurrentRun(localUploadId, gen)) return;
+    const latest = jobs.find((j) => j.localUploadId === localUploadId);
+    if (!latest || latest.status === 'FAILED' || latest.status === 'CANCELLED' || latest.status === 'POSTED') {
+      return;
+    }
+    if (!reel?.id) {
+      throw new Error('Reel was not created.');
     }
 
     const finished = updateJob(localUploadId, {
@@ -313,14 +376,21 @@ async function runUploadJob(localUploadId: string): Promise<void> {
       error: undefined,
     });
     if (finished) {
-      postedListeners.forEach((fn) => fn(finished, reel));
+      postedListeners.forEach((fn) => {
+        try {
+          fn(finished, reel);
+        } catch {
+          // Listener failures must not revert a published reel to FAILED.
+        }
+      });
       scheduleHidePosted(localUploadId);
     }
   } catch (err: unknown) {
-    await discardUnpublishedMedia(uploadedPublicId, mediaKind);
+    if (!isCurrentRun(localUploadId, gen)) return;
+    const latest = jobs.find((j) => j.localUploadId === localUploadId);
+    if (latest?.status === 'POSTED' || latest?.status === 'CANCELLED') return;
     updateJob(localUploadId, {
       status: 'FAILED',
-      videoUrl: undefined,
       error: mapReelUploadError(err),
     });
   }
@@ -331,9 +401,9 @@ async function ensureHydrated(): Promise<void> {
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as ReelUploadJob[];
-      if (Array.isArray(parsed)) {
-        jobs = parsed.filter((j) => j?.localUploadId);
+      const parsed = parseJsonArray(raw);
+      if (parsed) {
+        jobs = parsed.filter((j: any) => j?.localUploadId) as ReelUploadJob[];
       }
     }
   } catch {
@@ -344,6 +414,16 @@ async function ensureHydrated(): Promise<void> {
 
   // Resume jobs interrupted mid-flight (same app session relaunch).
   for (const job of jobs) {
+    if (job.status === 'PROCESSING') {
+      const started = Date.parse(job.processingStartedAt || job.updatedAt);
+      if (Number.isFinite(started) && Date.now() - started > PROCESSING_TIMEOUT_MS) {
+        updateJob(job.localUploadId, {
+          status: 'FAILED',
+          error: 'Publishing timed out. Your video is safe — tap retry to resume.',
+        });
+        continue;
+      }
+    }
     if (job.status === 'QUEUED' || job.status === 'UPLOADING' || job.status === 'PROCESSING') {
       void enqueueRun(job.localUploadId);
     } else if (job.status === 'POSTED') {
@@ -353,11 +433,11 @@ async function ensureHydrated(): Promise<void> {
   }
 }
 
-function enqueueRun(localUploadId: string): Promise<void> {
+function enqueueRun(localUploadId: string, force = false): Promise<void> {
   const existing = running.get(localUploadId);
-  if (existing) return existing;
+  if (existing && !force) return existing;
   const promise = runUploadJob(localUploadId).finally(() => {
-    running.delete(localUploadId);
+    if (running.get(localUploadId) === promise) running.delete(localUploadId);
   });
   running.set(localUploadId, promise);
   return promise;
@@ -437,10 +517,9 @@ export const creatorUploadManager = {
     updateJob(localUploadId, {
       status: 'QUEUED',
       progress: 0,
-      videoUrl: undefined,
       error: undefined,
     });
-    void enqueueRun(localUploadId);
+    void enqueueRun(localUploadId, true);
   },
 
   async cancelUpload(localUploadId: string): Promise<void> {
@@ -462,6 +541,7 @@ export const creatorUploadManager = {
     jobs = [];
     hydrated = false;
     running.clear();
+    runGeneration.clear();
     listeners.clear();
     postedListeners.clear();
   },

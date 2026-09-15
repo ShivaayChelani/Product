@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProfile, VendorBusiness, VendorOffer, VendorOfferRedemption, Reel, HiddenGemSubmission } from '../types';
+import { parseJsonArray, parseJsonObject } from '../utils/safeJson';
 
 const KEYS = {
   USER_PROGRESS: 'PALSAFAR_USER_PROGRESS',
@@ -68,9 +69,9 @@ export async function loadUserProgress(): Promise<UserProfile | null> {
   try {
     const raw = await AsyncStorage.getItem(KEYS.USER_PROGRESS);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<UserProfile>;
-    if (!parsed || typeof parsed !== 'object') return null;
-    return ensureDefaults(parsed);
+    const parsed = parseJsonObject(raw);
+    if (!parsed) return null;
+    return ensureDefaults(parsed as Partial<UserProfile>);
   } catch (error) {
     return null;
   }
@@ -94,7 +95,8 @@ export async function loadAppPreferences(): Promise<AppPreferences | null> {
   try {
     const raw = await AsyncStorage.getItem(KEYS.APP_PREFERENCES);
     if (!raw) return null;
-    return JSON.parse(raw) as AppPreferences;
+    const parsed = parseJsonObject(raw);
+    return parsed ? (parsed as AppPreferences) : null;
   } catch (error) {
     return null;
   }
@@ -111,7 +113,8 @@ export async function loadVendors(): Promise<VendorBusiness[] | null> {
   try {
     const raw = await AsyncStorage.getItem(KEYS.VENDORS);
     if (!raw) return null;
-    return JSON.parse(raw) as VendorBusiness[];
+    const parsed = parseJsonArray(raw);
+    return parsed ? (parsed as VendorBusiness[]) : null;
   } catch (error) {
     return null;
   }
@@ -128,7 +131,8 @@ export async function loadVendorOffers(): Promise<VendorOffer[] | null> {
   try {
     const raw = await AsyncStorage.getItem(KEYS.VENDOR_OFFERS);
     if (!raw) return null;
-    return JSON.parse(raw) as VendorOffer[];
+    const parsed = parseJsonArray(raw);
+    return parsed ? (parsed as VendorOffer[]) : null;
   } catch (error) {
     return null;
   }
@@ -145,7 +149,8 @@ export async function loadRedemptions(): Promise<VendorOfferRedemption[] | null>
   try {
     const raw = await AsyncStorage.getItem(KEYS.REDEMPTIONS);
     if (!raw) return null;
-    return JSON.parse(raw) as VendorOfferRedemption[];
+    const parsed = parseJsonArray(raw);
+    return parsed ? (parsed as VendorOfferRedemption[]) : null;
   } catch (error) {
     return null;
   }
@@ -162,7 +167,8 @@ export async function loadCurrentVendor(): Promise<VendorBusiness | null> {
   try {
     const raw = await AsyncStorage.getItem(KEYS.CURRENT_VENDOR);
     if (!raw) return null;
-    return JSON.parse(raw) as VendorBusiness;
+    const parsed = parseJsonObject(raw);
+    return parsed ? (parsed as unknown as VendorBusiness) : null;
   } catch (error) {
     return null;
   }
@@ -186,7 +192,8 @@ export async function loadReels(): Promise<Reel[] | null> {
   try {
     const raw = await AsyncStorage.getItem(KEYS.REELS);
     if (!raw) return null;
-    return JSON.parse(raw) as Reel[];
+    const parsed = parseJsonArray(raw);
+    return parsed ? (parsed as Reel[]) : null;
   } catch (error) {
     return null;
   }
@@ -203,7 +210,8 @@ export async function loadHiddenGemSubmissions(): Promise<HiddenGemSubmission[] 
   try {
     const raw = await AsyncStorage.getItem(KEYS.HIDDEN_GEM_SUBMISSIONS);
     if (!raw) return null;
-    return JSON.parse(raw) as HiddenGemSubmission[];
+    const parsed = parseJsonArray(raw);
+    return parsed ? (parsed as HiddenGemSubmission[]) : null;
   } catch (error) {
     return null;
   }
@@ -232,7 +240,8 @@ export async function loadSpotCoordinates(): Promise<SpotCoordinate[] | null> {
   try {
     const raw = await AsyncStorage.getItem(SPOT_COORDS_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as SpotCoordinate[];
+    const parsed = parseJsonArray(raw);
+    return parsed ? (parsed as SpotCoordinate[]) : null;
   } catch (error) {
     return null;
   }

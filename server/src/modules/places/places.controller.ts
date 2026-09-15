@@ -4,6 +4,7 @@ import { placesService } from './places.service';
 import { catchAsync } from '../../shared/utils/catchAsync';
 import { sendSuccess, sendCreated, sendNoContent } from '../../shared/utils/response';
 import { hasRole } from '../../middleware/auth';
+import { metricActorKey } from '../../shared/utils/metricActor';
 
 export const placesController = {
   create: catchAsync(async (req: any, res: Response) => {
@@ -323,7 +324,12 @@ export const placesController = {
 
   recordStat: catchAsync(async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
-    await placesService.recordStat(req.params.id as string, req.body.action, userId);
+    await placesService.recordStat(
+      req.params.id as string,
+      req.body.action,
+      userId,
+      metricActorKey(req as any),
+    );
     sendSuccess(res, null, { message: 'Stat recorded' });
   }),
 

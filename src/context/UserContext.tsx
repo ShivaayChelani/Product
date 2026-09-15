@@ -204,7 +204,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
         notificationService.requestPermission().then((granted) => {
           if (granted) {
             notificationService.registerDeviceToken().catch((err) => {
-              (typeof __DEV__ !== 'undefined' && __DEV__) && console.log('[Push] Token registration failed:', err?.message);
+              if (typeof __DEV__ !== 'undefined' && __DEV__) {
+                console.log('[Push] Token registration failed:', err?.message);
+              }
             });
           }
         });
@@ -213,7 +215,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
       return false;
     } catch (e: any) {
-      if (e.status === 403 && (e.code === 'EMAIL_NOT_VERIFIED' || e.details?.requiresEmailVerification)) {
+      if (
+        (e.status === 401 || e.status === 403) &&
+        (e.code === 'EMAIL_NOT_VERIFIED' || e.details?.requiresEmailVerification)
+      ) {
         throw e;
       }
       throw e;
@@ -248,7 +253,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       return false;
     } catch (err: any) {
       if (
-        err?.status === 403 &&
+        (err?.status === 401 || err?.status === 403) &&
         (err?.code === 'EMAIL_NOT_VERIFIED' || err?.details?.requiresEmailVerification)
       ) {
         return {

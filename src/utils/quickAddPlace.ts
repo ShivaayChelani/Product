@@ -13,6 +13,7 @@ import {
 import { isCityMismatchError } from './tripNavigation';
 import { invalidateMyTripsList } from '../features/myTrips/myTripsCache';
 import { flattenTripPlaceIds, getActiveItineraryPlaceIds } from './resumeTrip';
+import { parseJsonObject } from './safeJson';
 
 /** Offline map pins whose ids differ from the server seed. */
 const PLACE_ID_ALIASES: Record<string, string> = {
@@ -28,6 +29,16 @@ const MEMORY_TTL_MS = 45_000;
 
 let memoryDraft: { trip: TripPlan; at: number } | null = null;
 let ensureDraftInflight: Promise<TripPlan> | null = null;
+
+function parseCityDraftMap(raw: string): Record<string, string> {
+  const parsed = parseJsonObject(raw);
+  if (!parsed) return {};
+  const next: Record<string, string> = {};
+  for (const [city, id] of Object.entries(parsed)) {
+    if (typeof id === 'string' && id) next[city] = id;
+  }
+  return next;
+}
 
 export function resolvePlaceIdForQuickAdd(placeId: string): string {
   return PLACE_ID_ALIASES[placeId] || placeId;
@@ -95,7 +106,7 @@ export async function clearDraftTripCache(tripId?: string) {
     }
     const raw = await AsyncStorage.getItem(DRAFT_TRIP_IDS_BY_CITY_KEY);
     if (raw) {
-      const map = JSON.parse(raw) as Record<string, string>;
+      const map = parseCityDraftMap(raw);
       const next: Record<string, string> = {};
       if (tripId) {
         for (const [city, id] of Object.entries(map)) {
@@ -118,7 +129,7 @@ async function rememberCityDraft(cityKey: string, tripId: string) {
   if (!cityKey || !tripId) return;
   try {
     const raw = await AsyncStorage.getItem(DRAFT_TRIP_IDS_BY_CITY_KEY);
-    const map = raw ? (JSON.parse(raw) as Record<string, string>) : {};
+    const map = raw ? parseCityDraftMap(raw) : {};
     map[cityKey] = tripId;
     await AsyncStorage.setItem(DRAFT_TRIP_IDS_BY_CITY_KEY, JSON.stringify(map));
   } catch {
@@ -132,7 +143,7 @@ export async function getDraftTripIdForCity(city?: string): Promise<string | nul
   try {
     const raw = await AsyncStorage.getItem(DRAFT_TRIP_IDS_BY_CITY_KEY);
     if (!raw) return null;
-    const map = JSON.parse(raw) as Record<string, string>;
+    const map = parseCityDraftMap(raw);
     return map[cityKey] || null;
   } catch {
     return null;
@@ -153,9 +164,9 @@ export async function loadDraftSnapshot(): Promise<TripPlan | null> {
   try {
     const raw = await AsyncStorage.getItem(DRAFT_TRIP_SNAPSHOT_KEY);
     if (!raw) return null;
-    const trip = JSON.parse(raw) as TripPlan;
-    if (trip?.id) {
-      const normalized = normalizeTripPlan(trip);
+    const trip = parseJsonObject(raw);
+    if (trip && typeof trip.id === 'string') {
+      const normalized = normalizeTripPlan(trip as unknown as TripPlan);
       memoryDraft = { trip: normalized, at: Date.now() };
       return normalized;
     }
@@ -288,7 +299,10 @@ type LoadOptions = {
 async function fetchDraftById(tripId: string, requireStops = false): Promise<TripPlan | null> {
   try {
     const full = await tripsApi.getById(tripId);
-    if (full.status !== 'DRAFT') return null;
+    if (full.status !== 'DRAFT') {
+      await clearDraftTripCache(tripId);
+      return null;
+    }
     if (requireStops && countTripStops(full) === 0) return null;
     const normalized = normalizeTripPlan(full);
     seedDraftTripCache(normalized);

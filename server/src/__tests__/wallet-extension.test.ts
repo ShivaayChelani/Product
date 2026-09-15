@@ -103,6 +103,36 @@ describe('Wallet Extension API - Games and Regional Leaderboards', () => {
         .send({ gameName: 'Memory Match' });
       expect(res.status).toBe(401);
     });
+
+    it('does not double-credit concurrent game completions', async () => {
+      await prisma.walletTransaction.deleteMany({
+        where: { userId, reason: 'game_complete' },
+      });
+      const before = await prisma.wallet.findUnique({ where: { userId } });
+      const startPoints = before?.palPoints ?? 0;
+
+      const [first, second] = await Promise.all([
+        request(app)
+          .post('/api/v1/wallet/game-completion')
+          .set('Authorization', `Bearer ${userToken}`)
+          .send({ gameName: 'Memory Match' }),
+        request(app)
+          .post('/api/v1/wallet/game-completion')
+          .set('Authorization', `Bearer ${userToken}`)
+          .send({ gameName: 'Memory Match' }),
+      ]);
+
+      const statuses = [first.status, second.status].sort();
+      expect(statuses).toEqual([200, 429]);
+
+      const after = await prisma.wallet.findUnique({ where: { userId } });
+      expect(after?.palPoints).toBe(startPoints + gameRewardPoints);
+
+      const credits = await prisma.walletTransaction.count({
+        where: { userId, reason: 'game_complete', type: 'EARN' },
+      });
+      expect(credits).toBe(1);
+    });
   });
 
   describe('GET /api/v1/wallet/leaderboard/regional', () => {

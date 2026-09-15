@@ -5,10 +5,10 @@ import { dedupeByLocation, normalizePlaceName } from '../../shared/utils/placeDe
 import { resolveDestinationCentroid } from '../../shared/utils/geocode';
 import {
   canonicalizeDestination,
-  extractMustVisitHints,
   isRegionDestination,
   placeBelongsToDestination,
 } from '../../shared/utils/destination';
+import { collectPromptPlaceHints, resolvePromptPlaceMentions } from './promptPlaceResolution';
 import { env } from '../../config/env';
 import { logger } from '../../config/logger';
 import { assignDaysByClusterValue, absoluteMinTier, minAllowedTier, priorityTier, visitMinutes, type ClusterPlace } from './itineraryCluster';
@@ -680,44 +680,36 @@ async function resolvePromptMentionedPlaces(
   destination: string,
   centroid: { lat: number; lng: number },
   alreadyPinned: Set<string>,
-): Promise<string[]> {
-  const hints = extractMustVisitHints(prompt, destination);
-  if (hints.length === 0) return [];
+): Promise<{ ids: string[]; unresolved: string[] }> {
+  const hints = collectPromptPlaceHints(prompt, destination);
+  if (hints.length === 0) return { ids: [], unresolved: [] };
 
   const dest = canonicalizeDestination(destination) || destination.trim();
   const radiusKm = maxRadiusKm(dest);
-  const found: string[] = [];
 
-  for (const hint of hints) {
-    const matches = await prisma.place.findMany({
-      where: {
-        status: 'APPROVED',
-        latitude: { not: null },
-        longitude: { not: null },
-        name: { contains: hint, mode: 'insensitive' },
-        OR: [
-          { city: { contains: dest, mode: 'insensitive' } },
-          { state: { contains: dest, mode: 'insensitive' } },
-        ],
-      },
-      select: { id: true, name: true, city: true, state: true, latitude: true, longitude: true, rating: true },
-      take: 8,
-    });
+  const records = await prisma.place.findMany({
+    where: {
+      status: 'APPROVED',
+      latitude: { not: null },
+      longitude: { not: null },
+      OR: [
+        { city: { contains: dest, mode: 'insensitive' } },
+        { state: { contains: dest, mode: 'insensitive' } },
+      ],
+    },
+    select: { id: true, name: true, tags: true, city: true, state: true, latitude: true, longitude: true },
+    take: 500,
+  });
 
-    const ranked = matches
-      .filter((m) => placeBelongsToDestination(m, dest)
-        || (m.latitude != null && m.longitude != null
-          && haversineKm(centroid.lat, centroid.lng, m.latitude, m.longitude) <= radiusKm))
-      .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+  const inRange = records.filter((m) =>
+    placeBelongsToDestination(m, dest)
+    || (m.latitude != null && m.longitude != null
+      && haversineKm(centroid.lat, centroid.lng, m.latitude, m.longitude) <= radiusKm),
+  );
 
-    for (const m of ranked) {
-      if (alreadyPinned.has(m.id) || found.includes(m.id)) continue;
-      found.push(m.id);
-      break; // one best match per hint
-    }
-  }
-
-  return found;
+  const resolved = resolvePromptPlaceMentions(hints, inRange);
+  const ids = resolved.placeIds.filter((id) => !alreadyPinned.has(id));
+  return { ids, unresolved: resolved.unresolved };
 }
 
 function matchesInterests(place: { category: string; tags: string[] }, interests: string[]): boolean {
@@ -1026,12 +1018,13 @@ export async function generateItineraryPlan(params: EngineParams): Promise<Engin
   let centroidTrusted = resolution.resolved;
 
   const initialPinnedIds = Array.from(new Set(params.manualPlaceIds || []));
-  const promptPinnedIds = await resolvePromptMentionedPlaces(
+  const promptPins = await resolvePromptMentionedPlaces(
     params.prompt,
     destination,
     centroid,
     new Set(initialPinnedIds),
   );
+  const promptPinnedIds = promptPins.ids;
   const allPinnedIds = Array.from(new Set([...initialPinnedIds, ...promptPinnedIds]));
 
   const pinnedPlaces = allPinnedIds.length
@@ -1053,6 +1046,12 @@ export async function generateItineraryPlan(params: EngineParams): Promise<Engin
 
   if (promptPinnedIds.length > 0) {
     warnings.push(`Included ${promptPinnedIds.length} place(s) you mentioned in your prompt.`);
+  }
+  if (promptPins.unresolved.length > 0) {
+    warnings.push(
+      `Could not match ${promptPins.unresolved.slice(0, 3).map((n) => `"${n}"`).join(', ')}`
+      + `${promptPins.unresolved.length > 3 ? ' and others' : ''} to a PalSafar place — those stops were not added.`,
+    );
   }
 
   const pinnedIds = new Set([
@@ -1109,8 +1108,9 @@ export async function generateItineraryPlan(params: EngineParams): Promise<Engin
     });
 
   // Hand-picked places (checkbox selection) become the itinerary by default.
-  // Only fill remaining day slots with AI extras when the user opted in.
-  const useSelectedOnly = pinnedPlaces.length > 0 && !params.fillWithAi;
+  // Prompt-resolved must-visit pins are NOT selected-only: AI still fills
+  // remaining slots, and those pins are preserved as mandatory anchors.
+  const useSelectedOnly = pinnedPlaces.length > 0 && !params.fillWithAi && (params.manualPlaceIds || []).length > 0;
   // Preferred quality is minAllowedTier; absoluteMin opens the pool for multi-day
   // fallback after higher tiers are exhausted (cluster still prefers geography).
   const preferredMin = minAllowedTier(params.days);
@@ -1280,6 +1280,31 @@ export async function generateItineraryPlan(params: EngineParams): Promise<Engin
       variationSeed: attemptSeed as number | undefined,
       avoidHubIds: params.avoidHubIds,
     });
+
+    // Capacity must never silently drop a mandatory pin. Complements go first.
+    const clusteredIdSet = new Set(clusteredDays.flat().map((c) => c.id));
+    for (const pin of clusterPool.filter((p) => p.isPinned)) {
+      if (clusteredIdSet.has(pin.id)) continue;
+      if (clusteredDays.length === 0) clusteredDays.push([]);
+      let targetIdx = 0;
+      for (let i = 1; i < clusteredDays.length; i++) {
+        if ((clusteredDays[i]?.length || 0) < (clusteredDays[targetIdx]?.length || 0)) targetIdx = i;
+      }
+      const cap = paceConfig.stopsPerDay;
+      const day = clusteredDays[targetIdx] || [];
+      while (day.length >= cap) {
+        const dropAt = [...day].reverse().findIndex((p) => !p.isPinned);
+        if (dropAt < 0) break;
+        const actual = day.length - 1 - dropAt;
+        const dropped = day.splice(actual, 1)[0];
+        if (dropped) clusteredIdSet.delete(dropped.id);
+      }
+      day.push(pin);
+      clusteredDays[targetIdx] = day;
+      clusteredIdSet.add(pin.id);
+      attemptWarnings.push(`Kept "${pin.name}" because you asked to visit it.`);
+    }
+
     const byId = new Map(allChosen.map((p) => [p.id, p]));
     const regenDay = params.regenerateDayNumber;
   const dayBuckets: CandidatePlace[][] = Array.from({ length: params.days }, (_, i) => {
@@ -1328,7 +1353,9 @@ export async function generateItineraryPlan(params: EngineParams): Promise<Engin
       let distanceFromPrev: number | null = null;
       let travelMinutes: number;
       if (prevPlace) {
-        distanceFromPrev = haversineKm(prevPlace.latitude, prevPlace.longitude, place.latitude, place.longitude);
+        distanceFromPrev = Math.round(
+          haversineKm(prevPlace.latitude, prevPlace.longitude, place.latitude, place.longitude) * 100,
+        ) / 100;
         if (params.avoid.includes('LONG_TRAVEL') && distanceFromPrev > 25 && !place.isPinned) {
           continue;
         }

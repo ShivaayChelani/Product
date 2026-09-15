@@ -9,6 +9,8 @@ import {
   metersToKm,
   formatDistanceFromYou,
   isReliableUserPosition,
+  isNavigableUserPosition,
+  describeUserPositionRejection,
 } from '../services/location/distance';
 
 /** 1° of latitude ≈ 111.19 km */
@@ -86,5 +88,43 @@ describe('canonical distance', () => {
       accuracy: 1200,
       timestamp: now,
     })).toBe(false);
+  });
+
+  it('allows a 300m fused fix for directions but not for from-you labels', () => {
+    const now = Date.now();
+    const mid = {
+      latitude: 23.1815,
+      longitude: 79.9864,
+      accuracy: 300,
+      timestamp: now,
+    };
+    expect(isReliableUserPosition(mid)).toBe(false);
+    expect(isNavigableUserPosition(mid)).toBe(true);
+  });
+
+  it('describes rejection without needing coordinates in the reason', () => {
+    const now = Date.now();
+    expect(describeUserPositionRejection(null).reason).toBe('missing');
+    expect(describeUserPositionRejection({
+      latitude: 23.1815,
+      longitude: 79.9864,
+      accuracy: 300,
+      timestamp: now,
+    }, 150).reason).toBe('coarse_accuracy');
+    expect(describeUserPositionRejection({
+      latitude: 23.1815,
+      longitude: 79.9864,
+      accuracy: 40,
+      timestamp: now - (6 * 60 * 1000),
+    }).reason).toBe('stale');
+    const accepted = describeUserPositionRejection({
+      latitude: 23.1815,
+      longitude: 79.9864,
+      accuracy: 40,
+      timestamp: now,
+    });
+    expect(accepted.ok).toBe(true);
+    expect(accepted.accuracyM).toBe(40);
+    expect(accepted.reason).toBe('accepted');
   });
 });

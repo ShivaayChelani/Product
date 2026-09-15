@@ -157,9 +157,12 @@ export default function CollaborationDetailScreen() {
   let parsedBrief: any = null;
   try {
     if (item.campaignBrief && item.campaignBrief.includes('_isStructured')) {
-      parsedBrief = JSON.parse(item.campaignBrief);
+      const parsed = JSON.parse(item.campaignBrief);
+      parsedBrief = parsed && typeof parsed === 'object' ? parsed : null;
     }
-  } catch (e) {}
+  } catch {
+    parsedBrief = null;
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right']}>

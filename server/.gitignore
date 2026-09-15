@@ -1,5 +1,6 @@
 node_modules/
 .env
+import_token.txt
 dist/
 
 # Local database recovery backups

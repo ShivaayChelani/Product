@@ -83,8 +83,8 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
 process.on('unhandledRejection', (reason: Error | any) => {
-  logger.fatal({ err: reason, type: 'unhandledRejection' }, 'Unhandled Promise rejection');
-  shutdown('unhandledRejection');
+  // Log and keep serving. A stray rejected promise must not take the API down.
+  logger.error({ err: reason, type: 'unhandledRejection' }, 'Unhandled Promise rejection');
 });
 
 process.on('uncaughtException', (error: Error) => {

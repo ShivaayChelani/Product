@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { InAppNotification } from '../../../services/api/notifications';
+import { isPlainObject, parseJsonSafe } from '../../../utils/safeJson';
 
 const CACHE_KEY = 'ps_notifications_feed_cache_v1';
 
@@ -9,11 +10,19 @@ export type CachedNotificationFeed = {
   unreadCount: number;
 };
 
+function isCachedFeed(value: unknown): value is CachedNotificationFeed {
+  if (!isPlainObject(value)) return false;
+  if (!Array.isArray(value.notifications)) return false;
+  if (typeof value.unreadCount !== 'number' || !Number.isFinite(value.unreadCount)) return false;
+  if (typeof value.savedAt !== 'number' || !Number.isFinite(value.savedAt)) return false;
+  return true;
+}
+
 export async function readNotificationListCache(): Promise<CachedNotificationFeed | null> {
   try {
     const raw = await AsyncStorage.getItem(CACHE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as CachedNotificationFeed;
+    return parseJsonSafe(raw, null, isCachedFeed);
   } catch {
     return null;
   }

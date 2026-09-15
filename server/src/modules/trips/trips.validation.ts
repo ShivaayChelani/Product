@@ -106,6 +106,10 @@ export const addStopSchema = z.object({
   isPinned: z.boolean().optional(),
 });
 
+export const reorderStopsSchema = z.object({
+  stopIds: z.array(z.string().min(1)).min(1).max(100),
+});
+
 export const updateStopSchema = z.object({
   order: z.number().int().min(0).optional(),
   startTime: z.string().optional(),
@@ -137,6 +141,14 @@ export const addCollaboratorSchema = z.object({
   userId: z.string(),
   role: z.enum(['VIEWER', 'EDITOR', 'OWNER']).default('EDITOR'),
 });
+
+function customBudgetSatisfied(data: { budget?: string; customBudgetAmount?: number; tripId?: string }): boolean {
+  if (data.budget !== 'CUSTOM') return true;
+  if (typeof data.customBudgetAmount === 'number') return true;
+  // Regeneration with an existing trip: the service recovers the persisted
+  // amount or rethrows the same error. New plans still require the amount.
+  return typeof data.tripId === 'string' && data.tripId.length > 0;
+}
 
 export const generateItinerarySchema = z.object({
   pace: z.enum(['relaxed', 'moderate', 'fast']).default('moderate'),
@@ -174,10 +186,44 @@ export const aiGenerateSchema = z.object({
   regenerateDayNumber: z.coerce.number().int().min(1).max(21).optional(),
   refresh: z.boolean().optional().default(false),
   variationSeed: z.coerce.number().int().min(0).max(10000).optional(),
-}).refine((data) => data.budget !== 'CUSTOM' || typeof data.customBudgetAmount === 'number', {
+}).refine((data) => customBudgetSatisfied(data), {
   message: 'customBudgetAmount is required when budget is CUSTOM',
   path: ['customBudgetAmount'],
 });
+
+export const planSchema = z
+  .object({
+    tripId: z.string().optional(),
+    destination: z.string().min(1, 'Destination is required').max(200),
+    origin: z.object({ lat: z.number(), lng: z.number() }).optional(),
+    startDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
+    endDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
+    days: z.coerce.number().int().min(1).max(21).optional(),
+    mode: z.enum(['SELF_BUILD', 'AI_BUILD']),
+    selectedPlaceIds: z.array(z.string()).default([]),
+    pinnedPlaceIds: z.array(z.string()).default([]),
+    lockedPlaceIds: z.array(z.string()).default([]),
+    fixedTimePlaces: z.array(z.object({ placeId: z.string(), startTime: z.string() })).default([]),
+    excludePlaceIds: z.array(z.string()).default([]),
+    interests: z.array(z.string()).default([]),
+    pace: paceEnum.optional(),
+    travelers: travelersEnum.optional(),
+    budget: budgetEnum.optional(),
+    customBudgetAmount: z.coerce.number().min(0).optional(),
+    timePreference: timePreferenceEnum.optional(),
+    avoid: z.array(avoidEnum).default([]),
+    transportation: z.array(z.enum(['WALKING', 'BIKE', 'CAR', 'TRAIN', 'FLIGHT'])).optional(),
+    prompt: z.string().max(2000).optional(),
+    regenerateDayNumber: z.coerce.number().int().min(1).max(21).optional(),
+    refresh: z.boolean().optional().default(false),
+    variationSeed: z.coerce.number().int().min(0).max(10000).optional(),
+  })
+  .refine((data) => customBudgetSatisfied(data), {
+    message: 'customBudgetAmount is required when budget is CUSTOM',
+    path: ['customBudgetAmount'],
+  });
+
+export type PlanSchemaInput = z.infer<typeof planSchema>;
 
 export const replaceStopSchema = z.object({
   placeId: z.string().min(1, 'placeId is required'),

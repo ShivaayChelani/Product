@@ -101,6 +101,7 @@ export const API_CONFIG = {
       generateItinerary: (id: string) => `/trips/${id}/generate`,
       optimizeRoute: (id: string) => `/trips/${id}/optimize`,
       aiGenerate: '/trips/ai-generate',
+      plan: '/trips/plan',
       replaceStop: (stopId: string) => `/trips/stops/${stopId}/replace`,
       quickAdd: '/trips/quick-add',
       addCollaborator: (id: string) => `/trips/${id}/collaborators`,

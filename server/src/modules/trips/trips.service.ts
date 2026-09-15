@@ -9,7 +9,8 @@ import {
   generateItineraryPlan, estimateDurationMinutes, parseEntryFee, isPlaceOpenAt,
   nearestNeighborOrder, twoOptImprove, TimeSlotKey,
 } from './itineraryEngine';
-import { parseTripIntent, hasGlobalIntentSignals } from './tripIntentParser';
+import { parseTripIntent, hasGlobalIntentSignals, extractPlaceNameCandidates } from './tripIntentParser';
+import { resolvePromptPlaceMentions } from './promptPlaceResolution';
 import { getCachedPlan, setCachedPlan, buildPlannerCacheKey } from './plannerCache';
 import {
   canonicalizeDestination,
@@ -29,6 +30,49 @@ import {
   isItineraryGpsRewardsEnabled,
 } from './itinerary-rewards.config';
 import { resolvePlaceForQuickAdd } from './vendorItineraryPlace';
+import {
+  planFromRaw,
+} from './itinerary/planner';
+import {
+  normalizeIntent,
+} from './itinerary/intent';
+import { enrichPlace } from './itinerary/enrichment';
+import { buildZones } from './itinerary/clustering';
+import { zoneMapOf } from './itinerary/dayAllocator';
+import { zoneAreaLabel } from './itinerary/aiExplainer';
+import {
+  APPROVED,
+  PLACE_RECORD_SELECT,
+  placeRecordFromRow,
+  prismaPlaceStore,
+  type PlaceRow,
+} from './itinerary/prismaPlaceStore';
+import {
+  toRawPlanningInput,
+  plannedDayToWrites,
+  estimatedBudgetOf,
+  warningMessages,
+  minutesFromTimeString,
+  toCanonicalPlanRequest,
+  type CanonicalPlanRequest,
+} from './canonicalPlanMapper';
+import type {
+  EnrichedPlace,
+  ItineraryIntent,
+  PlaceState,
+  ScheduledStop,
+  Zone,
+} from './itinerary/types';
+import type {
+  ItineraryCandidate,
+  PlanDay,
+} from './itinerary/phase2Types';
+import {
+  haversineKm as stopHaversineKm,
+  roundKm,
+  distanceFromPreviousStopKm,
+} from './stopDistance';
+import { recoverCustomBudgetAmount } from './customBudget';
 
 const prismaTrip = prisma.tripPlan;
 const prismaDay = prisma.tripPlanDay;
@@ -36,11 +80,30 @@ const prismaStop = prisma.tripPlanStop;
 const prismaCollab = prisma.tripCollaborator;
 
 function calcDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return stopHaversineKm(lat1, lng1, lat2, lng2);
+}
+
+async function persistConsecutiveDistances(
+  tx: Prisma.TransactionClient,
+  orderedStopIds: string[],
+): Promise<void> {
+  if (orderedStopIds.length === 0) return;
+  const stops = await tx.tripPlanStop.findMany({
+    where: { id: { in: orderedStopIds } },
+    include: { place: { select: { latitude: true, longitude: true } } },
+  });
+  const byId = new Map(stops.map((s) => [s.id, s]));
+  let prev: { latitude: number | null; longitude: number | null } | null = null;
+  for (const id of orderedStopIds) {
+    const stop = byId.get(id);
+    if (!stop) continue;
+    const dist = distanceFromPreviousStopKm(prev, stop.place);
+    await tx.tripPlanStop.update({
+      where: { id },
+      data: { distanceFromPrev: dist },
+    });
+    prev = stop.place;
+  }
 }
 
 function minutesToTimeStr(minutes: number): string {
@@ -60,7 +123,7 @@ function scheduleOrderedStopsForDay(
   day: { stops: Array<{ id: string; place: { latitude: number | null; longitude: number | null; ticketPrice: unknown } & Record<string, unknown> }> },
   orderedStopIds: string[],
   _pace: string,
-  startLocation?: { latitude: number; longitude: number },
+  _startLocation?: { latitude: number; longitude: number },
 ): { id: string; data: Record<string, unknown> }[] {
   let currentMinutes = 480; // 08:00
   const updates: { id: string; data: Record<string, unknown> }[] = [];
@@ -75,10 +138,8 @@ function scheduleOrderedStopsForDay(
     const duration = Math.max(30, estimateDurationMinutes(place as any));
 
     let distFromPrev: number | undefined;
-    if (prevLat != null && prevLng != null && place.latitude != null && place.longitude != null) {
-      distFromPrev = calcDistance(prevLat, prevLng, place.latitude, place.longitude);
-    } else if (idx === 0 && startLocation && place.latitude != null && place.longitude != null) {
-      distFromPrev = calcDistance(startLocation.latitude, startLocation.longitude, place.latitude, place.longitude);
+    if (idx > 0 && prevLat != null && prevLng != null && place.latitude != null && place.longitude != null) {
+      distFromPrev = roundKm(calcDistance(prevLat, prevLng, place.latitude, place.longitude));
     }
 
     const endMinutes = currentMinutes + duration;
@@ -280,7 +341,8 @@ async function assertTripAccess(tripId: string, userId: string, level: AccessLev
   const isOwner = trip.userId === userId;
   const collab = trip.collaborators[0];
 
-  if (!isOwner && !collab) throw new ApiError(403, 'You do not have access to this trip');
+  // Non-leaking: an inaccessible trip is indistinguishable from a missing one.
+  if (!isOwner && !collab) throw new ApiError(404, 'Trip not found');
   if (level === 'owner' && !isOwner) throw new ApiError(403, 'Only the trip owner can perform this action');
   if (level === 'edit' && !isOwner && collab?.role === 'VIEWER') throw new ApiError(403, 'Viewers cannot modify this trip');
 
@@ -376,6 +438,175 @@ export interface AiGenerateInput {
   refresh?: boolean;
   /** Cycles which area opens the trip. 0 = original; 1+ = alternatives. */
   variationSeed?: number;
+}
+
+// ---------------------------------------------------------------------------
+// Canonical planner (Phase 3) — flag, reconstruction, helpers
+// ---------------------------------------------------------------------------
+
+let canonicalOverride: boolean | null = null;
+
+/** Test seam: switch the canonical engine flag at runtime without env reload. */
+export function setCanonicalItineraryEnabledForTesting(value: boolean | null): void {
+  canonicalOverride = value;
+}
+
+export function isCanonicalItineraryEnabled(): boolean {
+  return canonicalOverride ?? env.canonicalItineraryEnabled;
+}
+
+function stateForReconstruction(
+  id: string,
+  intent: ItineraryIntent,
+  persistedPinned: boolean,
+): PlaceState {
+  return {
+    selected: intent.selectedPlaceIds.includes(id),
+    pinned: intent.pinnedPlaceIds.includes(id) || persistedPinned,
+    lockedPosition: intent.lockedPlaceIds.includes(id),
+    fixedTime: intent.fixedTimePlaces.some((f) => f.placeId === id),
+    priorityAnchor: intent.planningMode === 'AI_BUILD' && intent.priorityPlaceIds.includes(id),
+    complementary: false,
+    optional: false,
+  };
+}
+
+/**
+ * Rebuild the current ItineraryCandidate from persisted TripPlan rows so a
+ * single-day regeneration can keep the other days byte-for-byte.
+ */
+async function loadPersistedCandidate(
+  tripId: string,
+  intent: ItineraryIntent,
+  travelerCount: number,
+  date: Date | null,
+): Promise<ItineraryCandidate | null> {
+  const rows = await prismaTrip.findUnique({
+    where: { id: tripId },
+    include: {
+      tripDays: {
+        orderBy: { dayNumber: 'asc' },
+        include: {
+          stops: {
+            orderBy: { order: 'asc' },
+            include: { place: { select: PLACE_RECORD_SELECT } },
+          },
+        },
+      },
+    },
+  });
+  if (!rows || !rows.tripDays.length) return null;
+
+  const enriched: EnrichedPlace[] = [];
+  const byId = new Map<string, EnrichedPlace>();
+  for (const day of rows.tripDays) {
+    for (const s of day.stops) {
+      if (!s.place) continue;
+      const record = placeRecordFromRow(s.place as unknown as PlaceRow);
+      const place = enrichPlace(record, {
+        travelerCount: Math.max(1, travelerCount),
+        date,
+        state: stateForReconstruction(s.placeId, intent, s.isPinned),
+      });
+      if (!byId.has(s.placeId)) {
+        byId.set(s.placeId, place);
+        enriched.push(place);
+      }
+    }
+  }
+  if (enriched.length === 0) return null;
+
+  const zones = buildZones(enriched, {
+    includePlaceIds: [...intent.lockedPlaceIds, ...intent.pinnedPlaceIds],
+  });
+  const zoneByPlaceId = zoneMapOf(enriched, zones);
+
+  const days: PlanDay[] = rows.tripDays
+    .map((day) => {
+      const stops: ScheduledStop[] = [];
+      const sequence: EnrichedPlace[] = [];
+      let firstStart: number | null = null;
+      let lastEnd: number | null = null;
+      let visit = 0;
+      for (const s of day.stops) {
+        const place = byId.get(s.placeId);
+        if (!place) continue;
+        const start = minutesFromTimeString(s.startTime) ?? 0;
+        const end = minutesFromTimeString(s.endTime) ?? start + Math.max(30, s.duration ?? 60);
+        if (s.duration && s.duration > 0) visit += s.duration;
+        if (firstStart == null) firstStart = start;
+        lastEnd = end;
+        const spec = intent.fixedTimePlaces.find((f) => f.placeId === s.placeId);
+        stops.push({
+          placeId: s.placeId,
+          order: s.order,
+          dayNumber: day.dayNumber,
+          startMinutes: start,
+          endMinutes: end,
+          travelFromPrevMinutes: 0,
+          distanceFromPrevKm: s.distanceFromPrev ?? 0,
+          fixedTimeAnchor: !!spec && spec.startMinutes === start,
+          openingHoursRespected: true,
+          warnings: [],
+        });
+        sequence.push(place);
+      }
+      if (stops.length === 0) return null;
+      const zoneIds = [
+        ...new Set(sequence.map((p) => zoneByPlaceId.get(p.id)).filter((z): z is string => !!z)),
+      ];
+      const total = lastEnd != null && firstStart != null && firstStart < lastEnd
+        ? lastEnd - firstStart
+        : visit;
+      return {
+        dayNumber: day.dayNumber,
+        zoneIds,
+        placeIds: stops.map((s) => s.placeId),
+        sequence,
+        stops,
+        totalMinutes: Math.max(visit, total),
+        visitMinutes: visit,
+        travelMinutes: Math.max(0, Math.max(visit, total) - visit),
+        detourIndex: 0,
+        openingHoursFeasible: true,
+        warnings: [],
+      } as PlanDay;
+    })
+    .filter((d): d is PlanDay => !!d);
+
+  if (days.length === 0) return null;
+  const allStops = days.flatMap((d) => d.stops).sort((a, b) => a.dayNumber - b.dayNumber || a.order - b.order);
+
+  return {
+    id: `${tripId}-persisted`,
+    meta: { strategy: 'MIXED', variation: 0, label: 'persisted', description: 'Previously saved itinerary' },
+    days,
+    allStops,
+    allStopIds: allStops.map((s) => s.placeId),
+    zoneByPlaceId,
+    constraintResult: { feasible: true, hardViolations: [], softWarnings: [], suggestedRepairs: [], validationWarnings: [] },
+    quality: null,
+    warnings: [],
+    isRejected: false,
+    rejectionReasons: [],
+  };
+}
+
+/** Dominant-area label for a planned day (used as the persisted day theme). */
+function themeForDay(day: PlanDay, zones: Zone[], poolById: Map<string, EnrichedPlace>): string | null {
+  const candidates = zones.filter((z) => day.zoneIds.includes(z.id));
+  if (candidates.length === 0) return null;
+  let best: Zone | null = null;
+  let bestCount = 0;
+  for (const z of candidates) {
+    const count = day.placeIds.filter((id) => z.placeIds.includes(id)).length;
+    if (count > bestCount) {
+      best = z;
+      bestCount = count;
+    }
+  }
+  if (!best) return null;
+  return zoneAreaLabel(best, poolById);
 }
 
 export const tripsService = {
@@ -660,25 +891,51 @@ export const tripsService = {
     const { tripId, dayId, order } = await getTripIdForStop(id);
     await assertTripAccess(tripId, userId, 'edit');
 
-    await prisma.$transaction([
-      prismaStop.delete({ where: { id } }),
-      prismaStop.updateMany({
+    await prisma.$transaction(async (tx) => {
+      await tx.tripPlanStop.delete({ where: { id } });
+      await tx.tripPlanStop.updateMany({
         where: { tripPlanDayId: dayId, order: { gt: order } },
         data: { order: { decrement: 1 } },
-      }),
-    ]);
+      });
+      const remaining = await tx.tripPlanStop.findMany({
+        where: { tripPlanDayId: dayId },
+        orderBy: { order: 'asc' },
+        select: { id: true },
+      });
+      await persistConsecutiveDistances(tx, remaining.map((s) => s.id));
+    });
   },
 
   async reorderStops(dayId: string, stopIds: string[], userId: string) {
+    if (!Array.isArray(stopIds) || stopIds.length === 0) {
+      throw new ApiError(400, 'stopIds must be a non-empty array');
+    }
+    if (new Set(stopIds).size !== stopIds.length) {
+      throw new ApiError(400, 'stopIds must not contain duplicates');
+    }
+
     const tripId = await getTripIdForDay(dayId);
     await assertTripAccess(tripId, userId, 'edit');
 
-    return prisma.$transaction(
-      stopIds.map((id, index) => prismaStop.update({ where: { id }, data: { order: index } }))
-    );
+    return prisma.$transaction(async (tx) => {
+      const existing = await tx.tripPlanStop.findMany({
+        where: { tripPlanDayId: dayId },
+        select: { id: true },
+      });
+      const allowed = new Set(existing.map((s) => s.id));
+      if (stopIds.length !== existing.length || stopIds.some((id) => !allowed.has(id))) {
+        throw new ApiError(400, 'Invalid stop order');
+      }
+
+      const ordered = await Promise.all(
+        stopIds.map((id, index) => tx.tripPlanStop.update({ where: { id }, data: { order: index } })),
+      );
+      await persistConsecutiveDistances(tx, stopIds);
+      return ordered;
+    });
   },
 
-  async generateItinerary(tripId: string, pace: string, userId: string, startLocation?: { latitude: number; longitude: number }) {
+  async generateItinerary(tripId: string, pace: string, userId: string, _startLocation?: { latitude: number; longitude: number }) {
     await assertTripAccess(tripId, userId, 'edit');
 
     const trip = await prismaTrip.findUnique({
@@ -732,10 +989,8 @@ export const tripsService = {
             : null;
 
           let distFromPrev: number | null = null;
-          if (prevPlace && prevPlace.latitude && prevPlace.longitude && place.latitude && place.longitude) {
-            distFromPrev = calcDistance(prevPlace.latitude, prevPlace.longitude, place.latitude, place.longitude);
-          } else if (currentOrder === 0 && startLocation && place.latitude && place.longitude) {
-            distFromPrev = calcDistance(startLocation.latitude, startLocation.longitude, place.latitude, place.longitude);
+          if (currentOrder > 0 && prevPlace && prevPlace.latitude && prevPlace.longitude && place.latitude && place.longitude) {
+            distFromPrev = roundKm(calcDistance(prevPlace.latitude, prevPlace.longitude, place.latitude, place.longitude));
           }
 
           const openState = isPlaceOpenAt(place.openingHours, day.date, currentMinutes % 1440);
@@ -925,6 +1180,14 @@ export const tripsService = {
       }
     }
 
+    // Phase 3: when the canonical engine is enabled, /ai-generate delegates to
+    // it (mode AI_BUILD). Legacy megafunction stays byte-for-byte when OFF.
+    if (isCanonicalItineraryEnabled()) {
+      const canonical = await this.canonicalPlan(userId, toCanonicalPlanRequest(input));
+      if (!isRefresh) setCachedPlan(cacheKey, canonical);
+      return canonical;
+    }
+
     const startDate = input.startDate ? new Date(input.startDate) : null;
     const budgetTier = input.budget === 'CUSTOM' ? null : input.budget;
     const provider = env.geminiApiKey && process.env.ENABLE_GEMINI_ITINERARY_POLISH === 'true'
@@ -1024,6 +1287,29 @@ export const tripsService = {
             .map((s) => s.placeId);
         }
       }
+    }
+
+    if (input.budget === 'CUSTOM') {
+      let persistedAmount: unknown;
+      let prefs: unknown;
+      if (input.tripId) {
+        const row = await prismaTrip.findUnique({
+          where: { id: input.tripId },
+          select: { customBudgetAmount: true, aiPreferences: true },
+        });
+        persistedAmount = row?.customBudgetAmount;
+        prefs = row?.aiPreferences;
+      }
+      const recovered = recoverCustomBudgetAmount({
+        budget: input.budget,
+        requestAmount: input.customBudgetAmount,
+        persistedAmount,
+        aiPreferences: prefs,
+      });
+      if (recovered == null) {
+        throw new ApiError(400, 'customBudgetAmount is required when budget is CUSTOM');
+      }
+      input.customBudgetAmount = recovered;
     }
 
     const resolvedPinned: string[] = [];
@@ -1343,6 +1629,329 @@ export const tripsService = {
     return result;
   },
 
+  // -----------------------------------------------------------------------
+  // Phase 3 — canonical /plan orchestrator
+  // -----------------------------------------------------------------------
+
+  async canonicalPlan(userId: string, input: CanonicalPlanRequest) {
+    const regen = input.regenerateDayNumber ?? null;
+    const startDate = input.startDate ? new Date(input.startDate) : null;
+
+    let existingTrip: { id: string } | null = null;
+    if (input.tripId) {
+      existingTrip = await assertTripAccess(input.tripId, userId, 'edit');
+    }
+
+    if (input.budget === 'CUSTOM') {
+      let persistedAmount: unknown;
+      let prefs: unknown;
+      if (input.tripId) {
+        const row = await prismaTrip.findUnique({
+          where: { id: input.tripId },
+          select: { customBudgetAmount: true, aiPreferences: true },
+        });
+        persistedAmount = row?.customBudgetAmount;
+        prefs = row?.aiPreferences;
+      }
+      const recovered = recoverCustomBudgetAmount({
+        budget: input.budget,
+        requestAmount: input.customBudgetAmount,
+        persistedAmount,
+        aiPreferences: prefs,
+      });
+      if (recovered == null) {
+        throw new ApiError(400, 'customBudgetAmount is required when budget is CUSTOM');
+      }
+      input.customBudgetAmount = recovered;
+    }
+
+    // Server-side place resolution — client existence/coords/travel times are never trusted.
+    const placeableIds = Array.from(new Set([
+      ...(input.selectedPlaceIds ?? []),
+      ...(input.pinnedPlaceIds ?? []),
+      ...(input.lockedPlaceIds ?? []),
+      ...(input.fixedTimePlaces ?? []).map((f) => f.placeId),
+    ]));
+    const approvedRows = placeableIds.length
+      ? await prisma.place.findMany({
+          where: { id: { in: placeableIds }, status: APPROVED },
+          select: PLACE_RECORD_SELECT,
+        })
+      : [];
+    const approvedSet = new Set(approvedRows.map((r) => r.id));
+    const missingPlaceable = placeableIds.filter((id) => !approvedSet.has(id));
+    if (missingPlaceable.length > 0) {
+      throw new ApiError(
+        422,
+        'Some requested places could not be found. Pick approved places in this destination and try again.',
+        true,
+        'PLACE_RESOLUTION_FAILED',
+        { placeIds: missingPlaceable },
+      );
+    }
+
+    // Phase 5: extract prompt-mentioned place names and resolve them against the
+    // destination pool so the user gets the places they explicitly asked for.
+    const destination = String(input.destination).trim();
+    let promptResolvedIds: string[] = [];
+    let promptWarnings: string[] = [];
+    if (input.mode === 'AI_BUILD' && input.prompt) {
+      const mentionCandidates = extractPlaceNameCandidates(input.prompt);
+      if (mentionCandidates.length) {
+        const destRows = await prismaPlaceStore.findApprovedByDestination(destination, { limit: 60 });
+        const mentionResult = resolvePromptPlaceMentions(mentionCandidates, destRows);
+        promptResolvedIds = mentionResult.placeIds;
+        if (mentionResult.unresolved.length) {
+          promptWarnings = [`I couldn't find places matching: ${mentionResult.unresolved.join(', ')} — skipped.`];
+        }
+      }
+    }
+
+    const raw = toRawPlanningInput(input, promptResolvedIds);
+    const normalized = normalizeIntent(raw);
+    if (!normalized.ok) {
+      throw new ApiError(
+        422,
+        normalized.errors?.join('; ') || 'The planning request is invalid.',
+        true,
+        'INVALID_PLAN_REQUEST',
+      );
+    }
+
+    const intent = normalized.intent;
+    const date = startDate;
+
+    const previousPlan =
+      regen && existingTrip
+        ? await loadPersistedCandidate(existingTrip.id, intent, intent.travelers, date)
+        : null;
+
+    const result = await planFromRaw(raw, prismaPlaceStore, {
+      origin: input.origin ?? undefined,
+      date,
+      regenerateDayNumber: regen ?? undefined,
+      previousPlan: previousPlan ?? undefined,
+      variationSeed: input.variationSeed ?? 0,
+    });
+
+    const chosen = result.chosen;
+    const placeById = new Map(result.regions.pool.map((p) => [p.id, p]));
+    const zones = result.regions.zones;
+
+    if (!result.ok || !chosen || !result.finalValidation?.feasible) {
+      const poolEmpty = result.regions.pool.length === 0;
+      const msg = result.messages?.[0]
+        ?? (poolEmpty
+          ? 'No places could be resolved for this request — nothing to plan.'
+          : 'The trip could not be planned feasibly as requested.');
+      throw new ApiError(
+        422,
+        msg,
+        true,
+        poolEmpty ? 'INSUFFICIENT_PLACES' : 'PLANNING_INFEASIBLE',
+        {
+          warnings: warningMessages(result.warnings),
+          dropped: result.dropped?.map((d) => d.placeId),
+          candidateStats: result.candidateStats,
+        },
+      );
+    }
+
+    const effectiveDays = chosen.days.length;
+    const startDateObj = date;
+    const endDate = (() => {
+      if (input.endDate) return new Date(input.endDate);
+      if (startDateObj) return new Date(startDateObj.getTime() + (effectiveDays - 1) * 86400000);
+      return null;
+    })();
+
+    const pace = intent.pace as TravelPace;
+    const interests = input.interests ?? [];
+    const customBudgetAmount = input.budget === 'CUSTOM' ? (input.customBudgetAmount ?? null) : null;
+    const generationSource = (() => {
+      if (intent.planningMode === 'SELF_BUILD') return 'MANUAL' as const;
+      return (input.selectedPlaceIds?.length ?? 0) > 0 ? 'HYBRID' as const : 'AI_PROMPT' as const;
+    })();
+
+    let tripId: string;
+    try {
+      tripId = await prisma.$transaction(async (tx) => {
+        let trip: { id: string };
+
+        if (existingTrip) {
+          await tx.tripPlan.update({
+            where: { id: existingTrip.id },
+            data: {
+              destination,
+              days: effectiveDays,
+              title: `${destination} Trip`,
+              pace,
+              travelers: input.travelers != null ? String(input.travelers) : 'SOLO',
+              interests,
+              transportation: input.transportation ?? [],
+              avoid: (input.avoid ?? []) as AvoidOption[],
+              timePreference: (input.timePreference ?? null) as TimePreference | null,
+              budget: input.budget ?? null,
+              customBudgetAmount,
+              estimatedBudget: estimatedBudgetOf(placeById, chosen.allStopIds),
+              generationSource,
+              aiPrompt: input.prompt ?? null,
+              aiPreferences: { ...input, plannerVersion: 'canonical-v1' } as unknown as Prisma.InputJsonValue,
+              generatedAt: new Date(),
+              startDate: startDateObj ?? undefined,
+              endDate: endDate ?? undefined,
+              status: 'UPCOMING',
+            },
+          });
+          trip = existingTrip;
+
+          const existingDays = await tx.tripPlanDay.findMany({
+            where: { tripPlanId: trip.id },
+            orderBy: { dayNumber: 'asc' },
+          });
+          if (existingDays.length < effectiveDays) {
+            await tx.tripPlanDay.createMany({
+              data: Array.from({ length: effectiveDays - existingDays.length }, (_, i) => ({
+                tripPlanId: trip.id,
+                dayNumber: existingDays.length + i + 1,
+                date: startDateObj ? new Date(startDateObj.getTime() + (existingDays.length + i) * 86400000) : undefined,
+              })),
+            });
+          }
+
+          if (regen) {
+            const targetDay = existingDays.find((d) => d.dayNumber === regen)
+              ?? (await tx.tripPlanDay.findFirst({ where: { tripPlanId: trip.id, dayNumber: regen } }));
+            if (targetDay) {
+              await tx.tripPlanStop.deleteMany({ where: { tripPlanDayId: targetDay.id, isPinned: false } });
+            }
+          } else {
+            await tx.tripPlanStop.deleteMany({
+              where: { tripPlanDay: { tripPlanId: trip.id }, isPinned: false },
+            });
+          }
+        } else {
+          trip = await tx.tripPlan.create({
+            data: {
+              title: `${destination} Trip`,
+              destination,
+              userId,
+              days: effectiveDays,
+              travelers: input.travelers != null ? String(input.travelers) : 'SOLO',
+              interests,
+              transportation: input.transportation ?? [],
+              avoid: (input.avoid ?? []) as AvoidOption[],
+              timePreference: (input.timePreference ?? null) as TimePreference | null,
+              budget: input.budget ?? null,
+              customBudgetAmount,
+              pace,
+              estimatedBudget: estimatedBudgetOf(placeById, chosen.allStopIds),
+              generationSource,
+              aiPrompt: input.prompt ?? null,
+              aiPreferences: { ...input, plannerVersion: 'canonical-v1' } as unknown as Prisma.InputJsonValue,
+              generatedAt: new Date(),
+              startDate: startDateObj,
+              endDate,
+              status: 'UPCOMING',
+              tripDays: {
+                create: Array.from({ length: effectiveDays }, (_, i) => ({
+                  dayNumber: i + 1,
+                  date: startDateObj ? new Date(startDateObj.getTime() + i * 86400000) : undefined,
+                })),
+              },
+            },
+          });
+        }
+
+        const days = await tx.tripPlanDay.findMany({
+          where: { tripPlanId: trip.id },
+          orderBy: { dayNumber: 'asc' },
+        });
+        const dayByNumber = new Map(days.map((d) => [d.dayNumber, d]));
+
+        for (const day of chosen.days) {
+          const dayRow = dayByNumber.get(day.dayNumber);
+          if (!dayRow) continue;
+
+          const theme = themeForDay(day, zones, placeById);
+          if (theme && theme !== dayRow.theme) {
+            await tx.tripPlanDay.update({ where: { id: dayRow.id }, data: { theme } });
+          }
+
+          for (const write of plannedDayToWrites(day, intent, placeById, destination)) {
+            await tx.tripPlanStop.upsert({
+              where: { tripPlanDayId_placeId: { tripPlanDayId: dayRow.id, placeId: write.placeId } },
+              create: {
+                tripPlanDayId: dayRow.id,
+                placeId: write.placeId,
+                order: write.order,
+                timeSlot: write.timeSlot,
+                startTime: write.startTime,
+                endTime: write.endTime,
+                duration: write.duration,
+                entryFee: write.entryFee ?? undefined,
+                distanceFromPrev: write.distanceFromPrev ?? undefined,
+                reason: write.reason,
+                isPinned: write.isPinned,
+              },
+              update: {
+                order: write.order,
+                timeSlot: write.timeSlot,
+                startTime: write.startTime,
+                endTime: write.endTime,
+                duration: write.duration,
+                distanceFromPrev: write.distanceFromPrev ?? undefined,
+                reason: write.reason,
+                isPinned: write.isPinned,
+              },
+            });
+          }
+        }
+
+        return trip.id;
+      }, { maxWait: 15_000, timeout: 30_000 });
+    } catch (err: any) {
+      if (err instanceof ApiError) throw err;
+      logger.error({ err, destination }, 'Failed to persist canonical plan');
+      throw new ApiError(502, 'Trip was planned but could not be saved. Please try again.');
+    }
+
+    try {
+      const totalDistance = await this.calculateTotalDistance(tripId);
+      const totalTime = await this.calculateTotalTime(tripId);
+      await prismaTrip.update({
+        where: { id: tripId },
+        data: { totalDistance, totalTravelTime: totalTime },
+      });
+    } catch (err) {
+      logger.warn({ err, tripId }, 'Failed to update totals after canonical plan');
+    }
+
+    const trip = await this.getById(tripId, userId);
+
+    const cleanedMessages = (result.messages || []).slice(0, 6).map((m) => m.trim()).filter(Boolean);
+    const note = result.explanation?.summary
+      || cleanedMessages[0]
+      || `Planned ${chosen.days.length} day(s) with ${chosen.allStopIds.length} stops in ${destination}.`;
+    const warnings = [...promptWarnings, ...warningMessages([...result.warnings, ...(result.finalValidation?.warnings ?? [])])];
+    const dayExplanations = result.explanation?.dayDetails ?? [];
+    const dayInfo = dayExplanations.map((d) => {
+      const day = chosen.days.find((x) => x.dayNumber === d.dayNumber);
+      return { dayNumber: d.dayNumber, theme: day ? themeForDay(day, zones, placeById) : null };
+    });
+
+    return {
+      trip,
+      explanation: result.explanation?.summary ?? note,
+      dayExplanations,
+      dayInfo,
+      warnings,
+      note,
+      qualityScore: chosen.quality?.totalScore ?? null,
+      candidateStats: result.candidateStats,
+    };
+  },
+
   async replaceStop(stopId: string, placeIdOrSlug: string, userId: string) {
     const { tripId, dayId } = await getTripIdForStop(stopId);
     await assertTripAccess(tripId, userId, 'edit');
@@ -1583,6 +2192,25 @@ export const tripsService = {
     if (!trip) throw new ApiError(404, 'Trip not found or unauthorized');
     if (trip.status !== 'ACTIVE') throw new ApiError(400, 'Trip is not active');
 
+    // Exactly-once: only the call that wins the ACTIVE -> COMPLETED transition
+    // may award the completion bonus (concurrent duplicates otherwise double-award).
+    const claimed = await prismaTrip.updateMany({
+      where: { id: tripId, userId, status: 'ACTIVE' },
+      data: {
+        status: 'COMPLETED',
+        completedAt: new Date(),
+        currentDayIndex: null,
+        currentStopIndex: null,
+      },
+    });
+    if (claimed.count !== 1) {
+      const already = await prismaTrip.findUnique({
+        where: { id: tripId },
+        include: TRIP_INCLUDE,
+      });
+      return { ...already, completionBonus: null };
+    }
+
     const updated = await prismaTrip.update({
       where: { id: tripId },
       data: {
@@ -1594,7 +2222,7 @@ export const tripsService = {
       include: TRIP_INCLUDE,
     });
 
-    const completionBonus = await this.tryAwardItineraryCompletionBonus(tripId, userId);
+    const completionBonus = await this.tryAwardItineraryCompletionBonus(tripId, userId, false);
     return { ...updated, completionBonus };
   },
 
@@ -1799,9 +2427,38 @@ export const tripsService = {
       }
     }
 
-    const updatedStop = await prismaStop.update({
-      where: { id: stopId },
+    // Atomic claim: only the request that flips visitedAt null -> now may verify/award.
+    const claim = await prismaStop.updateMany({
+      where: { id: stopId, visitedAt: null, skippedAt: null },
       data: { visitedAt: new Date() },
+    });
+    if (claim.count === 0) {
+      const latest = await prismaStop.findUnique({
+        where: { id: stopId },
+        include: {
+          place: {
+            select: {
+              id: true, name: true, slug: true, latitude: true, longitude: true,
+              category: true, images: true, thumbnail: true, city: true, state: true,
+              rating: true, reviewCount: true,
+            },
+          },
+        },
+      });
+      if (latest?.visitedAt) {
+        return {
+          stop: latest,
+          alreadyVerified: true,
+          checkpointReward: null,
+          completionBonus: null,
+        };
+      }
+      if (!latest) throw new ApiError(404, 'Stop not found');
+      throw new ApiError(400, 'Stop was skipped');
+    }
+
+    const updatedStop = await prismaStop.findUnique({
+      where: { id: stopId },
       include: {
         place: {
           select: {
@@ -1812,8 +2469,10 @@ export const tripsService = {
         },
       },
     });
+    if (!updatedStop) throw new ApiError(404, 'Stop not found');
 
-    await this.advanceToNextStop(trip.id, stop.tripPlanDayId, stop.order);
+    // Do not auto-complete here; completion (status + bonus) is claimed atomically below.
+    await this.advanceToNextStop(trip.id, stop.tripPlanDayId, stop.order, { autoComplete: false });
 
     const checkpointRule = await pointRulesService.getPointsForAction('itinerary_checkpoint');
     let checkpointReward: { points: number; awarded: boolean } | null = null;
@@ -1836,7 +2495,7 @@ export const tripsService = {
       checkpointReward = { points: checkpointRule.points, awarded: !before };
     }
 
-    const completionBonus = await this.tryAwardItineraryCompletionBonus(trip.id, userId);
+    const completionBonus = await this.tryAwardItineraryCompletionBonus(trip.id, userId, true);
 
     return {
       stop: updatedStop,
@@ -1847,7 +2506,11 @@ export const tripsService = {
     };
   },
 
-  async tryAwardItineraryCompletionBonus(tripId: string, userId: string) {
+  async tryAwardItineraryCompletionBonus(
+    tripId: string,
+    userId: string,
+    claimTransition = false,
+  ) {
     const stops = await prismaStop.findMany({
       where: { tripPlanDay: { tripPlanId: tripId } },
       select: { id: true, visitedAt: true, skippedAt: true },
@@ -1859,7 +2522,21 @@ export const tripsService = {
     const trip = await prismaTrip.findFirst({ where: { id: tripId, userId } });
     if (!trip) return null;
 
-    if (trip.status === 'ACTIVE') {
+    // Exactly-once: only the request that wins the ACTIVE -> COMPLETED transition
+    // may award the completion bonus. Concurrent duplicate visits / manual completes
+    // otherwise both pass the "all stops visited" check and double-award.
+    if (claimTransition) {
+      const claimed = await prismaTrip.updateMany({
+        where: { id: tripId, userId, status: 'ACTIVE' },
+        data: {
+          status: 'COMPLETED',
+          completedAt: new Date(),
+          currentDayIndex: null,
+          currentStopIndex: null,
+        },
+      });
+      if (claimed.count !== 1) return null;
+    } else if (trip.status === 'ACTIVE') {
       await prismaTrip.update({
         where: { id: tripId },
         data: {
@@ -1924,7 +2601,13 @@ export const tripsService = {
     return updatedStop;
   },
 
-  async advanceToNextStop(tripId: string, currentDayId: string, currentOrder: number) {
+  async advanceToNextStop(
+    tripId: string,
+    currentDayId: string,
+    currentOrder: number,
+    options: { autoComplete?: boolean } = {},
+  ) {
+    const autoComplete = options.autoComplete !== false;
     const tripDays = await prismaDay.findMany({
       where: { tripPlanId: tripId },
       orderBy: { dayNumber: 'asc' },
@@ -1962,10 +2645,12 @@ export const tripsService = {
       }
     }
 
-    await prismaTrip.update({
-      where: { id: tripId },
-      data: { status: 'COMPLETED', completedAt: new Date(), currentDayIndex: null, currentStopIndex: null },
-    });
+    if (autoComplete) {
+      await prismaTrip.update({
+        where: { id: tripId },
+        data: { status: 'COMPLETED', completedAt: new Date(), currentDayIndex: null, currentStopIndex: null },
+      });
+    }
   },
 
   async getAllTrips(query: any) {

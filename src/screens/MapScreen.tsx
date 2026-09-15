@@ -29,13 +29,19 @@ import MapVendorDetailCard from '../components/MapVendorDetailCard';
 import { MapExploreSearchBar } from '../features/mapExplore/components/MapExploreSearchBar';
 import { MapCategoryChips } from '../features/mapExplore/components/MapCategoryChips';
 import { MapSegmentControl } from '../features/mapExplore/components/MapSegmentControl';
-import { MapVendorCategoryChips } from '../features/mapExplore/components/MapVendorCategoryChips';
 import { buildMapCategoryChips } from '../features/mapExplore/constants/categoryChips';
+import { placeMatchesMapFilter, toMapFeedQueryParams } from '../features/mapExplore/utils/mapPlaceCategory';
 import { MapFloatingControls } from '../features/mapExplore/components/MapFloatingControls';
 import { MapExploreTheme } from '../features/mapExplore/theme';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
+import {
+  resolveExplicitMapTab,
+  shouldOpenRoutedPlaceOnMap,
+  shouldRestoreSavedMapTab,
+} from '../navigation/vendorReviewFlow';
 import { generateLeafletHtml } from '../utils/leafletMapHtml';
+import { parseJsonObject } from '../utils/safeJson';
 import {
   INDIA_OVERVIEW,
   getMarkerColor,
@@ -77,11 +83,19 @@ import {
   parseLatLng,
   isValidLatLng,
   isReliableUserPosition,
+  isNavigableUserPosition,
+  describeUserPositionRejection,
+  NAVIGATION_ACCURACY_MAX_M,
 } from '../services/location/distance';
 import { useTravelTime } from '../services/location/useTravelTime';
 import { getOSRMRoute, formatRouteDistance, formatRouteDuration } from '../services/routing/osrmService';
 import { getRoutedDistanceFields } from '../services/location/routedDistance';
 import { mergeMarkersPreservingSelection } from '../features/mapExplore/utils/mapSelectionLifecycle';
+import {
+  logMapNavigate,
+  MAP_NAVIGATE_MESSAGES,
+  planMapPlaceNavigate,
+} from '../features/mapExplore/utils/mapPlaceNavigate';
 
 /** Street-level zoom for opening Map tab and GPS recenter (good for turn-by-turn context) */
 const MAP_TAB_ZOOM = 17;
@@ -214,7 +228,7 @@ export default function MapScreen({
   const { width: _screenW, height: SCREEN_H } = useWindowDimensions();
   const responsive = useResponsive();
   const tabClearance = getMainTabBarClearance(insets.bottom);
-  const { effectivePosition, requestPermission, hasPermission } = useLocationContext();
+  const { effectivePosition, requestPermission, requestFreshPosition, hasPermission } = useLocationContext();
   const { vendors: contextVendors } = useDataContext();
   const { user, setUser, isGuest } = useUserContext();
   const { showSuccess, showError } = useToast();
@@ -240,10 +254,12 @@ export default function MapScreen({
   const [webViewKey, setWebViewKey] = useState(0);
   const [locationRequested, setLocationRequested] = useState(false);
   const [selectedMapCategory, setSelectedMapCategory] = useState('');
-  const [selectedVendorCategory, setSelectedVendorCategory] = useState('');
-  const [mapCategoryChips, setMapCategoryChips] = useState<ReturnType<typeof buildMapCategoryChips>>([]);
+  const [mapCategoryChips, setMapCategoryChips] = useState<ReturnType<typeof buildMapCategoryChips>>(
+    () => buildMapCategoryChips([]),
+  );
+  const [mapApiCategoryKeys, setMapApiCategoryKeys] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'places' | 'vendors'>(
-    initialMapTab === 'vendors' ? 'vendors' : 'places',
+    resolveExplicitMapTab(initialMapTab, reviewMode) ?? 'places',
   );
   const [showFilters, setShowFilters] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -264,6 +280,17 @@ export default function MapScreen({
   const [savedPlaceIds, setSavedPlaceIds] = useState<Set<string>>(new Set());
   const [placeSavingId, setPlaceSavingId] = useState<string | null>(null);
   const sessionRestoredRef = useRef(false);
+  const skipSessionTabRestoreRef = useRef(
+    resolveExplicitMapTab(initialMapTab, reviewMode) != null,
+  );
+  const reviewModeRef = useRef(reviewMode);
+  const initialMapTabRef = useRef(initialMapTab);
+  const selectedPlaceIdRef = useRef(selectedPlaceId);
+  const selectedVendorIdRef = useRef(selectedVendorId);
+  reviewModeRef.current = reviewMode;
+  initialMapTabRef.current = initialMapTab;
+  selectedPlaceIdRef.current = selectedPlaceId;
+  selectedVendorIdRef.current = selectedVendorId;
   const pendingSessionMarkerIdRef = useRef<string | null>(null);
   const isOfflineRef = useRef(false);
   const [_loadError, setLoadError] = useState<string | null>(null);
@@ -288,6 +315,7 @@ export default function MapScreen({
   const [routeStatus, setRouteStatus] = useState<'idle' | 'loading' | 'success' | 'error' | 'no-route' | 'no-location'>('idle');
   const [routeCardVisible, setRouteCardVisible] = useState(false);
   const routeFromSelectionRef = useRef(false);
+  const routeRequestIdRef = useRef(0);
   const setRouteFromSelectionRef = () => { routeFromSelectionRef.current = true; };
   const [routeLastOrigin, setRouteLastOrigin] = useState<UserPosition | null>(null);
   const [routeLastDest, setRouteLastDest] = useState<{lat: number, lng: number} | null>(null);
@@ -325,6 +353,15 @@ export default function MapScreen({
       webViewRef.current?.injectJavaScript(
         `(function(){try{if(window.__palMap)window.__palMap.restoreView(${Number(data.lat)},${Number(data.lng)},${Number(data.zoom ?? 12)});}catch(e){}true;})();`,
       );
+    } else if (data?.type === 'drawRoute' && Array.isArray(data.coords) && data.coords.length) {
+      const coordsJson = JSON.stringify(data.coords);
+      webViewRef.current?.injectJavaScript(
+        `(function(){try{if(window.__palMap&&window.__palMap.drawRoute)window.__palMap.drawRoute(${coordsJson});}catch(e){}true;})();`,
+      );
+    } else if (data?.type === 'clearRoute') {
+      webViewRef.current?.injectJavaScript(
+        `(function(){try{if(window.__palMap&&window.__palMap.clearRoute)window.__palMap.clearRoute();}catch(e){}true;})();`,
+      );
     }
   }, []);
 
@@ -338,39 +375,38 @@ export default function MapScreen({
     });
   }, [postToWebView]);
 
-  // Calculate driving route using OSRM
+  // Calculate driving route using OSRM and draw the road polyline on the map.
   const calculateRoute = useCallback(async (
     destLat: number,
     destLng: number,
     profile: 'driving' | 'walking' | 'cycling' = 'driving',
   ) => {
-    // If same origin and destination, skip
-    if (routeFromSelectionRef.current && routeLastOrigin && routeLastDest) {
-      const originKey = `${routeLastOrigin.latitude},${routeLastOrigin.longitude}`;
-      const destKey = `${destLat},${destLng}`;
-      if (originKey === destKey) {
-        setRouteStatus('idle');
-        setRoute(null);
-        setRouteCardVisible(false);
-        setSelectedMarker(null);
-        postToWebView({ type: 'clearRoute' });
-        return;
-      }
+    const requestId = ++routeRequestIdRef.current;
+    const originPos = effectivePositionRef.current ?? effectivePosition;
+
+    if (
+      originPos &&
+      Math.abs(originPos.latitude - destLat) < 1e-5 &&
+      Math.abs(originPos.longitude - destLng) < 1e-5
+    ) {
+      Alert.alert('Already here', 'You are already at this place.');
+      return;
     }
 
-    // Mark this as the latest selection — newer requests will overwrite state
     postToWebView({ type: 'clearRoute' });
-
     setRouteFromSelectionRef();
-    setRouteLastOrigin(effectivePosition);
+    setRouteLastOrigin(originPos);
     setRouteLastDest({ lat: destLat, lng: destLng });
     setRouteLastProfile(profile);
 
-    if (!effectivePosition || !isReliableUserPosition(effectivePosition)) {
+    if (!originPos || !isNavigableUserPosition(originPos)) {
+      console.warn('[PalSafarGPS] calculateRoute_blocked', {
+        ...describeUserPositionRejection(originPos, NAVIGATION_ACCURACY_MAX_M),
+        permission: hasPermission,
+      });
       setRouteStatus('no-location');
       setRoute(null);
       setRouteCardVisible(false);
-      setSelectedMarker(null);
       postToWebView({ type: 'clearRoute' });
       Alert.alert('Location unavailable', 'Waiting for GPS signal. Please wait a moment and try again.');
       return;
@@ -378,17 +414,12 @@ export default function MapScreen({
 
     setRouteStatus('loading');
     setRouteCardVisible(true);
-    setSelectedMarker({ ...selectedMarker } as MarkerData | null);
 
     try {
-      if (__DEV__) console.warn('[MapRoute] calculateRoute called with destLat:', destLat, 'destLng:', destLng);
-      if (__DEV__) console.warn('[MapRoute] effectivePosition:', effectivePosition);
-      const originLat = effectivePosition.latitude;
-      const originLng = effectivePosition.longitude;
+      const originLat = originPos.latitude;
+      const originLng = originPos.longitude;
       const destLatNum = Number(destLat);
       const destLngNum = Number(destLng);
-
-      if (__DEV__) console.warn('[MapRoute] originLat:', originLat, 'originLng:', originLng, 'destLatNum:', destLatNum, 'destLngNum:', destLngNum);
 
       const result = await getOSRMRoute(
         originLat,
@@ -398,14 +429,13 @@ export default function MapScreen({
         profile,
       );
 
-      if (routeFromSelectionRef.current !== true || routeLastProfile !== profile) {
-        // Stale or profile-changed request ignored — newest request will win
-        return;
-      }
+      if (routeRequestIdRef.current !== requestId) return;
 
       if (result && result.source === 'routing') {
-        // Convert OSRM geometry [lng, lat] to Leaflet [lat, lng]
-        const leafletGeometry: [number, number][] = result.geometry.map((point: [number, number]) => [point[1], point[0]]);
+        const leafletGeometry: [number, number][] =
+          Array.isArray(result.geometry) && result.geometry.length > 0
+            ? result.geometry.map((point: [number, number]) => [point[1], point[0]])
+            : [[originLat, originLng], [destLatNum, destLngNum]];
 
         setRoute({
           distanceMeters: result.distanceMeters,
@@ -413,66 +443,35 @@ export default function MapScreen({
           geometry: leafletGeometry,
         });
         setRouteStatus('success');
+        setIsNavigating(true);
 
-        // Fit map bounds to include origin, destination, and entire route
-        const originLatNum = effectivePosition.latitude;
-        const originLngNum = effectivePosition.longitude;
-
-        // Build bounds including origin, destination, and all route points
-        let minLat = Math.min(originLatNum, destLatNum);
-        let maxLat = Math.max(originLatNum, destLatNum);
-        let minLng = Math.min(originLngNum, destLngNum);
-        let maxLng = Math.max(originLngNum, destLngNum);
-
-        // Add route geometry vertices to bounds
-        if (leafletGeometry && leafletGeometry.length > 0) {
-          for (const [rLat, rLng] of leafletGeometry) {
-            if (rLat < minLat) minLat = rLat;
-            if (rLat > maxLat) maxLat = rLat;
-            if (rLng < minLng) minLng = rLng;
-            if (rLng > maxLng) maxLng = rLng;
-          }
-        }
-
-        // Add some padding
-        const latSpan = maxLat - minLat || 0.01;
-        const lngSpan = maxLng - minLng || 0.01;
-        const paddingLat = latSpan * 0.25;
-        const paddingLng = lngSpan * 0.25;
-
-        const bounds = {
-          north: maxLat + paddingLat,
-          south: minLat - paddingLat,
-          east: maxLng + paddingLng,
-          west: minLng - paddingLng,
-        };
-
+        postToWebView({ type: 'drawRoute', coords: leafletGeometry });
         postToWebView({
           type: 'fitBounds',
-          bounds,
+          bounds: [
+            [originLat, originLng],
+            [destLatNum, destLngNum],
+            ...leafletGeometry,
+          ],
           maxZoom: 18,
         });
-
         setRouteCardVisible(true);
-        setSelectedMarker({ ...selectedMarker } as MarkerData | null);
       } else {
         setRouteStatus('no-route');
         setRoute(null);
         setRouteCardVisible(false);
-setSelectedMarker(null);
         postToWebView({ type: 'clearRoute' });
         Alert.alert('Route not found', 'Could not calculate a driving route to this location. Please try another destination.');
       }
-    } catch (err) {
-      if (routeFromSelectionRef.current !== true) return;
+    } catch {
+      if (routeRequestIdRef.current !== requestId) return;
       setRouteStatus('error');
       setRoute(null);
       setRouteCardVisible(false);
-      setSelectedMarker(null);
       postToWebView({ type: 'clearRoute' });
       Alert.alert('Routing error', 'Could not fetch route data. Please check your connection and try again.');
     }
-  }, [effectivePosition, isReliableUserPosition, selectedMarker, postToWebView]);
+  }, [effectivePosition, hasPermission, postToWebView]);
 
   const lockMapView = useCallback(() => {
     allowAutoRecenterRef.current = false;
@@ -660,7 +659,9 @@ setSelectedMarker(null);
   lastBoundsRef.current = bounds;
   currentZoomRef.current = zoom;
     const category = options?.category ?? selectedMapCategory;
-    const viewportKey = buildViewportKey(bounds, zoom, category || undefined);
+    const categoryParams = toMapFeedQueryParams(category, mapApiCategoryKeys);
+    const cacheCategory = category && category !== 'all' ? category : undefined;
+    const viewportKey = buildViewportKey(bounds, zoom, cacheCategory);
 
     if (
       !options?.force &&
@@ -692,7 +693,7 @@ setSelectedMarker(null);
       zoom,
       limit,
       cursor: options?.cursor,
-      ...(category ? { category } : {}),
+      ...categoryParams,
     };
 
     try {
@@ -703,7 +704,7 @@ setSelectedMarker(null);
           const cached = await getCachedMapFeed({
             ...bounds,
             zoom,
-            category: category || undefined,
+            category: cacheCategory,
           });
           if (cached && currentFetchId === fetchCounterRef.current) {
             feed = cached;
@@ -718,7 +719,7 @@ setSelectedMarker(null);
         feed = await placesApi.map(queryParams);
         if (!options?.cursor) {
           setMemoryCachedMapFeed(viewportKey, feed);
-          await setCachedMapFeed({ ...bounds, zoom, category: category || undefined }, feed);
+          await setCachedMapFeed({ ...bounds, zoom, category: cacheCategory }, feed);
           await setLastMapFeed(feed);
         }
       }
@@ -747,7 +748,7 @@ setSelectedMarker(null);
       }
 
       if (!options?.cursor && !isOfflineRef.current) {
-        prefetchAdjacentViewports(bounds, zoom, category || undefined, (adj) =>
+        prefetchAdjacentViewports(bounds, zoom, cacheCategory, (adj) =>
           placesApi.map({
             north: adj.north,
             south: adj.south,
@@ -755,7 +756,7 @@ setSelectedMarker(null);
             west: adj.west,
             zoom,
             limit,
-            ...(category ? { category } : {}),
+            ...categoryParams,
           }),
         );
       }
@@ -778,16 +779,20 @@ setSelectedMarker(null);
         setIsMapFetching(false);
       }
     }
-  }, [apiPlaceToMarker, clusterToMarker, selectedMapCategory, showLoadChip]);
+  }, [apiPlaceToMarker, clusterToMarker, mapApiCategoryKeys, selectedMapCategory, showLoadChip]);
 
   useEffect(() => {
     let mounted = true;
     placesApi.mapCategories()
       .then(cats => {
-        if (mounted) setMapCategoryChips(buildMapCategoryChips(cats));
+        if (!mounted) return;
+        setMapApiCategoryKeys(cats.map(c => c.key));
+        setMapCategoryChips(buildMapCategoryChips(cats));
       })
       .catch(() => {
-        if (mounted) setMapCategoryChips(buildMapCategoryChips([]));
+        if (!mounted) return;
+        setMapApiCategoryKeys([]);
+        setMapCategoryChips(buildMapCategoryChips([]));
       });
     return () => { mounted = false; };
   }, []);
@@ -795,6 +800,7 @@ setSelectedMarker(null);
   useEffect(() => {
     if (!lastBoundsRef.current) return;
     lastFetchKeyRef.current = null;
+    lastFetchedBoundsRef.current = null;
     fetchMapData(lastBoundsRef.current, currentZoomRef.current, { force: true });
   }, [selectedMapCategory, fetchMapData]);
 
@@ -834,11 +840,6 @@ setSelectedMarker(null);
     }
   }, [mapVendorToMarker]);
 
-  useEffect(() => {
-    if (!lastBoundsRef.current || activeTab !== 'vendors') return;
-    void fetchVendorsForViewport(lastBoundsRef.current, selectedVendorCategory || undefined);
-  }, [selectedVendorCategory, activeTab, fetchVendorsForViewport]);
-
   const scheduleMapFetch = useCallback((
     bounds: { north: number; south: number; east: number; west: number },
     zoom: number,
@@ -848,16 +849,16 @@ setSelectedMarker(null);
     if (viewportDebounceRef.current) clearTimeout(viewportDebounceRef.current);
     viewportDebounceRef.current = setTimeout(() => {
       if (activeTab === 'vendors') {
-        void fetchVendorsForViewport(bounds, selectedVendorCategory || undefined);
+        void fetchVendorsForViewport(bounds);
       } else {
         fetchMapData(bounds, zoom);
       }
     }, 400);
-  }, [fetchMapData, fetchVendorsForViewport, activeTab, selectedVendorCategory]);
+  }, [fetchMapData, fetchVendorsForViewport, activeTab]);
 
   const fetchVendors = useCallback(async (force = false) => {
     if (lastBoundsRef.current) {
-      await fetchVendorsForViewport(lastBoundsRef.current, selectedVendorCategory || undefined);
+      await fetchVendorsForViewport(lastBoundsRef.current);
       return;
     }
     if (!force && vendorsCache.current && Date.now() - vendorsCache.current.ts < CACHE_TTL) {
@@ -919,15 +920,16 @@ setSelectedMarker(null);
   const filteredMarkers: MarkerData[] = useMemo(() => {
     let list = activeTab === 'places' ? allPlaces : allVendors;
     if (activeTab === 'places') {
-      list = list.filter(m => m.type === 'cluster' || !isCommercialPlaceCategory(m.category));
-    } else if (selectedVendorCategory) {
+      const categoryKey = selectedMapCategory.trim().toLowerCase();
+      const filtering = Boolean(categoryKey) && categoryKey !== 'all';
       list = list.filter(m => {
-        const cat = (m.category || '').toLowerCase();
-        return cat === selectedVendorCategory || cat.includes(selectedVendorCategory);
+        if (m.type === 'cluster') return !filtering;
+        if (filtering) return placeMatchesMapFilter(m.category, selectedMapCategory);
+        return !isCommercialPlaceCategory(m.category);
       });
     }
     return activeTab === 'places' ? dedupeMapMarkers(list, 0.001) : dedupeMapMarkers(list, 0.01);
-  }, [allPlaces, allVendors, activeTab, selectedVendorCategory]);
+  }, [allPlaces, allVendors, activeTab, selectedMapCategory]);
 
   const handleMapTabChange = useCallback((tab: 'places' | 'vendors') => {
     setActiveTab(tab);
@@ -939,18 +941,8 @@ setSelectedMarker(null);
   }, [fetchVendors, postToWebView]);
 
   const handleSelectMapCategory = useCallback((key: string) => {
-    setSelectedMapCategory(key);
-    fetchCounterRef.current += 1;
-    const pos = effectivePositionRef.current;
-    if (pos && isValidLatLng(pos.latitude, pos.longitude)) {
-      postToWebView({
-        type: 'flyTo',
-        lat: pos.latitude,
-        lng: pos.longitude,
-        zoom: Math.max(currentZoomRef.current, CITY_ZOOM),
-      });
-    }
-  }, [postToWebView]);
+    setSelectedMapCategory(prev => (prev === key ? prev : key));
+  }, []);
 
   const markersForMap = useMemo(() => {
     // Keep payload stable — live GPS distance used to change every tick and
@@ -1095,20 +1087,30 @@ setSelectedMarker(null);
   const lastMapTabKeyRef = useRef<number | null>(null);
 
   // Home → Local Vendors (and PalPoints review flow): switch Places/Vendors layer
+  // Re-apply when mapReady flips so the WebView is not left on the default Places layer.
+  const appliedExplicitTabAfterReadyRef = useRef(false);
   useEffect(() => {
-    const targetTab = initialMapTab ?? (reviewMode ? 'vendors' : null);
+    const targetTab = resolveExplicitMapTab(initialMapTab, reviewMode);
     if (!targetTab) return;
-    if (mapTabKey != null) {
-      if (lastMapTabKeyRef.current === mapTabKey) return;
-      lastMapTabKeyRef.current = mapTabKey;
+    skipSessionTabRestoreRef.current = true;
+
+    const isNewKey = mapTabKey == null || lastMapTabKeyRef.current !== mapTabKey;
+    if (isNewKey) {
+      if (mapTabKey != null) lastMapTabKeyRef.current = mapTabKey;
+      appliedExplicitTabAfterReadyRef.current = false;
+    } else if (appliedExplicitTabAfterReadyRef.current) {
+      return;
     }
+
     handleMapTabChange(targetTab);
     if (mapReady) {
+      appliedExplicitTabAfterReadyRef.current = true;
       postToWebView({ type: 'clearRoute' });
     }
   }, [initialMapTab, reviewMode, mapTabKey, mapReady, postToWebView, handleMapTabChange]);
 
   useEffect(() => {
+    if (!shouldOpenRoutedPlaceOnMap({ selectedPlaceId, reviewMode, initialMapTab })) return;
     if (!selectedPlaceId || selectedPlaceKey == null || !mapReady) return;
     if (lastOpenedKeyRef.current === selectedPlaceKey) return;
 
@@ -1156,6 +1158,8 @@ setSelectedMarker(null);
     selectedPlaceId,
     selectedPlaceKey,
     mapReady,
+    reviewMode,
+    initialMapTab,
     allPlaces,
     propPlaces,
     mapPlaceToMarker,
@@ -1541,8 +1545,10 @@ setSelectedMarker(null);
 
   const handleWebMessage = useCallback((event: any) => {
     try {
-      const data = JSON.parse(event.nativeEvent.data);
-      if (!data || !data.type || !ALLOWED_MESSAGE_TYPES.has(data.type)) return;
+      const raw = event?.nativeEvent?.data;
+      if (typeof raw !== 'string') return;
+      const data = parseJsonObject(raw) as Record<string, any> | null;
+      if (!data || !data.type || !ALLOWED_MESSAGE_TYPES.has(String(data.type))) return;
       switch (data.type) {
         case 'mapReady':
           setMapReady(true);
@@ -1551,7 +1557,16 @@ setSelectedMarker(null);
           if (!sessionRestoredRef.current) {
             sessionRestoredRef.current = true;
             void loadMapSession().then(session => {
-              if (session && !selectedPlaceId && !selectedVendorId) {
+              if (
+                session &&
+                shouldRestoreSavedMapTab({
+                  selectedPlaceId: selectedPlaceIdRef.current,
+                  selectedVendorId: selectedVendorIdRef.current,
+                  reviewMode: reviewModeRef.current,
+                  initialMapTab: initialMapTabRef.current,
+                }) &&
+                !skipSessionTabRestoreRef.current
+              ) {
                 if (session.category) setSelectedMapCategory(session.category);
                 if (session.tab) setActiveTab(session.tab);
                 postToWebView({
@@ -1563,6 +1578,13 @@ setSelectedMarker(null);
                 if (session.selectedMarkerId) {
                   pendingSessionMarkerIdRef.current = session.selectedMarkerId;
                 }
+              } else if (session) {
+                postToWebView({
+                  type: 'restoreView',
+                  lat: session.lat,
+                  lng: session.lng,
+                  zoom: session.zoom,
+                });
               }
             });
           }
@@ -1584,7 +1606,7 @@ setSelectedMarker(null);
             if (activeTab === 'places') {
               fetchMapData(lastBoundsRef.current, typeof data.zoom === 'number' ? data.zoom : currentZoomRef.current, { force: true });
             } else {
-              void fetchVendorsForViewport(lastBoundsRef.current, selectedVendorCategory || undefined);
+              void fetchVendorsForViewport(lastBoundsRef.current);
             }
           }
           break;
@@ -1596,7 +1618,7 @@ setSelectedMarker(null);
         }
       }
     } catch { }
-  }, [markerLookup, handleMarkerPress, scheduleMapFetch, fetchMapData, fetchVendorsForViewport, activeTab, selectedVendorCategory, pushUserLocationToMap, ALLOWED_MESSAGE_TYPES, selectedPlaceId, selectedVendorId, postToWebView]);
+  }, [markerLookup, handleMarkerPress, scheduleMapFetch, fetchMapData, fetchVendorsForViewport, activeTab, pushUserLocationToMap, ALLOWED_MESSAGE_TYPES, postToWebView]);
 
   useEffect(() => {
     if (mapReady || mapError) return;
@@ -1640,6 +1662,9 @@ setSelectedMarker(null);
     postToWebView({ type: 'clearSelectedMarker' });
     postToWebView({ type: 'clearRoute' });
     setSelectedMarker(null);
+    setIsNavigating(false);
+    setRoute(null);
+    setRouteStatus('idle');
   }, [postToWebView]);
 
   const handleOpenPlace = useCallback(() => {
@@ -1668,49 +1693,107 @@ setSelectedMarker(null);
   }, [selectedMarker, savedPlaceIds, showSuccess, showError]);
 
   const handleNavigate = useCallback(async () => {
-    if (!selectedMarker) return;
-    const marker = selectedMarker;
-    const dest = parseLatLng(marker.lat, marker.lng);
-    if (!dest) {
-      Alert.alert('Location unavailable', 'This place does not have valid coordinates.');
+    const marker = selectedMarkerRef.current ?? selectedMarker;
+    let plan = planMapPlaceNavigate({
+      hasPlace: Boolean(marker),
+      destLat: marker?.lat,
+      destLng: marker?.lng,
+      hasPermission,
+      currentPosition: effectivePositionRef.current ?? effectivePosition,
+    });
+    logMapNavigate(plan, { pressed: true });
+
+    if (plan.action === 'no_place') {
+      Alert.alert('Location unavailable', MAP_NAVIGATE_MESSAGES.no_place);
+      return;
+    }
+    if (plan.action === 'invalid_destination') {
+      Alert.alert('Location unavailable', MAP_NAVIGATE_MESSAGES.invalid_destination);
       return;
     }
 
-    postToWebView({ type: 'clearSelectedMarker' });
-    // Keep selectedMarker React state - route card needs the name
+    const dest = parseLatLng(marker!.lat, marker!.lng);
+    if (!dest) {
+      Alert.alert('Location unavailable', MAP_NAVIGATE_MESSAGES.invalid_destination);
+      return;
+    }
+
+    // Close the card immediately so the map and road path are visible.
+    setSelectedMarker(null);
+    lockMapView();
+    postToWebView({ type: 'setSelectedMarker', id: marker!.id });
 
     let pos = effectivePositionRef.current ?? effectivePosition;
-    if (!isReliableUserPosition(pos)) {
-      if (!hasPermission) {
-        const granted = await requestPermission();
-        if (!granted) {
-          Alert.alert('Permission Denied', 'Need location access to navigate from your current location.');
-          return;
-        }
-        pos = effectivePositionRef.current ?? effectivePosition;
+    let permitted = hasPermission;
+    if (!permitted) {
+      const granted = await requestPermission();
+      if (!granted) {
+        console.warn('[PalSafarGPS] navigate_blocked', {
+          reason: 'permission_denied',
+          accuracyM: pos?.accuracy ?? null,
+          ageMs: pos?.timestamp != null ? Date.now() - pos.timestamp : null,
+          permission: false,
+        });
+        plan = planMapPlaceNavigate({
+          hasPlace: true,
+          destLat: dest.latitude,
+          destLng: dest.longitude,
+          hasPermission: false,
+          currentPosition: pos,
+        });
+        logMapNavigate(plan);
+        Alert.alert('Permission Denied', MAP_NAVIGATE_MESSAGES.permission_denied);
+        return;
+      }
+      permitted = true;
+      pos = effectivePositionRef.current ?? effectivePosition;
+    }
+
+    if (!isNavigableUserPosition(pos)) {
+      console.warn('[PalSafarGPS] navigate_retry_fresh', {
+        ...describeUserPositionRejection(pos, NAVIGATION_ACCURACY_MAX_M),
+        permission: permitted,
+        provider: 'fused',
+      });
+      const fresh = await requestFreshPosition();
+      if (fresh) {
+        pos = fresh;
+        effectivePositionRef.current = fresh;
       }
     }
-    const origin = pos ? parseLatLng(pos.latitude, pos.longitude) : null;
-    if (!origin || !isReliableUserPosition(pos)) {
-      Alert.alert('Location unavailable', 'Waiting for a more accurate GPS fix. Please keep location on and try again.');
+
+    plan = planMapPlaceNavigate({
+      hasPlace: true,
+      destLat: dest.latitude,
+      destLng: dest.longitude,
+      hasPermission: permitted,
+      currentPosition: pos,
+    });
+    logMapNavigate(plan);
+
+    if (plan.action !== 'route') {
+      console.warn('[PalSafarGPS] navigate_blocked', {
+        ...describeUserPositionRejection(pos, NAVIGATION_ACCURACY_MAX_M),
+        permission: permitted,
+        provider: 'fused',
+      });
+      Alert.alert('Location unavailable', MAP_NAVIGATE_MESSAGES.gps_unavailable);
       return;
     }
 
-    // Use new OSRM-based routing
-    if (__DEV__) console.warn('[MapHandleNavigate] marker.lat:', marker.lat, 'marker.lng:', marker.lng);
-    if (__DEV__) console.warn('[MapHandleNavigate] effectivePosition:', effectivePosition);
-    const originLat = effectivePosition?.latitude ?? (origin?.latitude ?? 0);
-    const originLng = effectivePosition?.longitude ?? (origin?.longitude ?? 0);
-    const destLat = marker.lat;
-    const destLng = marker.lng;
-
-    if (__DEV__) console.warn('[MapHandleNavigate] originLat:', originLat, 'originLng:', originLng, 'destLat:', destLat, 'destLng:', destLng);
-
-    calculateRoute(destLat, destLng);
-  }, [selectedMarker, effectivePosition, hasPermission, requestPermission, postToWebView, calculateRoute]);
+    try {
+      await calculateRoute(dest.latitude, dest.longitude);
+    } catch {
+      Alert.alert('Routing error', MAP_NAVIGATE_MESSAGES.routing_error);
+    }
+  }, [selectedMarker, effectivePosition, hasPermission, requestPermission, requestFreshPosition, postToWebView, calculateRoute, lockMapView]);
 
   const handleEndNavigation = useCallback(() => {
     setIsNavigating(false);
+    setRoute(null);
+    setRouteStatus('idle');
+    setRouteCardVisible(false);
+    routeRequestIdRef.current += 1;
     postToWebView({ type: 'clearRoute' });
   }, [postToWebView]);
 
@@ -2077,13 +2160,6 @@ setSelectedMarker(null);
                 selected={selectedMapCategory}
                 onSelect={handleSelectMapCategory}
                 chips={mapCategoryChips.length > 0 ? mapCategoryChips : undefined}
-              />
-            )}
-
-            {activeTab === 'vendors' && (
-              <MapVendorCategoryChips
-                selected={selectedVendorCategory}
-                onSelect={setSelectedVendorCategory}
               />
             )}
 

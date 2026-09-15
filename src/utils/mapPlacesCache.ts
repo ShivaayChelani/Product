@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { MapFeedResponse } from '../services/api/places';
+import { isPlainObject, parseJsonObject } from './safeJson';
 
 const CACHE_PREFIX = '@palsafar/map-cache/';
 const CACHE_TTL_MS = 30 * 60 * 1000;
@@ -33,12 +34,13 @@ export async function getCachedMapFeed(params: {
   try {
     const raw = await AsyncStorage.getItem(CACHE_PREFIX + cacheKey(params));
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { ts: number; data: MapFeedResponse };
+    const parsed = parseJsonObject(raw);
+    if (!parsed || typeof parsed.ts !== 'number' || !isPlainObject(parsed.data)) return null;
     if (Date.now() - parsed.ts > CACHE_TTL_MS) {
       await AsyncStorage.removeItem(CACHE_PREFIX + cacheKey(params));
       return null;
     }
-    return parsed.data;
+    return parsed.data as unknown as MapFeedResponse;
   } catch {
     return null;
   }
@@ -69,9 +71,10 @@ export async function getLastMapFeed(): Promise<MapFeedResponse | null> {
   try {
     const raw = await AsyncStorage.getItem(CACHE_PREFIX + 'last');
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { ts: number; data: MapFeedResponse };
+    const parsed = parseJsonObject(raw);
+    if (!parsed || typeof parsed.ts !== 'number' || !isPlainObject(parsed.data)) return null;
     if (Date.now() - parsed.ts > CACHE_TTL_MS * 2) return null;
-    return parsed.data;
+    return parsed.data as unknown as MapFeedResponse;
   } catch {
     return null;
   }

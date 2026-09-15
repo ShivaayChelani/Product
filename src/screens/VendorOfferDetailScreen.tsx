@@ -45,7 +45,7 @@ export default function VendorOfferDetailScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const route = useRoute<Route>();
-  const { offerId } = route.params;
+  const offerId = route.params?.offerId;
 
   const [offer, setOffer] = useState<PublicVendorOfferDetail | null>(null);
   const [similarOffers, setSimilarOffers] = useState<NearbyReward[]>([]);
@@ -88,6 +88,11 @@ export default function VendorOfferDetailScreen() {
   }, [offerId]);
 
   const loadData = useCallback(async () => {
+    if (!offerId) {
+      setError('This offer is unavailable.');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -106,7 +111,7 @@ export default function VendorOfferDetailScreen() {
         const data = similarRes.data || similarRes;
         const items = Array.isArray(data) ? data : (data as any).offers || (data as any).items || [];
         setSimilarOffers(items.filter((i: NearbyReward) => i.id !== offerId).slice(0, 4));
-      } catch (err) {
+      } catch {
         // ignore similar offers failure
       }
 
@@ -122,11 +127,13 @@ export default function VendorOfferDetailScreen() {
   }, [loadData]);
 
   const onSaveOffer = useCallback(async () => {
+    if (!offerId) return;
     const next = await toggleSavedOfferId(offerId);
     setIsSaved(next.includes(offerId));
   }, [offerId]);
 
   const onRedeemSubmit = useCallback(async (vendorCode: string) => {
+    if (!offerId) return;
     setRedeemLoading(true);
     try {
       const result = await handleRedeemOffer(offerId, vendorCode);
@@ -142,6 +149,17 @@ export default function VendorOfferDetailScreen() {
       setRedeemLoading(false);
     }
   }, [handleRedeemOffer, offerId, refreshWalletPoints]);
+
+  if (!offerId) {
+    return (
+      <View style={[styles.root, styles.center]}>
+        <Text style={styles.errorText}>This offer is unavailable.</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.backBtnText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   if (loading) {
     return (

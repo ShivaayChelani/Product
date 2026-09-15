@@ -122,8 +122,15 @@ export default function CreatorDashboardScreen() {
 
   useEffect(() => {
     void creatorUploadManager.init();
-    return creatorUploadManager.subscribe(setUploadJobs);
-  }, []);
+    const unsubJobs = creatorUploadManager.subscribe(setUploadJobs);
+    const unsubPosted = creatorUploadManager.onPosted(() => {
+      void queryClient.invalidateQueries({ queryKey: creatorDashboardKey });
+    });
+    return () => {
+      unsubJobs();
+      unsubPosted();
+    };
+  }, [queryClient]);
 
   const dashboardQuery = useCreatorDashboard();
   const analyticsQuery = useCreatorAnalytics(period);

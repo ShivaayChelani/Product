@@ -138,7 +138,7 @@ export default function MapPlaceDetailCard({
 
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) => g.dy > 8,
+      onMoveShouldSetPanResponder: (_, g) => g.dy > 12 && g.dy > Math.abs(g.dx),
       onPanResponderMove: (_, g) => {
         if (g.dy > 0) translateY.setValue(g.dy);
       },
@@ -167,8 +167,13 @@ export default function MapPlaceDetailCard({
   return (
     <Animated.View
       style={[styles.wrap, { bottom: bottomInset, transform: [{ translateY }] }]}
-      {...panResponder.panHandlers}
+      collapsable={false}
     >
+      <View
+        style={styles.dragRegion}
+        {...panResponder.panHandlers}
+        accessibilityLabel="Swipe down to close place card"
+      />
       <View style={styles.headerRow}>
         {/* Left Column: Large Image Thumbnail */}
         <View style={styles.imageCol}>
@@ -322,7 +327,13 @@ export default function MapPlaceDetailCard({
 
       {/* Bottom Action Pill Buttons: Navigate, Add to Trip, Get a Ride */}
       <View style={styles.actionsRow}>
-        <TouchableOpacity style={styles.actionPillBtn} onPress={onNavigate} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.actionPillBtn}
+          onPress={onNavigate}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Navigate"
+        >
           <Icon name="navigate-outline" size={18} color={COLORS.textPrimary} />
           <Text style={styles.actionPillText}>Navigate</Text>
         </TouchableOpacity>
@@ -429,6 +440,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 16,
     elevation: 12,
+  },
+  dragRegion: {
+    height: 18,
+    marginTop: -8,
+    marginBottom: 4,
+    marginHorizontal: -16,
   },
   headerRow: {
     flexDirection: 'row',

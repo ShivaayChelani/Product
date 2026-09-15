@@ -22,6 +22,7 @@ import {
   listPendingTaggedCreatorReels,
   reviewTaggedCreatorReel,
 } from './vendor-tagged-reels';
+import { createVendorReelIdempotent } from './vendorReelIdempotency';
 import { walletService } from '../wallet/wallet.service';
 import { pointRulesService } from '../point-rules/pointRules.service';
 import { logger } from '../../config/logger';
@@ -1168,17 +1169,21 @@ export const vendorsService = {
       throw new ApiError(403, 'Vendor role is not active on this account.');
     }
 
-    await planEnforcementService.assertVendorCanCreateReel(vendor.userId);
+    const videoUrl = String(input.videoUrl || '').trim();
+    if (!videoUrl) {
+      throw new ApiError(400, 'Valid video URL is required');
+    }
 
-    return prisma.vendorReel.create({
-      data: {
-        vendorId,
-        videoUrl: input.videoUrl,
+    // Serialize creates for this vendor so concurrent retries cannot insert two rows
+    // for the same uploaded video. Matches creator reel videoUrl idempotency (1 hour).
+    return prisma.$transaction(async (tx) =>
+      createVendorReelIdempotent(tx, vendorId, {
+        videoUrl,
         thumbnail: input.thumbnail,
         title: input.title,
         description: input.description,
-      },
-    });
+      }, () => planEnforcementService.assertVendorCanCreateReel(vendor.userId)),
+    );
   },
 
   async deleteVendorReel(vendorId: string, reelId: string) {

@@ -90,7 +90,7 @@ export default function SignupScreen({
     try {
       await onGoogleLogin();
     } catch (err: any) {
-      Alert.alert('Error', err?.message || 'Google Sign-Up failed.');
+      Alert.alert('Google Sign-Up', err?.message || 'Google Sign-Up failed. Please try again.');
     }
   };
 

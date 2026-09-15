@@ -164,7 +164,7 @@ export type RootStackParamList = {
   CollaborationDetail: { collaborationId: string };
   CollaborationReview: { collaborationId: string };
   Credits: undefined;
-  Wallet: undefined;
+  Wallet: { initialTab?: 'earn' | 'history' | 'vendor' } | undefined;
   PalPointsScreen: undefined;
   Rewards: undefined;
   Leaderboard: undefined;

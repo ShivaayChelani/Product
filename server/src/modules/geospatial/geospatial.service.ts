@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
+import { parsePositiveInt } from '../../shared/utils/pagination';
 import { cache, cacheKey } from '../../config/cache';
 import { haversineDistance } from '../../shared/utils/geo';
 import { resolvePlace } from '../places/services/places.helpers';
@@ -270,13 +271,15 @@ export const geospatialService = {
   }) {
     const originLat = parseFloat(query.lat);
     const originLng = parseFloat(query.lng);
-    const radius = parseFloat(query.radius || '5000');
-    const lim = Math.min(parseInt(query.limit || '20', 10), 50);
+    const radiusRaw = parseFloat(query.radius || '5000');
+    const radius = Number.isFinite(radiusRaw) ? Math.min(50_000, Math.max(50, radiusRaw)) : 5000;
+    const lim = Math.min(50, Math.max(1, parsePositiveInt(query.limit, 20)));
 
     const rawWaypointIds = query.waypoints
       .split(',')
       .map((s) => s.trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .slice(0, 30);
 
     const waypointIds = rawWaypointIds.length > 0
       ? (await Promise.all(
@@ -472,8 +475,8 @@ export const geospatialService = {
     category?: string;
     limit?: string;
   }) {
-    const days = parseInt(query.days || '30', 10);
-    const lim = Math.min(parseInt(query.limit || '10', 10), 50);
+    const days = Math.min(365, Math.max(1, parsePositiveInt(query.days, 30)));
+    const lim = Math.min(50, Math.max(1, parsePositiveInt(query.limit, 10)));
     const category = query.category;
     const since = new Date(Date.now() - days * 86400000);
 

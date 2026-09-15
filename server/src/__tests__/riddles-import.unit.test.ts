@@ -144,6 +144,78 @@ describe('header handling', () => {
     );
     expect(preview.summary.valid).toBe(1);
   });
+
+  // ── HEADER ALIAS TESTS ────────────────────────────────────────────────────
+  it('accepts "riddles in english" (plural) as an alias for "riddle in english"', () => {
+    const preview = buildImportPreview(
+      makeRows(
+        ['City name', 'riddles in english', 'answer in english', 'riddle in hindi', 'answer in hindi'],
+        [validRow('Jaipur', 'R1', 'A1', 'H1', 'AH1')],
+      ),
+    );
+    expect(preview.summary.valid).toBe(1);
+    expect(preview.data[0].clueEnglish).toBe('R1');
+    expect(preview.data[0].status).toBe('VALID');
+  });
+
+  it('accepts "answers in english" (plural) as an alias for "answer in english"', () => {
+    const preview = buildImportPreview(
+      makeRows(
+        ['City name', 'riddle in english', 'answers in english', 'riddle in hindi', 'answer in hindi'],
+        [validRow('Udaipur', 'R1', 'A1', 'H1', 'AH1')],
+      ),
+    );
+    expect(preview.summary.valid).toBe(1);
+    expect(preview.data[0].answerEnglish).toBe('A1');
+  });
+
+  it('accepts "riddles in hindi" and "answers in hindi" (plural) as aliases', () => {
+    const preview = buildImportPreview(
+      makeRows(
+        ['City name', 'riddle in english', 'answer in english', 'riddles in hindi', 'answers in hindi'],
+        [validRow('Jodhpur', 'R1', 'A1', 'H1', 'AH1')],
+      ),
+    );
+    expect(preview.summary.valid).toBe(1);
+    expect(preview.data[0].clueHindi).toBe('H1');
+    expect(preview.data[0].answerHindi).toBe('AH1');
+  });
+
+  it('accepts "City / District Name" as alias for "City name"', () => {
+    const preview = buildImportPreview(
+      makeRows(
+        ['City / District Name', 'Riddle in English', 'Answer in English', 'Riddle in Hindi', 'Answer in Hindi'],
+        [validRow('Gandhinagar', 'R1', 'A1', 'H1', 'AH1'), validRow('', 'R2', 'A2', 'H2', 'AH2')],
+      ),
+    );
+    expect(preview.summary).toEqual({ total: 2, valid: 2, invalid: 0, citiesCount: 1 });
+    expect(preview.data.every((r) => r.city === 'Gandhinagar')).toBe(true);
+  });
+
+  it('accepts all plural aliases together (simulating the 8 real-world FAIL workbooks)', () => {
+    const preview = buildImportPreview(
+      makeRows(
+        ['City name', 'riddles in english', 'answers in english', 'riddles in hindi', 'answers in hindi'],
+        [
+          validRow('Jaipur', 'R1', 'A1', 'H1', 'AH1'),
+          validRow('', 'R2', 'A2', 'H2', 'AH2'),
+          validRow('Udaipur', 'R3', 'A3', 'H3', 'AH3'),
+        ],
+      ),
+    );
+    expect(preview.summary).toEqual({ total: 3, valid: 3, invalid: 0, citiesCount: 2 });
+    expect(preview.data[0].city).toBe('Jaipur');
+    expect(preview.data[1].city).toBe('Jaipur');
+    expect(preview.data[2].city).toBe('Udaipur');
+  });
+
+  it('still rejects an unrecognised/ambiguous header that is not in the alias list', () => {
+    const headers = ['City name', 'Clue', 'Answer in English', 'Riddle in Hindi', 'Answer in Hindi'];
+    expect(() =>
+      buildImportPreview(makeRows(headers, [validRow('Jaipur', 'R1', 'A1', 'H1', 'AH1')])),
+    ).toThrow(/Invalid Excel Format\. Missing column: Riddle in English/);
+  });
+  // ─────────────────────────────────────────────────────────────────────────
 });
 
 describe('grouped city forward-fill', () => {

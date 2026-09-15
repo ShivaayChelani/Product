@@ -47,7 +47,23 @@ export async function revalidateVendorCapability(req: any): Promise<void> {
   }
 }
 
+function jwtClaimsAdmin(user: { roles?: string[]; permission?: string } | undefined): boolean {
+  if (!user) return false;
+  return ADMIN_ROLES.some(
+    (role) => (Array.isArray(user.roles) && user.roles.includes(role)) || user.permission === role,
+  );
+}
+
 function hasDbAdminCapability(user: any): boolean {
   if (!user) return false;
   return ADMIN_ROLES.some((role) => user.roles?.includes(role));
+}
+
+/**
+ * Refresh req.user from the DB only when the access token claims an admin role.
+ * Normal tourist/vendor/creator requests stay JWT-only (no extra DB read).
+ */
+export async function revalidateIfJwtClaimsAdmin(req: any): Promise<void> {
+  if (!req.user?.id || !jwtClaimsAdmin(req.user)) return;
+  await revalidateRequestUser(req);
 }

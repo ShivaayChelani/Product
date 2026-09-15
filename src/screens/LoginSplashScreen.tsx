@@ -12,7 +12,6 @@ import { AuthHeader } from '../components/auth/AuthHeader';
 import { PrimaryButton } from '../components/auth/PrimaryButton';
 import { SecondaryButton } from '../components/auth/SecondaryButton';
 import { SocialButton } from '../components/auth/SocialButton';
-import { useUserContext } from '../context/UserContext';
 
 export default function LoginSplashScreen({ navigation, onGoogleLogin, onGuestContinue }: any) {
   const insets = useSafeAreaInsets();
@@ -22,7 +21,7 @@ export default function LoginSplashScreen({ navigation, onGoogleLogin, onGuestCo
     try {
       if (onGoogleLogin) await onGoogleLogin();
     } catch (err: any) {
-      Alert.alert('Error', err?.message || 'Google Sign-In failed.');
+      Alert.alert('Google Sign-In', err?.message || 'Google Sign-In failed. Please try again.');
     }
   };
 
