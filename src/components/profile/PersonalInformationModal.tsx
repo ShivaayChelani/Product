@@ -19,7 +19,6 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
 import {
   PI,
-  SERIF,
   SANS,
   SANS_BOLD,
   SANS_SEMI,
@@ -29,9 +28,17 @@ import {
   type GenderOption,
 } from './personalInfoTheme';
 import { SelectModal } from '../ui/SelectModal';
-import { INDIAN_CITIES_BY_STATE, ALL_INDIAN_CITIES } from '../../constants/locations';
+import { INDIAN_CITIES_BY_STATE } from '../../constants/locations';
 
 const AVATAR_EMOJIS = ['👦', '👧', '👨', '👩', '👶', '👸', '🤴', '🧑'];
+
+const PAGE_PAD = 20;
+const GRID_GAP = 12;
+const FIELD_GAP = 16;
+const SECTION_GAP = 22;
+const CHIP_GAP = 10;
+const CONTROL_H = 48;
+const ICON_SIZE = 16;
 
 export type PersonalInfoForm = {
   displayName: string;
@@ -59,7 +66,6 @@ type Props = {
   onSave: () => void;
 };
 
-
 function PersonalInformationModalComponent({
   visible,
   saving,
@@ -72,11 +78,13 @@ function PersonalInformationModalComponent({
   onSave,
 }: Props) {
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const sheetHeight = Math.round(windowHeight * 0.92);
+  const contentWidth = Math.max(0, windowWidth - PAGE_PAD * 2);
+  const chipWidth = Math.floor((contentWidth - CHIP_GAP * 2) / 3);
   const bioCount = form.bio.length;
   const bioMax = 200;
-  
+
   const [selectModal, setSelectModal] = React.useState<{
     visible: boolean;
     title: string;
@@ -144,15 +152,14 @@ function PersonalInformationModalComponent({
       >
         <View style={[styles.sheet, { height: sheetHeight }]}>
           <View style={styles.header}>
-            <TouchableOpacity style={styles.iconBtn} onPress={onClose} hitSlop={8}>
+            <TouchableOpacity style={styles.iconBtn} onPress={onClose} hitSlop={8} accessibilityLabel="Back">
               <Icon name="arrow-back" size={20} color={PI.text} />
             </TouchableOpacity>
             <View style={styles.headerTextCol}>
               <Text style={styles.title}>Personal Information</Text>
               <Text style={styles.subtitle}>Manage your PalSafar profile</Text>
             </View>
-            <View style={{ flex: 1 }} />
-            <TouchableOpacity style={styles.iconBtn} onPress={onClose} hitSlop={8}>
+            <TouchableOpacity style={styles.iconBtn} onPress={onClose} hitSlop={8} accessibilityLabel="Close">
               <Icon name="close" size={20} color={PI.text} />
             </TouchableOpacity>
           </View>
@@ -195,20 +202,21 @@ function PersonalInformationModalComponent({
               <View style={styles.col}>
                 <Text style={styles.label}>Full Name</Text>
                 <View style={styles.inputWrap}>
-                  <Icon name="person-outline" size={16} color="#6A6158" style={styles.inputIcon} />
+                  <Icon name="person-outline" size={ICON_SIZE} color="#6A6158" style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     value={form.displayName}
                     onChangeText={v => onChange({ displayName: v })}
                     placeholder="Your name"
                     placeholderTextColor={PI.textMuted}
+                    underlineColorAndroid="transparent"
                   />
                 </View>
               </View>
               <View style={styles.col}>
                 <Text style={styles.label}>Username (optional)</Text>
                 <View style={styles.inputWrap}>
-                  <Icon name="at" size={16} color="#6A6158" style={styles.inputIcon} />
+                  <Icon name="at" size={ICON_SIZE} color="#6A6158" style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     value={form.username}
@@ -216,6 +224,7 @@ function PersonalInformationModalComponent({
                     placeholder="username"
                     placeholderTextColor={PI.textMuted}
                     autoCapitalize="none"
+                    underlineColorAndroid="transparent"
                   />
                 </View>
               </View>
@@ -226,7 +235,7 @@ function PersonalInformationModalComponent({
               <View style={styles.col}>
                 <Text style={styles.label}>Email</Text>
                 <View style={styles.inputWrap}>
-                  <Icon name="mail-outline" size={16} color="#6A6158" style={styles.inputIcon} />
+                  <Icon name="mail-outline" size={ICON_SIZE} color="#6A6158" style={styles.inputIcon} />
                   <Text style={styles.readonlyText} numberOfLines={1}>
                     {email || '—'}
                   </Text>
@@ -240,7 +249,7 @@ function PersonalInformationModalComponent({
               <View style={styles.col}>
                 <Text style={styles.label}>Phone Number</Text>
                 <View style={styles.inputWrap}>
-                  <Icon name="call-outline" size={16} color="#6A6158" style={styles.inputIcon} />
+                  <Icon name="call-outline" size={ICON_SIZE} color="#6A6158" style={styles.inputIcon} />
                   <Text style={styles.readonlyText} numberOfLines={1}>
                     {phoneNumber || '—'}
                   </Text>
@@ -264,11 +273,11 @@ function PersonalInformationModalComponent({
                   }}
                   activeOpacity={0.85}
                 >
-                  <Icon name="location-outline" size={16} color="#6A6158" style={styles.inputIcon} />
+                  <Icon name="location-outline" size={ICON_SIZE} color="#6A6158" style={styles.inputIcon} />
                   <Text style={[styles.selectText, !form.city && styles.placeholder]} numberOfLines={1}>
-                    {form.city || (form.state ? 'Select city' : 'Select state first')}
+                    {form.city || 'Select city'}
                   </Text>
-                  <Icon name="chevron-down" size={16} color="#6A6158" />
+                  <Icon name="chevron-down" size={ICON_SIZE} color="#6A6158" />
                 </TouchableOpacity>
               </View>
               <View style={styles.col}>
@@ -278,77 +287,84 @@ function PersonalInformationModalComponent({
                   onPress={() => openSelectModal('State', INDIAN_STATES, form.state, v => onChange({ state: v }))}
                   activeOpacity={0.85}
                 >
-                  <Icon name="business-outline" size={16} color="#6A6158" style={styles.inputIcon} />
+                  <Icon name="business-outline" size={ICON_SIZE} color="#6A6158" style={styles.inputIcon} />
                   <Text style={[styles.selectText, !form.state && styles.placeholder]} numberOfLines={1}>
                     {form.state || 'Select state'}
                   </Text>
-                  <Icon name="chevron-down" size={16} color="#6A6158" />
+                  <Icon name="chevron-down" size={ICON_SIZE} color="#6A6158" />
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Row: Gender & DOB */}
-            <View style={styles.row}>
-              <View style={styles.col}>
-                <Text style={styles.label}>Gender (optional)</Text>
-                <View style={styles.genderRow}>
-                  {genderOptions.map(opt => {
-                    const active = form.gender === opt.key;
-                    return (
-                      <TouchableOpacity
-                        key={opt.key}
-                        style={[styles.genderOption, active && styles.genderOptionActive]}
-                        onPress={() => onChange({ gender: opt.key })}
-                        activeOpacity={0.85}
+            <View style={styles.fieldBlock}>
+              <Text style={styles.label}>Gender (optional)</Text>
+              <View style={styles.genderRow}>
+                {genderOptions.map(opt => {
+                  const active = form.gender === opt.key;
+                  return (
+                    <TouchableOpacity
+                      key={opt.key}
+                      style={[styles.genderOption, active && styles.genderOptionActive]}
+                      onPress={() => onChange({ gender: opt.key })}
+                      activeOpacity={0.85}
+                    >
+                      <Icon name={opt.icon} size={14} color={active ? '#7B563D' : '#6A6158'} />
+                      <Text
+                        style={[styles.genderLabel, active && styles.genderLabelActive]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
                       >
-                        <Icon name={opt.icon} size={14} color={active ? '#7B563D' : '#6A6158'} />
-                        <Text style={[styles.genderLabel, active && styles.genderLabelActive]}>{opt.label}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-              
-              <View style={styles.col}>
-                <Text style={styles.label}>Date of Birth (optional)</Text>
-                <View style={styles.inputWrap}>
-                  <Icon name="calendar-outline" size={16} color="#6A6158" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    value={form.dateOfBirth}
-                    onChangeText={handleDobChange}
-                    placeholder="DD / MM / YYYY"
-                    placeholderTextColor="#9E978F"
-                    keyboardType="number-pad"
-                    maxLength={14}
-                  />
-                  <Icon name="chevron-down" size={16} color="#6A6158" />
-                </View>
+            </View>
+
+            <View style={styles.fieldBlock}>
+              <Text style={styles.label}>Date of Birth (optional)</Text>
+              <View style={styles.inputWrap}>
+                <Icon name="calendar-outline" size={ICON_SIZE} color="#6A6158" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={form.dateOfBirth}
+                  onChangeText={handleDobChange}
+                  placeholder="DD / MM / YYYY"
+                  placeholderTextColor="#9E978F"
+                  keyboardType="number-pad"
+                  maxLength={14}
+                  underlineColorAndroid="transparent"
+                />
+                <Icon name="chevron-down" size={ICON_SIZE} color="#6A6158" />
               </View>
             </View>
 
             {/* Travel Interests */}
-            <Text style={[styles.label, styles.sectionGap]}>Travel Interests</Text>
+            <Text style={styles.sectionLabel}>Travel Interests</Text>
             <View style={styles.chipGrid}>
               {TRAVEL_INTERESTS.map(item => {
                 const selected = form.interests.includes(item.key);
                 return (
                   <TouchableOpacity
                     key={item.key}
-                    style={[styles.chip, selected && styles.chipSelected]}
+                    style={[styles.chip, { width: chipWidth }, selected && styles.chipSelected]}
                     onPress={() => toggleInterest(item.key)}
                     activeOpacity={0.85}
                   >
-                    <Icon name={item.icon} size={16} color={selected ? '#7B563D' : '#6A6158'} />
-                    <Text style={[styles.chipLabel, selected && styles.chipLabelSelected]} numberOfLines={1} adjustsFontSizeToFit>{item.label}</Text>
+                    <Icon name={item.icon} size={ICON_SIZE} color={selected ? '#7B563D' : '#6A6158'} />
+                    <Text style={[styles.chipLabel, selected && styles.chipLabelSelected]} numberOfLines={1} adjustsFontSizeToFit>
+                      {item.label}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
 
             {/* Row: Language + Bio */}
-            <View style={[styles.row, { alignItems: 'flex-start' }]}>
-              <View style={[styles.col, { flex: 1 }]}>
+            <View style={[styles.row, styles.rowLast]}>
+              <View style={styles.col}>
                 <Text style={styles.label}>Language</Text>
                 <TouchableOpacity
                   style={styles.inputWrap}
@@ -357,13 +373,13 @@ function PersonalInformationModalComponent({
                   }
                   activeOpacity={0.85}
                 >
-                  <Icon name="globe-outline" size={16} color="#6A6158" style={styles.inputIcon} />
-                  <Text style={styles.selectText}>{form.language || 'English'}</Text>
-                  <Icon name="chevron-down" size={16} color="#6A6158" />
+                  <Icon name="globe-outline" size={ICON_SIZE} color="#6A6158" style={styles.inputIcon} />
+                  <Text style={styles.selectText} numberOfLines={1}>{form.language || 'English'}</Text>
+                  <Icon name="chevron-down" size={ICON_SIZE} color="#6A6158" />
                 </TouchableOpacity>
               </View>
 
-              <View style={[styles.col, { flex: 1.5 }]}>
+              <View style={styles.col}>
                 <Text style={styles.label}>Bio (optional)</Text>
                 <View style={styles.bioWrap}>
                   <TextInput
@@ -374,6 +390,7 @@ function PersonalInformationModalComponent({
                     placeholderTextColor="#9E978F"
                     multiline
                     textAlignVertical="top"
+                    underlineColorAndroid="transparent"
                   />
                   <Text style={styles.bioCount}>
                     {bioCount}/{bioMax}
@@ -384,7 +401,7 @@ function PersonalInformationModalComponent({
             </ScrollView>
           </View>
 
-          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
             <View style={styles.actions}>
               <TouchableOpacity style={styles.cancelBtn} onPress={onClose} activeOpacity={0.85}>
                 <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -432,69 +449,59 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
   },
-  handle: {
-    width: 44,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: PI.divider,
-    alignSelf: 'center',
-    marginTop: 10,
-    marginBottom: 4,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 24,
-    flexShrink: 0,
+    paddingHorizontal: PAGE_PAD,
+    paddingTop: 18,
+    paddingBottom: 16,
   },
-  headerTextCol: { marginLeft: 16 },
+  headerTextCol: {
+    flex: 1,
+    marginHorizontal: 12,
+    justifyContent: 'center',
+  },
   title: {
     fontFamily: SANS_BOLD,
     fontSize: 20,
+    lineHeight: 26,
     color: '#13111C',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   subtitle: {
     fontFamily: SANS,
     fontSize: 12,
+    lineHeight: 16,
     color: '#6A6158',
   },
   iconBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#F3EBE3',
+    borderColor: '#E8DDD0',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#2B1D15',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 4,
-    paddingBottom: 24,
+    paddingHorizontal: PAGE_PAD,
+    paddingTop: 8,
+    paddingBottom: 20,
   },
   footer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: PAGE_PAD,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#F3EBE3',
+    borderTopColor: '#E8DDD0',
     backgroundColor: '#FAFAFA',
-    flexShrink: 0,
   },
   avatarSection: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: SECTION_GAP,
   },
   avatarWrap: {
     position: 'relative',
@@ -504,7 +511,7 @@ const styles = StyleSheet.create({
     height: 104,
     borderRadius: 52,
     borderWidth: 2,
-    borderColor: '#F3EBE3',
+    borderColor: '#E8DDD0',
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -537,95 +544,129 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
   },
   avatarHint: {
-    marginTop: 12,
+    marginTop: 10,
     fontFamily: SANS,
-    fontSize: 11,
+    fontSize: 12,
+    lineHeight: 16,
     color: '#6A6158',
   },
   row: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 14,
+    alignItems: 'flex-start',
+    gap: GRID_GAP,
+    marginBottom: FIELD_GAP,
   },
-  col: { flex: 1, minWidth: 0 },
+  rowLast: {
+    marginBottom: 0,
+  },
+  fieldBlock: {
+    marginBottom: FIELD_GAP,
+  },
+  col: {
+    flex: 1,
+    minWidth: 0,
+  },
   label: {
     fontFamily: SANS,
     fontSize: 12,
+    lineHeight: 16,
     color: '#6A6158',
     marginBottom: 8,
   },
-  sectionGap: { marginTop: 8 },
+  sectionLabel: {
+    fontFamily: SANS,
+    fontSize: 12,
+    lineHeight: 16,
+    color: '#6A6158',
+    marginTop: 6,
+    marginBottom: 8,
+  },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#F3EBE3',
+    borderColor: '#E8DDD0',
     borderRadius: 12,
     paddingHorizontal: 12,
-    minHeight: 46,
+    height: CONTROL_H,
   },
-  inputReadonly: {
-    backgroundColor: '#FFFFFF',
+  inputIcon: {
+    marginRight: 8,
   },
-  inputIcon: { marginRight: 8 },
   input: {
     flex: 1,
+    height: CONTROL_H,
     fontFamily: SANS,
     fontSize: 13,
+    lineHeight: 18,
     color: '#13111C',
-    paddingVertical: 10,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    textAlignVertical: 'center',
+    includeFontPadding: false,
   },
   readonlyText: {
     flex: 1,
     fontFamily: SANS,
     fontSize: 13,
+    lineHeight: 18,
     color: '#13111C',
+    paddingRight: 6,
   },
   selectText: {
     flex: 1,
     fontFamily: SANS,
     fontSize: 13,
+    lineHeight: 18,
     color: '#13111C',
+    paddingRight: 6,
   },
   placeholder: { color: '#9E978F' },
   verifiedBadge: {
     backgroundColor: '#E7F6EC',
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginLeft: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
+    marginLeft: 4,
+    flexShrink: 0,
   },
   verifiedText: {
     fontFamily: SANS_SEMI,
     fontSize: 10,
+    lineHeight: 13,
     color: '#159947',
   },
   genderRow: {
     flexDirection: 'row',
-    flexWrap: 'nowrap',
-    justifyContent: 'space-between',
+    alignItems: 'stretch',
     gap: 6,
+    height: CONTROL_H,
   },
   genderOption: {
     flex: 1,
+    minWidth: 0,
+    height: CONTROL_H,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingHorizontal: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#F3EBE3',
+    borderColor: '#E8DDD0',
     backgroundColor: '#FFFFFF',
-    gap: 4,
+    gap: 3,
   },
   genderOptionActive: {
     backgroundColor: '#FDF7F2',
     borderColor: '#E8DDD0',
   },
   genderLabel: {
+    flexShrink: 1,
     fontFamily: SANS,
-    fontSize: 9,
+    fontSize: 12,
+    lineHeight: 16,
+    textAlign: 'center',
     color: '#6A6158',
   },
   genderLabelActive: {
@@ -635,21 +676,19 @@ const styles = StyleSheet.create({
   chipGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-    gap: 8,
+    gap: CHIP_GAP,
+    marginBottom: SECTION_GAP,
   },
   chip: {
-    width: '31%',
+    height: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
     gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#F3EBE3',
+    borderColor: '#E8DDD0',
     backgroundColor: '#FFFFFF',
   },
   chipSelected: {
@@ -658,7 +697,8 @@ const styles = StyleSheet.create({
   },
   chipLabel: {
     fontFamily: SANS,
-    fontSize: 10,
+    fontSize: 12,
+    lineHeight: 16,
     color: '#13111C',
     flexShrink: 1,
   },
@@ -669,30 +709,36 @@ const styles = StyleSheet.create({
   bioWrap: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#F3EBE3',
+    borderColor: '#E8DDD0',
     borderRadius: 12,
-    padding: 12,
-    minHeight: 110,
-    marginBottom: 0,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 8,
+    minHeight: 112,
   },
   bioInput: {
     fontFamily: SANS,
-    fontSize: 12,
-    color: '#13111C',
+    fontSize: 13,
     lineHeight: 18,
-    minHeight: 70,
+    color: '#13111C',
+    minHeight: 72,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    textAlignVertical: 'top',
+    includeFontPadding: false,
   },
   bioCount: {
     alignSelf: 'flex-end',
     fontFamily: SANS,
     fontSize: 10,
+    lineHeight: 13,
     color: '#9E978F',
-    marginTop: 4,
+    marginTop: 6,
   },
   actions: {
     flexDirection: 'row',
-    gap: 12,
-    paddingTop: 8,
+    alignItems: 'center',
+    gap: GRID_GAP,
   },
   cancelBtn: {
     flex: 1,
