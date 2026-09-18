@@ -41,7 +41,7 @@ export const markReadSchema = z.object({
 });
 
 export const sendToRoleSchema = z.object({
-  role: z.string().min(1),
+  role: z.enum(['USER', 'TOURIST', 'PARTNER', 'CREATOR', 'ADMIN', 'ALL']),
   title: z.string().min(1).max(200),
   body: z.string().max(500).optional(),
   data: z.record(z.string(), z.unknown()).optional(),

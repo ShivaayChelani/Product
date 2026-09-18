@@ -5,6 +5,15 @@ function csvSafe(val: unknown): string {
   return s.length > 0 && /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
 }
 
+/** End-of-day boundary for inclusive `to` filtering (date-only or full ISO). */
+function parseToBoundary(value: string | undefined): Date {
+  const now = new Date();
+  if (!value) return now;
+  const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
+  const parsed = new Date(isDateOnly ? `${value}T23:59:59.999Z` : value);
+  return Number.isNaN(parsed.getTime()) ? now : parsed;
+}
+
 export const reportsService = {
   async generateReport(params: {
     type: 'users' | 'vendors' | 'places' | 'revenue' | 'engagement';
@@ -15,7 +24,7 @@ export const reportsService = {
     format: 'json' | 'csv';
   }) {
     const fromDate = params.from ? new Date(params.from) : new Date(Date.now() - 30 * 86400000);
-    const toDate = params.to ? new Date(params.to + 'T23:59:59.999Z') : new Date();
+    const toDate = parseToBoundary(params.to);
 
     switch (params.type) {
       case 'users': {
@@ -43,7 +52,7 @@ export const reportsService = {
           const rows = data.map(r => `${r.id},${csvSafe(r.name).replace(/,/g,' ')},${r.email},${r.role},${r.checkIns},${r.reviews},${r.reels},${r.createdAt}`).join('\n');
           return header + rows;
         }
-        return data;
+        return { metrics: { total: data.length }, summary: `Users created between ${fromDate.toISOString()} and ${toDate.toISOString()}`, rows: data };
       }
 
       case 'vendors': {
@@ -68,7 +77,7 @@ export const reportsService = {
           const rows = data.map(r => `${r.id},${csvSafe(r.businessName).replace(/,/g,' ')},${r.email},${r.phone},${r.city},${r.state},${r.status},${csvSafe(r.category)},${r.offers},${r.reels},${r.createdAt}`).join('\n');
           return header + rows;
         }
-        return data;
+        return { metrics: { total: data.length }, summary: `Vendors with activity between ${fromDate.toISOString()} and ${toDate.toISOString()}`, rows: data };
       }
 
       case 'places': {
@@ -101,7 +110,7 @@ export const reportsService = {
           const rows = data.map(r => `${r.id},${csvSafe(r.name).replace(/,/g,' ')},${csvSafe(r.category)},${r.city},${r.state},${r.status},${r.source},${r.rating||''},${r.reviewCount},${r.checkIns},${r.reviews},${r.reels},${r.createdAt}`).join('\n');
           return header + rows;
         }
-        return data;
+        return { metrics: { total: data.length }, summary: `Places created between ${fromDate.toISOString()} and ${toDate.toISOString()}`, rows: data };
       }
 
       case 'revenue': {
@@ -109,25 +118,28 @@ export const reportsService = {
           where: { status: 'VERIFIED', createdAt: { gte: fromDate, lte: toDate } },
           select: {
             id: true, createdAt: true,
-            offer: { select: { title: true, discountValue: true } },
+            offer: { select: { title: true, discountValue: true, pointsRequired: true } },
             vendor: { select: { businessName: true, city: true, state: true } },
           },
           orderBy: { createdAt: 'desc' },
+          take: 5_000,
         });
 
         const data = redemptions.map(r => ({
           id: r.id, offer: r.offer?.title, value: r.offer?.discountValue,
+          pointsRequired: r.offer?.pointsRequired,
           vendor: r.vendor?.businessName,
           city: r.vendor?.city, state: r.vendor?.state,
           date: r.createdAt,
         }));
 
         if (params.format === 'csv') {
-          const header = 'ID,Offer,Value,Vendor,City,State,Date\n';
-          const rows = data.map(r => `${r.id},${csvSafe(r.offer).replace(/,/g,' ')},${r.value||0},${csvSafe(r.vendor).replace(/,/g,' ')},${r.city||''},${r.state||''},${r.date}`).join('\n');
+          const header = 'ID,Offer,Value,Points,Vendor,City,State,Date\n';
+          const rows = data.map(r => `${r.id},${csvSafe(r.offer).replace(/,/g,' ')},${r.value||0},${r.pointsRequired||0},${csvSafe(r.vendor).replace(/,/g,' ')},${r.city||''},${r.state||''},${r.date}`).join('\n');
           return header + rows;
         }
-        return data;
+        const totalPoints = data.reduce((sum, r) => sum + Number(r.pointsRequired || 0), 0);
+        return { metrics: { redemptions: data.length, pointsRedeemed: totalPoints }, summary: `Verified redemptions between ${fromDate.toISOString()} and ${toDate.toISOString()}`, rows: data };
       }
 
       case 'engagement': {
@@ -154,11 +166,21 @@ export const reportsService = {
           const rows = data.map(r => `${r.date},${r.views},${r.likes},${r.saves},${r.checkins}`).join('\n');
           return header + rows;
         }
-        return data;
+        return {
+          metrics: {
+            days: data.length,
+            views: data.reduce((s, r) => s + r.views, 0),
+            likes: data.reduce((s, r) => s + r.likes, 0),
+            saves: data.reduce((s, r) => s + r.saves, 0),
+            checkins: data.reduce((s, r) => s + r.checkins, 0),
+          },
+          summary: `Engagement between ${fromDate.toISOString()} and ${toDate.toISOString()}`,
+          rows: data,
+        };
       }
 
       default:
-        return [];
+        return { metrics: {}, summary: '', rows: [] };
     }
   },
 };

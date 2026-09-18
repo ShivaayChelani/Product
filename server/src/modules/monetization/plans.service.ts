@@ -226,16 +226,26 @@ export const plansService = {
 
     return prisma.$transaction(async (tx) => {
       if (input.prices) {
-        await tx.planPrice.deleteMany({ where: { planId: id } });
-        await tx.planPrice.createMany({
-          data: input.prices.map((p) => ({
-            planId: id,
-            period: p.period,
-            amountPaise: p.amountPaise,
-            currency: p.currency ?? 'INR',
-            isActive: p.isActive ?? true,
-          })),
-        });
+        // Merge semantics: only the submitted periods are created/updated.
+        // Unrelated existing periods (QUARTERLY / SEMIANNUAL / YEARLY / LIFETIME)
+        // are preserved — never wiped by a single-period edit.
+        for (const p of input.prices) {
+          await tx.planPrice.upsert({
+            where: { planId_period: { planId: id, period: p.period } },
+            create: {
+              planId: id,
+              period: p.period,
+              amountPaise: p.amountPaise,
+              currency: p.currency ?? 'INR',
+              isActive: p.isActive ?? true,
+            },
+            update: {
+              amountPaise: p.amountPaise,
+              currency: p.currency ?? 'INR',
+              isActive: p.isActive ?? true,
+            },
+          });
+        }
       }
 
       const updated = await tx.subscriptionPlan.update({

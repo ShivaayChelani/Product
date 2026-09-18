@@ -1,8 +1,17 @@
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/ApiError';
 import crypto from 'crypto';
+import type { ClaimStatus } from '@prisma/client';
 import type { CreateCampaignInput, UpdateCampaignInput, CampaignQueryInput } from './campaigns.validation';
 import { publicActiveCampaignsWhere } from './campaign-eligibility';
+
+const ALLOWED_CLAIM_TRANSITIONS: Record<ClaimStatus, ClaimStatus[]> = {
+  PENDING: ['APPROVED', 'REJECTED'],
+  APPROVED: ['SHIPPED', 'REJECTED'],
+  SHIPPED: ['DELIVERED', 'REJECTED'],
+  REJECTED: [],
+  DELIVERED: [],
+};
 
 export const campaignsService = {
   async listCampaigns(query: CampaignQueryInput) {
@@ -57,7 +66,10 @@ export const campaignsService = {
   },
 
   async createCampaign(input: CreateCampaignInput) {
-    const slots = input.totalWinnerSlots && input.totalWinnerSlots > 0 ? input.totalWinnerSlots : 1;
+    if (!input.totalWinnerSlots || input.totalWinnerSlots < 1) {
+      throw new ApiError(400, 'Total winner slots must be at least 1');
+    }
+    const slots = input.totalWinnerSlots;
     return prisma.rewardCampaign.create({
       data: {
         ...input,
@@ -71,6 +83,10 @@ export const campaignsService = {
   async updateCampaign(id: string, input: UpdateCampaignInput) {
     const existing = await prisma.rewardCampaign.findUnique({ where: { id } });
     if (!existing) throw new ApiError(404, 'Campaign not found');
+
+    if (input.totalWinnerSlots !== undefined && input.totalWinnerSlots < 1) {
+      throw new ApiError(400, 'Total winner slots must be at least 1');
+    }
 
     const dataToUpdate: Record<string, unknown> = { ...input };
 
@@ -88,10 +104,6 @@ export const campaignsService = {
       dataToUpdate.remainingWinnerSlots = Math.max(0, nextTotal - claimed);
     }
 
-    if (input.totalWinnerSlots !== undefined && input.totalWinnerSlots < 1) {
-      throw new ApiError(400, 'Total winner slots must be at least 1');
-    }
-
     return prisma.rewardCampaign.update({
       where: { id },
       data: dataToUpdate,
@@ -99,9 +111,19 @@ export const campaignsService = {
   },
 
   async deleteCampaign(id: string) {
-    const existing = await prisma.rewardCampaign.findUnique({ where: { id } });
+    const existing = await prisma.rewardCampaign.findUnique({
+      where: { id },
+      select: { id: true, status: true, _count: { select: { claims: true } } },
+    });
     if (!existing) throw new ApiError(404, 'Campaign not found');
-    
+
+    if (existing._count.claims > 0) {
+      throw new ApiError(
+        409,
+        'Campaign has claims and cannot be deleted. Reject or settle claims first, or deactivate the campaign instead.',
+      );
+    }
+
     await prisma.rewardCampaign.delete({ where: { id } });
   },
 
@@ -253,17 +275,77 @@ export const campaignsService = {
       pagination: {
         page, limit, total,
         totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1,
       },
     };
   },
 
-  async updateClaimStatus(claimId: string, status: any) {
-    const existing = await prisma.rewardClaim.findUnique({ where: { id: claimId } });
-    if (!existing) throw new ApiError(404, 'Claim not found');
+  async updateClaimStatus(claimId: string, status: ClaimStatus) {
+    return prisma.$transaction(async (tx) => {
+      // Lock the claim row so concurrent admin actions serialize (blocks double refunds).
+      const locked = await tx.$queryRaw<Array<{
+        id: string;
+        status: ClaimStatus;
+        points_spent: number;
+        campaign_id: string;
+        user_id: string;
+      }>>`
+        SELECT id, status, points_spent, campaign_id, user_id
+        FROM "reward_claims"
+        WHERE id = ${claimId}
+        FOR UPDATE
+      `;
 
-    return prisma.rewardClaim.update({
-      where: { id: claimId },
-      data: { status },
+      if (!locked.length) throw new ApiError(404, 'Claim not found');
+      const claimRow = locked[0];
+
+      const allowed = ALLOWED_CLAIM_TRANSITIONS[claimRow.status] ?? [];
+      if (!allowed.includes(status)) {
+        throw new ApiError(400, `Invalid status transition from ${claimRow.status} to ${status}`);
+      }
+
+      if (status === 'REJECTED') {
+        // Atomic financial reversal matching the redemption refund pattern:
+        // refund points, reverse lifetimeSpent, restore the winner slot, and record
+        // an EARN entry so the ledger stays balanced. REJECTED is terminal.
+        const points = claimRow.points_spent;
+        const userWallet = await tx.wallet.findUnique({ where: { userId: claimRow.user_id } });
+        if (userWallet) {
+          await tx.wallet.update({
+            where: { userId: claimRow.user_id },
+            data: {
+              palPoints: { increment: points },
+              lifetimeSpent: Math.max(0, (userWallet.lifetimeSpent || 0) - points),
+            },
+          });
+          await tx.walletTransaction.create({
+            data: {
+              walletId: userWallet.id,
+              userId: claimRow.user_id,
+              amount: points,
+              type: 'EARN',
+              reason: `campaign_claim_refund:${claimId}`,
+              referenceId: claimRow.campaign_id,
+              referenceType: 'CAMPAIGN',
+            },
+          });
+        }
+
+        await tx.rewardCampaign.updateMany({
+          where: { id: claimRow.campaign_id },
+          data: { remainingWinnerSlots: { increment: 1 } },
+        });
+      }
+
+      return tx.rewardClaim.update({
+        where: { id: claimId },
+        data: { status },
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+          campaign: { select: { id: true, name: true, imageUrl: true } },
+        },
+      });
     });
   }
 };

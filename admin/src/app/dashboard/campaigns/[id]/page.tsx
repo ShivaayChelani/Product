@@ -11,6 +11,10 @@ export default function CampaignDetailsPage({ params }: { params: Promise<{ id: 
   const resolvedParams = use(params);
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [claims, setClaims] = useState<CampaignClaim[]>([]);
+  const [claimPage, setClaimPage] = useState(1);
+  const [claimHasNext, setClaimHasNext] = useState(false);
+  const [claimHasPrev, setClaimHasPrev] = useState(false);
+  const [claimTotal, setClaimTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -30,20 +34,33 @@ export default function CampaignDetailsPage({ params }: { params: Promise<{ id: 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { notify } = useNotification();
 
+  // Mirrors server ALLOWED_CLAIM_TRANSITIONS: the backend rejects invalid moves,
+  // so only offer moves the state machine permits (REJECTED/DELIVERED are terminal).
+  const ALLOWED_CLAIM_TRANSITIONS: Record<string, string[]> = {
+    PENDING: ["APPROVED", "REJECTED"],
+    APPROVED: ["SHIPPED", "REJECTED"],
+    SHIPPED: ["DELIVERED", "REJECTED"],
+    REJECTED: [],
+    DELIVERED: [],
+  };
+
   const fetchData = useCallback(async () => {
     try {
       const [campRes, claimsRes] = await Promise.all([
         getCampaignById(resolvedParams.id),
-        getClaims({ campaignId: resolvedParams.id }),
+        getClaims({ campaignId: resolvedParams.id, page: claimPage, limit: 25 }),
       ]);
       setCampaign(campRes.data);
       setClaims(claimsRes.data);
+      setClaimHasNext(claimsRes.pagination?.hasNext ?? false);
+      setClaimHasPrev(claimsRes.pagination?.hasPrev ?? false);
+      setClaimTotal(claimsRes.pagination?.total ?? claimsRes.data?.length ?? 0);
     } catch {
       notify("error", "Failed to load campaign details");
     } finally {
       setLoading(false);
     }
-  }, [resolvedParams.id, notify]);
+  }, [resolvedParams.id, claimPage, notify]);
 
   useEffect(() => {
     void fetchData();
@@ -377,7 +394,7 @@ export default function CampaignDetailsPage({ params }: { params: Promise<{ id: 
         <div className="col-span-2 space-y-6">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-              <h3 className="font-semibold text-gray-900">Claims ({claims.length})</h3>
+              <h3 className="font-semibold text-gray-900">Claims ({claimTotal > 0 ? claimTotal.toLocaleString() : claims.length})</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
@@ -412,17 +429,20 @@ export default function CampaignDetailsPage({ params }: { params: Promise<{ id: 
                         {new Date(claim.claimedAt || claim.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <select
-                          value={claim.status}
-                          onChange={(e) => handleStatusChange(claim.id, e.target.value)}
-                          className="text-sm border rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500"
-                        >
-                          <option value="PENDING">PENDING</option>
-                          <option value="APPROVED">APPROVED</option>
-                          <option value="REJECTED">REJECTED</option>
-                          <option value="SHIPPED">SHIPPED</option>
-                          <option value="DELIVERED">DELIVERED</option>
-                        </select>
+                        {ALLOWED_CLAIM_TRANSITIONS[claim.status]?.length ? (
+                          <select
+                            value={claim.status}
+                            onChange={(e) => handleStatusChange(claim.id, e.target.value)}
+                            className="text-sm border rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500"
+                          >
+                            <option value={claim.status}>{claim.status}</option>
+                            {ALLOWED_CLAIM_TRANSITIONS[claim.status].map((next) => (
+                              <option key={next} value={next}>{next}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="text-xs text-gray-400">{claim.status} (final)</span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -436,6 +456,31 @@ export default function CampaignDetailsPage({ params }: { params: Promise<{ id: 
                 </tbody>
               </table>
             </div>
+            {claimTotal > 25 && (
+              <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
+                <span className="text-xs text-gray-500">
+                  Page {claimPage} of {Math.max(1, Math.ceil(claimTotal / 25))}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={!claimHasPrev}
+                    onClick={() => setClaimPage((p) => Math.max(1, p - 1))}
+                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!claimHasNext}
+                    onClick={() => setClaimPage((p) => p + 1)}
+                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -1,7 +1,8 @@
 import { z } from 'zod';
+import { cuidSchema } from '../../shared/utils/cuidSchema';
 
 export const earnPointsSchema = z.object({
-  userId: z.string().uuid('Target userId is required'),
+  userId: cuidSchema.describe('Target userId is a cuid'),
   amount: z.number().int().positive(),
   reason: z.string().min(1),
   referenceId: z.string().optional(),
@@ -37,7 +38,7 @@ export const walletBatchQuerySchema = z.object({
     )
     .refine((ids) => ids.length > 0, 'At least one userId is required')
     .refine((ids) => ids.length <= 100, 'Maximum 100 userIds per request')
-    .refine((ids) => ids.every((id) => z.string().uuid().safeParse(id).success), 'All userIds must be valid UUIDs'),
+    .refine((ids) => ids.every((id) => cuidSchema.safeParse(id).success), 'All userIds must be valid cuid ids'),
 });
 
 export type EarnPointsInput = z.infer<typeof earnPointsSchema>;

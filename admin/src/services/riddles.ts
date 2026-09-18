@@ -65,6 +65,7 @@ export async function getHunts(params?: {
   page?: number;
   limit?: number;
   city?: string;
+  status?: string;
 }) {
   const res = await client.get("/admin/riddles/hunts", { params });
   return res.data;
@@ -75,6 +76,9 @@ export async function getRiddles(params?: {
   limit?: number;
   city?: string;
   search?: string;
+  status?: string;
+  huntId?: string;
+  rewardMin?: number;
 }) {
   const res = await client.get("/admin/riddles/riddles", { params });
   return res.data;

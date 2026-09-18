@@ -83,8 +83,11 @@ export const analyticsService = {
         WHERE r.status = 'VERIFIED'
         GROUP BY vo.category ORDER BY count DESC
       `, []),
-      safeQuery(() => prisma.$queryRaw<{ city: string; users: bigint }[]>`
-        SELECT COALESCE(p.city, 'Unknown') as city, COUNT(DISTINCT c.user_id)::int as users
+      safeQuery(() => prisma.$queryRaw<{ city: string; users: bigint; users_last30: bigint; users_prev30: bigint }[]>`
+        SELECT COALESCE(p.city, 'Unknown') as city,
+          COUNT(DISTINCT c.user_id) FILTER (WHERE c.created_at >= ${thirtyDaysAgo})::int as users_last30,
+          COUNT(DISTINCT c.user_id) FILTER (WHERE c.created_at >= ${sixtyDaysAgo} AND c.created_at < ${thirtyDaysAgo})::int as users_prev30,
+          COUNT(DISTINCT c.user_id)::int as users
         FROM check_ins c JOIN places p ON c.place_id = p.id
         GROUP BY p.city ORDER BY users DESC LIMIT 5
       `, []),
@@ -121,9 +124,18 @@ export const analyticsService = {
           name: r.category || 'Other', value: Number(r.count),
         })),
       },
-      cityAnalytics: (cityAnalyticsRaw as any[]).map((r: any) => ({
-        city: r.city || 'Unknown', users: Number(r.users),
-      })),
+      cityAnalytics: (cityAnalyticsRaw as any[]).map((r: any): any => {
+        const cur = Number(r.users_last30 ?? 0);
+        const prev = Number(r.users_prev30 ?? 0);
+        let growth = 0;
+        if (prev > 0) growth = Math.round(((cur - prev) / prev) * 100);
+        else if (cur > 0) growth = 100;
+        return {
+          city: r.city || 'Unknown',
+          users: Number(r.users),
+          growth,
+        };
+      }),
       pendingApprovals: {
         hiddenGems: kpis.cnt || 0,
         vendors: kpis.pending || 0,

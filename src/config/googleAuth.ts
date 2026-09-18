@@ -9,13 +9,15 @@ export const GOOGLE_WEB_CLIENT_ID =
   '27219212015-kocrm1ig6vs0nkar7mjjial0gctbd1nj.apps.googleusercontent.com';
 
 /**
- * Optional iOS OAuth client ID. Set when an iOS client exists in Google Cloud.
- * Do not put a client secret here.
+ * iOS OAuth client ID (from GoogleService-Info.plist CLIENT_ID).
+ * This is the dedicated iOS OAuth client registered in Firebase/Google Cloud.
+ * Required for the native iOS Google Sign-In flow to use the correct client.
  */
-export const GOOGLE_IOS_CLIENT_ID: string | undefined = undefined;
+export const GOOGLE_IOS_CLIENT_ID =
+  '27219212015-g0fhqdou0dhmh342pae2k9tm0bq2d6i9.apps.googleusercontent.com';
 
 export const GOOGLE_REVERSED_WEB_CLIENT_ID =
-  'com.googleusercontent.apps.27219212015-kocrm1ig6vs0nkar7mjjial0gctbd1nj';
+  'com.googleusercontent.apps.27219212015-g0fhqdou0dhmh342pae2k9tm0bq2d6i9';
 
 let configured = false;
 let configureAttempted = false;

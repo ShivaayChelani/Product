@@ -359,7 +359,13 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-gray-500">{city.users.toLocaleString()} Users</span>
-                  <span className="text-xs font-bold text-emerald-500 w-10 text-right">↑ {city.growth}%</span>
+                  {typeof city.growth === "number" ? (
+                    <span className={`text-xs font-bold w-10 text-right ${city.growth >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                      {city.growth >= 0 ? "↑" : "↓"} {Math.abs(city.growth)}%
+                    </span>
+                  ) : (
+                    <span className="text-xs font-bold w-10 text-right text-gray-400">—</span>
+                  )}
                 </div>
               </div>
             ))}

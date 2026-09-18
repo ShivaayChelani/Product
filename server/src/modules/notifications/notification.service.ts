@@ -10,6 +10,10 @@ import {
   type UserNotificationSettings,
 } from '../user-app/user-app.types';
 import { notificationCategoryWhere, notificationSearchWhere } from './notificationCategoryFilter';
+import {
+  resolveNotificationTargetRole,
+  NOTIFICATION_TARGET_ROLES,
+} from '../../shared/utils/notificationTargets';
 
 const PERMANENT_FCM_ERRORS = new Set([
   'messaging/invalid-registration-token',
@@ -492,12 +496,18 @@ export const notificationService = {
 
   // ── Admin: Send targeted notifications ──
   async sendToRole(role: string, title: string, body?: string, data?: Record<string, unknown>, type: string = 'admin') {
-    const normalized = String(role || '').toUpperCase();
-    // 'ADMIN' targets all dashboard admin capabilities (not only legacy permission=ADMIN).
+    const mapped = resolveNotificationTargetRole(role);
+
+    if (!NOTIFICATION_TARGET_ROLES.includes(mapped)) {
+      throw new ApiError(400, `Invalid target role "${role}". Use: USER, TOURIST, VENDOR/PARTNER, CREATOR, ADMIN, or ALL`);
+    }
+
     const permissions: Role[] =
-      normalized === 'ADMIN' || normalized === 'SUPER_ADMIN'
+      mapped === 'ADMIN' || mapped === 'SUPER_ADMIN'
         ? [...ADMIN_ROLES]
-        : [normalized as Role];
+        : mapped === 'ALL'
+          ? ['USER', 'VENDOR', 'CONTENT_CREATOR', 'ADMIN', 'SUPER_ADMIN']
+          : [mapped as Role];
 
     const users = await prisma.user.findMany({
       where: {

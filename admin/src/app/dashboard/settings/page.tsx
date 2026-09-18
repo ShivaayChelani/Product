@@ -51,6 +51,7 @@ export default function SettingsPage() {
   const [categories, setCategories] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('');
   const [canResetDefaults, setCanResetDefaults] = useState(false);
+  const [canMutate, setCanMutate] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -88,7 +89,9 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const role = getAdminRoleFromStorage() as AdminRole | null;
-    setCanResetDefaults(role === "SUPER_ADMIN" || role === "ADMIN" || role === "OPS_ADMIN");
+    const platformOps = role === "SUPER_ADMIN" || role === "ADMIN" || role === "OPS_ADMIN";
+    setCanResetDefaults(platformOps);
+    setCanMutate(platformOps);
   }, []);
 
   const filteredSettings = settings.filter(s => s.category === activeCategory);
@@ -158,18 +161,23 @@ export default function SettingsPage() {
 
     if (s.type === 'boolean') {
       return (
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input type="checkbox" checked={!!val} onChange={e => handleValueChange(s.key, e.target.checked)}
-            className="sr-only peer" />
-          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600" />
-        </label>
+        <button
+          type="button"
+          onClick={() => canMutate && handleValueChange(s.key, !val)}
+          disabled={!canMutate}
+          aria-pressed={!!val}
+          className={`relative inline-flex w-9 h-5 items-center rounded-full transition-colors ${val ? 'bg-blue-600' : 'bg-gray-200'} ${canMutate ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+        >
+          <span className={`inline-block w-4 h-4 transform rounded-full bg-white transition-transform ${val ? 'translate-x-5' : 'translate-x-0.5'}`} />
+        </button>
       );
     }
 
     if (s.type === 'select') {
       return (
         <select value={String(val)} onChange={e => handleValueChange(s.key, e.target.value)}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500">
+          disabled={!canMutate}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500">
           {['daily', 'weekly', 'monthly'].map(opt => (
             <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>
           ))}
@@ -181,7 +189,8 @@ export default function SettingsPage() {
       return (
         <div className="relative">
           <input type="number" value={val ?? ''} onChange={e => handleValueChange(s.key, e.target.value === '' ? '' : Number(e.target.value))}
-            className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
+            disabled={!canMutate}
+            className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500" />
         </div>
       );
     }
@@ -192,18 +201,22 @@ export default function SettingsPage() {
         <div className="relative">
           <input type={show ? 'text' : 'password'} value={String(val ?? '')}
             onChange={e => handleValueChange(s.key, e.target.value)}
-            className="w-64 rounded-lg border border-gray-300 px-3 py-2 pr-8 text-sm outline-none focus:border-blue-500" />
-          <button onClick={() => setShowValues(prev => ({ ...prev, [s.key]: !show }))}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-            {show ? <EyeOff size={14} /> : <Eye size={14} />}
-          </button>
+            disabled={!canMutate}
+            className="w-64 rounded-lg border border-gray-300 px-3 py-2 pr-8 text-sm outline-none focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500" />
+          {canMutate && (
+            <button onClick={() => setShowValues(prev => ({ ...prev, [s.key]: !show }))}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              {show ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+          )}
         </div>
       );
     }
 
     return (
       <input type="text" value={String(val ?? '')} onChange={e => handleValueChange(s.key, e.target.value)}
-        className="w-64 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
+        disabled={!canMutate}
+        className="w-64 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500" />
     );
   };
 

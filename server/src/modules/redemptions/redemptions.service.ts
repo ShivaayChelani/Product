@@ -1,6 +1,7 @@
 import { Role, VendorSubscriptionStatus, type VendorStatus } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/ApiError';
+import { pointsToRupees } from '../../shared/utils/palPoints';
 import { generateReceiptNumber } from '../../shared/services/receipt.service';
 import { eventBus, AppEvents } from '../../config/events';
 import {
@@ -328,7 +329,7 @@ export const redemptionsService = {
       });
 
       const receiptNumber = await generateReceiptNumber(tx);
-      const pointValue = (points * 0.5).toFixed(0);
+      const pointValue = String(pointsToRupees(points));
 
       const redemption = await tx.redemption.create({
         data: {

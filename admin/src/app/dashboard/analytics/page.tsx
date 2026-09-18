@@ -96,7 +96,7 @@ export default function AnalyticsPage() {
   }, [overview, growth, userSeries]);
 
 const topCities = useMemo(
-  () => (cities?.cityVisitors || overview?.cityAnalytics || []).slice(0, 10),
+    () => (cities?.cityVisitors || overview?.cityAnalytics || (Array.isArray(cities) ? cities : [])).slice(0, 10),
     [cities, overview],
   );
 
@@ -243,7 +243,7 @@ const topCities = useMemo(
                     <XAxis dataKey="city" tick={{ fontSize: 10 }} />
                     <YAxis tick={{ fontSize: 10 }} />
                     <Tooltip />
-                    <Bar dataKey="visitors" fill="#8B5CF6" name="Visitors" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="users" fill="#8B5CF6" name="Users" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -294,9 +294,21 @@ const topCities = useMemo(
               </h2>
               <div className="max-h-64 space-y-2 overflow-y-auto custom-scrollbar">
                 {topCities.map((c: any) => (
-                  <div key={`${c.city}-${c.state ?? ""}`} className="flex justify-between text-sm">
-                    <span>{c.city}</span>
-                    <span className="font-medium tabular-nums">{Number(c.visitors || c.users || 0).toLocaleString()}</span>
+                  <div key={`${c.city}-${c.state ?? ""}`} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="truncate">{c.city}</span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      {c.growth != null ? (
+                        <span
+                          className={`inline-flex items-center gap-1 text-xs font-semibold ${
+                            c.growth > 0 ? "text-emerald-600" : c.growth < 0 ? "text-red-600" : "text-muted-foreground"
+                          }`}
+                          title="User growth vs previous 30 days"
+                        >
+                          {c.growth > 0 ? "↑" : c.growth < 0 ? "↓" : "→"} {Math.abs(Number(c.growth)).toLocaleString()}%
+                        </span>
+                      ) : null}
+                      <span className="font-medium tabular-nums">{Number(c.users ?? c.visitors ?? 0).toLocaleString()}</span>
+                    </span>
                   </div>
                 ))}
               </div>

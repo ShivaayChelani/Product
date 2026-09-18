@@ -20,6 +20,7 @@ import Drawer from "@/components/ui/Drawer";
 import EmptyState from "@/components/ui/EmptyState";
 import type { User, UserCreatorApplication, UserVendorApplication, SingleResponse, AppRole } from "@/types";
 import { isAdminDashboardUser } from "@/lib/adminRoles";
+import { getAdminRoleFromStorage } from "@/lib/permissions";
 
 function isVendorAccount(user: User): boolean {
   if (user.permission === "VENDOR") return true;
@@ -249,6 +250,19 @@ export default function UsersPage() {
   }>({ open: false, title: "", message: "", variant: "primary", action: async () => {} });
 
   const [grantTarget, setGrantTarget] = useState<{ id: string; name: string; targetRole?: string } | null>(null);
+
+  // Server gates: user role/delete = requirePlatformOps (ADMIN/SUPER_ADMIN/OPS_ADMIN);
+  // subscription grant = requireFinanceOps (+FINANCE_MANAGER). Mirrored here so the
+  // UI hides controls the backend will 403 on.
+  const [viewerCapabilities, setViewerCapabilities] = useState({ platformOps: false, financeOps: false });
+
+  useEffect(() => {
+    const role = getAdminRoleFromStorage();
+    setViewerCapabilities({
+      platformOps: role === "ADMIN" || role === "SUPER_ADMIN" || role === "OPS_ADMIN",
+      financeOps: role === "ADMIN" || role === "SUPER_ADMIN" || role === "OPS_ADMIN" || role === "FINANCE_MANAGER",
+    });
+  }, []);
 
   useEffect(() => {
     try {
@@ -630,7 +644,7 @@ export default function UsersPage() {
                   [user.id]: e.target.value as GrantTarget,
                 }))
               }
-              disabled={busyId === user.id || roleLocked}
+              disabled={busyId === user.id || roleLocked || !viewerCapabilities.platformOps}
               className="rounded-lg border border-gray-300 px-2 py-1.5 text-xs font-medium outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:opacity-60"
             >
               <option value="USER">User</option>
@@ -648,8 +662,8 @@ export default function UsersPage() {
         const user = item as User;
         const busy = busyId === user.id;
         const isAdminUser = isAdminDashboardUser(user);
-        const canAct = !isSelf(user) && !isAdminUser && needsRoleAttention(user);
-        const canDelete = !isSelf(user) && !isAdminUser;
+        const canAct = !isSelf(user) && !isAdminUser && needsRoleAttention(user) && viewerCapabilities.platformOps;
+        const canDelete = !isSelf(user) && !isAdminUser && viewerCapabilities.platformOps;
         return (
           <div className="flex items-center gap-1">
             <button
@@ -660,7 +674,7 @@ export default function UsersPage() {
             >
               <Eye size={16} />
             </button>
-            {!isSelf(user) && !isAdminUser && isVendorAccount(user) ? (
+            {!isSelf(user) && !isAdminUser && isVendorAccount(user) && viewerCapabilities.financeOps ? (
               <button
                 type="button"
                 onClick={() => setGrantTarget({ id: user.id, name: user.name || user.email, targetRole: user.permission })}
@@ -708,7 +722,7 @@ export default function UsersPage() {
         );
       },
     },
-  ], [busyId, handleApprove, handleDelete, handleReject, isSelf, openUserDetail, selectedGrant]);
+  ], [busyId, handleApprove, handleDelete, handleReject, isSelf, openUserDetail, selectedGrant, viewerCapabilities]);
 
   return (
     <div className="animate-fade-in">
@@ -792,9 +806,11 @@ export default function UsersPage() {
           selectedIds.size > 0 ? (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm text-muted-foreground">{selectedIds.size} selected</span>
-              <button type="button" disabled={bulkLoading} onClick={handleBulkDelete} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50">
-                Bulk Delete
-              </button>
+              {viewerCapabilities.platformOps && (
+                <button type="button" disabled={bulkLoading} onClick={handleBulkDelete} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50">
+                  Bulk Delete
+                </button>
+              )}
               <button type="button" onClick={() => setSelectedIds(new Set())} className="text-xs text-muted-foreground">
                 Clear
               </button>
@@ -868,7 +884,7 @@ export default function UsersPage() {
             )}
 
             <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
-              {!isSelf(detailUser) && !isAdminDashboardUser(detailUser) && isVendorAccount(detailUser) ? (
+              {!isSelf(detailUser) && !isAdminDashboardUser(detailUser) && isVendorAccount(detailUser) && viewerCapabilities.financeOps ? (
                 <button
                   type="button"
                   onClick={() => {
@@ -881,7 +897,7 @@ export default function UsersPage() {
                   Grant Subscription
                 </button>
               ) : null}
-              {!isSelf(detailUser) && !isAdminDashboardUser(detailUser) && needsRoleAttention(detailUser) ? (
+              {!isSelf(detailUser) && !isAdminDashboardUser(detailUser) && needsRoleAttention(detailUser) && viewerCapabilities.platformOps ? (
                 <>
                   <button type="button" onClick={() => { const u = detailUser; setDetailUser(null); handleReject(u); }} className="admin-btn-secondary text-red-700">
                     Reject
@@ -895,7 +911,7 @@ export default function UsersPage() {
                   Close
                 </button>
               )}
-              {!isSelf(detailUser) && !isAdminDashboardUser(detailUser) ? (
+              {!isSelf(detailUser) && !isAdminDashboardUser(detailUser) && viewerCapabilities.platformOps ? (
                 <button type="button" onClick={() => { const u = detailUser; setDetailUser(null); handleDelete(u); }} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
                   Delete User
                 </button>

@@ -1649,6 +1649,33 @@ model RewardClaim {
   @@map("reward_claims")
 }
 
+/// Durable record of a unified-moderation decision (approve/reject/escalate/assign).
+/// Created additive by migration 20260918120000_add_moderation_cases; code degrades
+/// gracefully to the derived-only queue until the migration is applied.
+model ModerationCase {
+  id                     String   @id @default(cuid())
+  caseIdentifier         String   @unique @map("case_identifier")
+  caseType               String   @map("case_type")
+  entityId               String   @map("entity_id")
+  entityName             String?  @map("entity_name")
+  reporterId             String?  @map("reporter_id")
+  reporterName           String?  @map("reporter_name")
+  reason                 String?
+  severity               String?
+  priority               String?
+  status                 String   @default("PENDING") @map("status")
+  assignedModeratorId    String?  @map("assigned_moderator_id")
+  assignedModeratorName  String?  @map("assigned_moderator_name")
+  resolutionNotes        String?  @map("resolution_notes")
+  resolvedAt             DateTime? @map("resolved_at")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([caseType])
+  @@map("moderation_cases")
+}
+
 model Challenge {
   id               String                @id @default(cuid())
   title            String
@@ -1994,14 +2021,11 @@ model AdConfiguration {
   key                         String   @unique @default("default")
   adsEnabled                  Boolean  @default(true) @map("ads_enabled")
   killSwitch                  Boolean  @default(false) @map("kill_switch")
-  bannerEnabled               Boolean  @default(true) @map("banner_enabled")
   interstitialEnabled         Boolean  @default(true) @map("interstitial_enabled")
   rewardedEnabled             Boolean  @default(true) @map("rewarded_enabled")
   nativeEnabled               Boolean  @default(true) @map("native_enabled")
   interstitialCooldownSec     Int      @default(120) @map("interstitial_cooldown_sec")
   rewardedPoints              Int      @default(10) @map("rewarded_points")
-  bannerAdUnitIdAndroid       String?  @map("banner_ad_unit_id_android")
-  bannerAdUnitIdIos           String?  @map("banner_ad_unit_id_ios")
   interstitialAdUnitIdAndroid String?  @map("interstitial_ad_unit_id_android")
   interstitialAdUnitIdIos     String?  @map("interstitial_ad_unit_id_ios")
   rewardedAdUnitIdAndroid     String?  @map("rewarded_ad_unit_id_android")

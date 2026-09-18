@@ -1,0 +1,19 @@
+diff --git a/node_modules/react-native/ReactCommon/jsinspector-modern/HostTarget.cpp b/node_modules/react-native/ReactCommon/jsinspector-modern/HostTarget.cpp
+index 245a474..3999b3b 100644
+--- a/node_modules/react-native/ReactCommon/jsinspector-modern/HostTarget.cpp
++++ b/node_modules/react-native/ReactCommon/jsinspector-modern/HostTarget.cpp
+@@ -183,7 +183,13 @@ HostTarget::~HostTarget() {
+ HostTargetDelegate::~HostTargetDelegate() {}
+ 
+ InstanceTarget& HostTarget::registerInstance(InstanceTargetDelegate& delegate) {
+-  assert(!currentInstance_ && "Only one instance allowed");
++  if (currentInstance_) {
++    // Recover from lifecycle races where a new ReactInstance registers before the
++    // previous instance has been unregistered (Android Fusebox / jsinspector).
++    sessions_.forEach(
++        [](HostTargetSession& session) { session.setCurrentInstance(nullptr); });
++    currentInstance_.reset();
++  }
+   currentInstance_ = InstanceTarget::create(
+       executionContextManager_, delegate, makeVoidExecutor(executorFromThis()));
+   sessions_.forEach(

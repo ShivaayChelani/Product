@@ -30,7 +30,8 @@ const ROLE_ROUTE_PREFIXES: Record<AdminRole, string[]> = {
   ],
   FINANCE_MANAGER: [
     "/dashboard", "/dashboard/wallets", "/dashboard/palpoints", "/dashboard/rewards",
-    "/dashboard/monetization", "/dashboard/reports", "/dashboard/analytics", "/dashboard/redemptions", "/dashboard/fraud-detection",
+    "/dashboard/monetization", "/dashboard/reports", "/dashboard/analytics", "/dashboard/redemptions",
+    "/dashboard/fraud-detection", "/dashboard/point-rules",
   ],
   SUPPORT_AGENT: [
     "/dashboard", "/dashboard/users", "/dashboard/vendors", "/dashboard/creators",

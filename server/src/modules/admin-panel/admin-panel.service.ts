@@ -611,6 +611,51 @@ export const adminPanelService = {
       });
     }
 
+    // Merge durable moderation cases so decisions (assign/escalate/resolve/reject)
+    // survive reloads and can be reviewed historically once the migration is applied.
+    try {
+      const persisted = await prisma.moderationCase.findMany({ orderBy: { updatedAt: 'desc' }, take: 500 });
+      if (persisted.length) {
+        const caseById = new Map(persisted.map((c) => [c.caseIdentifier, c]));
+        for (const inc of incidents) {
+          const c = caseById.get(inc.id);
+          if (c && c.status !== 'PENDING') {
+            inc.status = c.status;
+            inc.updatedAt = c.updatedAt.toISOString();
+            if (c.resolutionNotes) inc.resolutionNotes = c.resolutionNotes;
+            if (c.resolvedAt) inc.resolvedAt = c.resolvedAt.toISOString();
+            if (c.assignedModeratorName) {
+              inc.assignedModerator = { id: c.assignedModeratorId || '', name: c.assignedModeratorName };
+            }
+          }
+        }
+        // Historical items that are no longer derived from a live pending row.
+        for (const c of persisted) {
+          if (!incidents.some((i) => i.id === c.caseIdentifier)) {
+            incidents.push({
+              id: c.caseIdentifier,
+              contentType: c.caseType,
+              entityId: c.entityId,
+              entityName: c.entityName || c.caseType,
+              reporter: c.reporterName ? { id: c.reporterId || 'system', name: c.reporterName, avatar: null } : { id: 'system', name: 'System', avatar: null },
+              reason: c.reason || '',
+              severity: c.severity || 'MEDIUM',
+              priority: c.priority || 'P2',
+              status: c.status,
+              createdAt: c.createdAt.toISOString(),
+              updatedAt: c.updatedAt.toISOString(),
+              slaBreached: false,
+              resolutionNotes: c.resolutionNotes || undefined,
+              resolvedAt: c.resolvedAt?.toISOString() || undefined,
+              assignedModerator: c.assignedModeratorName ? { id: c.assignedModeratorId || '', name: c.assignedModeratorName } : undefined,
+            });
+          }
+        }
+      }
+    } catch {
+      // Persistence unavailable until 20260918120000_add_moderation_cases is applied.
+    }
+
     let filtered = incidents;
     if (status) filtered = filtered.filter((i) => i.status === status);
     if (contentType) filtered = filtered.filter((i) => i.contentType === contentType);
@@ -634,6 +679,21 @@ export const adminPanelService = {
     const incidents = await this.listIncidents({ limit: 500 });
     const found = incidents.data.find((i: any) => i.id === id);
     if (!found) throw new ApiError(404, 'Incident not found');
+    // Overlay any durable case fields not carried through the derived list.
+    try {
+      const c = await prisma.moderationCase.findUnique({ where: { caseIdentifier: id } });
+      if (c) {
+        found.status = c.status;
+        found.updatedAt = c.updatedAt.toISOString();
+        if (c.resolutionNotes) found.resolutionNotes = c.resolutionNotes;
+        if (c.resolvedAt) found.resolvedAt = c.resolvedAt.toISOString();
+        if (c.assignedModeratorName) {
+          found.assignedModerator = { id: c.assignedModeratorId || '', name: c.assignedModeratorName };
+        }
+      }
+    } catch {
+      // Persistence unavailable until 20260918120000_add_moderation_cases is applied.
+    }
     return found;
   },
 
@@ -643,6 +703,7 @@ export const adminPanelService = {
 
     if (normalized === 'RESOLVED' || normalized === 'APPROVED' || normalized === 'CLOSED') {
       await this.applyIncidentDomainAction(incident, 'approve', notes);
+      await this.recordCase(incident, { status: 'RESOLVED', resolutionNotes: notes, resolvedAt: new Date() });
       return {
         ...incident,
         status: 'RESOLVED',
@@ -654,6 +715,7 @@ export const adminPanelService = {
 
     if (normalized === 'REJECTED') {
       await this.applyIncidentDomainAction(incident, 'reject', notes);
+      await this.recordCase(incident, { status: 'REJECTED', resolutionNotes: notes, resolvedAt: new Date() });
       return {
         ...incident,
         status: 'REJECTED',
@@ -663,13 +725,63 @@ export const adminPanelService = {
       };
     }
 
-    // Soft states (escalated / under review) — no durable table for incidents yet.
+    // Soft states (escalated / under review / assigned) are now durable.
+    await this.recordCase(incident, { status: normalized, resolutionNotes: notes });
     return {
       ...incident,
       status: normalized,
       resolutionNotes: notes,
       updatedAt: new Date().toISOString(),
     };
+  },
+
+  /**
+   * Persist (upsert) a moderation decision onto the durable ModerationCase table.
+   * Wrapped so the unified queue keeps working until the migration is applied.
+   */
+  async recordCase(
+    incident: any,
+    fields?: { status?: string; resolutionNotes?: string; assignedModerator?: { id: string; name: string } | null; resolvedAt?: Date | null },
+  ) {
+    const { id, contentType, entityId, entityName, reporter, reason, severity, priority } = incident;
+    try {
+      await prisma.moderationCase.upsert({
+        where: { caseIdentifier: id },
+        create: {
+          caseIdentifier: id,
+          caseType: contentType,
+          entityId,
+          entityName,
+          reporterId: reporter?.id || null,
+          reporterName: reporter?.name || null,
+          reason: reason || null,
+          severity: severity || null,
+          priority: priority || null,
+          status: fields?.status || 'PENDING',
+          assignedModeratorId: fields?.assignedModerator?.id || null,
+          assignedModeratorName: fields?.assignedModerator?.name || null,
+          resolutionNotes: fields?.resolutionNotes ?? null,
+          resolvedAt: fields?.resolvedAt ?? null,
+        },
+        update: {
+          caseType: contentType,
+          entityId,
+          entityName,
+          reporterId: reporter?.id || null,
+          reporterName: reporter?.name || null,
+          reason: reason || null,
+          severity: severity || null,
+          priority: priority || null,
+          status: fields?.status,
+          assignedModeratorId: fields?.assignedModerator?.id ?? undefined,
+          assignedModeratorName: fields?.assignedModerator?.name ?? undefined,
+          resolutionNotes: fields?.resolutionNotes === undefined ? undefined : fields.resolutionNotes,
+          resolvedAt: fields?.resolvedAt === undefined ? undefined : fields.resolvedAt,
+        },
+      });
+    } catch {
+      // Persistence unavailable until 20260918120000_add_moderation_cases is applied.
+    }
   },
 
   /**
@@ -770,6 +882,7 @@ export const adminPanelService = {
     const incident = await this.getIncident(id);
     const mod = await prisma.user.findUnique({ where: { id: moderatorId }, select: { id: true, name: true } });
     if (!mod) throw new ApiError(404, 'Moderator not found');
+    await this.recordCase(incident, { status: 'ASSIGNED', assignedModerator: mod });
     return {
       ...incident,
       status: 'ASSIGNED',

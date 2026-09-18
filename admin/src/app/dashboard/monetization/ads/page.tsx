@@ -8,14 +8,11 @@ import { useNotification } from "@/components/Notification";
 const emptyForm = {
   adsEnabled: false,
   killSwitch: false,
-  bannerEnabled: false,
   interstitialEnabled: false,
   rewardedEnabled: false,
   nativeEnabled: false,
   interstitialCooldownSec: 120,
   rewardedPoints: 0,
-  bannerAdUnitIdAndroid: "",
-  bannerAdUnitIdIos: "",
   interstitialAdUnitIdAndroid: "",
   interstitialAdUnitIdIos: "",
   rewardedAdUnitIdAndroid: "",
@@ -40,14 +37,11 @@ export default function AdMobPage() {
       setForm({
         adsEnabled: !!data.adsEnabled,
         killSwitch: !!data.killSwitch,
-        bannerEnabled: !!data.bannerEnabled,
         interstitialEnabled: !!data.interstitialEnabled,
         rewardedEnabled: !!data.rewardedEnabled,
         nativeEnabled: !!data.nativeEnabled,
         interstitialCooldownSec: Number(data.interstitialCooldownSec || 120),
         rewardedPoints: Number(data.rewardedPoints || 0),
-        bannerAdUnitIdAndroid: data.bannerAdUnitIdAndroid || "",
-        bannerAdUnitIdIos: data.bannerAdUnitIdIos || "",
         interstitialAdUnitIdAndroid: data.interstitialAdUnitIdAndroid || "",
         interstitialAdUnitIdIos: data.interstitialAdUnitIdIos || "",
         rewardedAdUnitIdAndroid: data.rewardedAdUnitIdAndroid || "",
@@ -88,8 +82,7 @@ export default function AdMobPage() {
   };
 
   const isTestConfig =
-    (form.bannerAdUnitIdAndroid && form.bannerAdUnitIdAndroid.includes("3940256099942544")) ||
-    (form.interstitialAdUnitIdAndroid && form.interstitialAdUnitIdAndroid.includes("3940256099942544"));
+    form.interstitialAdUnitIdAndroid && form.interstitialAdUnitIdAndroid.includes("3940256099942544");
 
   if (loading) {
     return <div className="p-8 text-center text-gray-500">Loading AdMob configuration…</div>;
@@ -133,42 +126,6 @@ export default function AdMobPage() {
               className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
             />
             <span className="text-sm font-medium text-red-700">Kill Switch (Disables ALL ads instantly)</span>
-          </label>
-        </div>
-      </div>
-
-      {/* Banner */}
-      <div className="rounded-xl border bg-white p-5 space-y-4 shadow-sm">
-        <div className="flex items-center justify-between border-b pb-2">
-          <h2 className="text-lg font-semibold text-gray-900">Banner</h2>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.bannerEnabled}
-              onChange={(e) => setForm({ ...form, bannerEnabled: e.target.checked })}
-              className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
-            />
-            <span className="text-sm font-medium text-gray-700">Enabled</span>
-          </label>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <label className="text-sm block">
-            Android Ad Unit ID
-            <input
-              type="text"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 px-3 py-2 border"
-              value={form.bannerAdUnitIdAndroid}
-              onChange={(e) => setForm({ ...form, bannerAdUnitIdAndroid: e.target.value })}
-            />
-          </label>
-          <label className="text-sm block">
-            iOS Ad Unit ID
-            <input
-              type="text"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 px-3 py-2 border"
-              value={form.bannerAdUnitIdIos}
-              onChange={(e) => setForm({ ...form, bannerAdUnitIdIos: e.target.value })}
-            />
           </label>
         </div>
       </div>

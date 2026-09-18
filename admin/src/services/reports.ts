@@ -12,5 +12,7 @@ export async function generateReport(params: {
     params,
     responseType: params.format === "csv" ? "blob" : "json",
   });
-  return res.data;
+  if (params.format === "csv") return res.data;
+  // JSON envelope is { success, data: { metrics, summary, rows }, message }.
+  return res.data?.data ?? res.data;
 }

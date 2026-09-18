@@ -25,12 +25,12 @@ const optionalText = z.preprocess((value) => {
   return value;
 }, z.string().nullish());
 
-export const createCampaignSchema = z.object({
+const campaignFields = z.object({
   name: z.string().min(3),
   description: z.string().min(10),
   imageUrl: optionalUrl,
   pointsRequired: positiveInt,
-  totalWinnerSlots: positiveInt.default(999999),
+  totalWinnerSlots: positiveInt,
   maxClaimsPerUser: positiveInt.default(1),
   startDate: isoDateTime,
   endDate: isoDateTime,
@@ -38,11 +38,32 @@ export const createCampaignSchema = z.object({
   status: z.enum(['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED']).optional(),
 });
 
-export const updateCampaignSchema = createCampaignSchema.partial().extend({
-  status: z.enum(['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED']).optional(),
-  /** Explicit remaining slots — use this to repair bad values (e.g. negative remaining). */
-  remainingWinnerSlots: nonNegativeInt.optional(),
+export const createCampaignSchema = campaignFields.superRefine((data, ctx) => {
+  if (new Date(data.endDate).getTime() <= new Date(data.startDate).getTime()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['endDate'],
+      message: 'endDate must be later than startDate',
+    });
+  }
 });
+
+export const updateCampaignSchema = campaignFields
+  .partial()
+  .extend({
+    status: z.enum(['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED']).optional(),
+    /** Explicit remaining slots — use this to repair bad values (e.g. negative remaining). */
+    remainingWinnerSlots: nonNegativeInt.optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.startDate && data.endDate && new Date(data.endDate).getTime() <= new Date(data.startDate).getTime()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['endDate'],
+        message: 'endDate must be later than startDate',
+      });
+    }
+  });
 
 export const claimCampaignSchema = z.object({
   notes: z.string().optional(),

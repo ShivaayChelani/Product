@@ -26,6 +26,16 @@ function buildPrices(form: typeof emptyForm): Array<{ period: PlanPeriod; amount
     }
   };
   push("MONTHLY", form.monthlyRupees);
+  push("QUARTERLY", form.quarterlyRupees);
+  push("SEMIANNUAL", form.semiannualRupees);
+  push("YEARLY", form.yearlyRupees);
+  push("LIFETIME", form.lifetimeRupees);
+  // Preserve existing periods that still have a value but are not editable yet.
+  for (const p of form.existingPrices) {
+    if (!prices.some((x) => x.period === p.period)) {
+      prices.push({ period: p.period, amountPaise: p.amountPaise, currency: p.currency || "INR" });
+    }
+  }
   return prices.length ? prices : [{ period: "MONTHLY", amountPaise: 0, currency: "INR" }];
 }
 
@@ -38,6 +48,11 @@ const emptyForm = {
   color: "#0E7490",
   status: "ACTIVE" as PlanStatus,
   monthlyRupees: "99",
+  quarterlyRupees: "",
+  semiannualRupees: "",
+  yearlyRupees: "",
+  lifetimeRupees: "",
+  existingPrices: [] as Array<{ period: PlanPeriod; amountPaise: number; currency: string; isActive?: boolean }>,
   maxOffers: "1",
   maxReels: "2",
   analyticsLevel: "advanced",
@@ -179,7 +194,7 @@ export default function MonetizationPlansPage() {
   };
 
   const startEdit = (plan: SubscriptionPlan) => {
-    const monthly = plan.prices.find((p) => p.period === "MONTHLY");
+    const priceOf = (period: PlanPeriod) => plan.prices.find((p) => p.period === period);
     const features = plan.features || {};
     setForm({
       audience: plan.audience,
@@ -189,7 +204,17 @@ export default function MonetizationPlansPage() {
       badge: plan.badge ?? "",
       color: plan.color ?? "#B9834B",
       status: plan.status,
-      monthlyRupees: monthly ? String(Math.round(monthly.amountPaise / 100)) : "",
+      monthlyRupees: priceOf("MONTHLY") ? String(Math.round(priceOf("MONTHLY")!.amountPaise / 100)) : "",
+      quarterlyRupees: priceOf("QUARTERLY") ? String(Math.round(priceOf("QUARTERLY")!.amountPaise / 100)) : "",
+      semiannualRupees: priceOf("SEMIANNUAL") ? String(Math.round(priceOf("SEMIANNUAL")!.amountPaise / 100)) : "",
+      yearlyRupees: priceOf("YEARLY") ? String(Math.round(priceOf("YEARLY")!.amountPaise / 100)) : "",
+      lifetimeRupees: priceOf("LIFETIME") ? String(Math.round(priceOf("LIFETIME")!.amountPaise / 100)) : "",
+      existingPrices: plan.prices.map((p) => ({
+        period: p.period,
+        amountPaise: p.amountPaise,
+        currency: p.currency || "INR",
+        isActive: p.isActive,
+      })),
       maxOffers: String((features as any).maxOffers ?? 20),
       maxReels: String((features as any).maxReels ?? 10),
       analyticsLevel: (features as any).analyticsLevel ?? "basic",
@@ -339,6 +364,18 @@ export default function MonetizationPlansPage() {
             </label>
             <label className="text-sm">Monthly price (₹)
               <input className="mt-1 w-full rounded border px-3 py-2" value={form.monthlyRupees} onChange={(e) => setForm({ ...form, monthlyRupees: e.target.value })} />
+            </label>
+            <label className="text-sm">Quarterly price (₹)
+              <input className="mt-1 w-full rounded border px-3 py-2" value={form.quarterlyRupees} onChange={(e) => setForm({ ...form, quarterlyRupees: e.target.value })} />
+            </label>
+            <label className="text-sm">Semi-annual price (₹)
+              <input className="mt-1 w-full rounded border px-3 py-2" value={form.semiannualRupees} onChange={(e) => setForm({ ...form, semiannualRupees: e.target.value })} />
+            </label>
+            <label className="text-sm">Yearly price (₹)
+              <input className="mt-1 w-full rounded border px-3 py-2" value={form.yearlyRupees} onChange={(e) => setForm({ ...form, yearlyRupees: e.target.value })} />
+            </label>
+            <label className="text-sm">Lifetime price (₹)
+              <input className="mt-1 w-full rounded border px-3 py-2" value={form.lifetimeRupees} onChange={(e) => setForm({ ...form, lifetimeRupees: e.target.value })} />
             </label>
             <label className="text-sm md:col-span-2">Description
               <textarea className="mt-1 w-full rounded border px-3 py-2" rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />

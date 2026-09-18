@@ -13,6 +13,7 @@ import {
 } from "@/services/riddles";
 import { getApiErrorMessage } from "@/services/client";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import Modal from "@/components/Modal";
 import { ExcelImportModal } from "./ExcelImportModal";
 import ImportDeleteDialog from "./ImportDeleteDialog";
 
@@ -230,25 +231,28 @@ function HuntsTab() {
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
   const [cityFilter, setCityFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ACTIVE");
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean; title: string; message: string; action: () => void;
   }>({ open: false, title: "", message: "", action: () => {} });
+  const [detailHunt, setDetailHunt] = useState<TreasureHunt | null>(null);
 
   const fetchHunts = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
-      const params: RiddleListParams = { page, limit: 20 };
+      const params: RiddleListParams = { page, limit: 20, status: statusFilter };
       if (cityFilter) params.city = cityFilter;
       const res = await getHunts(params);
       setHunts(res.data);
       setTotalPages(res.pagination.totalPages);
       setHasNext(res.pagination.hasNext);
       setHasPrev(res.pagination.hasPrev);
-    } catch { setHunts([]); } finally { setLoading(false); }
-  }, [page, cityFilter]);
+    } catch (err: any) { setHunts([]); setError(getApiErrorMessage(err, "Failed to load hunts")); } finally { setLoading(false); }
+  }, [page, cityFilter, statusFilter]);
 
   useEffect(() => { fetchHunts(); }, [fetchHunts]);
 
@@ -275,6 +279,7 @@ function HuntsTab() {
         <div className="p-4 bg-red-50 border border-red-100 rounded-lg flex items-center gap-3">
           <AlertCircle className="w-5 h-5 text-red-600" />
           <p className="text-sm font-medium text-red-700">{error}</p>
+          <button onClick={() => fetchHunts()} className="ml-auto text-sm font-medium text-red-700 underline">Retry</button>
         </div>
       )}
 
@@ -289,12 +294,25 @@ function HuntsTab() {
             className="w-full pl-9 pr-4 py-2 bg-gray-50 border-transparent focus:bg-white focus:border-brand-500 rounded-lg text-sm transition-colors"
           />
         </div>
-        <button
-          onClick={() => setIsImportOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700"
-        >
-          <UploadCloud size={16} /> Bulk Import
-        </button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <select
+            aria-label="Filter by status"
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+          >
+            <option value="ACTIVE">Active</option>
+            <option value="DRAFT">Draft</option>
+            <option value="ARCHIVED">Archived</option>
+            <option value="ALL">All statuses</option>
+          </select>
+          <button
+            onClick={() => setIsImportOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700"
+          >
+            <UploadCloud size={16} /> Bulk Import
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -333,6 +351,9 @@ function HuntsTab() {
                     </td>
                     <td className="px-6 py-4"><StatusBadge status={h.status} /></td>
                     <td className="px-6 py-4 text-right">
+                      <button onClick={() => setDetailHunt(h)} className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg" title="View riddles">
+                        <Eye size={16} />
+                      </button>
                       <button onClick={() => handleDelete(h.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
                         <Trash2 size={16} />
                       </button>
@@ -348,7 +369,76 @@ function HuntsTab() {
 
       <ExcelImportModal open={isImportOpen} onCancel={() => setIsImportOpen(false)} onSuccess={() => { setIsImportOpen(false); fetchHunts(); }} />
       <ConfirmDialog open={confirmDialog.open} title={confirmDialog.title} message={confirmDialog.message} onConfirm={confirmDialog.action} onCancel={() => setConfirmDialog(p => ({ ...p, open: false }))} />
+
+      <HuntDetailModal hunt={detailHunt} onClose={() => setDetailHunt(null)} />
     </div>
+  );
+}
+
+function HuntDetailModal({ hunt, onClose }: { hunt: TreasureHunt | null; onClose: () => void }) {
+  const [riddles, setRiddles] = useState<Riddle[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!hunt) return;
+    setLoading(true);
+    setError("");
+    getRiddles({ huntId: hunt.id, status: "ALL", limit: 500 })
+      .then((res) => setRiddles(Array.isArray(res.data) ? res.data : []))
+      .catch((err) => setError(getApiErrorMessage(err, "Failed to load hunt riddles")))
+      .finally(() => setLoading(false));
+  }, [hunt]);
+
+  return (
+    <Modal isOpen={!!hunt} onClose={onClose} title={hunt ? `${hunt.title} — ${hunt.city}` : ""} maxWidth="3xl">
+      {!hunt ? null : (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-4 text-sm">
+            <span>City: <strong>{hunt.city}</strong></span>
+            <span>Reward: <strong className="text-amber-600">{hunt.rewardCoins} coins</strong></span>
+            <span>Status: <StatusBadge status={hunt.status} /></span>
+          </div>
+          {hunt.description && <p className="text-sm text-gray-600">{hunt.description}</p>}
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600" />
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            {loading ? (
+              <p className="p-6 text-center text-sm text-gray-400">Loading riddles...</p>
+            ) : riddles.length === 0 ? (
+              <p className="p-6 text-center text-sm text-gray-400">No riddles in this hunt.</p>
+            ) : (
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 text-gray-500">
+                  <tr>
+                    <th className="px-4 py-2.5 font-medium">Seq</th>
+                    <th className="px-4 py-2.5 font-medium">Clue (EN)</th>
+                    <th className="px-4 py-2.5 font-medium">Answer (EN)</th>
+                    <th className="px-4 py-2.5 font-medium">Reward</th>
+                    <th className="px-4 py-2.5 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {riddles.map((r) => (
+                    <tr key={r.id}>
+                      <td className="px-4 py-2.5 text-gray-500">#{r.sequence}</td>
+                      <td className="px-4 py-2.5 text-gray-700">{r.clueEnglish}</td>
+                      <td className="px-4 py-2.5 text-gray-700">{r.answerEnglish}</td>
+                      <td className="px-4 py-2.5 text-amber-600 font-medium">{r.rewardCoins}</td>
+                      <td className="px-4 py-2.5"><StatusBadge status={r.status} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 }
 
@@ -361,26 +451,38 @@ function RiddlesTab() {
   const [hasPrev, setHasPrev] = useState(false);
   const [cityFilter, setCityFilter] = useState("");
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ACTIVE");
+  const [rewardMin, setRewardMin] = useState("");
+  const [error, setError] = useState("");
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
 
   const fetchRiddles = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
-      const params: RiddleListParams = { page, limit: 20 };
+      const params: RiddleListParams = { page, limit: 20, status: statusFilter };
       if (cityFilter) params.city = cityFilter;
       if (search) params.search = search;
+      if (rewardMin) params.rewardMin = Number(rewardMin);
       const res = await getRiddles(params);
       setRiddles(res.data);
       setTotalPages(res.pagination.totalPages);
       setHasNext(res.pagination.hasNext);
       setHasPrev(res.pagination.hasPrev);
-    } catch { setRiddles([]); } finally { setLoading(false); }
-  }, [page, cityFilter, search]);
+    } catch (err: any) { setRiddles([]); setError(getApiErrorMessage(err, "Failed to load riddles")); } finally { setLoading(false); }
+  }, [page, cityFilter, search, statusFilter, rewardMin]);
 
   useEffect(() => { fetchRiddles(); }, [fetchRiddles]);
 
   return (
     <div className="space-y-4">
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-100 rounded-lg flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600" />
+          <p className="text-sm font-medium text-red-700">{error}</p>
+          <button onClick={() => fetchRiddles()} className="ml-auto text-sm font-medium text-red-700 underline">Retry</button>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center bg-white p-4 rounded-xl border border-gray-200">
         <div className="flex-1 w-full sm:w-auto relative">
           <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -399,6 +501,24 @@ function RiddlesTab() {
           onChange={(e) => setCityFilter(e.target.value)}
           className="w-full sm:w-48 px-4 py-2 bg-gray-50 border-transparent focus:bg-white focus:border-brand-500 rounded-lg text-sm transition-colors"
         />
+        <input
+          type="number"
+          min={0}
+          placeholder="Min reward"
+          value={rewardMin}
+          onChange={(e) => { setRewardMin(e.target.value); setPage(1); }}
+          className="w-full sm:w-36 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm transition-colors"
+        />
+        <select
+          aria-label="Filter by status"
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          className="w-full sm:w-44 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+        >
+          <option value="ACTIVE">Active</option>
+          <option value="ARCHIVED">Archived</option>
+          <option value="ALL">All statuses</option>
+        </select>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">

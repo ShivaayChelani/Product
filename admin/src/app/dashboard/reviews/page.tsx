@@ -14,6 +14,11 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import PageHeader from "@/components/ui/PageHeader";
 import Drawer from "@/components/ui/Drawer";
 import EmptyState from "@/components/ui/EmptyState";
+import { getAdminRoleFromStorage } from "@/lib/permissions";
+
+// Mirrors server requireContentOps (ADMIN/SUPER_ADMIN/OPS_ADMIN/CONTENT_MODERATOR);
+// status mutations 403 for other admin roles, so hide them rather than surface errors.
+const CONTENT_OPS_ROLES = ["SUPER_ADMIN", "ADMIN", "OPS_ADMIN", "CONTENT_MODERATOR"];
 
 const STATUS_TABS = [
   { label: "All Reviews", value: "", icon: Eye },
@@ -44,6 +49,13 @@ export default function ReviewsModerationPage() {
     message: string;
     action: () => Promise<void>;
   }>({ open: false, title: "", message: "", action: async () => {} });
+  const [loadError, setLoadError] = useState("");
+  const [canMutate, setCanMutate] = useState(false);
+
+  useEffect(() => {
+    const role = getAdminRoleFromStorage();
+    setCanMutate(CONTENT_OPS_ROLES.includes(role || ""));
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -55,6 +67,7 @@ export default function ReviewsModerationPage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setLoadError("");
     try {
       const res = await getReviews({
         page,
@@ -69,9 +82,10 @@ export default function ReviewsModerationPage() {
       setTotalRecords(res.pagination.total);
       setHasNext(res.pagination.hasNext);
       setHasPrev(res.pagination.hasPrev);
-    } catch {
+    } catch (err) {
       notify("error", "Failed to load reviews");
       setItems([]);
+      setLoadError(err instanceof Error ? err.message : "Failed to load reviews");
     } finally {
       setLoading(false);
     }
@@ -167,73 +181,75 @@ export default function ReviewsModerationPage() {
         render: (item) => new Date(item.createdAt).toLocaleDateString(),
         exportValue: (item) => item.createdAt,
       },
-      {
-        key: "actions",
-        header: "Actions",
-        render: (item) => (
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setDetailReview(item as AdminReview)}
-              className="rounded p-1.5 text-primary hover:bg-muted"
-              title="View details"
-            >
-              <Eye size={16} />
-            </button>
-            {item.status !== "APPROVED" && (
-              <button
-                type="button"
-                onClick={() =>
-                  setConfirm({
-                    open: true,
-                    title: "Approve Review",
-                    message: "Approve and publish this review?",
-                    action: async () => {
-                      setConfirm((p) => ({ ...p, open: false }));
-                      await updateReviewStatus(item.id, "APPROVED");
-                      notify("success", "Review approved");
-                      void fetchData();
-                    },
-                  })
-                }
-                className="rounded p-1.5 text-emerald-600 hover:bg-emerald-50"
-                title="Approve"
-              >
-                <Check size={16} />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() =>
-                setConfirm({
-                  open: true,
-                  title: "Reject Review",
-                  message: "Reject this review? It will remain auditable with status REJECTED and will no longer appear publicly.",
-                  action: async () => {
-                    setConfirm((p) => ({ ...p, open: false }));
-                    await updateReviewStatus(item.id, "REJECTED");
-                    notify("success", "Review rejected");
-                    void fetchData();
-                  },
-                })
-              }
-              className="rounded p-1.5 text-red-600 hover:bg-red-50"
-              title="Reject"
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-        ),
-      },
+      ...(canMutate
+        ? [{
+            key: "actions",
+            header: "Actions",
+            render: (item: AdminReview & Record<string, unknown>) => (
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setDetailReview(item as AdminReview)}
+                  className="rounded p-1.5 text-primary hover:bg-muted"
+                  title="View details"
+                >
+                  <Eye size={16} />
+                </button>
+                {item.status !== "APPROVED" && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setConfirm({
+                        open: true,
+                        title: "Approve Review",
+                        message: "Approve and publish this review?",
+                        action: async () => {
+                          setConfirm((p) => ({ ...p, open: false }));
+                          await updateReviewStatus(item.id, "APPROVED");
+                          notify("success", "Review approved");
+                          void fetchData();
+                        },
+                      })
+                    }
+                    className="rounded p-1.5 text-emerald-600 hover:bg-emerald-50"
+                    title="Approve"
+                  >
+                    <Check size={16} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setConfirm({
+                      open: true,
+                      title: "Reject Review",
+                      message: "Reject this review? It will remain auditable with status REJECTED and will no longer appear publicly.",
+                      action: async () => {
+                        setConfirm((p) => ({ ...p, open: false }));
+                        await updateReviewStatus(item.id, "REJECTED");
+                        notify("success", "Review rejected");
+                        void fetchData();
+                      },
+                    })
+                  }
+                  className="rounded p-1.5 text-red-600 hover:bg-red-50"
+                  title="Reject"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ),
+          }]
+        : []),
     ],
-    [fetchData, notify],
+    [canMutate, fetchData, notify],
   );
 
   return (
     <div className="animate-fade-in">
       <PageHeader
         title="Reviews"
-        description="Moderate place and vendor reviews — approve, hide, or remove reported and spam content."
+        description="Moderate place and vendor reviews — approve or reject reported and spam content."
         icon={Flag}
       />
 
@@ -284,6 +300,15 @@ export default function ReviewsModerationPage() {
         </select>
       </div>
 
+      {loadError && !loading && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+          <span className="text-red-600">{loadError}</span>
+          <button type="button" onClick={() => void fetchData()} className="ml-auto font-medium underline">
+            Retry
+          </button>
+        </div>
+      )}
+
       {!loading && items.length === 0 ? (
         <EmptyState
           icon={Flag}
@@ -304,11 +329,11 @@ export default function ReviewsModerationPage() {
           emptyMessage="No reviews found"
           exportFilename="reviews-export"
           showFirstLast
-          selectable
+          selectable={canMutate}
           selectedIds={selectedIds}
           onSelectChange={setSelectedIds}
           toolbar={
-            selectedIds.size > 0 ? (
+            selectedIds.size > 0 && canMutate ? (
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm font-medium text-muted-foreground">
                   {selectedIds.size} selected

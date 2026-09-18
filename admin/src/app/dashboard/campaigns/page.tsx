@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { Plus, Search, Megaphone } from "lucide-react";
-import { getCampaigns, deleteCampaign } from "@/services/campaigns";
+import { getCampaigns, deleteCampaign, formatCampaignApiError } from "@/services/campaigns";
 import { useNotification } from "@/components/Notification";
 import PageHeader from "@/components/ui/PageHeader";
 
@@ -15,10 +15,12 @@ export default function CampaignsPage() {
 
   const fetchCampaigns = useCallback(async () => {
     try {
-      const res = await getCampaigns();
+      // Client-side search/filter over the full set: ask for a generous page size so
+      // the table isn't silently truncated at the server's default page limit.
+      const res = await getCampaigns({ page: 1, limit: 500, search: undefined, status: undefined });
       setCampaigns(res.data);
-    } catch {
-      notify("error", "Failed to fetch campaigns");
+    } catch (err) {
+      notify("error", err instanceof Error ? err.message : "Failed to fetch campaigns");
     } finally {
       setLoading(false);
     }
@@ -34,8 +36,8 @@ export default function CampaignsPage() {
       await deleteCampaign(id);
       notify("success", "Campaign deleted");
       void fetchCampaigns();
-    } catch {
-      notify("error", "Failed to delete campaign");
+    } catch (err) {
+      notify("error", formatCampaignApiError(err, "Failed to delete campaign"));
     }
   };
 

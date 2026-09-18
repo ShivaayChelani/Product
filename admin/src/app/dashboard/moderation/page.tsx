@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Search, ExternalLink, Check, X as XIcon, AlertTriangle, Shield } from "lucide-react";
 import { getIncidents, updateIncidentStatus, type UnifiedIncident } from "@/services/moderation";
+import { getAdminRoleFromStorage } from "@/lib/permissions";
 import { useNotification } from "@/components/Notification";
 import DataTable from "@/components/DataTable";
 import type { Column } from "@/components/DataTable";
@@ -29,6 +30,13 @@ export default function UnifiedModerationPage() {
   const [totalRecords, setTotalRecords] = useState(0);
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
+  // Server-side content moderation mutations are gated by requireContentOps
+  // (SUPER_ADMIN/ADMIN/OPS_ADMIN/CONTENT_MODERATOR). Keep the read-only queue
+  // visible to other roles but hide the mutation buttons to avoid 403 noise.
+  const canMutate = useMemo(() => {
+    const role = getAdminRoleFromStorage();
+    return role === "ADMIN" || role === "SUPER_ADMIN" || role === "OPS_ADMIN" || role === "CONTENT_MODERATOR";
+  }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -101,9 +109,13 @@ export default function UnifiedModerationPage() {
         const route = ROUTE_MAP[item.contentType] || "/dashboard/moderation";
         return (
           <div className="flex flex-wrap items-center gap-1">
-            <button type="button" onClick={() => handleStatus(item.id, "RESOLVED")} className="rounded-lg p-1.5 text-emerald-600 hover:bg-emerald-50" title="Resolve"><Check size={16} /></button>
-            <button type="button" onClick={() => handleStatus(item.id, "REJECTED")} className="rounded-lg p-1.5 text-red-600 hover:bg-red-50" title="Reject"><XIcon size={16} /></button>
-            <button type="button" onClick={() => handleStatus(item.id, "ESCALATED")} className="rounded-lg p-1.5 text-amber-600 hover:bg-amber-50" title="Escalate"><AlertTriangle size={16} /></button>
+            {canMutate && (
+              <>
+                <button type="button" onClick={() => handleStatus(item.id, "RESOLVED")} className="rounded-lg p-1.5 text-emerald-600 hover:bg-emerald-50" title="Resolve"><Check size={16} /></button>
+                <button type="button" onClick={() => handleStatus(item.id, "REJECTED")} className="rounded-lg p-1.5 text-red-600 hover:bg-red-50" title="Reject"><XIcon size={16} /></button>
+                <button type="button" onClick={() => handleStatus(item.id, "ESCALATED")} className="rounded-lg p-1.5 text-amber-600 hover:bg-amber-50" title="Escalate"><AlertTriangle size={16} /></button>
+              </>
+            )}
             <Link href={route} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100">
               Open <ExternalLink size={12} />
             </Link>

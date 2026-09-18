@@ -144,7 +144,7 @@ export const riddlesService = {
     };
   },
 
-  async listAllRiddles(query: { page?: string; limit?: string; city?: string; search?: string; status?: string }) {
+  async listAllRiddles(query: { page?: string; limit?: string; city?: string; search?: string; status?: string; huntId?: string; rewardMin?: string }) {
     const page = parseInt(query.page || '1');
     const limit = parseInt(query.limit || '20');
     const skip = (page - 1) * limit;
@@ -157,6 +157,13 @@ export const riddlesService = {
       where.status = 'ACTIVE';
     }
     if (query.city) where.city = { contains: query.city, mode: 'insensitive' };
+    if (query.huntId) where.huntId = query.huntId;
+    if (query.rewardMin) {
+      const rewardMin = parseInt(query.rewardMin, 10);
+      if (Number.isFinite(rewardMin) && rewardMin > 0) {
+        where.rewardCoins = { gte: rewardMin };
+      }
+    }
     if (query.search) {
       where.OR = [
         { clueEnglish: { contains: query.search, mode: 'insensitive' } },

@@ -43,7 +43,7 @@ export default function SecurityPage() {
     },
     {
       title: "User access",
-      description: "Ban, suspend, or review user accounts and reported activity.",
+      description: "Review user accounts, approve professional roles, and manage account lifecycle.",
       href: "/dashboard/users",
       icon: Users,
     },

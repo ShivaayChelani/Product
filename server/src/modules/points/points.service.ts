@@ -1,8 +1,7 @@
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/ApiError';
+import { pointsToRupees, rupeesToPoints } from '../../shared/utils/palPoints';
 import { walletService } from '../wallet/wallet.service';
-
-const POINTS_PER_RUPEE = 10;
 
 /**
  * Compatibility façade over Wallet.palPoints + WalletTransaction.
@@ -56,10 +55,10 @@ export const pointsService = {
   },
 
   pointsToRupees(points: number): number {
-    return Math.floor(points / POINTS_PER_RUPEE);
+    return pointsToRupees(points);
   },
 
   rupeesToPoints(rupees: number): number {
-    return rupees * POINTS_PER_RUPEE;
+    return rupeesToPoints(rupees);
   },
 };

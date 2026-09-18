@@ -1,12 +1,17 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Trash2, Star, Eye, Heart, Share2, Video, MapPin } from "lucide-react";
+import { Trash2, Star, Eye, Heart, Share2, Video, MapPin, AlertCircle } from "lucide-react";
 import { getReels, deleteReel, toggleFeatureReel, type AdminReel } from "@/services/reels";
 import DataTable from "@/components/DataTable";
 import type { Column } from "@/components/DataTable";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useNotification } from "@/components/Notification";
+import { getAdminRoleFromStorage } from "@/lib/permissions";
+
+// Mirrors server requireContentOps (ADMIN/SUPER_ADMIN/OPS_ADMIN/CONTENT_MODERATOR) —
+// delete/feature are 403 for other admin roles, so hide them rather than surface errors.
+const CONTENT_OPS_ROLES = ["SUPER_ADMIN", "ADMIN", "OPS_ADMIN", "CONTENT_MODERATOR"];
 
 export default function ReelsPage() {
   const { notify } = useNotification();
@@ -17,6 +22,13 @@ export default function ReelsPage() {
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [canMutate, setCanMutate] = useState(false);
+
+  useEffect(() => {
+    const role = getAdminRoleFromStorage();
+    setCanMutate(CONTENT_OPS_ROLES.includes(role || ""));
+  }, []);
 
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
@@ -28,14 +40,16 @@ export default function ReelsPage() {
 
   const fetchReels = useCallback(async () => {
     setLoading(true);
+    setLoadError("");
     try {
       const res = await getReels({ page, limit: 15 });
       setReels(res.data);
       setTotalPages(res.pagination.totalPages);
       setHasNext(res.pagination.hasNext);
       setHasPrev(res.pagination.hasPrev);
-    } catch {
+    } catch (err) {
       setReels([]);
+      setLoadError(err instanceof Error ? err.message : "Failed to load reels. Check API connection and try again.");
       notify("error", "Failed to load reels. Check API connection and try again.");
     } finally {
       setLoading(false);
@@ -163,10 +177,10 @@ export default function ReelsPage() {
       render: (item) => (
         <button
           onClick={() => handleToggleFeature(item.id, item.featured)}
-          disabled={actionLoading === item.id}
+          disabled={actionLoading === item.id || !canMutate}
           className={`rounded-full p-1 transition ${
             item.featured ? "text-amber-500 hover:bg-amber-50" : "text-gray-300 hover:bg-gray-100"
-          }`}
+          } disabled:cursor-not-allowed disabled:opacity-40`}
           title={item.featured ? "Unfeature Reel" : "Feature Reel"}
         >
           <Star size={16} className={item.featured ? "fill-amber-500" : ""} />
@@ -176,16 +190,17 @@ export default function ReelsPage() {
     {
       key: "actions",
       header: "Actions",
-      render: (item) => (
-        <button
-          onClick={() => confirmDelete(item.id)}
-          disabled={actionLoading === item.id}
-          className="rounded-lg p-1.5 text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-          title="Delete Reel"
-        >
-          <Trash2 size={16} />
-        </button>
-      ),
+      render: (item) =>
+        canMutate ? (
+          <button
+            onClick={() => confirmDelete(item.id)}
+            disabled={actionLoading === item.id}
+            className="rounded-lg p-1.5 text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+            title="Delete Reel"
+          >
+            <Trash2 size={16} />
+          </button>
+        ) : null,
     },
   ];
 
@@ -202,6 +217,16 @@ export default function ReelsPage() {
           </p>
         </div>
       </div>
+
+      {loadError && !loading && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+          <AlertCircle size={16} />
+          {loadError}
+          <button type="button" onClick={() => fetchReels()} className="ml-auto font-medium underline">
+            Retry
+          </button>
+        </div>
+      )}
 
       <DataTable
         columns={columns}
