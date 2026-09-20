@@ -50,6 +50,15 @@ target 'PalSafar' do
         if config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f < 15.1
           config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
         end
+
+        # CI passes the App Store signing settings on the xcodebuild command
+        # line, so xcodebuild applies them to every target in the workspace,
+        # including Pods. Pods targets don't support provisioning profiles.
+        # Disable/clear signing on Pods only - the PalSafar app target keeps
+        # its manual App Store signing from the project + ExportOptions.
+        config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+        config.build_settings.delete('PROVISIONING_PROFILE_SPECIFIER')
+        config.build_settings.delete('PROVISIONING_PROFILE')
       end
     end
   end
