@@ -169,13 +169,42 @@ jobs:
         env:
           NSUnbufferedIO: YES
         run: |
+          set +e
+          set -o pipefail
           mkdir -p build
+          LOG_PATH="build/xcodebuild-archive.log"
+          echo "Starting xcodebuild archive; full log: $LOG_PATH"
           xcodebuild archive \
             -workspace "$WORKSPACE" \
             -scheme "$SCHEME" \
             -configuration "$CONFIGURATION" \
             -sdk iphoneos \
-            -archivePath "$ARCHIVE_PATH"
+            -destination 'generic/platform=iOS' \
+            -archivePath "$ARCHIVE_PATH" 2>&1 | tee "$LOG_PATH"
+          xcodebuild_status=${PIPESTATUS[0]}
+          set +o pipefail
+          echo ""
+          echo "=== xcodebuild archive exit code: $xcodebuild_status ==="
+          echo "=== Diagnostic lines (errors / code sign / phases) ==="
+          grep -E -i -n \
+            -e 'error:' \
+            -e 'fatal error:' \
+            -e 'codesign' \
+            -e 'phasescriptexecution' \
+            -e 'swiftcompile' \
+            -e 'compilec' \
+            -e '(^|[^[:alpha:]])ld([[:space:]]|/|\.)' \
+            -e 'provisioning' \
+            -e 'signing' \
+            -e 'no profiles' \
+            -e 'failed' \
+            "$LOG_PATH" || echo "(no matching diagnostic lines found)"
+          echo ""
+          echo "=== Last 100 lines of $LOG_PATH ==="
+          tail -n 100 "$LOG_PATH"
+          echo ""
+          echo "=== ARCHIVE_EXIT=$xcodebuild_status ==="
+          exit "$xcodebuild_status"
 
       # ── Export IPA ─────────────────────────────────────────────────────────
       - name: Export IPA
