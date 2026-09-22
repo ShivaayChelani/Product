@@ -96,6 +96,49 @@ export const legalService = {
     });
   },
 
+  /**
+   * Returns the current published version numbers for TERMS_CONDITIONS and PRIVACY_POLICY.
+   * Used by the auth service to validate and record legal acceptance at signup.
+   * Throws 503 if either document has not been published yet.
+   */
+  async getCurrentVersions(locale = DEFAULT_LOCALE): Promise<{ termsVersion: number; privacyVersion: number }> {
+    const [terms, privacy] = await Promise.all([
+      prisma.legalDocument.findUnique({ where: { type_locale: { type: 'TERMS_CONDITIONS', locale } } })
+        .then(async (doc) => {
+          if (!doc) return null;
+          return prisma.legalDocumentVersion.findFirst({
+            where: { documentId: doc.id, status: LegalVersionStatus.PUBLISHED },
+            orderBy: { versionNumber: 'desc' },
+            select: { versionNumber: true },
+          });
+        }),
+      prisma.legalDocument.findUnique({ where: { type_locale: { type: 'PRIVACY_POLICY', locale } } })
+        .then(async (doc) => {
+          if (!doc) return null;
+          return prisma.legalDocumentVersion.findFirst({
+            where: { documentId: doc.id, status: LegalVersionStatus.PUBLISHED },
+            orderBy: { versionNumber: 'desc' },
+            select: { versionNumber: true },
+          });
+        }),
+    ]);
+
+    if (!terms) {
+      throw new ApiError(
+        503,
+        'Terms of Service has not been published yet. Please publish it in the admin dashboard.',
+      );
+    }
+    if (!privacy) {
+      throw new ApiError(
+        503,
+        'Privacy Policy has not been published yet. Please publish it in the admin dashboard.',
+      );
+    }
+
+    return { termsVersion: terms.versionNumber, privacyVersion: privacy.versionNumber };
+  },
+
   // ── Admin ──
 
   async listDocuments(locale = DEFAULT_LOCALE) {

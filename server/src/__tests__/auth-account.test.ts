@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../app';
 import { prisma } from '../config/database';
+import { getPublishedLegalVersions, legalAcceptancePayload } from './helpers/legal';
 
 describe('Auth account security — change password & delete account', () => {
   const password = 'AccountTest@123';
@@ -11,10 +12,16 @@ describe('Auth account security — change password & delete account', () => {
   let accessToken = '';
 
   beforeAll(async () => {
+    const versions = await getPublishedLegalVersions();
     email = `acct-security-${Date.now()}@example.test`;
     const reg = await request(app)
       .post('/api/v1/auth/register')
-      .send({ email, name: 'Account Security', password });
+      .send({
+        email,
+        name: 'Account Security',
+        password,
+        ...legalAcceptancePayload(versions),
+      });
     expect(reg.status).toBe(201);
     userId = reg.body.data.user.id;
     accessToken = reg.body.data.accessToken;

@@ -1,15 +1,18 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { AppState, type AppStateStatus } from 'react-native';
+import { AppState, Platform, type AppStateStatus } from 'react-native';
 import { UserActiveMode, UserProfile } from '../types';
 import { loadUserProgress, saveUserProgress } from '../services/localStorageService';
 import {
   login, signup, logout, restoreSession, forgotPassword, setActiveMode as persistActiveMode,
-  refreshSessionRoles, verifyRegisterEmail, resendRegisterOtp, googleLogin,
+  refreshSessionRoles, verifyRegisterEmail, resendRegisterOtp, googleLogin, finalizeGoogleLogin,
+  type LegalMeta,
 } from '../services/authService';
 import { notificationService } from '../services/notificationService';
 import { apiClient } from '../services/api/client';
+import { legalApi, type LegalCurrentVersions } from '../services/api/legal';
 import { clearMonitoringUser, setMonitoringUser, trackAuthEvent, trackRoleSwitch } from '../services/monitoring';
 import { LogoutModal } from '../components/ui/LogoutModal';
+import { LegalAcceptanceModal } from '../components/auth/LegalAcceptanceModal';
 import { clearAppCaches } from '../features/settings/utils/storageManager';
 import { applyWalletPalPoints } from '../utils/syncPalPoints';
 import { attemptDailyOpenReward } from '../services/dailyOpenReward';
@@ -36,6 +39,7 @@ interface UserContextType {
     name: string,
     email: string,
     password: string,
+    legalMeta: LegalMeta,
   ) => Promise<true | false | { requiresEmailVerification: true; email: string }>;
   onVerifyRegisterEmail: (email: string, code: string) => Promise<boolean>;
   onResendRegisterOtp: (email: string) => Promise<void>;
@@ -191,29 +195,49 @@ export function UserProvider({ children }: { children: ReactNode }) {
     user.roles,
   ]);
 
+  const [legalModalVisible, setLegalModalVisible] = useState(false);
+  const [pendingGoogleIdToken, setPendingGoogleIdToken] = useState<string | null>(null);
+  const [googleLegalLoading, setGoogleLegalLoading] = useState(false);
+  const [legalVersions, setLegalVersions] = useState<LegalCurrentVersions | null>(null);
+
   const onGoogleLogin = useCallback(async (): Promise<boolean> => {
     setAuthLoading(true);
     try {
       const result = await googleLogin();
-      if (result) {
-        setUser(prev => ({ ...prev, ...result.user }));
-        setIsAuthenticated(true);
-        trackAuthEvent('login', { mode: result.user.activeMode || result.user.activeRole });
-        void applyWalletPalPoints(setUser);
+      if (!result) return false;
 
-        notificationService.requestPermission().then((granted) => {
-          if (granted) {
-            notificationService.registerDeviceToken().catch((err) => {
-              if (typeof __DEV__ !== 'undefined' && __DEV__) {
-                console.log('[Push] Token registration failed:', err?.message);
-              }
-            });
-          }
-        });
-
-        return true;
+      // Phase 1: new Google account needs legal acceptance — show modal
+      if ('requiresLegalAcceptance' in result) {
+        setPendingGoogleIdToken(result.pendingIdToken);
+        // Fetch the current published versions so the modal can pass them back at acceptance time
+        try {
+          const versionRes = await legalApi.getCurrentVersions();
+          setLegalVersions(versionRes.data);
+        } catch {
+          setLegalVersions(null);
+        }
+        setLegalModalVisible(true);
+        // Return false here — the modal handler will complete login after acceptance
+        return false;
       }
-      return false;
+
+      // Existing user: session immediately
+      setUser(prev => ({ ...prev, ...result.user }));
+      setIsAuthenticated(true);
+      trackAuthEvent('login', { mode: result.user.activeMode || result.user.activeRole });
+      void applyWalletPalPoints(setUser);
+
+      notificationService.requestPermission().then((granted) => {
+        if (granted) {
+          notificationService.registerDeviceToken().catch((err) => {
+            if (typeof __DEV__ !== 'undefined' && __DEV__) {
+              console.log('[Push] Token registration failed:', err?.message);
+            }
+          });
+        }
+      });
+
+      return true;
     } catch (e: any) {
       if (
         (e.status === 401 || e.status === 403) &&
@@ -226,6 +250,46 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setAuthLoading(false);
     }
   }, [applyWalletPalPoints]);
+
+  /** Called when user accepts legal docs in the Google legal gate modal. */
+  const handleGoogleLegalAccept = useCallback(async (legalVersions: { termsVersion: number; privacyVersion: number }) => {
+    if (!pendingGoogleIdToken) return;
+    setGoogleLegalLoading(true);
+    try {
+      const platform = typeof Platform !== 'undefined' && Platform.OS === 'ios' ? 'ios' : 'android';
+      const result = await finalizeGoogleLogin(pendingGoogleIdToken, {
+        termsVersion: legalVersions.termsVersion,
+        privacyVersion: legalVersions.privacyVersion,
+        platform,
+      });
+      setLegalModalVisible(false);
+      setPendingGoogleIdToken(null);
+
+      if (!result) return;
+      setUser(prev => ({ ...prev, ...result.user }));
+      setIsAuthenticated(true);
+      trackAuthEvent('signup', { mode: result.user.activeMode || result.user.activeRole });
+      void applyWalletPalPoints(setUser);
+
+      notificationService.requestPermission().then((granted) => {
+        if (granted) {
+          notificationService.registerDeviceToken().catch(() => {});
+        }
+      }).catch(() => {});
+    } catch (err: any) {
+      // Keep modal open on error so user can retry
+      setGoogleLegalLoading(false);
+      throw err;
+    } finally {
+      setGoogleLegalLoading(false);
+    }
+  }, [pendingGoogleIdToken, applyWalletPalPoints]);
+
+  const handleGoogleLegalCancel = useCallback(() => {
+    setLegalModalVisible(false);
+    setPendingGoogleIdToken(null);
+    setGoogleLegalLoading(false);
+  }, []);
 
   const onLogin = useCallback(async (
     email: string,
@@ -271,10 +335,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
     name: string,
     email: string,
     password: string,
+    legalMeta: LegalMeta,
   ): Promise<true | false | { requiresEmailVerification: true; email: string }> => {
     setAuthLoading(true);
     try {
-      const result = await signup(name, email, password);
+      const result = await signup(name, email, password, legalMeta);
       if (!result) return false;
 
       if (result.requiresEmailVerification) {
@@ -299,6 +364,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setAuthLoading(false);
     }
   }, []);
+
 
   const onVerifyRegisterEmail = useCallback(async (email: string, code: string): Promise<boolean> => {
     setAuthLoading(true);
@@ -471,6 +537,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
           void onLogout();
         }}
         onCancel={() => setIsLogoutModalVisible(false)}
+      />
+      <LegalAcceptanceModal
+        visible={legalModalVisible}
+        legalVersions={legalVersions}
+        isLoading={googleLegalLoading}
+        onAccept={handleGoogleLegalAccept}
+        onCancel={handleGoogleLegalCancel}
+        onOpenDocument={(type) => {
+          // Navigate to the legal document screen using the root navigator ref.
+          // LegalDocument is in RootStackParamList so it works from any auth state.
+          const { navigateRoot } = require('../navigation/navigationRef');
+          navigateRoot('LegalDocument', { type });
+        }}
       />
     </UserContext.Provider>
   );

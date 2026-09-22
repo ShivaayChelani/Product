@@ -97,12 +97,33 @@ model User {
   user_streaks           user_streaks?
   user_xp                user_xp?
   xp_transactions        xp_transactions[]
+  legalAcceptance        LegalAcceptance?
 
   @@index([permission])
   @@index([activeMode])
   @@index([verificationStatus])
   @@index([createdAt])
   @@map("users")
+}
+
+/// Records that a user has accepted the current Terms of Service and Privacy Policy.
+/// Created at registration time (email or Google). Grandfathered users have no record
+/// — the absence of a record never blocks existing sessions. Future legal re-acceptance
+/// flows can compare stored termsVersion/privacyVersion against the currently published.
+model LegalAcceptance {
+  id             String   @id @default(cuid())
+  userId         String   @unique @map("user_id")
+  termsVersion   Int      @map("terms_version")
+  privacyVersion Int      @map("privacy_version")
+  /// Server-authoritative acceptance timestamp — never trust client-provided timestamps.
+  acceptedAt     DateTime @default(now()) @map("accepted_at")
+  /// Optional: "ios" | "android" | "web"
+  platform       String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("legal_acceptances")
 }
 
 model AuthAccount {

@@ -116,5 +116,9 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>PalSafar uses your location to show nearby travel spots, places of interest, and vendors on the map.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>PalSafar uses your location to show nearby travel spots and places of interest. Location is only accessed while the app is in use.</string>
 </dict>
 </plist>

@@ -10,6 +10,15 @@ export const registerSchema = z.object({
   email: emailField,
   password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password must not exceed 128 characters').regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/, 'Password must contain uppercase, lowercase, number, and special character'),
   name: z.string().min(1, 'Name is required').max(100),
+  termsAccepted: z.literal(true, {
+    errorMap: () => ({ message: 'You must accept the Terms & Conditions to create an account.' }),
+  }),
+  privacyAccepted: z.literal(true, {
+    errorMap: () => ({ message: 'You must accept the Privacy Policy to create an account.' }),
+  }),
+  termsVersion: z.number({ required_error: 'Terms version is required.' }).int().positive('Terms version must be a positive integer.'),
+  privacyVersion: z.number({ required_error: 'Privacy version is required.' }).int().positive('Privacy version must be a positive integer.'),
+  platform: z.enum(['ios', 'android', 'web']).optional(),
 });
 
 export const loginSchema = z.object({
@@ -25,8 +34,17 @@ export const logoutSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token is required'),
 });
 
+// Google login — supports two-phase flow:
+//   Phase 1: { idToken } only → returns requiresLegalAcceptance:true for brand-new accounts.
+//   Phase 2: { idToken, termsAccepted:true, privacyAccepted:true, termsVersion, privacyVersion }
+//            → finalizes account creation with legal acceptance recorded.
 export const googleLoginSchema = z.object({
   idToken: z.string().min(1, 'Google ID Token is required').max(8192, 'Google ID Token is too long'),
+  termsAccepted: z.boolean().optional(),
+  privacyAccepted: z.boolean().optional(),
+  termsVersion: z.number().int().positive().optional(),
+  privacyVersion: z.number().int().positive().optional(),
+  platform: z.enum(['ios', 'android', 'web']).optional(),
 }).strict();
 
 export type RegisterInput = z.infer<typeof registerSchema>;

@@ -4,6 +4,7 @@ import app from '../app';
 import { prisma } from '../config/database';
 import { testSlug, testRunId } from './helpers/testRunId';
 import { getAuthToken } from './helpers/auth';
+import { getPublishedLegalVersions, legalAcceptancePayload } from './helpers/legal';
 import { pointRulesService } from '../modules/point-rules/pointRules.service';
 
 describe('Place photo PalPoints and review notifications', () => {
@@ -18,12 +19,14 @@ describe('Place photo PalPoints and review notifications', () => {
     await pointRulesService.ensureMissingDefaults().catch(() => pointRulesService.seedDefaults());
     adminToken = await getAuthToken('ADMIN');
 
+    const legalVersions = await getPublishedLegalVersions();
     const registerRes = await request(app)
       .post('/api/v1/auth/register')
       .send({
         email: `photo-points-${testRunId}@example.test`,
         name: 'Photo Points User',
         password: 'PhotoPts@123',
+        ...legalAcceptancePayload(legalVersions),
       });
 
     if (registerRes.status === 201 && registerRes.body.data?.accessToken) {

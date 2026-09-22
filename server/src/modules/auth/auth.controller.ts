@@ -60,7 +60,22 @@ export const authController = {
   }),
 
   googleLogin: catchAsync(async (req: Request, res: Response) => {
-    const result = await authService.googleLogin(req.body.idToken);
+    const { idToken, termsAccepted, privacyAccepted, termsVersion, privacyVersion, platform } = req.body;
+    const result = await authService.googleLogin(idToken, {
+      termsAccepted,
+      privacyAccepted,
+      termsVersion,
+      privacyVersion,
+      platform,
+    });
+
+    // Phase 1: new account needs legal acceptance — return signal without tokens
+    if ('requiresLegalAcceptance' in result) {
+      sendSuccess(res, result, { message: 'Legal acceptance required before account creation.' });
+      return;
+    }
+
+    // Phase 2 / existing user: full session
     setAccessTokenCookie(res, result.accessToken);
     sendSuccess(res, result, { message: 'Google Login successful' });
   }),

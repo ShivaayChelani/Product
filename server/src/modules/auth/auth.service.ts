@@ -36,9 +36,18 @@ import {
 } from '../upload/media-cleanup.service';
 import { verifyGoogleIdToken } from './googleIdentity';
 import { resolveGoogleAccount } from './googleAccountResolution';
+import { legalService } from '../legal/legal.service';
 
 const ACCESS_TOKEN_EXPIRY = (env.jwt.expiresIn || '1h') as SignOptions['expiresIn'];
 const REFRESH_TOKEN_EXPIRY_DAYS = 7;
+
+/**
+ * A Google-created account (password:null) is considered an in-flight registration
+ * when it is younger than this window. Phase 1 shells are deleted immediately, so
+ * any password-null account this young is a shell created by the current sign-in —
+ * not a grandfathered account — and must accept the current legal documents first.
+ */
+const GOOGLE_SIGNIN_WINDOW_MS = 10 * 60 * 1000;
 
 function hashRefreshToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
@@ -223,6 +232,19 @@ export const authService = {
     const email = normalizeEmail(input.email);
     const existing = await findUserByEmail(email);
 
+    // Validate that the client-provided versions match the currently published legal docs.
+    // This prevents clients from fabricating version numbers.
+    const currentVersions = await legalService.getCurrentVersions();
+    if (
+      input.termsVersion !== currentVersions.termsVersion ||
+      input.privacyVersion !== currentVersions.privacyVersion
+    ) {
+      throw new ApiError(
+        400,
+        'The legal document versions you accepted are out of date. Please reload the app and accept the current Terms & Conditions and Privacy Policy.',
+      );
+    }
+
     // Unverified signup in progress — resume instead of "already exists"
     if (existing) {
       const full = await prisma.user.findUnique({
@@ -245,6 +267,23 @@ export const authService = {
           emailVerified: false,
         },
         select: { email: true, name: true },
+      });
+
+      // Update legal acceptance for the resumed-unverified user
+      await prisma.legalAcceptance.upsert({
+        where: { userId: existing.id },
+        update: {
+          termsVersion: input.termsVersion,
+          privacyVersion: input.privacyVersion,
+          acceptedAt: new Date(),
+          platform: input.platform ?? null,
+        },
+        create: {
+          userId: existing.id,
+          termsVersion: input.termsVersion,
+          privacyVersion: input.privacyVersion,
+          platform: input.platform ?? null,
+        },
       });
 
       if (process.env.NODE_ENV === 'test') {
@@ -293,6 +332,16 @@ export const authService = {
     } catch (err) {
       logger.warn({ err, userId: user.id }, 'Failed to create wallet at registration — will be created lazily');
     }
+
+    // Record legal acceptance with server-authoritative timestamp
+    await prisma.legalAcceptance.create({
+      data: {
+        userId: user.id,
+        termsVersion: input.termsVersion,
+        privacyVersion: input.privacyVersion,
+        platform: input.platform ?? null,
+      },
+    });
 
     if (process.env.NODE_ENV === 'test') {
       await prisma.user.update({ where: { id: user.id }, data: { emailVerified: true } });
@@ -466,11 +515,92 @@ export const authService = {
     return createLoginSession(user.id);
   },
 
-  async googleLogin(idToken: string) {
+  async googleLogin(
+    idToken: string,
+    legal?: {
+      termsAccepted?: boolean;
+      privacyAccepted?: boolean;
+      termsVersion?: number;
+      privacyVersion?: number;
+      platform?: string;
+    },
+  ) {
     const identity = await verifyGoogleIdToken(idToken);
     const { userId, created } = await resolveGoogleAccount(identity);
 
-    if (created) {
+    // Already legally accepted (registered or accepted in a prior Phase 2) → session.
+    const existingAcceptance = await prisma.legalAcceptance.findUnique({ where: { userId } });
+    if (existingAcceptance) {
+      return createLoginSession(userId);
+    }
+
+    // A fresh Google-only account that was created within this sign-in window is an
+    // in-flight registration (Phase 1 shell or a concurrent request for the same new
+    // identity) and MUST pass the legal gate before it can receive a session.
+    // Pre-existing accounts (grandfathered: Google link or email/password created
+    // before the required-acceptance feature) keep logging in without any gate.
+    const freshShell = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { password: true, createdAt: true },
+    });
+    if (!freshShell) {
+      // A concurrent request for the same new Google identity already rolled back the
+      // user shell (Phase 1). There is no user to log into — require the legal gate
+      // again instead of issuing a session for a deleted account.
+      return { requiresLegalAcceptance: true as const };
+    }
+    const createdDuringSignIn =
+      freshShell.password === null &&
+      freshShell.createdAt.getTime() > Date.now() - GOOGLE_SIGNIN_WINDOW_MS;
+
+    if (created || createdDuringSignIn) {
+      // Brand-new Google account: legal acceptance is REQUIRED before issuing tokens.
+      const hasLegalAcceptance =
+        legal?.termsAccepted === true &&
+        legal?.privacyAccepted === true &&
+        typeof legal?.termsVersion === 'number' &&
+        typeof legal?.privacyVersion === 'number';
+
+      if (!hasLegalAcceptance) {
+        // Roll back the newly created user shell to avoid zombie records.
+        // resolveGoogleAccount created User + AuthAccount in a transaction; delete user cascades AuthAccount.
+        await prisma.user.delete({ where: { id: userId } }).catch((err: unknown) => {
+          logger.warn({ err, userId }, 'Failed to rollback new Google user after legal rejection');
+        });
+
+        // Return a structured response (not an error) so the frontend can show the legal gate modal.
+        return { requiresLegalAcceptance: true as const };
+      }
+
+      // Validate that the accepted versions match currently published legal documents.
+      const currentVersions = await legalService.getCurrentVersions();
+      if (
+        legal.termsVersion !== currentVersions.termsVersion ||
+        legal.privacyVersion !== currentVersions.privacyVersion
+      ) {
+        // Roll back the user shell
+        await prisma.user.delete({ where: { id: userId } }).catch(() => {});
+        throw new ApiError(
+          400,
+          'The legal document versions you accepted are out of date. Please reload the app and accept the current Terms & Conditions and Privacy Policy.',
+        );
+      }
+
+      // Record legal acceptance with server-authoritative timestamp.
+      // A concurrent Phase 2 may have already recorded it — tolerate the unique conflict.
+      await prisma.legalAcceptance
+        .create({
+          data: {
+            userId,
+            termsVersion: legal.termsVersion!,
+            privacyVersion: legal.privacyVersion!,
+            platform: legal.platform ?? null,
+          },
+        })
+        .catch((err: unknown) => {
+          if ((err as { code?: string } | null)?.code !== 'P2002') throw err;
+        });
+
       try {
         await prisma.wallet.upsert({
           where: { userId },

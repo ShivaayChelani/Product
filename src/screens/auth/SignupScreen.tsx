@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   StatusBar,
   Keyboard,
   TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -16,17 +18,29 @@ import { AuthHeader } from '../../components/auth/AuthHeader';
 import { PrimaryButton } from '../../components/auth/PrimaryButton';
 import { InputField } from '../../components/auth/InputField';
 import { SocialButton } from '../../components/auth/SocialButton';
+import { LegalConsentRow } from '../../components/auth/LegalConsentRow';
+import { legalApi, type LegalCurrentVersions } from '../../services/api/legal';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,128}$/;
 
+interface LegalMeta {
+  termsVersion: number;
+  privacyVersion: number;
+  platform: 'ios' | 'android' | 'web';
+}
+
 interface SignupScreenProps {
-  onSignup: (name: string, email: string, pass: string) => Promise<boolean>;
+  onSignup: (name: string, email: string, pass: string, legalMeta: LegalMeta) => Promise<boolean>;
   onGoogleLogin: () => Promise<boolean>;
   onLogin: () => void;
   onBack: () => void;
   onGuestContinue: () => void;
   isLoading?: boolean;
+  /** Navigate to Terms & Conditions document (from auth stack) */
+  onOpenTerms?: () => void;
+  /** Navigate to Privacy Policy document (from auth stack) */
+  onOpenPrivacy?: () => void;
 }
 
 function signupErrorMessage(err: unknown): string {
@@ -46,6 +60,8 @@ export default function SignupScreen({
   onBack,
   onGuestContinue,
   isLoading = false,
+  onOpenTerms,
+  onOpenPrivacy,
 }: SignupScreenProps) {
   const insets = useSafeAreaInsets();
 
@@ -54,6 +70,52 @@ export default function SignupScreen({
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Legal consent state
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+
+  // Legal versions fetched from backend
+  const [legalVersions, setLegalVersions] = useState<LegalCurrentVersions | null>(null);
+  const [legalVersionsLoading, setLegalVersionsLoading] = useState(true);
+  const [legalVersionsError, setLegalVersionsError] = useState(false);
+
+  // Fetch current legal document versions on mount
+  useEffect(() => {
+    let cancelled = false;
+    setLegalVersionsLoading(true);
+    setLegalVersionsError(false);
+
+    legalApi.getCurrentVersions()
+      .then((res) => {
+        if (cancelled) return;
+        setLegalVersions(res.data);
+        setLegalVersionsLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLegalVersionsLoading(false);
+        setLegalVersionsError(true);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  const retryLegalVersions = useCallback(() => {
+    setLegalVersionsLoading(true);
+    setLegalVersionsError(false);
+    legalApi.getCurrentVersions()
+      .then((res) => {
+        setLegalVersions(res.data);
+        setLegalVersionsLoading(false);
+      })
+      .catch(() => {
+        setLegalVersionsLoading(false);
+        setLegalVersionsError(true);
+      });
+  }, []);
+
+  const bothLegalAccepted = termsAccepted && privacyAccepted;
 
   const validate = useCallback(() => {
     const e: Record<string, string> = {};
@@ -73,8 +135,30 @@ export default function SignupScreen({
     Keyboard.dismiss();
     if (!validate()) return;
 
+    if (!bothLegalAccepted) {
+      Alert.alert(
+        'Legal Acceptance Required',
+        'Please accept both the Terms & Conditions and Privacy Policy to create an account.',
+      );
+      return;
+    }
+
+    if (!legalVersions) {
+      Alert.alert(
+        'Cannot Continue',
+        'Unable to load legal document versions. Please check your connection and try again.',
+      );
+      return;
+    }
+
+    const legalMeta: LegalMeta = {
+      termsVersion: legalVersions.termsVersion,
+      privacyVersion: legalVersions.privacyVersion,
+      platform: Platform.OS === 'ios' ? 'ios' : 'android',
+    };
+
     try {
-      await onSignup(name.trim(), email.trim(), password);
+      await onSignup(name.trim(), email.trim(), password, legalMeta);
     } catch (err: unknown) {
       const message = signupErrorMessage(err);
       const status = err && typeof err === 'object' ? (err as { status?: number }).status : undefined;
@@ -84,7 +168,7 @@ export default function SignupScreen({
       }
       Alert.alert('Error', message);
     }
-  }, [name, email, password, onSignup, validate]);
+  }, [name, email, password, onSignup, validate, bothLegalAccepted, legalVersions]);
 
   const handleGoogle = async () => {
     try {
@@ -94,6 +178,9 @@ export default function SignupScreen({
     }
   };
 
+  // "Create Account" is disabled until both checkboxes are checked, legal versions are loaded, and not currently loading
+  const canSubmit = bothLegalAccepted && !isLoading && !legalVersionsLoading && !!legalVersions;
+
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFBF6" />
@@ -102,7 +189,12 @@ export default function SignupScreen({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
-        <View style={[styles.content, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 24) }]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.headerWrap}>
             <TouchableOpacity onPress={onBack} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Icon name="chevron-back" size={24} color="#202020" />
@@ -171,11 +263,50 @@ export default function SignupScreen({
               containerStyle={styles.fieldCompact}
             />
 
+            {/* ── Legal consent checkboxes ── */}
+            <View style={styles.legalSection}>
+              {legalVersionsLoading ? (
+                <View style={styles.legalLoadingRow}>
+                  <ActivityIndicator size="small" color="#B9834B" />
+                  <Text style={styles.legalLoadingText}>Loading agreement…</Text>
+                </View>
+              ) : legalVersionsError ? (
+                <View style={styles.legalErrorRow}>
+                  <Text style={styles.legalErrorText}>
+                    Could not load legal documents.{' '}
+                  </Text>
+                  <TouchableOpacity onPress={retryLegalVersions} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}>
+                    <Text style={styles.legalRetryLink}>Retry</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <>
+                  <LegalConsentRow
+                    accepted={termsAccepted}
+                    onToggle={() => setTermsAccepted((v) => !v)}
+                    onOpenDocument={() => onOpenTerms?.()}
+                    label="I agree to the"
+                    linkLabel="Terms & Conditions"
+                    accessibilityLabel="Accept Terms and Conditions"
+                  />
+                  <LegalConsentRow
+                    accepted={privacyAccepted}
+                    onToggle={() => setPrivacyAccepted((v) => !v)}
+                    onOpenDocument={() => onOpenPrivacy?.()}
+                    label="I have read the"
+                    linkLabel="Privacy Policy"
+                    accessibilityLabel="Accept Privacy Policy"
+                  />
+                </>
+              )}
+            </View>
+
             <PrimaryButton
               title="Create Account"
               onPress={handleSignup}
               loading={isLoading}
               style={styles.createBtn}
+              disabled={!canSubmit}
             />
 
             <View style={styles.divider}>
@@ -204,7 +335,7 @@ export default function SignupScreen({
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -218,8 +349,8 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  content: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
   },
   headerWrap: {
     position: 'relative',
@@ -238,8 +369,45 @@ const styles = StyleSheet.create({
   fieldCompact: {
     marginBottom: 10,
   },
+  legalSection: {
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  legalLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingVertical: 4,
+  },
+  legalLoadingText: {
+    color: '#AAAAAA',
+    fontSize: 13,
+    marginLeft: 8,
+  },
+  legalErrorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    flexWrap: 'wrap',
+  },
+  legalErrorText: {
+    color: '#CC3333',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  legalRetryLink: {
+    color: '#B9834B',
+    fontSize: 13,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+    lineHeight: 18,
+  },
   createBtn: {
+    marginTop: 8,
     marginBottom: 16,
+  },
+  createBtnDisabled: {
+    opacity: 0.55,
   },
   divider: {
     flexDirection: 'row',

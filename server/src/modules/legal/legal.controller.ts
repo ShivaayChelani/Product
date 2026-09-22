@@ -19,6 +19,13 @@ export const legalController = {
     sendSuccess(res, result);
   }),
 
+  /** Returns { termsVersion, privacyVersion } for the current published TERMS and PRIVACY docs. */
+  getCurrentVersions: catchAsync(async (req: any, res: Response) => {
+    const locale = (req.query.locale as string) || 'en';
+    const result = await legalService.getCurrentVersions(locale);
+    sendSuccess(res, result);
+  }),
+
   // ── Admin ──
   listDocuments: catchAsync(async (req: any, res: Response) => {
     const locale = (req.query.locale as string) || 'en';

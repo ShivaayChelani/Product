@@ -15,6 +15,8 @@ import {
 const router = Router();
 
 router.get('/types', legalController.listTypes);
+// Must be registered BEFORE /:type to avoid the wildcard swallowing it
+router.get('/current-versions', legalController.getCurrentVersions);
 router.get('/:type', validate(legalTypeParamSchema, 'params'), legalController.getPublished);
 
 export default router;

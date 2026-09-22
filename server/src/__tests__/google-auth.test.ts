@@ -21,6 +21,7 @@ vi.mock('../modules/auth/googleIdentity', async () => {
 });
 
 import app from '../app';
+import { getPublishedLegalVersions, legalAcceptancePayload } from './helpers/legal';
 
 function googleIdentity(overrides: Record<string, unknown> = {}) {
   return {
@@ -45,22 +46,38 @@ async function cleanupUserIds(ids: string[]) {
 
 describe('POST /api/v1/auth/google', () => {
   const createdUserIds: string[] = [];
+  let versions: { termsVersion: number; privacyVersion: number };
 
-  beforeAll(() => {
+  beforeAll(async () => {
     verifyGoogleIdToken.mockReset();
+    versions = await getPublishedLegalVersions();
   });
 
   afterAll(async () => {
     await cleanupUserIds(createdUserIds);
   });
 
-  it('registers a new Google user and issues a normal PalSafar session', async () => {
+  it('requires legal acceptance for a brand-new Google account and creates the full session on Phase 2', async () => {
     const identity = googleIdentity();
     verifyGoogleIdToken.mockResolvedValueOnce(identity);
 
-    const res = await request(app).post('/api/v1/auth/google').send({ idToken: 'valid-new' });
+    // Phase 1: only idToken → signal that legal acceptance is required, no tokens
+    const phase1 = await request(app).post('/api/v1/auth/google').send({ idToken: 'valid-new' });
+    expect(phase1.status).toBe(200);
+    expect(phase1.body.success).toBe(true);
+    expect(phase1.body.data.requiresLegalAcceptance).toBe(true);
+    expect(phase1.body.data.accessToken).toBeUndefined();
+
+    // The user shell must have been rolled back — no zombie records
+    const zombie = await prisma.user.findUnique({ where: { email: identity.email } });
+    expect(zombie).toBeNull();
+
+    // Phase 2: idToken + legal acceptance → full session
+    verifyGoogleIdToken.mockResolvedValueOnce(identity);
+    const res = await request(app)
+      .post('/api/v1/auth/google')
+      .send({ idToken: 'valid-new', ...legalAcceptancePayload(versions) });
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
     expect(res.body.data.accessToken).toBeDefined();
     expect(res.body.data.refreshToken).toBeDefined();
     expect(res.body.data.user.email).toBe(identity.email);
@@ -73,18 +90,27 @@ describe('POST /api/v1/auth/google', () => {
     });
     expect(account?.userId).toBe(res.body.data.user.id);
 
+    const acceptance = await prisma.legalAcceptance.findUnique({
+      where: { userId: res.body.data.user.id },
+    });
+    expect(acceptance?.termsVersion).toBe(versions.termsVersion);
+    expect(acceptance?.privacyVersion).toBe(versions.privacyVersion);
+
     const decoded = jwt.verify(res.body.data.accessToken, env.jwt.secret) as { permission: string; userId: string };
     expect(decoded.permission).toBe('USER');
     expect(decoded.userId).toBe(res.body.data.user.id);
   });
 
-  it('logs in an existing Google-linked user', async () => {
+  it('logs in an existing Google-linked user (grandfathered: no legal gate)', async () => {
     const identity = googleIdentity();
     verifyGoogleIdToken.mockResolvedValueOnce(identity);
-    const first = await request(app).post('/api/v1/auth/google').send({ idToken: 'first' });
+    const first = await request(app)
+      .post('/api/v1/auth/google')
+      .send({ idToken: 'first', ...legalAcceptancePayload(versions) });
     expect(first.status).toBe(200);
     createdUserIds.push(first.body.data.user.id);
 
+    // Second call without any legal payload → existing account logs straight in
     verifyGoogleIdToken.mockResolvedValueOnce(identity);
     const second = await request(app).post('/api/v1/auth/google').send({ idToken: 'second' });
     expect(second.status).toBe(200);
@@ -99,6 +125,7 @@ describe('POST /api/v1/auth/google', () => {
       email: identity.email,
       name: 'Password Account',
       password: 'LinkTest@123',
+      ...legalAcceptancePayload(versions),
     });
     expect(registered.status).toBe(201);
     const existingId = registered.body.data.user.id;
@@ -117,6 +144,7 @@ describe('POST /api/v1/auth/google', () => {
       email,
       name: 'Conflict User',
       password: 'Conflict@123',
+      ...legalAcceptancePayload(versions),
     });
     expect(registered.status).toBe(201);
     const userId = registered.body.data.user.id;
@@ -141,9 +169,27 @@ describe('POST /api/v1/auth/google', () => {
   it('does not create duplicate users under concurrent first-time Google registration', async () => {
     const identity = googleIdentity();
     verifyGoogleIdToken.mockResolvedValue(identity);
-    const [a, b] = await Promise.all([
+
+    // Phase 1 (no legal): every concurrent call must roll back its user shell
+    const [p1a, p1b] = await Promise.all([
       request(app).post('/api/v1/auth/google').send({ idToken: 'concurrent-a' }),
       request(app).post('/api/v1/auth/google').send({ idToken: 'concurrent-b' }),
+    ]);
+    expect(p1a.status).toBe(200);
+    expect(p1b.status).toBe(200);
+    expect(p1a.body.data.requiresLegalAcceptance).toBe(true);
+    expect(p1b.body.data.requiresLegalAcceptance).toBe(true);
+    expect(await prisma.user.count({ where: { email: identity.email } })).toBe(0);
+
+    // Phase 2 with legal acceptance under concurrency → exactly one real account
+    verifyGoogleIdToken.mockResolvedValue(identity);
+    const [a, b] = await Promise.all([
+      request(app)
+        .post('/api/v1/auth/google')
+        .send({ idToken: 'concurrent-a', ...legalAcceptancePayload(versions) }),
+      request(app)
+        .post('/api/v1/auth/google')
+        .send({ idToken: 'concurrent-b', ...legalAcceptancePayload(versions) }),
     ]);
     expect(a.status).toBe(200);
     expect(b.status).toBe(200);
@@ -197,7 +243,9 @@ describe('POST /api/v1/auth/google', () => {
   it('issues the same JWT shape after logout + Google login again', async () => {
     const identity = googleIdentity();
     verifyGoogleIdToken.mockResolvedValueOnce(identity);
-    const first = await request(app).post('/api/v1/auth/google').send({ idToken: 'again-1' });
+    const first = await request(app)
+      .post('/api/v1/auth/google')
+      .send({ idToken: 'again-1', ...legalAcceptancePayload(versions) });
     expect(first.status).toBe(200);
     createdUserIds.push(first.body.data.user.id);
 

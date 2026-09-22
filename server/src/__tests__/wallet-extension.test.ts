@@ -3,6 +3,7 @@ import request from 'supertest';
 import app from '../app';
 import { prisma } from '../config/database';
 import { pointRulesService } from '../modules/point-rules/pointRules.service';
+import { getPublishedLegalVersions, legalAcceptancePayload } from './helpers/legal';
 import { testSlug, testRunId } from './helpers/testRunId';
 
 describe('Wallet Extension API - Games and Regional Leaderboards', () => {
@@ -17,12 +18,14 @@ describe('Wallet Extension API - Games and Regional Leaderboards', () => {
     const gameRule = await pointRulesService.getPointsForAction('game_complete');
     gameRewardPoints = gameRule?.points ?? 20;
 
+    const legalVersions = await getPublishedLegalVersions();
     const registerRes = await request(app)
       .post('/api/v1/auth/register')
       .send({
         email: `wallet-ext-${testRunId}@example.test`,
         name: 'Wallet Extension Test User',
         password: 'WalletExt@123',
+        ...legalAcceptancePayload(legalVersions),
       });
 
     if (registerRes.status !== 201 || !registerRes.body.data?.accessToken) {

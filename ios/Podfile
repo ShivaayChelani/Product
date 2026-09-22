@@ -60,6 +60,15 @@ target 'PalSafar' do
         config.build_settings.delete('PROVISIONING_PROFILE_SPECIFIER')
         config.build_settings.delete('PROVISIONING_PROFILE')
       end
+
+      # Pin Swift 5 for pods that have Swift 6 concurrency warnings.
+      # These warnings are benign but cause archive failures if SWIFT_TREAT_WARNINGS_AS_ERRORS is on.
+      swift5_targets = %w[react-native-compressor RNVideo]
+      if swift5_targets.include?(target.name)
+        target.build_configurations.each do |config|
+          config.build_settings['SWIFT_VERSION'] = '5.0'
+        end
+      end
     end
   end
 end

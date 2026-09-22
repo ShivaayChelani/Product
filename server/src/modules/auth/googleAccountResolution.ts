@@ -7,12 +7,27 @@ import { GOOGLE_PROVIDER, type VerifiedGoogleIdentity } from './googleIdentity';
 export type GoogleAccountResolution = {
   userId: string;
   created: boolean;
+  /** True when the Google link was established during this request (new user OR new link on an email-matched account). */
+  linkedNow: boolean;
 };
 
 type Tx = Prisma.TransactionClient;
 
 function isUniqueConflict(error: unknown): boolean {
   return typeof error === 'object' && error !== null && (error as { code?: string }).code === 'P2002';
+}
+
+function isRetryableRace(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code;
+  // P2002 unique conflict, P2034 deadlock, P40001 serialization failure, P2028 retryable transaction timeout,
+  // 25P02 aborted transaction (constraint/violation happened earlier in the same interactive tx).
+  return code === 'P2002' || code === 'P2034' || code === 'P40001' || code === 'P2028' || code === '25P02';
+}
+
+function jitteredBackoff(attempt: number): Promise<void> {
+  const base = 15 * Math.pow(2, attempt);
+  const ms = base + Math.floor(Math.random() * 25);
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function displayName(identity: VerifiedGoogleIdentity): string {
@@ -107,7 +122,7 @@ async function resolveInsideTransaction(
   if (linked) {
     await fillMissingProfile(tx, linked.userId, identity);
     await updateGoogleAccountMetadata(tx, linked.id, identity);
-    return { userId: linked.userId, created: false };
+    return { userId: linked.userId, created: false, linkedNow: false };
   }
 
   const existingUserId = await findUserIdByEmail(tx, identity.email);
@@ -125,17 +140,15 @@ async function resolveInsideTransaction(
       await createGoogleAccount(tx, existingUserId, identity);
     } catch (error) {
       if (!isUniqueConflict(error)) throw error;
-      const raced = await findGoogleAccountBySub(tx, identity.sub);
-      if (!raced) throw error;
-      if (raced.userId !== existingUserId) {
-        throw googleIdentityConflict(
-          'This Google account is already linked to a different PalSafar user.',
-        );
-      }
+      // A constraint violation aborts the interactive transaction — any further query
+      // here would raise Postgres 25P02 ("current transaction is aborted"). Re-throw
+      // the retryable P2002; the outer retry loop re-runs resolution against the now
+      // committed state, where the top-level sub lookup finds the winning account.
+      throw error;
     }
 
     await fillMissingProfile(tx, existingUserId, identity);
-    return { userId: existingUserId, created: false };
+    return { userId: existingUserId, created: false, linkedNow: true };
   }
 
   const created = await tx.user.create({
@@ -153,7 +166,7 @@ async function resolveInsideTransaction(
 
   await createGoogleAccount(tx, created.id, identity);
   await ensureBaseUserRole(created.id, tx);
-  return { userId: created.id, created: true };
+  return { userId: created.id, created: true, linkedNow: true };
 }
 
 export async function resolveGoogleAccount(
@@ -166,8 +179,9 @@ export async function resolveGoogleAccount(
       return await db.$transaction((tx) => resolveInsideTransaction(tx, identity));
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      if (!isUniqueConflict(error)) throw error;
+      if (!isRetryableRace(error)) throw error;
       lastError = error;
+      await jitteredBackoff(attempt);
     }
   }
 
@@ -175,7 +189,7 @@ export async function resolveGoogleAccount(
     return await db.$transaction((tx) => resolveInsideTransaction(tx, identity));
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    if (isUniqueConflict(error) || lastError) {
+    if (isRetryableRace(error) || lastError) {
       throw new ApiError(409, 'Could not complete Google sign-in. Please try again.');
     }
     throw error;

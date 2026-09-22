@@ -59,8 +59,8 @@ function SignupWrapper({ navigation }: any) {
   const Screen = useLazyScreen(() => require('../screens/auth/SignupScreen'));
   return (
     <Screen
-      onSignup={async (name: string, email: string, password: string) => {
-        const result = await onSignup(name, email, password);
+      onSignup={async (name: string, email: string, password: string, legalMeta: any) => {
+        const result = await onSignup(name, email, password, legalMeta);
         if (result && typeof result === 'object' && result.requiresEmailVerification) {
           navigation.replace('EmailVerification', {
             email: result.email,
@@ -75,6 +75,8 @@ function SignupWrapper({ navigation }: any) {
       onBack={() => navigation.goBack()}
       onGuestContinue={onGuestContinue}
       isLoading={authLoading}
+      onOpenTerms={() => navigation.navigate('AuthLegalDocument', { type: 'TERMS_CONDITIONS' as const, title: 'Terms & Conditions' })}
+      onOpenPrivacy={() => navigation.navigate('AuthLegalDocument', { type: 'PRIVACY_POLICY' as const, title: 'Privacy Policy' })}
     />
   );
 }
@@ -146,6 +148,22 @@ function OTPVerificationWrapper({ navigation, route }: any) {
   );
 }
 
+/**
+ * Auth-context wrappers for LegalHub and LegalDocument.
+ * These allow unauth users to browse legal documents from the signup screen
+ * without needing a full authenticated navigator context.
+ */
+function AuthLegalHubWrapper({ navigation }: any) {
+  const Screen = useLazyScreen(() => require('../screens/LegalHubScreen'));
+  return <Screen navigation={navigation} />;
+}
+
+function AuthLegalDocumentWrapper({ navigation, route }: any) {
+  const Screen = useLazyScreen(() => require('../screens/LegalDocumentScreen'));
+  const { type, title } = route.params ?? {};
+  return <Screen navigation={navigation} route={{ params: { type, title } }} />;
+}
+
 export default function AuthNavigator({ initialRoute }: { initialRoute?: string }) {
   const { theme } = useTheme();
 
@@ -165,6 +183,9 @@ export default function AuthNavigator({ initialRoute }: { initialRoute?: string 
       <Stack.Screen name="PhoneNumber" component={PhoneNumberWrapper} />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordWrapper} />
       <Stack.Screen name="OTPVerification" component={OTPVerificationWrapper} />
+      {/* Legal document access from unauthenticated state (signup flow) */}
+      <Stack.Screen name="AuthLegalHub" component={AuthLegalHubWrapper} />
+      <Stack.Screen name="AuthLegalDocument" component={AuthLegalDocumentWrapper} />
     </Stack.Navigator>
   );
 }

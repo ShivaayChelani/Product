@@ -198,7 +198,7 @@ describe('resolveGoogleAccount', () => {
       }),
       store.db as any,
     );
-    expect(result).toEqual({ userId: 'u1', created: false });
+    expect(result).toEqual({ userId: 'u1', created: false, linkedNow: false });
     expect(store.users.size).toBe(1);
     expect(store.users.get('u1')?.name).toBe('Custom Name');
     expect(store.users.get('u1')?.avatar).toBe('https://cdn.palsafar.test/me.png');
@@ -219,7 +219,7 @@ describe('resolveGoogleAccount', () => {
       identity({ email: 'same@palsafar.test', sub: 'sub-link' }),
       store.db as any,
     );
-    expect(result).toEqual({ userId: 'email-user', created: false });
+    expect(result).toEqual({ userId: 'email-user', created: false, linkedNow: true });
     expect(store.accounts[0]).toMatchObject({
       userId: 'email-user',
       providerAccountId: 'sub-link',

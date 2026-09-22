@@ -2,6 +2,8 @@ import request from 'supertest';
 import app from '../app';
 import { prisma } from '../config/database';
 import { getAuthToken } from './helpers/auth';
+import type { LegalVersions } from './helpers/legal';
+import { getPublishedLegalVersions, legalAcceptancePayload } from './helpers/legal';
 
 type RegisteredAccount = {
   email: string;
@@ -10,6 +12,7 @@ type RegisteredAccount = {
 };
 
 const createdUserIds: string[] = [];
+let legalVersions: LegalVersions;
 
 function uniqueSuffix() {
   return `${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
@@ -24,6 +27,7 @@ async function registerUser(label: string): Promise<RegisteredAccount> {
       email,
       name: `Multi Role ${label}`,
       password: 'MultiRole@123',
+      ...legalAcceptancePayload(legalVersions),
     });
 
   expect(
@@ -67,6 +71,10 @@ function expectApprovedRoles(user: any, expected: string[]) {
 }
 
 describe('Multi-role accounts', () => {
+  beforeAll(async () => {
+    legalVersions = await getPublishedLegalVersions();
+  });
+
   afterAll(async () => {
     if (createdUserIds.length === 0) return;
 

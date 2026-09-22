@@ -150,6 +150,7 @@ export const UNIT_TEST_FILES = [
   'src/__tests__/daily-open-reward.unit.test.ts',
   'src/__tests__/reverse-geocode.unit.test.ts',
   'src/__tests__/riddles-daily.unit.test.ts',
+  'src/__tests__/legal-current-versions.unit.test.ts',
   // Phase 1 itinerary intelligence engine (pure, DB-free)
   'src/__tests__/itinerary-phase1-intent.unit.test.ts',
   'src/__tests__/itinerary-phase1-candidates.unit.test.ts',

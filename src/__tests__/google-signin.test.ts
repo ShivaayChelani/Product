@@ -104,8 +104,35 @@ describe('mobile Google auth', () => {
     const result = await googleLogin();
     expect(result?.user.uid).toBe('user-1');
     expect(result?.user.email).toBe('google@palsafar.test');
-    expect(mockedClient.setToken).toHaveBeenCalledWith('access');
-    expect(mockedAuthApi.googleLogin).toHaveBeenCalledWith('id-token');
+    expect(mockedClient.setToken).not.toHaveBeenCalled();
+    expect(mockedAuthApi.googleLogin).toHaveBeenCalledWith({ idToken: 'id-token' });
+  });
+
+  it('returns a legal-acceptance signal for brand-new Google accounts (Phase 1)', async () => {
+    mockedAuthApi.googleLogin.mockResolvedValue({ requiresLegalAcceptance: true } as any);
+    await expect(googleLogin()).resolves.toEqual({
+      requiresLegalAcceptance: true,
+      pendingIdToken: 'id-token',
+    });
+  });
+
+  it('finalizes Google login with legal acceptance (Phase 2)', async () => {
+    const { finalizeGoogleLogin } = await import('../services/authService');
+    const result = await finalizeGoogleLogin('id-token', {
+      termsVersion: 1,
+      privacyVersion: 1,
+      platform: 'android',
+    });
+    expect(result?.user.uid).toBe('user-1');
+    expect(mockedAuthApi.googleLogin).toHaveBeenCalledWith({
+      idToken: 'id-token',
+      termsAccepted: true,
+      privacyAccepted: true,
+      termsVersion: 1,
+      privacyVersion: 1,
+      platform: 'android',
+    });
+    expect(mockedClient.setToken).not.toHaveBeenCalled();
   });
 
   it('signs out of Google then clears PalSafar session so login can run again', async () => {

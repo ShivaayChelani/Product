@@ -17,7 +17,15 @@ export type AuthStackParamList = {
     phoneNumber: string;
     signupDraft?: { name: string; email: string; password: string };
   };
+  /** Legal document browser accessible in unauthenticated state (from signup screen). */
+  AuthLegalHub: undefined;
+  /** Single legal document view accessible in unauthenticated state (from signup screen). */
+  AuthLegalDocument: {
+    type: 'PRIVACY_POLICY' | 'TERMS_CONDITIONS' | 'REWARDS_POLICY' | 'COMMUNITY_GUIDELINES' | 'VENDOR_TERMS' | 'CREATOR_TERMS' | 'REFUND_POLICY' | 'ABOUT_US' | 'CONTACT_INFO' | 'FAQ';
+    title?: string;
+  };
 };
+
 
 export type MainTabParamList = {
   Home: undefined;

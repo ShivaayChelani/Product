@@ -37,7 +37,7 @@ function resolveEnvironment(): 'development' | 'staging' | 'production' {
  * - ios/PalSafar.xcodeproj → MARKETING_VERSION / CURRENT_PROJECT_VERSION
  */
 export const APP_VERSION = '1.1.2';
-export const APP_BUILD = '4';
+export const APP_BUILD = '5';
 export const APP_BUNDLE_ID = 'com.palsasafar';
 
 /** Keep aligned with android/app/build.gradle applicationId */

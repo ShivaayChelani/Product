@@ -187,7 +187,25 @@ export async function login(
   }
 }
 
-export async function googleLogin(): Promise<{ user: UserProfile; session: Session } | null> {
+export interface LegalMeta {
+  termsVersion: number;
+  privacyVersion: number;
+  platform: 'ios' | 'android' | 'web';
+}
+
+/**
+ * Phase 1 of Google Sign-In:
+ * - Initiates Google OAuth (shows the Google account picker)
+ * - Sends idToken to backend
+ * - Returns full session for EXISTING accounts (no legal gate)
+ * - Returns { requiresLegalAcceptance: true, idToken } for BRAND-NEW accounts
+ * - Returns null if user cancelled Google sign-in
+ */
+export async function googleLogin(): Promise<
+  | { user: UserProfile; session: Session }
+  | { requiresLegalAcceptance: true; pendingIdToken: string }
+  | null
+> {
   if (!DEV_FLAGS.USE_SERVER_API) {
     throw new Error('Server API is required. Set USE_SERVER_API=true in devFlags.');
   }
@@ -213,15 +231,22 @@ export async function googleLogin(): Promise<{ user: UserProfile; session: Sessi
       throw missing;
     }
 
-    const result = await authApi.googleLogin(idToken);
-    if (!result?.accessToken || !result?.user?.id) {
+    // Phase 1 backend call — no legal meta
+    const result = await authApi.googleLogin({ idToken });
+
+    // New account: return signal + idToken for Phase 2
+    if ('requiresLegalAcceptance' in result) {
+      return { requiresLegalAcceptance: true, pendingIdToken: idToken };
+    }
+
+    // Existing user: full session
+    if (!result?.accessToken || !(result as any)?.user?.id) {
       throw new Error('Google Sign-In returned an incomplete session. Please try again.');
     }
-    await apiClient.setToken(result.accessToken);
 
     let profile: UserProfile;
     try {
-      profile = buildProfileFromApiUser(result.user);
+      profile = buildProfileFromApiUser((result as any).user);
       await persistAuthUser(profile);
     } catch {
       await apiClient.setToken(null);
@@ -231,7 +256,7 @@ export async function googleLogin(): Promise<{ user: UserProfile; session: Sessi
       user: profile,
       session: {
         userId: profile.uid,
-        email: result.user.email,
+        email: (result as any).user.email,
         role: profile.role,
         expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
       },
@@ -244,10 +269,59 @@ export async function googleLogin(): Promise<{ user: UserProfile; session: Sessi
   }
 }
 
+/**
+ * Phase 2 of Google Sign-In — called after user has accepted legal docs in the modal.
+ * Does NOT re-open the Google account picker (idToken was captured in Phase 1).
+ */
+export async function finalizeGoogleLogin(
+  idToken: string,
+  legalMeta: LegalMeta,
+): Promise<{ user: UserProfile; session: Session } | null> {
+  if (!DEV_FLAGS.USE_SERVER_API) {
+    throw new Error('Server API is required. Set USE_SERVER_API=true in devFlags.');
+  }
+
+  try {
+    const result = await authApi.googleLogin({
+      idToken,
+      termsAccepted: true,
+      privacyAccepted: true,
+      termsVersion: legalMeta.termsVersion,
+      privacyVersion: legalMeta.privacyVersion,
+      platform: legalMeta.platform,
+    });
+
+    if ('requiresLegalAcceptance' in result) {
+      // Should not happen — means server still rejected the acceptance
+      throw new Error('Legal acceptance was not recorded. Please reload and try again.');
+    }
+
+    if (!result?.accessToken || !(result as any)?.user?.id) {
+      throw new Error('Google Sign-In returned an incomplete session. Please try again.');
+    }
+
+    const profile = buildProfileFromApiUser((result as any).user);
+    await persistAuthUser(profile);
+    return {
+      user: profile,
+      session: {
+        userId: profile.uid,
+        email: (result as any).user.email,
+        role: profile.role,
+        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      },
+    };
+  } catch (e: unknown) {
+    if (isGoogleSignInCancelled(e)) return null;
+    throw mapGoogleAuthFailure(e);
+  }
+}
+
 export async function signup(
   name: string,
   email: string,
-  password: string
+  password: string,
+  legalMeta: LegalMeta,
 ): Promise<
   | { requiresEmailVerification: true; email: string; name: string }
   | { requiresEmailVerification: false; user: UserProfile; session: Session }
@@ -258,7 +332,16 @@ export async function signup(
   }
 
   try {
-    const result = await authApi.register({ name, email, password });
+    const result = await authApi.register({
+      name,
+      email,
+      password,
+      termsAccepted: true,
+      privacyAccepted: true,
+      termsVersion: legalMeta.termsVersion,
+      privacyVersion: legalMeta.privacyVersion,
+      platform: legalMeta.platform,
+    });
     if (result.requiresEmailVerification) {
       return {
         requiresEmailVerification: true,
@@ -284,6 +367,7 @@ export async function signup(
     throw e;
   }
 }
+
 
 export async function verifyRegisterEmail(
   email: string,

@@ -36,6 +36,11 @@ export interface LegalTypeSummary {
   publishedAt: string | null;
 }
 
+export interface LegalCurrentVersions {
+  termsVersion: number;
+  privacyVersion: number;
+}
+
 export const legalApi = {
   async getDocument(type: LegalDocumentType, locale = 'en') {
     return apiClient.get<LegalDocumentPayload>(`/legal/${type}?locale=${locale}`);
@@ -43,5 +48,14 @@ export const legalApi = {
 
   async listTypes(locale = 'en') {
     return apiClient.get<LegalTypeSummary[]>(`/legal/types?locale=${locale}`);
+  },
+
+  /**
+   * Returns the current published version numbers for TERMS_CONDITIONS and PRIVACY_POLICY.
+   * Used by the signup flow to embed the correct version numbers in the acceptance payload.
+   * These are validated server-side at registration time.
+   */
+  async getCurrentVersions(locale = 'en') {
+    return apiClient.get<LegalCurrentVersions>(`/legal/current-versions?locale=${locale}`);
   },
 };

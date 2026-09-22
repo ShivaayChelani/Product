@@ -231,6 +231,12 @@ describe('Place reviews blocked; vendor reviews accepted', () => {
     extraOwnerIds.push(owner.id);
     await grantLiveVendorSub(owner.id);
 
+    // Reset today's review_write counter so repeated suite runs can't exhaust the
+    // rule's maxDaily limit and turn this into an order/state-dependent flake.
+    await prisma.walletTransaction.deleteMany({
+      where: { userId: reviewerId, reason: 'review_write', createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
+    });
+
     const walletBefore = await prisma.wallet.findUnique({ where: { userId: reviewerId } });
     const pointsBefore = walletBefore?.palPoints ?? 0;
 
@@ -270,10 +276,17 @@ describe('Place reviews blocked; vendor reviews accepted', () => {
     expect(reviewerNotif).toBeTruthy();
     expect(`${reviewerNotif?.title} ${reviewerNotif?.body || ''}`).toMatch(/review/i);
 
-    const vendorNotif = await prisma.inAppNotification.findFirst({
-      where: { userId: owner.id, type: 'vendor_review' },
-      orderBy: { createdAt: 'desc' },
-    });
+    // The vendor notification is dispatched fire-and-forget, so poll briefly for it.
+    const deadline = Date.now() + 3000;
+    let vendorNotif: Awaited<ReturnType<typeof prisma.inAppNotification.findFirst>> | null = null;
+    while (Date.now() < deadline) {
+      vendorNotif = await prisma.inAppNotification.findFirst({
+        where: { userId: owner.id, type: 'vendor_review' },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (vendorNotif) break;
+      await new Promise((r) => setTimeout(r, 50));
+    }
     expect(vendorNotif).toBeTruthy();
 
     const second = await request(app)

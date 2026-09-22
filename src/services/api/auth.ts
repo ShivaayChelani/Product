@@ -28,6 +28,30 @@ export interface RegisterInput {
   name: string;
   email: string;
   password: string;
+  /** Must be true — enforced by backend. Frontend disables Create Account until checked. */
+  termsAccepted: true;
+  /** Must be true — enforced by backend. Frontend disables Create Account until checked. */
+  privacyAccepted: true;
+  /** Current published version number of the Terms & Conditions document. */
+  termsVersion: number;
+  /** Current published version number of the Privacy Policy document. */
+  privacyVersion: number;
+  /** Platform origin for audit trail. */
+  platform?: 'ios' | 'android' | 'web';
+}
+
+export interface GoogleLoginInput {
+  idToken: string;
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
+  termsVersion?: number;
+  privacyVersion?: number;
+  platform?: 'ios' | 'android' | 'web';
+}
+
+/** Returned by Phase 1 of Google login when a brand-new account needs legal acceptance. */
+export interface GoogleLoginRequiresLegal {
+  requiresLegalAcceptance: true;
 }
 
 export interface RegisterPendingResponse {
@@ -43,10 +67,16 @@ export interface LoginInput {
 
 export const authApi = {
   async register(input: RegisterInput) {
-    const payload: RegisterInput = {
+    // Pass the complete payload including legal acceptance fields — backend validates all fields
+    const payload = {
       name: input.name,
       email: input.email,
       password: input.password,
+      termsAccepted: input.termsAccepted,
+      privacyAccepted: input.privacyAccepted,
+      termsVersion: input.termsVersion,
+      privacyVersion: input.privacyVersion,
+      platform: input.platform,
     };
     const path = API_CONFIG.endpoints.auth.register;
     const url = `${API_CONFIG.baseUrl}${path}`;
@@ -121,20 +151,33 @@ export const authApi = {
     return data;
   },
 
-  async googleLogin(idToken: string) {
-    const res = await apiClient.post<LoginResponse>(
+  /**
+   * Two-phase Google Sign-In:
+   *   Phase 1 (input has only idToken) → backend returns { requiresLegalAcceptance: true } for new accounts.
+   *   Phase 2 (input has idToken + acceptance) → backend creates account + returns session tokens.
+   *   Existing users: always returns session tokens directly (no acceptance needed).
+   */
+  async googleLogin(input: GoogleLoginInput): Promise<LoginResponse | GoogleLoginRequiresLegal> {
+    const res = await apiClient.post<LoginResponse | GoogleLoginRequiresLegal>(
       API_CONFIG.endpoints.auth.google,
-      { idToken },
+      input,
     );
     const data = res.data;
-    if (!data?.accessToken) {
+
+    // Phase 1: new account needs legal acceptance — return the signal to the caller
+    if (data && 'requiresLegalAcceptance' in data && (data as GoogleLoginRequiresLegal).requiresLegalAcceptance) {
+      return data as GoogleLoginRequiresLegal;
+    }
+
+    const loginData = data as LoginResponse;
+    if (!loginData?.accessToken) {
       throw new Error('Google Login succeeded but no access token was returned.');
     }
-    await apiClient.setToken(data.accessToken);
-    if (data.refreshToken) {
-      await apiClient.setRefreshToken(data.refreshToken);
+    await apiClient.setToken(loginData.accessToken);
+    if (loginData.refreshToken) {
+      await apiClient.setRefreshToken(loginData.refreshToken);
     }
-    return data;
+    return loginData;
   },
 
   async getProfile() {

@@ -31,6 +31,10 @@ vi.mock('../config/database', () => ({
       update: vi.fn(),
     },
     refreshToken: { updateMany: vi.fn() },
+    legalAcceptance: {
+      upsert: vi.fn(),
+      create: vi.fn(),
+    },
   },
 }));
 
@@ -38,6 +42,20 @@ vi.mock('../shared/utils/userEmailLookup', () => ({
   findUserByEmail: vi.fn(),
   normalizeEmail: (e: string) => e.trim().toLowerCase(),
 }));
+
+vi.mock('../modules/legal/legal.service', () => ({
+  legalService: {
+    getCurrentVersions: vi.fn().mockResolvedValue({ termsVersion: 3, privacyVersion: 4 }),
+  },
+}));
+
+const LEGAL_REGISTER_FIELDS = {
+  termsAccepted: true,
+  privacyAccepted: true,
+  termsVersion: 3,
+  privacyVersion: 4,
+  platform: 'web' as const,
+};
 
 vi.mock('../shared/utils/specialtyRoles', () => ({
   ensureBaseUserRole: vi.fn(),
@@ -116,6 +134,7 @@ describe('Brevo template email flows', () => {
       email: 'user@example.com',
       password: 'Password@123',
       name: 'Test User',
+      ...LEGAL_REGISTER_FIELDS,
     });
 
     expect(result.requiresEmailVerification).toBe(true);
@@ -184,6 +203,7 @@ describe('Brevo template email flows', () => {
         email: 'user@example.com',
         password: 'Password@123',
         name: 'Test User',
+        ...LEGAL_REGISTER_FIELDS,
       }),
     ).rejects.toMatchObject({ statusCode: 503 });
     expect(sendTransactionalEmailMock).not.toHaveBeenCalled();
