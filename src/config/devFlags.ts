@@ -7,7 +7,7 @@ export const DEV_FLAGS = {
   /**
    * API target for DEBUG builds (npx react-native run-android / react-native start).
    *
-   *   'production' (default) → https://product-jiet.onrender.com/api/v1
+   *   'production' (default) → https://palsafar-api-fh7i.onrender.com/api/v1
    *                            Release builds ALWAYS use the production API.
    *                            Debug builds use it too unless overridden below.
    *   'local'                → http://<LOCAL_API_HOST>:3000/api/v1
