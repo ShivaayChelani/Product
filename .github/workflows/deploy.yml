@@ -52,7 +52,7 @@ jobs:
           fi
 
           baseline_uptime="$(
-            curl --fail-with-body -sS "$HEALTH_URL" | jq -r '.meta.uptime // empty'
+            curl --fail-with-body -sS --max-time 15 "$HEALTH_URL" 2>/dev/null | jq -r '.meta.uptime // empty' 2>/dev/null || true
           )"
           echo "Baseline production uptime: ${baseline_uptime:-unknown}s"
 
@@ -348,9 +348,11 @@ jobs:
           node-version: "22"
       - name: Install Vercel CLI
         run: npm install -g vercel
-      - name: Deploy to Vercel
-        run: cd admin && vercel --prod --yes 2>&1
+      - name: Link admin project
+        run: cd admin && npx vercel link --yes --project product_admin --scope palsafar 2>&1
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Deploy to Vercel
+        run: cd admin && npx vercel --prod --yes 2>&1
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
