@@ -20,7 +20,7 @@ describe('Legal CMS admin (HTTP wiring)', () => {
   let adminToken: string;
   let userToken: string;
   let termsDocumentId: string;
-  let draftsCreated: string[] = [];
+  const draftsCreated: string[] = [];
 
   beforeAll(async () => {
     adminToken = await getAuthToken('ADMIN');

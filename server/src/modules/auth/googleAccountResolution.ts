@@ -20,8 +20,16 @@ function isUniqueConflict(error: unknown): boolean {
 function isRetryableRace(error: unknown): boolean {
   const code = (error as { code?: string } | null)?.code;
   // P2002 unique conflict, P2034 deadlock, P40001 serialization failure, P2028 retryable transaction timeout,
-  // 25P02 aborted transaction (constraint/violation happened earlier in the same interactive tx).
-  return code === 'P2002' || code === 'P2034' || code === 'P40001' || code === 'P2028' || code === '25P02';
+  // 25P02 aborted transaction (constraint/violation happened earlier in the same interactive tx),
+  // P2025 record not found — the winning racer rolled back/deleted the shell user mid-resolution.
+  return (
+    code === 'P2002' ||
+    code === 'P2034' ||
+    code === 'P40001' ||
+    code === 'P2028' ||
+    code === '25P02' ||
+    code === 'P2025'
+  );
 }
 
 function jitteredBackoff(attempt: number): Promise<void> {
