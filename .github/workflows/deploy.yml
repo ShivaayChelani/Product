@@ -340,7 +340,6 @@ jobs:
     name: Deploy Admin to Vercel
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node
