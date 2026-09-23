@@ -161,7 +161,13 @@ function AuthLegalHubWrapper({ navigation }: any) {
 function AuthLegalDocumentWrapper({ navigation, route }: any) {
   const Screen = useLazyScreen(() => require('../screens/LegalDocumentScreen'));
   const { type, title } = route.params ?? {};
-  return <Screen navigation={navigation} route={{ params: { type, title } }} />;
+  return (
+    <Screen
+      type={type}
+      fallbackTitle={title}
+      onBack={() => navigation.goBack()}
+    />
+  );
 }
 
 export default function AuthNavigator({ initialRoute }: { initialRoute?: string }) {
