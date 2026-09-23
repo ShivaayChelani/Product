@@ -34,12 +34,16 @@ async function writeCache(type: LegalDocumentType, locale: string, payload: Lega
   }
 }
 
+export type LegalDocumentFailure = 'none' | 'not_published' | 'server_error' | 'network';
+
 export interface LegalDocumentResult {
   document: LegalDocumentPayload | null;
   source: 'network' | 'cache' | 'none';
   cachedAt: number | null;
   /** True when the CMS has no published version yet for this type (distinct from a network failure). */
   notPublished: boolean;
+  /** Classifies why no live document is available, so callers can show the right message. */
+  failure: LegalDocumentFailure;
 }
 
 /**
@@ -52,24 +56,32 @@ export async function getLegalDocument(type: LegalDocumentType, locale = 'en'): 
     const res = await legalApi.getDocument(type, locale);
     if (res.success && res.data) {
       await writeCache(type, locale, res.data);
-      return { document: res.data, source: 'network', cachedAt: Date.now(), notPublished: false };
+      return { document: res.data, source: 'network', cachedAt: Date.now(), notPublished: false, failure: 'none' };
     }
   } catch (err: any) {
     // 404 means the CMS genuinely has nothing published yet — don't mask that with a stale cache lie,
     // but still prefer a previously cached copy if one exists (e.g. it was unpublished after being cached).
-    const notPublished = err?.status === 404;
+    const status = err?.status;
+    const notPublished = status === 404;
+    const serverError = typeof status === 'number' && status >= 500;
     const cached = await readCache(type, locale);
     if (cached) {
-      return { document: cached.payload, source: 'cache', cachedAt: cached.cachedAt, notPublished: false };
+      return { document: cached.payload, source: 'cache', cachedAt: cached.cachedAt, notPublished: false, failure: 'none' };
     }
-    return { document: null, source: 'none', cachedAt: null, notPublished };
+    return {
+      document: null,
+      source: 'none',
+      cachedAt: null,
+      notPublished,
+      failure: notPublished ? 'not_published' : serverError ? 'server_error' : 'network',
+    };
   }
 
   const cached = await readCache(type, locale);
   if (cached) {
-    return { document: cached.payload, source: 'cache', cachedAt: cached.cachedAt, notPublished: false };
+    return { document: cached.payload, source: 'cache', cachedAt: cached.cachedAt, notPublished: false, failure: 'none' };
   }
-  return { document: null, source: 'none', cachedAt: null, notPublished: false };
+  return { document: null, source: 'none', cachedAt: null, notPublished: false, failure: 'none' };
 }
 
 export async function clearLegalCache(): Promise<void> {

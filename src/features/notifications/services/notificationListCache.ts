@@ -49,6 +49,14 @@ export async function patchNotificationInCache(
   await writeNotificationListCache(cache);
 }
 
+export async function markAllReadInCache(): Promise<void> {
+  const cache = await readNotificationListCache();
+  if (!cache) return;
+  cache.notifications = cache.notifications.map(n => ({ ...n, read: true }));
+  cache.unreadCount = 0;
+  await writeNotificationListCache(cache);
+}
+
 export async function removeNotificationsFromCache(ids: string[]): Promise<void> {
   const cache = await readNotificationListCache();
   if (!cache) return;

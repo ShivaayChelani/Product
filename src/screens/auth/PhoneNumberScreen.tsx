@@ -15,6 +15,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Icon from 'react-native-vector-icons/Ionicons';
 import { PrimaryButton } from '../../components/auth/PrimaryButton';
 import { InputField } from '../../components/auth/InputField';
+import { useBackDismissesKeyboard } from '../../hooks/useBackDismissesKeyboard';
 
 const COLORS = {
   bg: '#FFFFFF',
@@ -54,6 +55,7 @@ export default function PhoneNumberScreen({
   onBack,
 }: PhoneNumberScreenProps) {
   const insets = useSafeAreaInsets();
+  const { dismissThenNavigate } = useBackDismissesKeyboard();
   const [phone, setPhone] = useState(() => {
     const digits = initialPhone.replace(/\D/g, '');
     return digits.length >= 10 ? digits.slice(-10) : digits;
@@ -80,7 +82,7 @@ export default function PhoneNumberScreen({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <TouchableOpacity onPress={onBack} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <TouchableOpacity onPress={() => dismissThenNavigate(onBack)} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Icon name="chevron-back" size={26} color={COLORS.title} />
           </TouchableOpacity>
 

@@ -11,6 +11,7 @@ import {
   writeNotificationListCache,
   removeNotificationsFromCache,
   patchNotificationInCache,
+  markAllReadInCache,
 } from '../services/notificationListCache';
 import { DEV_FLAGS } from '../../../config/devFlags';
 
@@ -106,6 +107,7 @@ export function useNotificationsFeed(tab: NotificationFilterTab, search: string,
   const markAllReadMutation = useMutation({
     mutationFn: () => notificationsApi.markAllRead(),
     onSuccess: async () => {
+      await markAllReadInCache();
       queryClient.setQueryData(queryKey, (old: any) => {
         if (!old?.pages) return old;
         return {
@@ -118,6 +120,7 @@ export function useNotificationsFeed(tab: NotificationFilterTab, search: string,
         };
       });
       setUnreadBadgeCount(0);
+      void queryClient.invalidateQueries({ queryKey: notificationKeys.all });
     },
   });
 

@@ -411,8 +411,8 @@ export default function ProfileScreen({
           // Upload and save to backend
           try {
             const uploadRes = await uploadApi.uploadImage(uri, null, 'profile.jpg');
-            await updateUserProfile(user.uid, { avatar: uploadRes.url, avatarStyle: -1 });
-            const persistedUpdated = { ...user, avatar: uploadRes.url, avatarStyle: -1 } as UserProfile;
+            await updateUserProfile(user.uid, { avatar: uploadRes.url });
+            const persistedUpdated = { ...user, avatar: uploadRes.url } as UserProfile;
             setUser(persistedUpdated);
             setContextUser(persistedUpdated);
             setPersonalForm(prev => ({ ...prev, avatarUri: uploadRes.url }));

@@ -30,6 +30,7 @@ export default function LegalDocumentScreen({ type, fallbackTitle, onBack }: Leg
   const [document, setDocument] = useState<LegalDocumentPayload | null>(null);
   const [source, setSource] = useState<'network' | 'cache' | 'none'>('none');
   const [notPublished, setNotPublished] = useState(false);
+  const [serverError, setServerError] = useState(false);
   const [cachedAt, setCachedAt] = useState<number | null>(null);
 
   const load = useCallback(async () => {
@@ -39,6 +40,7 @@ export default function LegalDocumentScreen({ type, fallbackTitle, onBack }: Leg
       setDocument(result.document);
       setSource(result.source);
       setNotPublished(result.notPublished);
+      setServerError(result.failure === 'server_error');
       setCachedAt(result.cachedAt);
     } finally {
       setLoading(false);
@@ -71,11 +73,13 @@ export default function LegalDocumentScreen({ type, fallbackTitle, onBack }: Leg
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: Pal.spacing[6], gap: Pal.spacing[3] }}>
           <Text style={{ fontSize: 40 }}>📄</Text>
           <Text style={{ fontFamily: Pal.typography.fontFamily.semibold, fontSize: 16, color: theme.text, textAlign: 'center' }}>
-            {notPublished ? 'Not published yet' : 'Unable to load this document'}
+            {notPublished ? 'Not published yet' : serverError ? 'Server error' : 'Unable to load this document'}
           </Text>
           <Text style={{ fontFamily: Pal.typography.fontFamily.regular, fontSize: 14, color: theme.textMuted, textAlign: 'center' }}>
             {notPublished
               ? 'This document has not been published yet. Please check back later.'
+              : serverError
+              ? 'Our servers are busy right now. Please try again in a moment.'
               : 'Check your internet connection and try again.'}
           </Text>
           <TouchableOpacity onPress={load} style={{ marginTop: Pal.spacing[2], paddingHorizontal: Pal.spacing[5], paddingVertical: Pal.spacing[3], borderRadius: Pal.borderRadius.xl, backgroundColor: theme.primary }}>

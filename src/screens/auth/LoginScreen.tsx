@@ -17,6 +17,7 @@ import { AuthHeader } from '../../components/auth/AuthHeader';
 import { PrimaryButton } from '../../components/auth/PrimaryButton';
 import { InputField } from '../../components/auth/InputField';
 import { SocialButton } from '../../components/auth/SocialButton';
+import { useBackDismissesKeyboard } from '../../hooks/useBackDismissesKeyboard';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -43,6 +44,7 @@ export default function LoginScreen({
   isLoading = false 
 }: LoginScreenProps) {
   const insets = useSafeAreaInsets();
+  const { dismissThenNavigate } = useBackDismissesKeyboard();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -98,7 +100,7 @@ export default function LoginScreen({
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.headerWrap}>
-            <TouchableOpacity onPress={onBack} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <TouchableOpacity onPress={() => dismissThenNavigate(onBack)} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Icon name="chevron-back" size={24} color="#2C1810" />
             </TouchableOpacity>
             <AuthHeader 

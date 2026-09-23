@@ -20,6 +20,7 @@ import { InputField } from '../../components/auth/InputField';
 import { SocialButton } from '../../components/auth/SocialButton';
 import { LegalConsentRow } from '../../components/auth/LegalConsentRow';
 import { legalApi, type LegalCurrentVersions } from '../../services/api/legal';
+import { useBackDismissesKeyboard } from '../../hooks/useBackDismissesKeyboard';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,128}$/;
@@ -64,6 +65,7 @@ export default function SignupScreen({
   onOpenPrivacy,
 }: SignupScreenProps) {
   const insets = useSafeAreaInsets();
+  const { dismissThenNavigate } = useBackDismissesKeyboard();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -196,7 +198,7 @@ export default function SignupScreen({
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.headerWrap}>
-            <TouchableOpacity onPress={onBack} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <TouchableOpacity onPress={() => dismissThenNavigate(onBack)} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Icon name="chevron-back" size={24} color="#202020" />
             </TouchableOpacity>
             <AuthHeader

@@ -12,9 +12,9 @@ export const appPublicService = {
     const latestVersion = parseSetting(settings, 'latest_app_version', '');
     const latestBuild = parseSetting(settings, 'latest_app_build', '');
     const minVersion = parseSetting(settings, 'force_update_min_version', '');
-    const playStoreUrl = parseSetting(settings, 'play_store_url', 'https://play.google.com/store/apps/details?id=com.palsafar');
+    const playStoreUrl = parseSetting(settings, 'play_store_url', 'https://play.google.com/store/apps/details?id=com.palsasafar');
     const appStoreUrl = parseSetting(settings, 'app_store_url', 'https://apps.apple.com/app/id0000000000');
-    const supportEmail = parseSetting(settings, 'support_email', 'support@palsafar.com');
+    const supportEmail = parseSetting(settings, 'support_email', 'shivaay.chelai@gmail.com');
 
     return {
       latestVersion,

@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, StatusBar, ScrollView,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView, Platform, Keyboard, BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -39,6 +39,24 @@ export default function ForgotPasswordScreen({ onBack, onResetPassword }: Forgot
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'email' | 'code' | 'password' | 'success'>('email');
+  const kbVisibleRef = useRef(false);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => { kbVisibleRef.current = true; });
+    const hide = Keyboard.addListener('keyboardDidHide', () => { kbVisibleRef.current = false; });
+    const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (kbVisibleRef.current) {
+        Keyboard.dismiss();
+        return true;
+      }
+      return false;
+    });
+    return () => {
+      show.remove();
+      hide.remove();
+      back.remove();
+    };
+  }, []);
 
   const handleSendCode = useCallback(async () => {
     if (!email.trim()) { setError('Email is required'); return; }
@@ -103,11 +121,12 @@ export default function ForgotPasswordScreen({ onBack, onResetPassword }: Forgot
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={
-          step === 'password' ? () => { setStep('code'); setPassword(''); setError(''); }
-            : step === 'code' ? () => { setStep('email'); setCode(''); setError(''); }
-            : onBack
-        }>
+        <TouchableOpacity style={styles.backBtn} onPress={() => {
+          Keyboard.dismiss();
+          if (step === 'password') { setStep('code'); setPassword(''); setError(''); }
+          else if (step === 'code') { setStep('email'); setCode(''); setError(''); }
+          else { onBack(); }
+        }}>
           <Icon name="arrow-back" size={22} color={C.dark} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Reset Password</Text>

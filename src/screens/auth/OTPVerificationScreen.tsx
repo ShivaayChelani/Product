@@ -15,6 +15,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Icon from 'react-native-vector-icons/Ionicons';
 import { PrimaryButton } from '../../components/auth/PrimaryButton';
 import { OTPInput } from '../../components/auth/OTPInput';
+import { useBackDismissesKeyboard } from '../../hooks/useBackDismissesKeyboard';
 
 const RESEND_SECONDS = 45;
 
@@ -58,6 +59,7 @@ export default function OTPVerificationScreen({
   isLoading = false,
 }: OTPVerificationScreenProps) {
   const insets = useSafeAreaInsets();
+  const { dismissThenNavigate } = useBackDismissesKeyboard();
   const [otp, setOtp] = useState('');
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
   const [resending] = useState(false);
@@ -118,7 +120,7 @@ export default function OTPVerificationScreen({
           showsVerticalScrollIndicator={false}
         >
           <TouchableOpacity
-            onPress={onBack}
+            onPress={() => dismissThenNavigate(onBack)}
             style={styles.backBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >

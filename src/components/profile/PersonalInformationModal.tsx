@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
+  Keyboard,
   ActivityIndicator,
   Alert,
   Platform,
@@ -79,7 +80,22 @@ function PersonalInformationModalComponent({
 }: Props) {
   const insets = useSafeAreaInsets();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
-  const sheetHeight = Math.round(windowHeight * 0.92);
+  const [kbHeight, setKbHeight] = useState(0);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', e => {
+      setKbHeight(e?.endCoordinates?.height ?? 0);
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKbHeight(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  const sheetHeight = kbHeight > 0
+    ? Math.max(280, windowHeight - kbHeight)
+    : Math.round(windowHeight * 0.92);
   const contentWidth = Math.max(0, windowWidth - PAGE_PAD * 2);
   const chipWidth = Math.floor((contentWidth - CHIP_GAP * 2) / 3);
   const bioCount = form.bio.length;

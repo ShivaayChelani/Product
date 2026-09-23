@@ -8,7 +8,7 @@ const DEFAULT_SETTINGS: Array<{
 }> = [
   { category: 'general', key: 'app_name', value: 'PalSafar', label: 'App Name', description: 'The name of the application', type: 'string' },
   { category: 'general', key: 'app_description', value: 'Discover India\'s Hidden Gems', label: 'App Description', description: 'Short description of the app', type: 'string' },
-  { category: 'general', key: 'support_email', value: 'support@palsafar.com', label: 'Support Email', description: 'Email address for support', type: 'string' },
+  { category: 'general', key: 'support_email', value: 'shivaay.chelai@gmail.com', label: 'Support Email', description: 'Email address for support', type: 'string' },
   { category: 'general', key: 'maintenance_mode', value: false, label: 'Maintenance Mode', description: 'Enable maintenance mode for the app', type: 'boolean' },
 
   { category: 'security', key: 'max_login_attempts', value: 5, label: 'Max Login Attempts', description: 'Maximum failed login attempts before lockout', type: 'number' },
@@ -48,7 +48,7 @@ const DEFAULT_SETTINGS: Array<{
   { category: 'feature_flags', key: 'force_update_min_version', value: '', label: 'Minimum app version', description: 'Block older app versions (semver). Empty = no block', type: 'string' },
   { category: 'feature_flags', key: 'latest_app_version', value: '2.4.0', label: 'Latest app version', description: 'Latest published mobile app version', type: 'string' },
   { category: 'feature_flags', key: 'latest_app_build', value: '1', label: 'Latest app build', description: 'Latest published mobile build number', type: 'string' },
-  { category: 'feature_flags', key: 'play_store_url', value: 'https://play.google.com/store/apps/details?id=com.palsafar', label: 'Play Store URL', description: 'Google Play listing URL', type: 'string' },
+  { category: 'feature_flags', key: 'play_store_url', value: 'https://play.google.com/store/apps/details?id=com.palsasafar', label: 'Play Store URL', description: 'Google Play listing URL', type: 'string' },
   { category: 'feature_flags', key: 'app_store_url', value: 'https://apps.apple.com/app/id0000000000', label: 'App Store URL', description: 'Apple App Store listing URL', type: 'string' },
   { category: 'feature_flags', key: 'announcement_banner_enabled', value: true, label: 'Announcement banner enabled', description: 'Show admin announcements in the app', type: 'boolean' },
 ];

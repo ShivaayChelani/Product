@@ -58,8 +58,6 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>PalSafar needs camera access to capture quest checkpoints and profile photos.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>PalSafar needs your location to show tourist places near you and power map features.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>PalSafar needs microphone access when recording video for reels.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

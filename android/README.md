@@ -8,7 +8,7 @@
 Secure local setup:
 
 1. Open the [Firebase console](https://console.firebase.google.com/) for project `palsafar-2d37b`.
-2. Project settings → Your apps → Android app (package `com.palsafar` or the release package) →
+2. Project settings → Your apps → Android app (package `com.palsasafar`) →
    download `google-services.json`.
 3. Place it at `android/app/google-services.json` (do NOT commit it, do NOT share it).
 4. Build as usual — the Gradle check in `android/app/build.gradle` validates presence.

@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Animated,
   ActivityIndicator,
   ScrollView, StatusBar, Linking, Alert, TextInput,
-  useWindowDimensions, Image, Platform,
+  Keyboard, useWindowDimensions, Image, Platform,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { SafeWebView, type SafeWebViewRef } from '../components/SafeWebView';
@@ -1450,6 +1450,7 @@ export default function MapScreen({
     setSelectedMarker(null);
     setIsSearching(true);
     setSearchFocused(false);
+    Keyboard.dismiss();
     try {
       let mapped = remoteSuggestions;
       if (DEV_FLAGS.USE_SERVER_API) {
@@ -1492,6 +1493,7 @@ export default function MapScreen({
     searchGenRef.current += 1;
     setSearchQuery(item.name);
     setSearchFocused(false);
+    Keyboard.dismiss();
     if (item.type === 'place') {
       setActiveTab('places');
       if (!item.isCityGroup) {

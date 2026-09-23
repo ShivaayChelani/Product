@@ -150,7 +150,7 @@ export default function SettingsScreen({
             <Icon name="chevron-forward" size={18} color="#C4A484" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL('mailto:support@palsafar.com')}>
+          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL('mailto:shivaay.chelai@gmail.com')}>
             <View style={[styles.iconBox, { backgroundColor: '#ECFDF5' }]}>
               <Icon name="headset-outline" size={20} color="#059669" />
             </View>

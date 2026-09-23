@@ -241,11 +241,9 @@ export default function MapPlaceDetailCard({
           {/* Watch Reels Banner Card */}
           <TouchableOpacity style={s.reelsBanner} onPress={onReelsPress} activeOpacity={0.85}>
             <View style={s.reelsThumbWrap}>
-              {hasValidImage ? (
-                <Image source={{ uri: marker.image as string }} style={s.reelsThumbImg} resizeMode="cover" />
-              ) : (
-                <View style={[s.reelsThumbImg, { backgroundColor: '#E8DDD0' }]} />
-              )}
+              <View style={[s.reelsThumbImg, s.reelsThumbFallback]}>
+                <Icon name="film-outline" size={18} color="#C4A484" />
+              </View>
               <View style={s.reelsPlayDisc}>
                 <Icon name="play" size={10} color="#1A1412" style={{ marginLeft: 1 }} />
               </View>
@@ -394,6 +392,10 @@ const s = StyleSheet.create({
   reelsThumbImg: {
     width: '100%',
     height: '100%',
+  },
+  reelsThumbFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   reelsPlayDisc: {
     position: 'absolute',

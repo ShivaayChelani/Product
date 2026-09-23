@@ -6,6 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocationContext } from '../context/LocationContext';
 import { searchUniversal, UniversalSearchResult } from '../services/searchService';
 import { getNearbyPlaces, getHiddenGems } from '../services/placesService';
+import { placesApi } from '../services/api';
 import { isNearbySearchQuery } from '../hooks/useNearbyPlacesFromGps';
 import { haversineDistance, isReliableUserPosition } from '../services/location/distance';
 import { withRoutedDistanceFields } from '../services/location/routedDistance';
@@ -533,6 +534,51 @@ export default function SearchScreen({
       return () => { if (timerRef.current) clearTimeout(timerRef.current); };
     }
 
+    // "My Saved" mode: fetch the places the user actually saved instead of
+    // running a universal text search for the literal word "saved".
+    if (q.toLowerCase() === 'saved') {
+      setNearbyResults(null);
+      setCityResults(null);
+      setAwaitingGps(false);
+      setSearchError(null);
+      setLoading(true);
+      timerRef.current = setTimeout(async () => {
+        const gen = ++fetchGenRef.current;
+        try {
+          const saved = await placesApi.getSaved(1, 100);
+          const items = (Array.isArray(saved) ? saved : []).map(p => ({
+            id: p.id,
+            slug: p.slug,
+            name: p.name,
+            city: p.city,
+            state: p.state,
+            category: p.category,
+            rating: p.rating,
+            thumbnail: p.images?.[0] ?? null,
+            imageUrl: p.images?.[0] ?? null,
+          }));
+          if (fetchGenRef.current !== gen) return;
+          setResults({
+            places: items,
+            vendors: [],
+            reels: [],
+            creators: [],
+            events: [],
+            offers: [],
+            hiddenGems: [],
+            meta: { query: 'saved', totalResults: items.length },
+          });
+        } catch {
+          if (fetchGenRef.current !== gen) return;
+          setResults(null);
+          setSearchError('Could not load your saved places. Try again.');
+        } finally {
+          if (fetchGenRef.current === gen) setLoading(false);
+        }
+      }, 200);
+      return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    }
+
     setNearbyResults(null);
     setCityResults(null);
     setAwaitingGps(false);
@@ -801,9 +847,11 @@ export default function SearchScreen({
             : `No ${activeFilter.toLowerCase()} found`
         }
         message={
-          isItineraryMode
-            ? 'Try another place name or adjust your filter.'
-            : 'Try searching for another destination, place or experience.'
+          isSavedQuery
+            ? 'You haven\'t saved any places yet. Open a place and tap the heart icon to save it.'
+            : isItineraryMode
+              ? 'Try another place name or adjust your filter.'
+              : 'Try searching for another destination, place or experience.'
         }
       />
     );
