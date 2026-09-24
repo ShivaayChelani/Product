@@ -30,6 +30,44 @@ setup_permissions([
   'Microphone',
 ])
 
+# ── fmt consteval workaround ────────────────────────────────────────────────
+# fmt 11.0.2 (pinned by react-native 0.81.5 via third-party-podspecs/fmt.podspec)
+# sets FMT_USE_CONSTEVAL=1 on Apple clang >= 14 (Xcode 26.6 on the GitHub runner)
+# because ios/Pods/fmt/include/fmt/base.h auto-detects __cpp_consteval without
+# honouring an externally supplied FMT_USE_CONSTEVAL. That consteval format-string
+# parser then fails to compile on Xcode 26's clang with:
+#   error: call to consteval function 'fmt::detail::parse_format_string<...>'
+#          is not a constant expression
+# (fmt/src/format.cc -> include/fmt/format-inl.h).
+# This hook forces FMT_USE_CONSTEVAL=0 in the pod's generated base.h on every
+# `pod install` (local and CI). It is idempotent and raises loudly if the
+# expected fmt 11.x block is missing or changes shape, so it can never silently
+# stop applying.
+def patch_fmt_consteval!(installer)
+  base_h = File.join(installer.sandbox.root, 'fmt', 'include', 'fmt', 'base.h')
+  raise "fmt base.h not found at #{base_h} — fmt consteval workaround cannot be applied" unless File.exist?(base_h)
+
+  content = File.read(base_h)
+  block_marker = '// Detect consteval, C++20 constexpr extensions and std::is_constant_evaluated.'
+  unless content.include?(block_marker)
+    raise "fmt #{base_h} is missing the FMT_USE_CONSTEVAL detection block — fmt workaround is out of date"
+  end
+
+  sentinel = '#  define FMT_USE_CONSTEVAL 0  // PalSafar: disable consteval (Xcode 26)'
+  return if content.include?(sentinel) # already patched by a previous pod install
+
+  from = "#elif defined(__cpp_consteval)\n#  define FMT_USE_CONSTEVAL 1\n#elif FMT_GCC_VERSION >= 1002 || FMT_CLANG_VERSION >= 1101\n#  define FMT_USE_CONSTEVAL 1"
+  to = "#elif defined(__cpp_consteval)\n#{sentinel}\n#elif FMT_GCC_VERSION >= 1002 || FMT_CLANG_VERSION >= 1101\n#{sentinel}"
+
+  patched = content.sub(from, to)
+  if patched == content
+    raise "fmt #{base_h} FMT_USE_CONSTEVAL block does not match the expected fmt 11.0.x source — fmt workaround is out of date"
+  end
+
+  File.write(base_h, patched)
+  Pod::UI.puts "fmt: forced FMT_USE_CONSTEVAL=0 in #{base_h}".green
+end
+
 target 'PalSafar' do
   config = use_native_modules!
 
@@ -44,6 +82,9 @@ target 'PalSafar' do
       config[:reactNativePath],
       :mac_catalyst_enabled => false,
     )
+
+    # fmt 11.0.2 base.h must ship with consteval disabled for Xcode 26's clang.
+    patch_fmt_consteval!(installer)
 
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|

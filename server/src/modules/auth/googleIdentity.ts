@@ -7,10 +7,11 @@ export const GOOGLE_PROVIDER = 'google';
 export const DEFAULT_GOOGLE_OAUTH_CLIENT_IDS = [
   // Web (required so the mobile SDK can return a server-verifiable ID token)
   '27219212015-kocrm1ig6vs0nkar7mjjial0gctbd1nj.apps.googleusercontent.com',
-  // Android debug
+  // Android (emulator/debug cert) + Android release/upload cert
   '27219212015-65ift40sfsoimib2b208rrtet1cjh3gs.apps.googleusercontent.com',
-  // Android release
   '27219212015-tnmd3127e6ha25idhdctcc7fhiopnhs8.apps.googleusercontent.com',
+  // iOS (GoogleService-Info.plist CLIENT_ID, used as iosClientId by src/config/googleAuth.ts)
+  '27219212015-g0fhqdou0dhmh342pae2k9tm0bq2d6i9.apps.googleusercontent.com',
 ] as const;
 
 const GOOGLE_ISSUERS = new Set(['accounts.google.com', 'https://accounts.google.com']);
