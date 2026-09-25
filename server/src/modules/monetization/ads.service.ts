@@ -150,23 +150,16 @@ export const adsService = {
     // 1. Signature Verification
     await admobSsvService.verifySignature(fullUrl, String(key_id), String(signature));
 
-    // 2. Extract Custom Data (userId) via purpose-bound JWT. Never trust client userId.
-    const token = String(custom_data || '').trim();
-    if (!token) {
-      throw new ApiError(400, 'Missing custom_data');
-    }
-    const userId = verifySsvCustomData(token);
-
-    // Google's AdMob "Set up and verify callback URL" tool sends a signed test
-    // request with these exact documented fixed values. It has already passed
-    // full Google SSV signature verification and purpose-bound custom_data JWT
-    // verification above, but it must NEVER credit PalPoints or create wallet
-    // transactions. Acknowledge it here and stop.
+    // 2. Google's AdMob "Set up and verify callback URL" tool sends a signed test
+    // request carrying fixed ad_unit/transaction_id markers (and NO custom_data).
+    // It has already passed full Google SSV signature verification above, but it
+    // must NEVER credit PalPoints, create wallet transactions, or require a user.
+    // Acknowledge it here (before the custom_data gate) and stop.
     // https://developers.google.com/admob/android/rewarded-ads-ssv
+    // NOTE: reward_amount/reward_item are NOT fixed -- they echo the ad unit's
+    // reward config (and may even be omitted), so only ad_unit/transaction_id match.
     if (
       String(ad_unit) === '1234567890'
-      && String(reward_amount) === '10'
-      && String(reward_item) === 'PalPoints'
       && String(transaction_id) === '123456789'
     ) {
       return {
@@ -176,6 +169,13 @@ export const adsService = {
         message: 'Callback verification test acknowledged',
       };
     }
+
+    // 3. Extract Custom Data (userId) via purpose-bound JWT. Never trust client userId.
+    const token = String(custom_data || '').trim();
+    if (!token) {
+      throw new ApiError(400, 'Missing custom_data');
+    }
+    const userId = verifySsvCustomData(token);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {

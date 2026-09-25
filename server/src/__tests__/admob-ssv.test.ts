@@ -297,7 +297,39 @@ describe('AdMob SSV Security Tests', () => {
     expect(res.status).toBe(400);
   });
 
-  it('Google callback verification test request returns 200 and credits nothing', async () => {
+  it('Google callback verification test request WITHOUT custom_data (reward_amount=100, reward_item=ESA points) returns 200 and credits nothing', async () => {
+    const before = await prisma.wallet.findUnique({ where: { userId: testUser.id } });
+    const queryStr = `ad_network=5450213213286189855&ad_unit=1234567890&reward_amount=100&reward_item=ESA%20points&timestamp=1705977996025&transaction_id=123456789`;
+    const sig = signPayload(queryStr);
+
+    const res = await request(app).get(`/api/v1/monetization/ads/ssv?${queryStr}&signature=${sig}&key_id=12345`);
+    expect(res.status).toBe(200);
+
+    const event = await prisma.adMobSsvEvent.findUnique({ where: { transactionId: '123456789' } });
+    expect(event).toBeNull();
+    const txs = await prisma.walletTransaction.findMany({ where: { referenceId: '123456789' } });
+    expect(txs.length).toBe(0);
+    const after = await prisma.wallet.findUnique({ where: { userId: testUser.id } });
+    expect(after?.palPoints).toBe(before?.palPoints ?? 0);
+  });
+
+  it('Google callback verification test request with alternate reward_amount/reward_item still returns 200 and credits nothing', async () => {
+    const before = await prisma.wallet.findUnique({ where: { userId: testUser.id } });
+    const queryStr = `ad_network=123&ad_unit=1234567890&reward_amount=25&reward_item=Tokens&timestamp=123456&transaction_id=123456789`;
+    const sig = signPayload(queryStr);
+
+    const res = await request(app).get(`/api/v1/monetization/ads/ssv?${queryStr}&signature=${sig}&key_id=12345`);
+    expect(res.status).toBe(200);
+
+    const event = await prisma.adMobSsvEvent.findUnique({ where: { transactionId: '123456789' } });
+    expect(event).toBeNull();
+    const txs = await prisma.walletTransaction.findMany({ where: { referenceId: '123456789' } });
+    expect(txs.length).toBe(0);
+    const after = await prisma.wallet.findUnique({ where: { userId: testUser.id } });
+    expect(after?.palPoints).toBe(before?.palPoints ?? 0);
+  });
+
+  it('Google callback verification test request with custom_data returns 200 and credits nothing', async () => {
     const before = await prisma.wallet.findUnique({ where: { userId: testUser.id } });
     const ssvCustomData = ssvToken(testUser.id);
     const queryStr = `ad_network=123&ad_unit=1234567890&custom_data=${ssvCustomData}&reward_amount=10&reward_item=PalPoints&timestamp=123456&transaction_id=123456789`;
@@ -315,27 +347,28 @@ describe('AdMob SSV Security Tests', () => {
   });
 
   it('Google callback verification test request with invalid signature is rejected', async () => {
-    const ssvCustomData = ssvToken(testUser.id);
-    const queryStr = `ad_network=123&ad_unit=1234567890&custom_data=${ssvCustomData}&reward_amount=10&reward_item=PalPoints&timestamp=123456&transaction_id=123456789`;
+    const queryStr = `ad_network=123&ad_unit=1234567890&reward_amount=100&reward_item=ESA%20points&timestamp=123456&transaction_id=123456789`;
     const res = await request(app).get(`/api/v1/monetization/ads/ssv?${queryStr}&signature=not_a_signature&key_id=12345`);
     expect(res.status).toBe(401);
   });
 
-  it('Google callback verification test request with tampered custom_data is rejected', async () => {
-    const ssvCustomData = ssvToken(testUser.id);
-    const tampered = ssvCustomData.slice(0, -4) + 'xxxx';
-    const queryStr = `ad_network=123&ad_unit=1234567890&custom_data=${tampered}&reward_amount=10&reward_item=PalPoints&timestamp=123456&transaction_id=123456789`;
-    const sig = signPayload(queryStr);
-    const res = await request(app).get(`/api/v1/monetization/ads/ssv?${queryStr}&signature=${sig}&key_id=12345`);
-    expect(res.status).toBe(400);
-  });
-
-  it('test ad_unit alone does not bypass real ad-unit validation', async () => {
+  it('test ad_unit alone does not bypass real ad-unit validation (transaction_id differs)', async () => {
     const ssvCustomData = ssvToken(testUser.id);
     const queryStr = `ad_network=123&ad_unit=1234567890&custom_data=${ssvCustomData}&reward_amount=50&reward_item=PalPoints&timestamp=123456&transaction_id=real-tx-abc`;
     const sig = signPayload(queryStr);
     const res = await request(app).get(`/api/v1/monetization/ads/ssv?${queryStr}&signature=${sig}&key_id=12345`);
-    expect(res.status).toBe(400); // Invalid ad unit — test fingerprint requires all fixed values
+    expect(res.status).toBe(400); // Invalid ad unit — test fingerprint requires BOTH fixed markers (ad_unit + transaction_id)
+  });
+
+  it('signed non-test callback WITHOUT custom_data is rejected with 400 Missing custom_data', async () => {
+    const queryStr = `ad_network=123&ad_unit=test-ad-unit&reward_amount=50&reward_item=PalPoints&timestamp=123456&transaction_id=tx-nocustom`;
+    const sig = signPayload(queryStr);
+    const res = await request(app).get(`/api/v1/monetization/ads/ssv?${queryStr}&signature=${sig}&key_id=12345`);
+    expect(res.status).toBe(400);
+    expect(res.body?.message).toBe('Missing custom_data');
+
+    const event = await prisma.adMobSsvEvent.findUnique({ where: { transactionId: 'tx-nocustom' } });
+    expect(event).toBeNull();
   });
 
   it('SSV callback creates a wallet if missing and credits the bound user', async () => {
