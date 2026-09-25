@@ -19,6 +19,16 @@ export const tripsController = {
     sendSuccess(res, trip);
   }),
 
+  createTripShareToken: catchAsync(async (req: any, res: Response) => {
+    const result = await tripsService.createTripShareToken(req.params.id, req.user.id);
+    sendCreated(res, result, 'Share link created');
+  }),
+
+  getSharedTrip: catchAsync(async (req: any, res: Response) => {
+    const trip = await tripsService.getSharedTrip(req.params.token);
+    sendSuccess(res, trip);
+  }),
+
   update: catchAsync(async (req: any, res: Response) => {
     const trip = await tripsService.update(req.params.id, req.body, req.user.id);
     sendSuccess(res, trip, { message: 'Trip updated successfully' });

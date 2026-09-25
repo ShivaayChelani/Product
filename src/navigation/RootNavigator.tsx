@@ -191,6 +191,24 @@ function TripDetailWrapper({ navigation, route }: any) {
   );
 }
 
+/** Read-only trip opened from a signed share link (trip/shared/:token). */
+function TripSharedWrapper({ navigation, route }: any) {
+  const token = route.params?.token;
+  const Screen = useLazyScreen(() => require('../screens/TripDetailScreen'));
+  return (
+    <Screen
+      sharedToken={token}
+      onNavigate={(screen: string, params?: any) => {
+        if (screen === 'goBack') {
+          navigation.goBack();
+        } else {
+          navigation.navigate(screen, params);
+        }
+      }}
+    />
+  );
+}
+
 function TripPreviewWrapper() {
   const Screen = useLazyScreen(() => require('../screens/TripPreviewScreen'));
   return <Screen />;
@@ -1047,6 +1065,7 @@ const sharedStackScreens = (
     <Stack.Screen name="MyTrips" component={MyTripsWrapper} />
     <Stack.Screen name="CreateTrip" component={CreateTripWrapper} />
     <Stack.Screen name="TripDetail" component={TripDetailWrapper} />
+    <Stack.Screen name="TripShared" component={TripSharedWrapper} />
     <Stack.Screen name="TripPreview" component={TripPreviewWrapper} />
     <Stack.Screen
       name="VendorRegister"

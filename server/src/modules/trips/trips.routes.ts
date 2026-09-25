@@ -13,6 +13,10 @@ import {
 
 const router = Router();
 
+// Public read-only trip share link. MUST be registered before the auth
+// middleware below; it requires only a valid signed token, never a session.
+router.get('/shared/:token', tripsController.getSharedTrip);
+
 router.use(authenticate);
 
 // Static/fixed-segment routes must be registered before the dynamic `/:id`
@@ -29,6 +33,7 @@ router.get('/:id', tripsController.getById);
 router.patch('/:id', validate(updateTripSchema), tripsController.update);
 router.delete('/:id', tripsController.delete);
 router.post('/:id/duplicate', tripsController.duplicate);
+router.post('/:id/share-token', tripsController.createTripShareToken);
 
 router.post('/:id/generate', validate(generateItinerarySchema), tripsController.generateItinerary);
 router.post('/:id/optimize', validate(optimizeRouteSchema), tripsController.optimizeRoute);

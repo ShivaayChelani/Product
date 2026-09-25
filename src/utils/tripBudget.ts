@@ -172,7 +172,7 @@ export function computeTripBudget(
       entryTotalPerPerson: dayEntry,
       transportTotal: dayTravel,
       foodEstimate,
-      dayTotal: dayEntryTotal + foodEstimate + dayTravel,
+      dayTotal: dayEntryTotal + dayTravel,
       items: includesTravel
         ? items
         : items.map(item => ({ ...item, transportKm: 0, transportCost: 0 })),
@@ -180,6 +180,10 @@ export function computeTripBudget(
   }
 
   const entryTotal = entryTotalPerPerson * travellerCount;
+  // Food is a non-authoritative daily allowance (₹600/person/day). It is NOT
+  // part of the canonical estimate to protect the "grandTotal equals its
+  // calculation" invariant and to stay consistent with the server budget cap
+  // (entry + transport only). Callers may display it separately.
   const foodTotal = byDay.reduce((s, d) => s + d.foodEstimate, 0);
   const travelCost = includesTravel ? transportTotal : 0;
 
@@ -188,14 +192,14 @@ export function computeTripBudget(
     entryTotalPerPerson,
     transportTotal: travelCost,
     foodTotal,
-    grandTotal: entryTotal + travelCost + foodTotal,
+    grandTotal: entryTotal + travelCost,
     totalDistanceKm: trip.totalDistance ?? totalDistanceKm,
     paidStops,
     freeStops,
     travellerCount,
     isLocal,
     includesTravel,
-    scopeLabel: includesTravel ? 'Entry + food + travel' : 'Entry + food',
+    scopeLabel: includesTravel ? 'Entry + transport' : 'Entry fees',
     byDay,
     lineItems: includesTravel
       ? lineItems

@@ -480,6 +480,20 @@ export const tripsApi = {
     return res.data;
   },
 
+  /** Mint a signed share-token URL for the trip (auth). */
+  async createShareLink(id: string) {
+    const res = await apiClient.post<{ token: string; url: string; expiresAt: string }>(
+      API_CONFIG.endpoints.trips.shareToken(id),
+    );
+    return res.data;
+  },
+
+  /** Public read-only trip view via a signed share token (no auth required). */
+  async getSharedTrip(token: string) {
+    const res = await apiClient.get<TripPlan>(API_CONFIG.endpoints.trips.sharedTrip(token));
+    return res.data;
+  },
+
   async getHistory(params?: { page?: number; limit?: number }) {
     const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
     const res = await apiClient.get<TripPlan[]>(`${API_CONFIG.endpoints.trips.history}${query}`);

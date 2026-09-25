@@ -117,6 +117,7 @@ export type RootStackParamList = {
   MyTrips: { initialTab?: 'UPCOMING' | 'DRAFT' | 'COMPLETED' } | undefined;
   CreateTrip: undefined;
   TripDetail: { tripId: string; warnings?: string[]; note?: string; resume?: boolean; mode?: 'resume' | 'view' };
+  TripShared: { token: string };
   TripPreview: { tripId: string };
   VendorRegister: undefined;
   BecomeCreator: undefined;

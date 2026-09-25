@@ -33,6 +33,21 @@ export function buildTripShareUrl(tripId: string): string | null {
   return `${PALSAFAR_WEB_ORIGIN}/trip/${encodeURIComponent(tripId)}`;
 }
 
+/**
+ * Signed, expiring read-only trip URL: https://palsafar.com/trip/shared/:token.
+ * The token is opaque to the client — it is minted and verified server-side.
+ * Falls back to null when the token is unsafe to embed in a URL.
+ */
+export function buildSharedTripUrl(token: string): string | null {
+  if (typeof token !== 'string' || !token.trim()) return null;
+  const trimmed = token.trim();
+  if (trimmed.length > 2048) return null;
+  if (trimmed.includes('/') || trimmed.includes('?') || trimmed.includes('#') || trimmed.includes('://')) {
+    return null;
+  }
+  return `${PALSAFAR_WEB_ORIGIN}/trip/shared/${encodeURIComponent(trimmed)}`;
+}
+
 export function isPublicShareableReel(reel: {
   id?: string | null;
   status?: string | null;

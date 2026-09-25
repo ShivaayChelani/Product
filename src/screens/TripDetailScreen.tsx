@@ -8,7 +8,7 @@ import Pal from '../design/DesignSystem';
 import { GradientButton } from '../components/ui/GradientButton';
 import { tripsApi, TripPlan, TripPlanStop, TripProgressResponse, TravelPace, BudgetTier, AvoidOption, customBudgetAmountForRequest } from '../services/api/trips';
 import { buildTripExportText } from '../utils/tripExport';
-import { buildTripShareUrl } from '../services/sharing/shareLinks';
+import { buildTripShareUrl, buildSharedTripUrl } from '../services/sharing/shareLinks';
 import { useToast } from '../context/ToastContext';
 import TripItineraryView, { ItineraryTab } from '../components/trip/TripItineraryView';
 import { normalizeTripDays, normalizeTripPlan, stopListKey } from '../utils/normalizeTripPlan';
@@ -25,12 +25,14 @@ const _timeEmojis: Record<string, string> = {
 
 export default function TripDetailScreen({
   tripId,
+  sharedToken,
   warnings: _initialWarnings,
   note: _initialNote,
   resume = false,
   onNavigate,
 }: {
-  tripId: string;
+  tripId?: string;
+  sharedToken?: string;
   warnings?: string[];
   note?: string;
   resume?: boolean;
@@ -38,6 +40,7 @@ export default function TripDetailScreen({
 }) {
   const insets = useSafeAreaInsets();
   const contentPadBottom = useBottomSafePadding(24);
+  const readOnly = Boolean(sharedToken);
   const [trip, setTrip] = useState<TripPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -59,11 +62,13 @@ export default function TripDetailScreen({
   const fetchTrip = useCallback(async () => {
     setLoadFailed(false);
     try {
-      const tripData = await tripsApi.getById(tripId);
+      const tripData = sharedToken
+        ? await tripsApi.getSharedTrip(sharedToken)
+        : await tripsApi.getById(tripId as string);
       setTrip(normalizeTripPlan(tripData));
     } catch (err: any) {
       const snapshot = await loadDraftSnapshot();
-      if (snapshot && snapshot.id === tripId) {
+      if (!sharedToken && snapshot && snapshot.id === tripId) {
         setTrip(snapshot);
       } else {
         setTrip(null);
@@ -73,16 +78,17 @@ export default function TripDetailScreen({
     } finally {
       setLoading(false);
     }
-  }, [tripId, showError]);
+  }, [sharedToken, tripId, showError]);
 
   const fetchProgress = useCallback(async () => {
+    if (!tripId || readOnly) return;
     try {
       const p = await tripsApi.getProgress(tripId);
       setProgress(p);
       if (p.currentDayIndex != null) setCurrentDay(p.currentDayIndex);
       if (p.currentStop?.id) setActiveStopId(p.currentStop.id);
     } catch { }
-  }, [tripId]);
+  }, [tripId, readOnly]);
 
   const skipNextFocusRefetchRef = useRef(true);
 
@@ -102,6 +108,7 @@ export default function TripDetailScreen({
   );
 
   const handleStartTrip = async () => {
+    if (readOnly || !tripId) return;
     setStarting(true);
     try {
       const updatedTrip = await tripsApi.startTrip(tripId);
@@ -129,9 +136,11 @@ export default function TripDetailScreen({
   }, [resume, trip, fetchProgress]);
 
   const handleCompleteTrip = () => {
+    if (readOnly) return;
     Alert.alert('Complete Trip', 'Mark this trip as completed?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Complete', style: 'destructive', onPress: async () => {
+        if (!tripId) return;
         try {
           const updatedTrip = await tripsApi.completeTrip(tripId);
           setTrip(normalizeTripPlan(updatedTrip as any));
@@ -146,6 +155,7 @@ export default function TripDetailScreen({
   };
 
   const handleVisitStop = async (stopId: string) => {
+    if (readOnly) return;
     try {
       const { Geolocation } = require('react-native-geolocation-service');
       const position: any = await new Promise((resolve, reject) => {
@@ -193,6 +203,7 @@ export default function TripDetailScreen({
   };
 
   const handleSkipStop = async (stopId: string) => {
+    if (readOnly) return;
     try {
       await tripsApi.skipStop(stopId);
       fetchProgress();
@@ -203,10 +214,22 @@ export default function TripDetailScreen({
     }
   };
 
+  const resolveShareableUrl = async (): Promise<string | null> => {
+    if (!trip) return null;
+    try {
+      const share = await tripsApi.createShareLink(trip.id);
+      if (share?.url) return share.url;
+      if (share?.token) return buildSharedTripUrl(share.token);
+    } catch {
+      // Server unavailable / not authed — fall through to the legacy id URL.
+    }
+    return buildTripShareUrl(trip.id);
+  };
+
   const handleShareTrip = async () => {
     try {
       if (!trip) return;
-      const url = buildTripShareUrl(trip.id);
+      const url = await resolveShareableUrl();
       const exportText = buildTripExportText(trip);
       const message = url ? `${exportText}\n${url}` : exportText;
       await Share.share({
@@ -219,7 +242,7 @@ export default function TripDetailScreen({
   const handleExportTrip = async () => {
     if (!trip) return;
     try {
-      const url = buildTripShareUrl(trip.id);
+      const url = await resolveShareableUrl();
       const exportText = buildTripExportText(trip);
       await Share.share({
         message: url ? `${exportText}\n${url}` : exportText,
@@ -231,7 +254,7 @@ export default function TripDetailScreen({
   };
 
   const handleRegenerateDay = async (dayNumber: number) => {
-    if (!trip) return;
+    if (!trip || readOnly) return;
     Alert.alert(
       `Regenerate Day ${dayNumber}`,
       'Locked (pinned) stops stay. Other stops on this day will be replaced with verified places from our database.',
@@ -251,6 +274,8 @@ export default function TripDetailScreen({
                 customBudgetAmount: customBudgetAmountForRequest(trip),
                 interests: trip.interests || [],
                 transportation: trip.transportation || ['CAR'],
+                timePreference: trip.timePreference || undefined,
+                startDate: trip.startDate || undefined,
                 avoid: trip.avoid || [],
                 prompt: trip.aiPrompt || undefined,
                 refresh: true,
@@ -270,6 +295,7 @@ export default function TripDetailScreen({
   };
 
   const handleTogglePin = async (stop: TripPlanStop) => {
+    if (readOnly) return;
     try {
       await tripsApi.toggleStopPin(stop.id, !stop.isPinned);
       fetchTrip();
@@ -280,6 +306,7 @@ export default function TripDetailScreen({
   };
 
   const handleReplaceStop = (stop: TripPlanStop) => {
+    if (readOnly) return;
     onNavigate?.('Search', {
       mode: 'replace',
       stopId: stop.id,
@@ -304,6 +331,7 @@ export default function TripDetailScreen({
   };
 
   const _handleGenerateItinerary = async () => {
+    if (!tripId) return;
     setOptimizing(true);
     try {
       const tripData = await tripsApi.generateItinerary(tripId, { pace: 'moderate' });
@@ -316,15 +344,21 @@ export default function TripDetailScreen({
   };
 
   const openRefineModal = () => {
-    if (!trip) return;
+    if (!trip || readOnly) return;
     setRefineModalVisible(true);
   };
 
   const handleRegenerateFullItinerary = async () => {
-    if (!trip || regenerating || refining) return;
+    if (!trip || regenerating || refining || readOnly) return;
     setRegenerating(true);
     try {
       const prevSeed = Number((trip.aiPreferences as { variationSeed?: number } | null)?.variationSeed) || 0;
+      const pinnedPlaceIds = Array.from(new Set(
+        (trip.tripDays || [])
+          .flatMap(d => d.stops || [])
+          .filter(s => s.isPinned)
+          .map(s => s.placeId),
+      ));
       const result = await tripsApi.aiGenerate({
         tripId: trip.id,
         destination: trip.destination || trip.title,
@@ -335,10 +369,13 @@ export default function TripDetailScreen({
         customBudgetAmount: customBudgetAmountForRequest(trip),
         interests: trip.interests || [],
         transportation: trip.transportation || ['CAR'],
+        timePreference: trip.timePreference || undefined,
+        startDate: trip.startDate || undefined,
+        manualPlaceIds: pinnedPlaceIds,
         fillWithAi: true,
         refresh: true,
         variationSeed: prevSeed + 1,
-        prompt: [trip.aiPrompt, `#refresh-${Date.now()}`].filter(Boolean).join('\n'),
+        prompt: trip.aiPrompt || undefined,
         avoid: trip.avoid || [],
       });
       if (result?.trip) {
@@ -355,9 +392,12 @@ export default function TripDetailScreen({
   };
 
   const handleAiRefine = async (pace: TravelPace, budget: BudgetTier, avoid: AvoidOption[], notes: string) => {
-    if (!trip || refining || regenerating) return;
+    if (!trip || refining || regenerating || readOnly) return;
     setRefining(true);
     try {
+      // Carry the original AI prompt forward and APPEND the user's refinement
+      // notes, so earlier intent is not silently dropped on refine.
+      const prompt = [trip.aiPrompt, notes].map(s => s?.trim()).filter(Boolean).join('\n') || undefined;
       const result = await tripsApi.aiGenerate({
         tripId: trip.id,
         destination: trip.destination || trip.title,
@@ -371,8 +411,15 @@ export default function TripDetailScreen({
         interests: trip.interests || [],
         transportation: trip.transportation || ['CAR'],
         timePreference: trip.timePreference || undefined,
+        startDate: trip.startDate || undefined,
+        manualPlaceIds: Array.from(new Set(
+          (trip.tripDays || [])
+            .flatMap(d => d.stops || [])
+            .filter(s => s.isPinned)
+            .map(s => s.placeId),
+        )),
         avoid,
-        prompt: notes || trip.aiPrompt || undefined,
+        prompt,
         fillWithAi: true,
         refresh: true,
         variationSeed: (Number((trip.aiPreferences as { variationSeed?: number } | null)?.variationSeed) || 0) + 1,
@@ -387,6 +434,7 @@ export default function TripDetailScreen({
   };
 
   const handleRemoveStop = (stopId: string) => {
+    if (readOnly) return;
     Alert.alert('Remove Stop', 'Remove this stop from the itinerary?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: async () => {
@@ -414,6 +462,7 @@ export default function TripDetailScreen({
   };
 
   const handleReviewSave = async () => {
+    if (readOnly || !tripId) return;
     try {
       const updated = await tripsApi.update(tripId, { status: 'UPCOMING' });
       setTrip(normalizeTripPlan(updated));
@@ -426,14 +475,16 @@ export default function TripDetailScreen({
 
   const handleTripMenu = () => {
     Alert.alert('Trip options', undefined, [
-      ...(trip?.status !== 'ACTIVE' && trip?.status !== 'COMPLETED'
-        ? [{ text: starting ? 'Starting…' : 'Start itinerary (GPS)', onPress: () => { void handleStartTrip(); } }]
-        : []),
-      ...(trip?.status === 'ACTIVE'
-        ? [{ text: 'Complete itinerary', onPress: handleCompleteTrip }]
-        : []),
+      ...(readOnly ? [] : [
+        ...(trip?.status !== 'ACTIVE' && trip?.status !== 'COMPLETED'
+          ? [{ text: starting ? 'Starting…' : 'Start itinerary (GPS)', onPress: () => { void handleStartTrip(); } }]
+          : []),
+        ...(trip?.status === 'ACTIVE'
+          ? [{ text: 'Complete itinerary', onPress: handleCompleteTrip }]
+          : []),
+        { text: 'AI refine (all days)', onPress: openRefineModal },
+      ]),
       { text: 'Share / Export', onPress: handleExportTrip },
-      { text: 'AI refine (all days)', onPress: openRefineModal },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
@@ -443,18 +494,20 @@ export default function TripDetailScreen({
     Alert.alert(stop.place?.name || 'Stop', undefined, [
       { text: 'Open place', onPress: () => handleOpenPlace(stop) },
       { text: 'Navigate', onPress: () => handleNavigateStop(stop) },
-      { text: stop.isPinned ? 'Unlock stop' : 'Lock stop', onPress: () => handleTogglePin(stop) },
-      { text: 'Replace attraction', onPress: () => handleReplaceStop(stop) },
-      ...(dayNum ? [{ text: `Regenerate Day ${dayNum}`, onPress: () => handleRegenerateDay(dayNum) }] : []),
-      ...(trip?.status === 'ACTIVE'
-        ? [
-            { text: 'Verify with GPS', onPress: () => handleVisitStop(stop.id) },
-            { text: 'Skip stop', onPress: () => handleSkipStop(stop.id) },
-          ]
-        : [
-            { text: 'Add notes', onPress: () => setNoteModal({ stop, text: stop.notes || '' }) },
-            { text: 'Remove', style: 'destructive' as const, onPress: () => handleRemoveStop(stop.id) },
-          ]),
+      ...(readOnly ? [] : [
+        { text: stop.isPinned ? 'Unlock stop' : 'Lock stop', onPress: () => handleTogglePin(stop) },
+        { text: 'Replace attraction', onPress: () => handleReplaceStop(stop) },
+        ...(dayNum ? [{ text: `Regenerate Day ${dayNum}`, onPress: () => handleRegenerateDay(dayNum) }] : []),
+        ...(trip?.status === 'ACTIVE'
+          ? [
+              { text: 'Verify with GPS', onPress: () => handleVisitStop(stop.id) },
+              { text: 'Skip stop', onPress: () => handleSkipStop(stop.id) },
+            ]
+          : [
+              { text: 'Add notes', onPress: () => setNoteModal({ stop, text: stop.notes || '' }) },
+              { text: 'Remove', style: 'destructive' as const, onPress: () => handleRemoveStop(stop.id) },
+            ]),
+      ]),
       { text: 'Cancel', style: 'cancel' },
     ]);
   };

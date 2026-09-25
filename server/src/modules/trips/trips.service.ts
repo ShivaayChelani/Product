@@ -12,6 +12,8 @@ import {
 import { parseTripIntent, hasGlobalIntentSignals, extractPlaceNameCandidates } from './tripIntentParser';
 import { resolvePromptPlaceMentions } from './promptPlaceResolution';
 import { getCachedPlan, setCachedPlan, buildPlannerCacheKey } from './plannerCache';
+import { createTripShareToken, verifyTripShareToken, TRIP_SHARE_TOKEN_TTL_MS } from './shareToken';
+import { selectFullRefreshAvoidIds, excludeRepeatedButKeepPinned } from './refreshAvoid';
 import {
   canonicalizeDestination,
   cityKeyFromPlace,
@@ -696,6 +698,46 @@ export const tripsService = {
     return trip;
   },
 
+  /**
+   * Mint a share-token URL for a trip the user can access. Token embeds the
+   * trip id + expiry and is HMAC-signed with the server secret (no DB rows).
+   * The returned URL only ever surfaces through the sanitized public endpoint.
+   */
+  async createTripShareToken(tripId: string, userId: string) {
+    await assertTripAccess(tripId, userId, 'view');
+    const trip = await prismaTrip.findUnique({ where: { id: tripId }, select: { id: true } });
+    if (!trip) throw new ApiError(404, 'Trip not found');
+    const token = createTripShareToken(tripId);
+    return {
+      token,
+      url: `https://palsafar.com/trip/shared/${token}`,
+      expiresAt: new Date(Date.now() + TRIP_SHARE_TOKEN_TTL_MS).toISOString(),
+    };
+  },
+
+  /**
+   * Public read-only view of a shared trip. Requires a valid signed token.
+   * Never returns the owner, collaborators, or AI preferences — the payload is
+   * sanitized so a guessable trip id alone cannot enumerate trips.
+   */
+  async getSharedTrip(token: string) {
+    const decoded = verifyTripShareToken(token);
+    if (!decoded) throw new ApiError(400, 'Invalid or expired share link');
+    const trip = await prismaTrip.findUnique({
+      where: { id: decoded.tripId },
+      include: TRIP_INCLUDE,
+    });
+    if (!trip) throw new ApiError(404, 'This trip is no longer available');
+    const {
+      userId: _userId,
+      collaborators: _collaborators,
+      aiPrompt: _aiPrompt,
+      aiPreferences: _aiPreferences,
+      ...safe
+    } = trip;
+    return safe;
+  },
+
   async update(id: string, data: any, userId: string) {
     const trip = await assertTripAccess(id, userId, 'edit');
 
@@ -1282,9 +1324,11 @@ export const tripsService = {
         const existingPinned = existingStops.filter((s) => s.isPinned && !hintExcludedIds.has(s.placeId));
         pinnedPlaceIds = Array.from(new Set([...pinnedPlaceIds, ...existingPinned.map((s) => s.placeId)]));
         if (isRefresh) {
-          avoidHubIds = existingStops
-            .filter((s) => s.tripPlanDay.dayNumber === 1)
-            .map((s) => s.placeId);
+          // Full refresh: ask the engine to vary away from ALL current
+          // non-pinned stops (not just Day 1) so the regenerated trip is
+          // meaningfully different. Explicitly pinned places are never
+          // excluded — they are force-added back below.
+          avoidHubIds = selectFullRefreshAvoidIds(existingStops, hintExcludedIds);
         }
       }
     }
@@ -1404,7 +1448,11 @@ export const tripsService = {
           transportation: input.transportation,
           excludePlaceIds,
           variationSeed: variationSeed + 1,
-          avoidHubIds: [...avoidHubIds, ...previousPlaceIds],
+          // Pinned stops are always carried into the retry (never excluded).
+          avoidHubIds: [
+            ...avoidHubIds,
+            ...excludeRepeatedButKeepPinned(previousPlaceIds, resolvedPinned),
+          ],
           earliestStartMinutes: intent.earliestStartMinutes ?? null,
         });
         variationSeed += 1;

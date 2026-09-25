@@ -209,7 +209,8 @@ export default function TripItineraryView({
     [trip, days, user?.city],
   );
 
-  const showAiBanner = true; // Hardcoded based on request to match screenshot
+  const isManualTrip = String(trip.generationSource || '').toUpperCase() === 'MANUAL';
+  const showAiBanner = !isManualTrip;
 
   const renderTimeline = () => (
     <View style={styles.timeline}>
@@ -264,7 +265,7 @@ export default function TripItineraryView({
                             <Icon name="trash-outline" size={18} color="#E05252" />
                           </TouchableOpacity>
                         ) : null}
-                        {!isLunch && !isCheckIn && <Icon name="sparkles" size={14} color={C.goldText} />}
+                        {!isManualTrip && !isLunch && !isCheckIn && <Icon name="sparkles" size={14} color={C.goldText} />}
                       </View>
                     </View>
                     <Text style={styles.stopLocText}>{stop.place?.city || trip.destination || 'Nearby'}</Text>
@@ -291,7 +292,7 @@ export default function TripItineraryView({
                           <Text style={styles.pillText}>{formatDuration(stop.duration)}</Text>
                         </View>
                       ) : null}
-                      {!stop.skippedAt ? (
+                      {!isManualTrip && !stop.skippedAt ? (
                         <View style={styles.pillItem}>
                           <Icon name="star-outline" size={12} color={C.ink} />
                           <Text style={styles.pillText}>+{palPointsSummary.perVisitPoints} pts</Text>
@@ -405,8 +406,8 @@ export default function TripItineraryView({
                     style={styles.heroStatItem}
                     onPress={() => {
                       const msg = trip.customBudgetAmount 
-                        ? `Your budget was ₹${trip.customBudgetAmount.toLocaleString('en-IN')}.\n\nThis trip's estimated cost is ₹${budgetSummary.grandTotal.toLocaleString('en-IN')} (calculated from entry fees, food, and travel).`
-                        : `This is calculated from the itinerary places. Entry fees and food are multiplied by traveller count. Transport is estimated for the route at ₹8/km.`;
+                        ? `Your budget was ₹${trip.customBudgetAmount.toLocaleString('en-IN')}.\n\nThis trip's estimated cost is ₹${budgetSummary.grandTotal.toLocaleString('en-IN')} (entry fees + transport — food is a separate estimate and is not included in the total).`
+                        : `This is calculated from the itinerary places. Entry fees are multiplied by traveller count. Transport is estimated once for the route at ₹8/km. Food is a separate estimate and is not included in the total.`;
                       Alert.alert('Trip Budget Estimate', msg);
                     }}
                     activeOpacity={0.7}
@@ -422,15 +423,17 @@ export default function TripItineraryView({
                     </View>
                   </TouchableOpacity>
                   
-                  <View style={styles.heroStatItem}>
-                    <View style={styles.starCircle}>
-                      <Icon name="star" size={12} color={C.darkBrown} />
+                  {!isManualTrip && (
+                    <View style={styles.heroStatItem}>
+                      <View style={styles.starCircle}>
+                        <Icon name="star" size={12} color={C.darkBrown} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.heroStatVal}>+{palPointsSummary.totalPotential}</Text>
+                        <Text style={styles.heroStatLbl}>Potential PalPoints</Text>
+                      </View>
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.heroStatVal}>+{palPointsSummary.totalPotential}</Text>
-                      <Text style={styles.heroStatLbl}>Potential PalPoints</Text>
-                    </View>
-                  </View>
+                  )}
                 </View>
               </View>
             </View>
@@ -453,7 +456,11 @@ export default function TripItineraryView({
                 return (
                   <TouchableOpacity key={i} style={[styles.tabBtn, active && styles.tabBtnActive]} onPress={() => onDayChange(i)}>
                       <Text style={[styles.tabDayText, active && styles.tabDayTextActive]}>DAY {day.dayNumber}</Text>
-                      <Text style={[styles.tabDateText, active && styles.tabDateTextActive]}>{dayTabMetaLabel(dayPoints?.potentialPoints)}</Text>
+                      <Text style={[styles.tabDateText, active && styles.tabDateTextActive]}>
+                        {isManualTrip
+                          ? ((day.stops?.length || 0) > 0 ? `${day.stops.length} places` : 'No places')
+                          : dayTabMetaLabel(dayPoints?.potentialPoints)}
+                      </Text>
                   </TouchableOpacity>
                 );
               })}
@@ -479,10 +486,12 @@ export default function TripItineraryView({
               <View style={styles.dayHeader}>
                 <View style={styles.dayTitleWrap}>
                   <Text style={styles.dayTitle}>Day {currentDayData?.dayNumber || 1}  •  {resolveDayTheme(trip, currentDayData)}</Text>
-                  <Text style={styles.dayPointsText}>
-                    Earn +{currentDayPotential} PalPoints today
-                    {currentDayStopCount ? ` (${currentDayStopCount} places × ${palPointsSummary.perVisitPoints})` : ''}
-                  </Text>
+                  {!isManualTrip && (
+                    <Text style={styles.dayPointsText}>
+                      Earn +{currentDayPotential} PalPoints today
+                      {currentDayStopCount ? ` (${currentDayStopCount} places × ${palPointsSummary.perVisitPoints})` : ''}
+                    </Text>
+                  )}
                 </View>
               </View>
 

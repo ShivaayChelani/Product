@@ -70,7 +70,7 @@ export default function TripBudgetPanel({ trip }: Props) {
         {budget.includesTravel ? (
           <BreakdownChip icon="car-outline" label="Transport" value={formatInr(budget.transportTotal)} color="#B9834B" bg="rgba(185,131,75,0.12)" />
         ) : null}
-        <BreakdownChip icon="restaurant-outline" label="Food est." value={formatInr(budget.foodTotal)} color="#EA580C" bg="#FFEDD5" />
+        <BreakdownChip icon="restaurant-outline" label="Food est.*" value={formatInr(budget.foodTotal)} color="#EA580C" bg="#FFEDD5" />
       </View>
 
       <Text style={styles.sectionTitle}>Cost by day</Text>
@@ -99,7 +99,7 @@ export default function TripBudgetPanel({ trip }: Props) {
             </View>
           ))}
           <View style={styles.dayFoot}>
-            <Text style={styles.dayFootText}>Food allowance (est.)</Text>
+            <Text style={styles.dayFootText}>Food allowance (est., not in total)</Text>
             <Text style={styles.dayFootVal}>{formatInr(day.foodEstimate)}</Text>
           </View>
         </View>
@@ -107,8 +107,8 @@ export default function TripBudgetPanel({ trip }: Props) {
 
       <Text style={styles.note}>
         {budget.includesTravel
-          ? `Entry fees and food are multiplied by traveller count. Transport is estimated once for the route at ₹${TRANSPORT_COST_PER_KM}/km. Totals are approximate.`
-          : 'Local trip: this estimate includes ticket prices and food only. Travel cost is not added. Totals are approximate.'}
+          ? `Entry fees are multiplied by traveller count. Transport is estimated once for the route at ₹${TRANSPORT_COST_PER_KM}/km. Food (₹600/person/day) is a rough allowance shown separately and is NOT included in the total. Totals are approximate.`
+          : 'Local trip: this includes ticket prices plus a separate, non-authoritative food allowance. Travel cost is not added. Totals are approximate.'}
       </Text>
     </View>
   );

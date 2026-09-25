@@ -171,6 +171,9 @@ export const UNIT_TEST_FILES = [
   'src/__tests__/canonical-plan-mapper.unit.test.ts',
   'src/__tests__/itinerary-previous-stop-distance.unit.test.ts',
   'src/__tests__/custom-budget-regen.unit.test.ts',
+  'src/__tests__/share-token.unit.test.ts',
+  'src/__tests__/admin-search-ranking.unit.test.ts',
+  'src/__tests__/refresh-avoid.unit.test.ts',
 ];
 
 export const E2E_TEST_GLOB = 'src/__tests__/**/*.integration.test.ts';

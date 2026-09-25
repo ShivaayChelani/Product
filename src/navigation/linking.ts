@@ -32,6 +32,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
         },
       },
       TripDetail: 'trip/:tripId',
+      TripShared: 'trip/shared/:token',
       ReelDetail: 'reel/:reelId',
       LegalDocument: {
         path: 'legal/:type',

@@ -113,6 +113,8 @@ export const API_CONFIG = {
       history: '/trips/history/completed',
       visitStop: (stopId: string) => `/trips/stops/${stopId}/visit`,
       skipStop: (stopId: string) => `/trips/stops/${stopId}/skip`,
+      shareToken: (id: string) => `/trips/${id}/share-token`,
+      sharedTrip: (token: string) => `/trips/shared/${encodeURIComponent(token)}`,
     },
     vendors: {
       list: '/vendors',

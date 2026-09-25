@@ -6,11 +6,7 @@ import {
   publicVendorOffersWhere,
 } from '../rewards/offer-eligibility';
 import { getPublicVendorListingWhere } from '../vendors/vendor-public-visibility';
-
-/** Collapse doubled letters (nidaan → nidan) for soft spelling matches. */
-function collapseRepeats(value: string): string {
-  return value.toLowerCase().replace(/([a-z])\1+/g, '$1');
-}
+import { collapseRepeats, scoreAdminMatch } from './search-ranking';
 
 async function searchPlacesFuzzy(opts: {
   q: string;
@@ -370,6 +366,30 @@ export const searchService = {
         take: 15,
       }),
     ]);
-    return { places, users, vendors };
+
+    // Rank each list by relevance (exact → prefix → token → substring) so a
+    // precise name match surfaces before loose "contains" hits. Entity limits
+    // (25/15/15) are preserved exactly.
+    const rankedPlaces = [...places].sort(
+      (a, b) =>
+        scoreAdminMatch(query, b.name, b.publicPlaceId, b.city, b.state)
+        - scoreAdminMatch(query, a.name, a.publicPlaceId, a.city, a.state),
+    );
+    const rankedUsers = [...users].sort(
+      (a, b) =>
+        scoreAdminMatch(query, b.name, b.email)
+        - scoreAdminMatch(query, a.name, a.email),
+    );
+    const rankedVendors = [...vendors].sort(
+      (a, b) =>
+        scoreAdminMatch(query, b.businessName, b.city)
+        - scoreAdminMatch(query, a.businessName, a.city),
+    );
+
+    return {
+      places: rankedPlaces.slice(0, 25),
+      users: rankedUsers.slice(0, 15),
+      vendors: rankedVendors.slice(0, 15),
+    };
   },
 };
