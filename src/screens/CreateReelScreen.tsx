@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,11 +12,12 @@ import {
   KeyboardAvoidingView,
   Image,
   Modal,
+  BackHandler,
 } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Video from 'react-native-video';
-import { launchImageLibrary } from 'react-native-image-picker';
+import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUserContext } from '../context/UserContext';
 import { useDataContext } from '../context/DataContext';
@@ -27,11 +28,13 @@ import { useNavigation } from '@react-navigation/native';
 import { creatorUploadManager } from '../services/creator/creatorUploadManager';
 import { detectReelMediaKind, isStaticImageUrl } from '../services/reels/reelMediaKind';
 import { navigateToWorkspaceHome } from '../navigation/workspaceHome';
+import { closeReelScreen } from '../features/travelSocial/utils/closeReelScreen';
 import { CREATOR_CAPTION_EMOJIS, insertAtCursor } from '../features/creator/utils/captionEmoji';
 import {
   mergeLocationSuggestions,
   type LocationSuggestion,
 } from '../features/creator/utils/locationSuggestions';
+import { REEL_TAGS } from '../features/travelSocial/reelTags';
 
 interface CreateReelScreenProps {
   onBack: () => void;
@@ -67,19 +70,6 @@ const C = {
   chipActiveBg: '#EFE7DB',
   green: '#2E7D32',
 };
-
-const REEL_TAGS = [
-  { label: 'Travel', icon: 'briefcase-outline' },
-  { label: 'Food', icon: 'restaurant-outline' },
-  { label: 'Adventure', icon: 'triangle-outline' },
-  { label: 'History', icon: 'library-outline' },
-  { label: 'Hidden Gems', icon: 'diamond-outline' },
-  { label: 'Events', icon: 'calendar-outline' },
-  { label: 'Shopping', icon: 'bag-handle-outline' },
-  { label: 'Temple', icon: 'business-outline' },
-  { label: 'Nature', icon: 'leaf-outline' },
-  { label: 'Culture', icon: 'color-palette-outline' },
-];
 
 export default function CreateReelScreen({
   onBack,
@@ -185,6 +175,18 @@ export default function CreateReelScreen({
     && (user?.creatorProfile?.status === 'APPROVED');
   const canUpload = creatorApproved;
 
+  const handleBack = useCallback(() => {
+    closeReelScreen(navigation);
+  }, [navigation]);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleBack();
+      return true;
+    });
+    return () => sub.remove();
+  }, [handleBack]);
+
   const handlePickVideo = useCallback(async () => {
     try {
       const result = await launchImageLibrary({
@@ -200,6 +202,25 @@ export default function CreateReelScreen({
       }
     } catch (err: unknown) {
       Alert.alert('Error', caughtErrorMessage(err, 'Failed to pick video.'));
+    }
+  }, []);
+
+  const handlePickFromCamera = useCallback(async () => {
+    try {
+      const result = await launchCamera({
+        mediaType: 'mixed',
+        cameraType: 'back',
+        durationLimit: 60,
+      });
+      if (result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        setVideoUri(asset.uri || null);
+        setVideoMime(asset.type || null);
+        setVideoFileName(asset.fileName || null);
+        setVideoThumbnail(null);
+      }
+    } catch (err: unknown) {
+      Alert.alert('Error', caughtErrorMessage(err, 'Failed to capture media.'));
     }
   }, []);
 
@@ -371,6 +392,7 @@ export default function CreateReelScreen({
         description: caption.trim() || undefined,
         placeId: finalSpotId || undefined,
         vendorId: vendorId || undefined,
+        tags: selectedTags,
       });
       Alert.alert('Draft saved', 'Find it under Creator → Reels → Drafts. It is not public.', [
         { text: 'OK', onPress: () => onBack() },
@@ -387,7 +409,7 @@ export default function CreateReelScreen({
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+          <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
             <Icon name="chevron-back" size={24} color={C.text} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
@@ -411,7 +433,7 @@ export default function CreateReelScreen({
     <View style={[styles.container, { paddingTop: Math.max(insets.top, 16) }]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+        <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
           <Icon name="chevron-back" size={24} color={C.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
@@ -473,7 +495,7 @@ export default function CreateReelScreen({
             <View style={styles.uploadTabs}>
               <TouchableOpacity 
                 style={styles.uploadTab} 
-                onPress={editReel ? undefined : handlePickVideo}
+                onPress={editReel ? undefined : handlePickFromCamera}
                 activeOpacity={editReel ? 1 : 0.2}
               >
                 <Icon name="camera-outline" size={18} color={C.text} />
@@ -565,9 +587,6 @@ export default function CreateReelScreen({
           {/* Tags */}
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionLabel}>Tags</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>See all</Text>
-            </TouchableOpacity>
           </View>
           <View style={styles.tagsWrap}>
             {REEL_TAGS.map(tagObj => {
@@ -945,8 +964,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingHorizontal: 4,
   },
-  seeAllText: { fontSize: 13, fontWeight: '700', color: C.brown },
-  
+
   tagsWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',

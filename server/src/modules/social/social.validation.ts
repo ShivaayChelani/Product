@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { REEL_TAGS } from './reelTags';
 
 /** Empty / whitespace / null become undefined so optional link fields stay optional. */
 const optionalLink = (max: number) =>
@@ -55,6 +56,8 @@ export const updateCreatorProfileSchema = z.object({
   portfolioLinks: z.array(z.string().max(1000)).max(20).optional(),
 });
 
+const reelTagsSchema = z.array(z.enum(REEL_TAGS)).max(REEL_TAGS.length);
+
 export const createReelSchema = z.object({
   videoUrl: z.string().min(1, 'Video is required'),
   thumbnail: z.string().min(1, 'Thumbnail is required').optional(),
@@ -63,6 +66,7 @@ export const createReelSchema = z.object({
   placeId: z.string().optional(),
   vendorId: z.string().optional(),
   eventId: z.string().optional(),
+  tags: reelTagsSchema.optional(),
 });
 
 export const updateReelSchema = z.object({
@@ -72,6 +76,7 @@ export const updateReelSchema = z.object({
   placeId: z.string().nullable().optional(),
   vendorId: z.string().nullable().optional(),
   eventId: z.string().nullable().optional(),
+  tags: reelTagsSchema.optional(),
 }).refine((data) => Object.keys(data).length > 0, {
   message: 'Provide at least one reel field to update.',
 });

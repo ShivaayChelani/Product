@@ -72,7 +72,7 @@ function MonitoredNavigation({ children, linkingConfig }: { children: React.Reac
   );
 }
 
-const AuthRootStack = createNativeStackNavigator<Pick<RootStackParamList, 'Auth'>>();
+const AuthRootStack = createNativeStackNavigator<Pick<RootStackParamList, 'Auth' | 'ReelDetail'>>();
 
 function UnauthenticatedRoot({ initialAuthRoute }: { initialAuthRoute?: keyof AuthStackParamList }) {
   return (
@@ -80,6 +80,7 @@ function UnauthenticatedRoot({ initialAuthRoute }: { initialAuthRoute?: keyof Au
       <AuthRootStack.Screen name="Auth">
         {() => <AuthNavigator initialRoute={initialAuthRoute ?? 'LoginSplash'} />}
       </AuthRootStack.Screen>
+      <AuthRootStack.Screen name="ReelDetail" component={ReelDetailWrapper} />
     </AuthRootStack.Navigator>
   );
 }
@@ -582,7 +583,7 @@ function PlaceReelsScreen({ route, navigation }: { route: RouteProp<RootStackPar
 
 function ReelDetailWrapper({ route, navigation }: { route: RouteProp<RootStackParamList, 'ReelDetail'>; navigation: any }) {
   const ReelDetailScreen = useLazyScreen(() => require('../screens/ReelDetailScreen'));
-  const { user } = useUserContext();
+  const { user, isAuthenticated } = useUserContext();
   const { reels, handleLikeReel, handleAddReelComment } = useDataContext();
   const [reel, setReel] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
@@ -618,6 +619,10 @@ function ReelDetailWrapper({ route, navigation }: { route: RouteProp<RootStackPa
     }
   }, [route.params.reelId, route.params.reels, route.params.initialIndex, reels]);
 
+  const closeReel = React.useCallback(() => {
+    closeReelScreen(navigation, isAuthenticated ? 'MainTabs' : 'Auth');
+  }, [navigation, isAuthenticated]);
+
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -630,7 +635,7 @@ function ReelDetailWrapper({ route, navigation }: { route: RouteProp<RootStackPa
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000', padding: 24 }}>
       <Text style={{ color: '#fff', marginBottom: 16 }}>Reel not found</Text>
       <TouchableOpacity
-        onPress={() => closeReelScreen(navigation)}
+        onPress={closeReel}
         accessibilityLabel="Close reel"
         style={{ paddingHorizontal: 16, paddingVertical: 10 }}
       >
@@ -644,7 +649,7 @@ function ReelDetailWrapper({ route, navigation }: { route: RouteProp<RootStackPa
       reel={reel}
       reels={route.params.reels || (reels.length > 0 ? reels : [reel])}
       initialIndex={route.params.initialIndex || 0}
-      onBack={() => closeReelScreen(navigation)}
+      onBack={closeReel}
       onLike={(reelId: string) => handleLikeReel(reelId)}
       onAddComment={(text: string) => handleAddReelComment(reel.id, text)}
       isLiked={(user.likedReels || []).includes(reel.id) || !!reel.isLiked}

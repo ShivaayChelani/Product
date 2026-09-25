@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Eye, EyeOff, KeyRound, Mail, ShieldCheck } from "lucide-react";
 import { forgotPassword, verifyResetOtp, resetPassword } from "@/services/auth";
+import { isValidEmail, isValidPassword, passwordsMatch } from "@/lib/authValidation";
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,128}$/;
+const RESEND_COOLDOWN_SECONDS = 60;
 
 type Step = "email" | "code" | "password" | "success";
 
@@ -16,16 +16,24 @@ export default function ForgotPasswordPage() {
   const [code, setCode] = useState("");
   const [resetSessionToken, setResetSessionToken] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
+  const [resendIn, setResendIn] = useState(0);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setTimeout(() => setResendIn((prev) => prev - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
 
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setInfo("");
-    if (!EMAIL_REGEX.test(email.trim())) {
+    if (!isValidEmail(email)) {
       setError("Enter a valid email address");
       return;
     }
@@ -33,6 +41,7 @@ export default function ForgotPasswordPage() {
     try {
       await forgotPassword(email.trim());
       setStep("code");
+      setResendIn(RESEND_COOLDOWN_SECONDS);
       setInfo(
         "Check your inbox and spam folder. Codes expire in 15 minutes.",
       );
@@ -67,8 +76,12 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setError("");
     setInfo("");
-    if (!PASSWORD_REGEX.test(password)) {
+    if (!isValidPassword(password)) {
       setError("Password must be 8+ chars with uppercase, lowercase, number, and special character (@$!%*?&)");
+      return;
+    }
+    if (!passwordsMatch(password, confirmPassword)) {
+      setError("Passwords do not match");
       return;
     }
     setLoading(true);
@@ -87,6 +100,7 @@ export default function ForgotPasswordPage() {
       e.preventDefault();
       setStep("code");
       setPassword("");
+      setConfirmPassword("");
       setError("");
       setInfo("");
       return;
@@ -96,8 +110,10 @@ export default function ForgotPasswordPage() {
       setStep("email");
       setCode("");
       setPassword("");
+      setConfirmPassword("");
       setError("");
       setInfo("");
+      setResendIn(0);
     }
   };
 
@@ -120,7 +136,7 @@ export default function ForgotPasswordPage() {
           : "We'll email you an 8-character verification code.";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-sky-100 to-indigo-100 p-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
         <div className="mb-6">
           <Link
@@ -165,7 +181,9 @@ export default function ForgotPasswordPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
                 />
               </div>
             </div>
@@ -189,7 +207,8 @@ export default function ForgotPasswordPage() {
                 maxLength={8}
                 required
                 autoFocus
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm uppercase tracking-widest outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                placeholder="Enter 8-character code"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm uppercase tracking-widest text-gray-900 placeholder-gray-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
               />
             </div>
             {info && <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{info}</div>}
@@ -203,13 +222,14 @@ export default function ForgotPasswordPage() {
             </button>
             <button
               type="button"
-              disabled={loading}
+              disabled={loading || resendIn > 0}
               onClick={async () => {
                 setError("");
                 setInfo("");
                 setLoading(true);
                 try {
                   await forgotPassword(email.trim());
+                  setResendIn(RESEND_COOLDOWN_SECONDS);
                   setInfo("A new code was sent. Check inbox and spam — codes expire in 15 minutes.");
                 } catch (err: any) {
                   setError(err?.response?.data?.message || err?.message || "Could not resend code");
@@ -219,7 +239,7 @@ export default function ForgotPasswordPage() {
               }}
               className="w-full rounded-lg border border-emerald-200 px-4 py-2.5 text-sm font-medium text-emerald-800 hover:bg-emerald-50 disabled:opacity-60"
             >
-              Resend code
+              {resendIn > 0 ? `Resend OTP (${resendIn}s)` : "Resend OTP"}
             </button>
           </form>
         ) : (
@@ -233,12 +253,37 @@ export default function ForgotPasswordPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoFocus
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                  autoComplete="new-password"
+                  placeholder="Enter new password"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  aria-label={showPassword ? "Hide passwords" : "Show passwords"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Confirm password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                  placeholder="Re-enter new password"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  aria-label={showPassword ? "Hide passwords" : "Show passwords"}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>

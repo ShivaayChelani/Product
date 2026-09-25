@@ -236,6 +236,7 @@ export const creatorApi = {
     description?: string;
     placeId?: string;
     vendorId?: string;
+    tags?: string[];
   }) {
     return withCreatorFallback(
       () => apiClient.post<Reel>('/creator/reels', body),
@@ -250,6 +251,7 @@ export const creatorApi = {
     description?: string;
     placeId?: string;
     vendorId?: string;
+    tags?: string[];
   }) {
     return apiClient.post<Reel>('/creator/drafts', body);
   },

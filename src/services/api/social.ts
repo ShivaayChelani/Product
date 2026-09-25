@@ -71,12 +71,14 @@ export const socialApi = {
     placeId?: string;
     vendorId?: string;
     eventId?: string;
+    tags?: string[];
   }) {
     return apiClient.post<Reel>('/social/reels', data);
   },
 
   async getReelsFeed(params?: {
     category?: string;
+    tag?: string;
     lat?: number;
     lng?: number;
     radius?: number;

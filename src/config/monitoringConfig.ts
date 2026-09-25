@@ -42,7 +42,7 @@ export const APP_VERSION = '1.1.2';
  * token registration report the correct build for each OS.
  * Keep in sync with: Android versionCode (build.gradle) / iOS CURRENT_PROJECT_VERSION.
  */
-const APP_BUILD_ANDROID = '7';
+const APP_BUILD_ANDROID = '8';
 const APP_BUILD_IOS = '6';
 export const APP_BUILD = Platform.OS === 'ios' ? APP_BUILD_IOS : APP_BUILD_ANDROID;
 export const APP_BUNDLE_ID = 'com.palsasafar';

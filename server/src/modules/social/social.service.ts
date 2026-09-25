@@ -91,6 +91,7 @@ export const creatorReelListSelect = {
   placeId: true,
   vendorId: true,
   eventId: true,
+  tags: true,
   createdAt: true,
   updatedAt: true,
   category: true,
@@ -563,6 +564,7 @@ export const socialService = {
       placeId?: string | null;
       vendorId?: string | null;
       eventId?: string | null;
+      tags?: string[];
     },
   ) {
     const profile = await this.getApprovedCreatorProfile(userId);
@@ -606,6 +608,7 @@ export const socialService = {
       }
     }
     if (input.eventId !== undefined) dataToUpdate.eventId = input.eventId;
+    if (input.tags !== undefined) dataToUpdate.tags = input.tags || [];
 
     const updated = await prisma.reel.update({
       where: { id: reelId },
@@ -844,6 +847,7 @@ export const socialService = {
           thumbnail: input.thumbnail,
           title: input.title || input.description?.slice(0, 200) || null,
           description: input.description,
+          tags: input.tags || [],
           placeId: resolvedPlaceId,
           vendorId: taggedVendor?.id || null,
           vendorListingStatus: taggedVendor ? VendorListingStatus.PENDING : null,
@@ -906,6 +910,7 @@ export const socialService = {
     userId?: string,
     query: {
       category?: string;
+      tag?: string;
       lat?: string;
       lng?: string;
       radius?: string;
@@ -931,12 +936,15 @@ export const socialService = {
         { title: { contains: sq, mode: 'insensitive' } },
         { description: { contains: sq, mode: 'insensitive' } },
         { category: { contains: sq, mode: 'insensitive' } },
+        { tags: { has: sq } },
         { creator: { username: { contains: sq, mode: 'insensitive' } } },
         { place: { name: { contains: sq, mode: 'insensitive' } } },
         { place: { city: { contains: sq, mode: 'insensitive' } } },
         { vendor: { businessName: { contains: sq, mode: 'insensitive' } } },
         { vendor: { city: { contains: sq, mode: 'insensitive' } } },
       ];
+    } else if (query.tag) {
+      where.tags = { has: query.tag };
     } else if (query.category === 'BUSINESS') {
       where.vendor = getPublicVendorListingWhere();
       where.vendorListingStatus = VendorListingStatus.APPROVED;

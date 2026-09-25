@@ -61,14 +61,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-sky-100 to-indigo-100 p-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
         <div className="mb-8 text-center">
-          <img
-            src="/logo.jpeg"
-            alt="PalSafar Logo"
-            className="mx-auto mb-3 h-16 w-16 rounded-2xl object-cover shadow-md"
-          />
           <h1 className="text-2xl font-bold text-gray-900">PalSafar Admin</h1>
           <p className="mt-1 text-sm text-gray-500">Sign in to the control center</p>
         </div>
@@ -83,8 +78,9 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              placeholder="you@example.com"
               autoComplete="email"
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
             />
           </div>
 
@@ -98,8 +94,9 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                placeholder="••••••••"
                 autoComplete="current-password"
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
               />
               <button
                 type="button"

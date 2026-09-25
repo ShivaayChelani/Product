@@ -96,6 +96,7 @@ export const socialController = {
     const currentUserId = req.user?.id;
     const query = {
       category: req.query.category as string,
+      tag: req.query.tag as string,
       lat: req.query.lat as string,
       lng: req.query.lng as string,
       radius: req.query.radius as string,

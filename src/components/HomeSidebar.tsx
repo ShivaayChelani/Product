@@ -51,7 +51,6 @@ type Props = {
   onLogout?: () => void;
   isGuest?: boolean;
   vendorVerificationStatus?: string | null;
-  onNavigateToSaved?: () => void;
   onNavigateToSettings?: () => void;
   onNavigateToHelp?: () => void;
   onNavigateToSubscription?: () => void;
@@ -77,7 +76,6 @@ export default function HomeSidebar({
   onLogout,
   isGuest,
   vendorVerificationStatus,
-  onNavigateToSaved,
   onNavigateToSettings,
   onNavigateToHelp,
   onNavigateToSubscription,
@@ -199,7 +197,6 @@ export default function HomeSidebar({
     hiddengems: onNavigateToHiddenGems,
     palpoints: onNavigateToWallet,
     rewards: onNavigateToRewards,
-    saved: onNavigateToSaved,
     leaderboard: onNavigateToLeaderboard,
   };
 

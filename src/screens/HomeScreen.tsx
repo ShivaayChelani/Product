@@ -1018,7 +1018,6 @@ export default function HomeScreen({
         onLogout={onLogout}
         isGuest={isGuest}
         vendorVerificationStatus={currentVendor?.verificationStatus}
-        onNavigateToSaved={() => onNavigateToSearch?.('Saved', 'saved')}
         onNavigateToSettings={() => navigation.navigate('Settings')}
         onNavigateToHelp={() => onNavigateToLegal?.()}
         onNavigateToSubscription={() => navigation.navigate('PremiumUpgrade')}

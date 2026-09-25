@@ -269,3 +269,31 @@ export async function isOnboardingCompleted(): Promise<boolean> {
     return false;
   }
 }
+
+/** User-scoped local keys that must not leak to the next account on this device. */
+const USER_LOCAL_KEYS = [
+  KEYS.USER_PROGRESS,
+  KEYS.VENDORS,
+  KEYS.VENDOR_OFFERS,
+  KEYS.REDEMPTIONS,
+  KEYS.CURRENT_VENDOR,
+  KEYS.REELS,
+  KEYS.HIDDEN_GEM_SUBMISSIONS,
+  SPOT_COORDS_KEY,
+  'PALSAFAR_SYNC_QUEUE',
+  '@palsasafar_offline_queue',
+  'ps_sync_queue',
+  'creator_reel_upload_jobs_v1',
+];
+
+/**
+ * Remove per-user / per-account local data on sign-out so the next sign-in never
+ * inherits the previous user's progress, offline queue, or cached submissions.
+ * Onboarding and app preferences are intentionally kept.
+ */
+export async function purgeUserLocalData(): Promise<void> {
+  try {
+    await AsyncStorage.multiRemove(USER_LOCAL_KEYS);
+  } catch (error) {
+  }
+}

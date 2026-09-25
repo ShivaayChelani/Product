@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.palsasafar",
+      "sha256_cert_fingerprints": [
+        "56:95:12:C3:4C:74:41:D2:E5:3B:AE:AE:BA:0F:EA:68:01:A6:FE:C3:89:7D:E3:94:B8:45:D0:69:14:23:60:D9"
+      ]
+    }
+  }
+]

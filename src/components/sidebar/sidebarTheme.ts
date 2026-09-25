@@ -69,12 +69,4 @@ export const EXPLORE_ITEMS: ExploreMenuItem[] = [
     iconColor: '#533C8B',
     iconBg: '#EDEAF6',
   },
-  {
-    key: 'saved',
-    icon: 'bookmark-outline',
-    label: 'My Saved',
-    subtitle: 'Places, trips & experiences',
-    iconColor: '#175E9B',
-    iconBg: '#E4F0F9',
-  },
 ];

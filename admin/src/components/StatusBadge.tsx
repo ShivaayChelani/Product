@@ -29,7 +29,7 @@ export default function StatusBadge({
   const s = status.replace(/_/g, '').toUpperCase();
   return (
     <span
-      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ring-black/5 ${
         styles[s] || styles[status.toUpperCase()] || "bg-gray-100 text-gray-700"
       }`}
     >

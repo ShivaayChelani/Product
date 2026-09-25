@@ -209,6 +209,14 @@ const AVOID_OPTIONS: Array<{ v: string; label: string }> = [
   { v: 'EXPENSIVE_ENTRY', label: 'Expensive entry' },
 ];
 
+const TRANSPORT_OPTIONS: Array<{ v: string; label: string; icon: string }> = [
+  { v: 'WALKING', label: 'Walking', icon: 'walk-outline' },
+  { v: 'BIKE', label: 'Bike', icon: 'bicycle-outline' },
+  { v: 'CAR', label: 'Car', icon: 'car-outline' },
+  { v: 'TRAIN', label: 'Train', icon: 'train-outline' },
+  { v: 'FLIGHT', label: 'Flight', icon: 'airplane-outline' },
+];
+
 export default function AITripPlannerScreen({
   onNavigate,
 }: {
@@ -243,6 +251,7 @@ export default function AITripPlannerScreen({
     setStartDate,
     setTimePreference,
     toggleAvoid,
+    toggleTransportation,
     validate,
     persistDraft,
     loadDraft,
@@ -677,7 +686,24 @@ export default function AITripPlannerScreen({
           </SectionCard>
 
           <SectionCard>
-            <SectionHeader number="07" icon="chatbubble-outline" title="Others (Optional)" />
+            <SectionHeader number="07" icon="navigate-outline" title="Transport" />
+            <Text style={styles.quickLabel}>How do you prefer to get around?</Text>
+            <View style={styles.companionRow}>
+              {TRANSPORT_OPTIONS.map(opt => (
+                <SelectBox
+                  key={opt.v}
+                  label={opt.label}
+                  icon={opt.icon}
+                  active={selectedTransportation.includes(opt.v)}
+                  onPress={() => toggleTransportation(opt.v)}
+                  compact
+                />
+              ))}
+            </View>
+          </SectionCard>
+
+          <SectionCard>
+            <SectionHeader number="08" icon="chatbubble-outline" title="Others (Optional)" />
             <View style={styles.textareaWrap}>
               <TextInput
                 style={styles.textarea}

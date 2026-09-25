@@ -33,7 +33,6 @@ import { TravellerProfileTheme as TP } from '../features/travellerProfile/theme'
 import { useTravellerWallet } from '../features/travellerProfile/hooks/useTravellerWallet';
 import { useTravellerStats } from '../features/travellerProfile/hooks/useTravellerStats';
 import { useMyTripsData } from '../features/myTrips/hooks/useMyTripsData';
-import { loadTripFavoriteIds } from '../features/myTrips/tripFavorites';
 import { getUserClaims } from '../services/api/campaigns';
 import { travellerProfileKeys } from '../features/travellerProfile/queryKeys';
 import { ProfileColors } from '../components/profile/profileTheme';
@@ -164,7 +163,6 @@ export default function ProfileScreen({
   const walletQuery = useTravellerWallet(apiEnabled, initialUser.totalPoints || 0);
   const statsQuery = useTravellerStats(user, apiEnabled);
   const tripsQuery = useMyTripsData(apiEnabled);
-  const [savedTripCount, setSavedTripCount] = useState(0);
   const [unlockedRewards, setUnlockedRewards] = useState(0);
 
   useEffect(() => {
@@ -259,7 +257,6 @@ export default function ProfileScreen({
       if (isGuest || !DEV_FLAGS.USE_SERVER_API) return;
       refreshSession().catch(() => undefined);
       void queryClient.invalidateQueries({ queryKey: ['traveller-profile'] });
-      void loadTripFavoriteIds().then(ids => setSavedTripCount(ids.length));
       getUserClaims()
         .then(res => {
           const list = Array.isArray(res)
@@ -451,9 +448,8 @@ export default function ProfileScreen({
     const upcoming = trips.filter(t => ['UPCOMING', 'ACTIVE'].includes(String(t.status || '').toUpperCase())).length;
     const completed = trips.filter(t => String(t.status || '').toUpperCase() === 'COMPLETED').length;
     const drafts = trips.filter(t => String(t.status || '').toUpperCase() === 'DRAFT').length;
-    const saved = savedTripCount || trips.filter(t => String(t.status || '').toUpperCase() !== 'ARCHIVED').length;
-    return { upcoming, completed, drafts, saved };
-  }, [tripsQuery.trips, savedTripCount]);
+    return { upcoming, completed, drafts };
+  }, [tripsQuery.trips]);
 
   const locationLabel = useMemo(() => {
     const extra = user as UserProfile & { state?: string };
@@ -489,12 +485,10 @@ export default function ProfileScreen({
       <MyTripsCard
         upcomingCount={tripCounts.upcoming}
         completedCount={tripCounts.completed || stats.tripsCompleted || 0}
-        savedCount={tripCounts.saved}
         draftsCount={tripCounts.drafts}
         onViewAll={() => navigation.navigate('MyTrips')}
         onPressUpcoming={() => navigation.navigate('MyTrips', { initialTab: 'UPCOMING' })}
         onPressCompleted={() => navigation.navigate('MyTrips', { initialTab: 'COMPLETED' })}
-        onPressSaved={() => navigation.navigate('MyTrips', { initialTab: 'DRAFT' })}
         onPressDrafts={() => navigation.navigate('MyTrips', { initialTab: 'DRAFT' })}
       />
 

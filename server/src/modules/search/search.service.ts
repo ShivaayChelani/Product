@@ -127,7 +127,7 @@ export const searchService = {
       (async () => {
         try {
           return await prisma.$queryRaw<any[]>`
-            SELECT id, video_url as "videoUrl", thumbnail, title, description, views, likes, category, created_at as "createdAt",
+            SELECT id, video_url as "videoUrl", thumbnail, title, description, views, likes, category, tags, created_at as "createdAt",
                    ts_rank(search_vector, plainto_tsquery('english', ${q})) AS rank
             FROM reels
             WHERE search_vector @@ plainto_tsquery('english', ${q})

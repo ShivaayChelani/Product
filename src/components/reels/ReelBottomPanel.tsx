@@ -10,6 +10,7 @@ import { REEL_BOTTOM_GAP } from './reelLayout';
 type Props = {
   title: string | null;
   description: string | null;
+  tags?: string[];
   placeName?: string | null;
   placeCity?: string | null;
   collaborationVendorName?: string | null;
@@ -33,6 +34,7 @@ type Props = {
 function ReelBottomPanelComponent({
   title,
   description,
+  tags,
   placeName,
   placeCity,
   collaborationVendorName,
@@ -93,6 +95,17 @@ function ReelBottomPanelComponent({
               {hashtags.join(' ')}
             </Text>
           )}
+        </View>
+      ) : null}
+      {tags && tags.length > 0 ? (
+        <View style={styles.tagRow} pointerEvents="none">
+          {tags.slice(0, 4).map((tag) => (
+            <View key={tag} style={styles.tagPill}>
+              <Text style={styles.tagPillText} numberOfLines={1}>
+                {tag}
+              </Text>
+            </View>
+          ))}
         </View>
       ) : null}
 
@@ -156,6 +169,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 8,
     lineHeight: 20,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: REEL_BOTTOM_GAP,
+    paddingRight: 56,
+  },
+  tagPill: {
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  tagPillText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   progressWrap: {
     marginHorizontal: -16,

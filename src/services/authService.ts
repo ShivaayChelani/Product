@@ -8,6 +8,7 @@ import {
 } from '../config/googleAuth';
 import { isGoogleSignInCancelled, mapGoogleAuthFailure } from './googleAuthErrors';
 import { parseJsonObject } from '../utils/safeJson';
+import { purgeUserLocalData } from './localStorageService';
 
 const AUTH_SESSION_KEY = '@palsasafar_session';
 const AUTH_USER_KEY = '@palsasafar_auth_user';
@@ -410,6 +411,7 @@ export async function logout(): Promise<void> {
   }
   await AsyncStorage.removeItem(AUTH_SESSION_KEY);
   await AsyncStorage.removeItem(AUTH_USER_KEY);
+  await purgeUserLocalData();
 }
 
 export async function restoreSession(): Promise<UserProfile | null> {
@@ -421,20 +423,53 @@ export async function restoreSession(): Promise<UserProfile | null> {
     }
     try {
       // Force JWT role refresh so post-approval UserRole matches the access token.
-      await apiClient.forceRefreshAccessToken();
-      const resultUser = await authApi.getProfile();
-      const profile = buildProfileFromApiUser(resultUser);
-      await persistAuthUser(profile);
-      return profile;
-    } catch (err) {
-      await apiClient.setToken(null);
-      await AsyncStorage.removeItem(AUTH_SESSION_KEY);
-      await AsyncStorage.removeItem(AUTH_USER_KEY);
-      return null;
+      const refreshed = await apiClient.forceRefreshAccessToken();
+      if (refreshed) {
+        const resultUser = await authApi.getProfile();
+        const profile = buildProfileFromApiUser(resultUser);
+        await persistAuthUser(profile);
+        return profile;
+      }
+      // Refresh could not complete (missing/network/transient). Keep the
+      // persisted session and use the last-known profile. Do NOT call
+      // getProfile() here — it would 401 with the stale token and trip the
+      // in-flight refresh path, destroying the session on a mere network blip.
+      return await cachedSessionProfile();
+    } catch (err: any) {
+      // Only treat a definitive server rejection as an expired session. A
+      // transient network blip must NOT destroy a still-valid session on boot —
+      // otherwise a cold Render start or brief offline window logs the user out
+      // permanently instead of restoring it on the next successful launch.
+      const status = err?.status;
+      const isDefinitiveRejection = status === 401 || status === 403 || status === 406;
+      if (isDefinitiveRejection) {
+        await apiClient.setToken(null);
+        await AsyncStorage.removeItem(AUTH_SESSION_KEY);
+        await AsyncStorage.removeItem(AUTH_USER_KEY);
+        return null;
+      }
+      // Transient network/server failure: keep the persisted session and fall
+      // back to the last-known profile so the user stays signed in across
+      // restarts even when the backend is briefly unreachable at boot.
+      return await cachedSessionProfile();
     }
   } catch (err) {
     return null;
   }
+}
+
+/** Last-known profile for a stored session, when the backend is briefly unreachable at boot. */
+async function cachedSessionProfile(): Promise<UserProfile | null> {
+  try {
+    const cachedRaw = await AsyncStorage.getItem(AUTH_USER_KEY);
+    if (!cachedRaw) return null;
+    const cached = parseJsonObject(cachedRaw) as UserProfile | null;
+    if (cached && cached.uid && cached.uid !== 'guest-user') {
+      return cached;
+    }
+  } catch {
+  }
+  return null;
 }
 
 export async function forgotPassword(email: string): Promise<boolean> {

@@ -11,6 +11,8 @@ export interface Column<T> {
   sortable?: boolean;
   /** Include in CSV export (default: true unless render-only) */
   exportValue?: (item: T) => string | number | null | undefined;
+  /** Exclude this column from CSV export (e.g. selection checkboxes) */
+  skipExport?: boolean;
 }
 
 function escapeCsvCell(value: unknown): string {
@@ -25,7 +27,7 @@ export function exportTableCsv<T extends Record<string, unknown>>(
   filename: string,
   getRowId?: (item: T) => string,
 ) {
-  const exportCols = columns.filter((c) => c.key !== "actions");
+  const exportCols = columns.filter((c) => c.key !== "actions" && !c.skipExport);
   const header = exportCols.map((c) => escapeCsvCell(c.header)).join(",");
   const rows = data.map((item) =>
     exportCols
@@ -72,6 +74,9 @@ export default function DataTable<T extends Record<string, unknown>>({
   exportFilename,
   toolbar,
   pageSize = 15,
+  dense = false,
+  retainRowsOnLoading = false,
+  selectedRowIds,
 }: {
   columns: Column<T>[];
   data: T[];
@@ -94,6 +99,12 @@ export default function DataTable<T extends Record<string, unknown>>({
   exportFilename?: string;
   toolbar?: React.ReactNode;
   pageSize?: number;
+  /** Keep previous rows visible while loading (show a soft overlay instead of the skeleton) */
+  retainRowsOnLoading?: boolean;
+  /** Compact row density */
+  dense?: boolean;
+  /** IDs currently selected — drives highlighted row state + sticky column backgrounds */
+  selectedRowIds?: Set<string>;
 }) {
   const getPageNumbers = () => {
     if (!page || !totalPages) return [];
@@ -110,7 +121,9 @@ export default function DataTable<T extends Record<string, unknown>>({
     return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
   };
 
-  if (loading) {
+  const showLoadingOverlay = loading && retainRowsOnLoading;
+
+  if (loading && !retainRowsOnLoading) {
     return <SkeletonTable rows={8} cols={Math.max(columns.length, 4)} />;
   }
 
@@ -134,6 +147,8 @@ export default function DataTable<T extends Record<string, unknown>>({
     onSelectChange(next);
   };
 
+  const isRowSelected = (rowId: string) => selectedRowIds?.has(rowId) ?? selectedIds?.has(rowId) ?? false;
+
   return (
     <div className="space-y-3">
       {(toolbar || exportFilename) && (
@@ -142,8 +157,9 @@ export default function DataTable<T extends Record<string, unknown>>({
           {exportFilename && data.length > 0 && (
             <button
               type="button"
+              disabled={loading}
               onClick={() => exportTableCsv(columns, data, exportFilename, getRowId)}
-              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground shadow-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Download size={14} />
               Export CSV
@@ -153,8 +169,13 @@ export default function DataTable<T extends Record<string, unknown>>({
       )}
 
     <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-      <div className="admin-table-scroll overflow-x-auto">
-        <table className="w-full text-left text-sm">
+      <div className="admin-table-scroll relative overflow-x-auto">
+        {showLoadingOverlay && (
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-card/40 backdrop-blur-[1px]" aria-hidden="true">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
+          </div>
+        )}
+        <table className={`w-full text-left text-sm ${dense ? "admin-table-dense" : ""}`}>
           <thead>
             <tr className="sticky top-0 z-10 border-b border-border bg-muted/50">
               {selectable && (
@@ -166,7 +187,7 @@ export default function DataTable<T extends Record<string, unknown>>({
                       if (el) el.indeterminate = someSelected && !allSelected;
                     }}
                     onChange={toggleAll}
-                    className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                    className="h-4 w-4 rounded border-border accent-primary focus:ring-primary"
                     aria-label="Select all rows"
                   />
                 </th>
@@ -174,19 +195,27 @@ export default function DataTable<T extends Record<string, unknown>>({
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={`px-4 py-3 font-semibold text-muted-foreground ${col.sortable ? 'cursor-pointer hover:bg-muted transition-colors' : ''} ${col.className || ""}`}
+                  aria-sort={col.sortable && sortKey === col.key ? (sortDir === "asc" ? "ascending" : "descending") : undefined}
+                  tabIndex={col.sortable ? 0 : undefined}
+                  onKeyDown={(e) => {
+                    if (col.sortable && onSort && (e.key === "Enter" || e.key === " ")) {
+                      e.preventDefault();
+                      onSort(col.key);
+                    }
+                  }}
                   onClick={() => {
                     if (col.sortable && onSort) onSort(col.key);
                   }}
+                  className={`px-4 py-3 font-semibold text-muted-foreground ${col.sortable ? "cursor-pointer select-none transition-colors hover:bg-muted" : ""} ${col.className || ""}`}
                 >
                   <div className="flex items-center gap-1.5">
                     {col.header}
                     {col.sortable && (
-                      <span className="text-gray-400">
+                      <span className="text-muted-foreground">
                         {sortKey === col.key ? (
-                          sortDir === "asc" ? <ArrowDownAZ size={14} className="text-emerald-600" /> : <ArrowUpZA size={14} className="text-emerald-600" />
+                          sortDir === "asc" ? <ArrowDownAZ size={14} className="text-primary" /> : <ArrowUpZA size={14} className="text-primary" />
                         ) : (
-                          <ArrowUpDown size={14} />
+                          <ArrowUpDown size={14} className="opacity-60" />
                         )}
                       </span>
                     )}
@@ -200,7 +229,7 @@ export default function DataTable<T extends Record<string, unknown>>({
               <tr>
                 <td
                   colSpan={columns.length + (selectable ? 1 : 0)}
-                  className="px-4 py-12 text-center text-gray-400"
+                  className="px-4 py-12 text-center text-muted-foreground"
                 >
                   {emptyMessage}
                 </td>
@@ -211,7 +240,8 @@ export default function DataTable<T extends Record<string, unknown>>({
                 return (
                 <tr
                   key={rowId || i}
-                  className={`transition hover:bg-muted/40 ${selectedIds?.has(rowId) ? "bg-primary/5" : ""}`}
+                  data-state={isRowSelected(rowId) ? "selected" : undefined}
+                  className={`transition hover:bg-muted/40 ${isRowSelected(rowId) ? "bg-primary/5" : ""}`}
                 >
                   {selectable && (
                     <td className="px-4 py-3">
@@ -219,7 +249,7 @@ export default function DataTable<T extends Record<string, unknown>>({
                         type="checkbox"
                         checked={selectedIds?.has(rowId) ?? false}
                         onChange={() => toggleRow(rowId)}
-                        className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        className="h-4 w-4 rounded border-border accent-primary focus:ring-primary"
                         aria-label={`Select row ${rowId}`}
                       />
                     </td>
@@ -255,22 +285,22 @@ export default function DataTable<T extends Record<string, unknown>>({
             {showFirstLast && (
               <button
                 type="button"
-                disabled={!hasPrev}
+                disabled={!hasPrev || loading}
                 onClick={() => onPageChange(1)}
                 aria-label="First page"
                 title="First page"
-                className="flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+                className="flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <ChevronsLeft size={16} />
               </button>
             )}
             <button
               type="button"
-              disabled={!hasPrev}
+              disabled={!hasPrev || loading}
               onClick={() => onPageChange((page || 1) - 1)}
               aria-label="Previous page"
               title="Previous page"
-              className="flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+              className="flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ChevronLeft size={16} />
             </button>
@@ -279,13 +309,14 @@ export default function DataTable<T extends Record<string, unknown>>({
               <button
                 type="button"
                 key={p}
+                disabled={loading}
                 onClick={() => onPageChange(p)}
                 aria-label={`Page ${p}`}
                 aria-current={p === page ? "page" : undefined}
                 className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium transition ${
-                  p === page 
-                    ? "bg-emerald-50 text-emerald-600 border border-emerald-200" 
-                    : "text-gray-600 hover:bg-gray-50 border border-transparent hover:border-gray-200"
+                  p === page
+                    ? "bg-primary/10 text-primary border border-primary/30"
+                    : "text-muted-foreground hover:bg-muted border border-transparent hover:border-border disabled:cursor-not-allowed disabled:opacity-50"
                 }`}
               >
                 {p}
@@ -294,22 +325,22 @@ export default function DataTable<T extends Record<string, unknown>>({
 
             <button
               type="button"
-              disabled={!hasNext}
+              disabled={!hasNext || loading}
               onClick={() => onPageChange((page || 1) + 1)}
               aria-label="Next page"
               title="Next page"
-              className="flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+              className="flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ChevronRight size={16} />
             </button>
             {showFirstLast && (
               <button
                 type="button"
-                disabled={!hasNext}
+                disabled={!hasNext || loading}
                 onClick={() => onPageChange(totalPages)}
                 aria-label="Last page"
                 title="Last page"
-                className="flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+                className="flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <ChevronsRight size={16} />
               </button>

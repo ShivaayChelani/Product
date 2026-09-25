@@ -135,13 +135,23 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    let hasStoredSession = false;
     const timeout = setTimeout(() => {
       if (cancelled) return;
       setIsStorageLoaded(true);
-      setIsInitializing(false);
+      // Only reveal the Login screen early when there is no stored session.
+      // With a persisted token we must wait for restore to settle, otherwise a
+      // cold Render start flashes the auth screen before the session restores.
+      if (!hasStoredSession) {
+        setIsInitializing(false);
+      }
     }, 15000);
 
     (async () => {
+      try {
+        hasStoredSession = await apiClient.hasStoredSession();
+      } catch {
+      }
       try {
         const saved = await loadUserProgress();
         if (cancelled) return;

@@ -190,6 +190,7 @@ export const ReelCard: React.FC<ReelCardProps> = React.memo(({
         <ReelBottomPanel
           title={reel.title}
           description={reel.description}
+          tags={reel.tags}
           placeName={reel.place?.name}
           placeCity={reel.place?.city}
           isCollaboration={!!reel.isCollaboration}

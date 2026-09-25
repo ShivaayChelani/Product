@@ -103,6 +103,7 @@ function createLocalReel(data: ReelUploadData): Reel {
     placeId: data.spotId || null,
     vendorId: data.vendorId || null,
     eventId: data.eventId || null,
+    tags: data.tags || [],
     createdAt: new Date().toISOString(),
     creator: {
       id: `creator_${data.userId}`,
@@ -192,6 +193,7 @@ export async function createReel(data: ReelUploadData, onProgress?: (p: number) 
       placeId: data.spotId || undefined,
       vendorId: data.vendorId || undefined,
       eventId: data.eventId || undefined,
+      tags: data.tags,
     });
     onProgress?.(100);
     return mapReelUrls(res.data);
@@ -206,7 +208,8 @@ export async function getReelsFeed(
   lastDoc?: any,
   pageSize: number = 5,
   category?: string,
-  coords?: { latitude: number; longitude: number }
+  coords?: { latitude: number; longitude: number },
+  tag?: string
 ): Promise<PaginatedResult<Reel>> {
   if (DEV_FLAGS.USE_SERVER_API) {
     try {
@@ -215,6 +218,7 @@ export async function getReelsFeed(
         page,
         limit: pageSize,
         category,
+        tag,
         lat: coords?.latitude,
         lng: coords?.longitude,
         radius: 100,
@@ -233,7 +237,9 @@ export async function getReelsFeed(
   }
   const localReels = getLocalReels();
   let filtered = localReels;
-  if (category === 'BUSINESS') {
+  if (tag) {
+    filtered = localReels.filter(r => (r.tags || []).includes(tag));
+  } else if (category === 'BUSINESS') {
     filtered = localReels.filter(r => !!r.vendorId);
   } else if (category === 'TRAVEL') {
     filtered = localReels.filter(r => !r.vendorId);

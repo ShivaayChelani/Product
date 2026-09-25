@@ -6,24 +6,20 @@ import { ProfileColors as C, SANS, SANS_BOLD } from './profileTheme';
 interface MyTripsCardProps {
   upcomingCount: number;
   completedCount: number;
-  savedCount: number;
   draftsCount: number;
   onViewAll: () => void;
   onPressUpcoming: () => void;
   onPressCompleted: () => void;
-  onPressSaved: () => void;
   onPressDrafts: () => void;
 }
 
 export const MyTripsCard = ({
   upcomingCount,
   completedCount,
-  savedCount,
   draftsCount,
   onViewAll,
   onPressUpcoming,
   onPressCompleted,
-  onPressSaved,
   onPressDrafts,
 }: MyTripsCardProps) => {
   return (
@@ -51,14 +47,6 @@ export const MyTripsCard = ({
           </View>
           <Text style={styles.statNumber}>{completedCount}</Text>
           <Text style={styles.statLabel}>Completed</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.statItem} onPress={onPressSaved} activeOpacity={0.7}>
-          <View style={styles.statIconWrapper}>
-            <Icon name="heart-outline" size={22} color="#4A3427" />
-          </View>
-          <Text style={styles.statNumber}>{savedCount}</Text>
-          <Text style={styles.statLabel}>Saved</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.statItem} onPress={onPressDrafts} activeOpacity={0.7}>

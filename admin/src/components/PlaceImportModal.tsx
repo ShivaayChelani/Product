@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FileSpreadsheet, Upload, X, Download, AlertTriangle, CheckCircle2 } from "lucide-react";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
@@ -100,11 +100,20 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
     if (inputRef.current) inputRef.current.value = "";
   }, []);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (importing) return;
     reset();
     onClose();
-  };
+  }, [importing, reset, onClose]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, handleClose]);
 
   const handleFile = async (file: File | null | undefined) => {
     if (!file) return;
@@ -190,14 +199,14 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="mx-4 flex max-h-[95vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="place-import-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="mx-4 flex max-h-[95vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-card shadow-2xl">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Import Places</h2>
-            <p className="text-xs text-gray-500">Upload a CSV or Excel (.xlsx / .xls) sheet</p>
+            <h2 id="place-import-title" className="text-lg font-bold text-foreground">Import Places</h2>
+            <p className="text-xs text-muted-foreground">Upload a CSV or Excel (.xlsx / .xls) sheet</p>
           </div>
-          <button type="button" onClick={handleClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
+          <button type="button" onClick={handleClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Close">
             <X size={22} />
           </button>
         </div>
@@ -207,13 +216,13 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
             <button
               type="button"
               onClick={downloadTemplateCsv}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-input px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
             >
               <Download size={16} />
               Download CSV template
             </button>
-            <span className="text-xs text-gray-500">
-              Required: <code className="rounded bg-gray-100 px-1">name</code>. Recommended: city, state, latitude, longitude, category.
+            <span className="text-xs text-muted-foreground">
+              Required: <code className="rounded bg-muted px-1">name</code>. Recommended: city, state, latitude, longitude, category.
             </span>
           </div>
 
@@ -229,14 +238,14 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
               void handleFile(e.dataTransfer.files?.[0]);
             }}
             className={`rounded-xl border-2 border-dashed p-8 text-center transition ${
-              dragOver ? "border-emerald-500 bg-emerald-50" : "border-gray-300 bg-gray-50"
+              dragOver ? "border-primary bg-primary/10" : "border-input bg-muted/40"
             }`}
           >
-            <FileSpreadsheet className="mx-auto mb-3 text-emerald-600" size={36} />
-            <p className="mb-1 text-sm font-medium text-gray-800">
+            <FileSpreadsheet className="mx-auto mb-3 text-primary" size={36} />
+            <p className="mb-1 text-sm font-medium text-foreground">
               {fileName ? fileName : "Drop CSV / Excel file here"}
             </p>
-            <p className="mb-4 text-xs text-gray-500">Max 1000 places per import</p>
+            <p className="mb-4 text-xs text-muted-foreground">Max 1000 places per import</p>
             <input
               ref={inputRef}
               type="file"
@@ -248,7 +257,7 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
               type="button"
               disabled={parsing}
               onClick={() => inputRef.current?.click()}
-              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-60"
             >
               <Upload size={16} />
               {parsing ? "Parsing…" : "Choose file"}
@@ -258,22 +267,22 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
           {parsed && (
             <div className="space-y-3">
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-lg border border-gray-200 bg-white p-3">
-                  <p className="text-xs text-gray-500">Valid places</p>
-                  <p className="text-xl font-bold text-emerald-700">{parsed.places.length}</p>
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="text-xs text-muted-foreground">Valid places</p>
+                  <p className="text-xl font-bold text-primary">{parsed.places.length}</p>
                 </div>
-                <div className="rounded-lg border border-gray-200 bg-white p-3">
-                  <p className="text-xs text-gray-500">Row errors</p>
-                  <p className="text-xl font-bold text-amber-600">{parsed.errors.length}</p>
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="text-xs text-muted-foreground">Row errors</p>
+                  <p className="text-xl font-bold text-warning">{parsed.errors.length}</p>
                 </div>
-                <div className="rounded-lg border border-gray-200 bg-white p-3">
-                  <p className="text-xs text-gray-500">Empty rows skipped</p>
-                  <p className="text-xl font-bold text-gray-700">{parsed.skippedEmpty}</p>
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="text-xs text-muted-foreground">Empty rows skipped</p>
+                  <p className="text-xl font-bold text-foreground">{parsed.skippedEmpty}</p>
                 </div>
               </div>
 
               {parsed.errors.length > 0 && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs text-foreground">
                   <div className="mb-1 flex items-center gap-1 font-semibold">
                     <AlertTriangle size={14} /> Parse issues (showing up to 8)
                   </div>
@@ -286,9 +295,9 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
               )}
 
               {previewRows.length > 0 && (
-                <div className="overflow-x-auto rounded-lg border border-gray-200">
+                <div className="overflow-x-auto rounded-lg border border-border">
                   <table className="min-w-full text-left text-xs">
-                    <thead className="bg-gray-50 text-gray-600">
+                    <thead className="bg-muted/40 text-muted-foreground">
                       <tr>
                         <th className="px-3 py-2 font-medium">Name</th>
                         <th className="px-3 py-2 font-medium">Category</th>
@@ -299,12 +308,12 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
                     </thead>
                     <tbody>
                       {previewRows.map((p, i) => (
-                        <tr key={`${p.name}-${i}`} className="border-t border-gray-100">
-                          <td className="px-3 py-2 font-medium text-gray-900">{p.name}</td>
-                          <td className="px-3 py-2 capitalize text-gray-600">{p.category || "—"}</td>
-                          <td className="px-3 py-2 text-gray-600">{p.city || "—"}</td>
-                          <td className="px-3 py-2 text-gray-600">{p.state || "—"}</td>
-                          <td className="px-3 py-2 text-gray-600">
+                        <tr key={`${p.name}-${i}`} className="border-t border-border">
+                          <td className="px-3 py-2 font-medium text-foreground">{p.name}</td>
+                          <td className="px-3 py-2 capitalize text-muted-foreground">{p.category || "—"}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{p.city || "—"}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{p.state || "—"}</td>
+                          <td className="px-3 py-2 text-muted-foreground">
                             {p.latitude != null && p.longitude != null
                               ? `${p.latitude}, ${p.longitude}`
                               : "—"}
@@ -314,35 +323,35 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
                     </tbody>
                   </table>
                   {parsed.places.length > previewRows.length && (
-                    <p className="border-t border-gray-100 px-3 py-2 text-xs text-gray-500">
+                    <p className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
                       Showing {previewRows.length} of {parsed.places.length} places
                     </p>
                   )}
                 </div>
               )}
 
-              <div className="grid gap-4 rounded-lg border border-gray-200 p-4 sm:grid-cols-2">
+              <div className="grid gap-4 rounded-lg border border-border p-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Import status</label>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">Import status</label>
                   <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value as "APPROVED" | "PENDING")}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    className="admin-input w-full"
                   >
                     <option value="APPROVED">Approved (live immediately)</option>
                     <option value="PENDING">Pending (needs review)</option>
                   </select>
                 </div>
-                <label className="flex cursor-pointer items-start gap-2 pt-6 text-sm text-gray-700">
+                <label className="flex cursor-pointer items-start gap-2 pt-6 text-sm text-foreground">
                   <input
                     type="checkbox"
                     checked={overwrite}
                     onChange={(e) => setOverwrite(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-emerald-600"
+                    className="mt-0.5 h-4 w-4 rounded border-input accent-primary"
                   />
                   <span>
                     Overwrite duplicates
-                    <span className="block text-xs text-gray-500">
+                    <span className="block text-xs text-muted-foreground">
                       Match by name + city + state (or same coordinates)
                     </span>
                   </span>
@@ -352,7 +361,7 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
           )}
 
           {result && (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+            <div className="rounded-lg border border-success/30 bg-success/10 p-4 text-sm text-foreground">
               <div className="mb-2 flex items-center gap-2 font-semibold">
                 <CheckCircle2 size={16} />
                 Import complete
@@ -362,12 +371,12 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
                 <strong>{result.errors}</strong> (of {result.total})
               </p>
               {result.skippedReasons.slice(0, 5).map((s) => (
-                <p key={`${s.name}-${s.reason}`} className="mt-1 text-xs text-emerald-800/80">
+                <p key={`${s.name}-${s.reason}`} className="mt-1 text-xs text-primary/80">
                   Skipped {s.name}: {s.reason}
                 </p>
               ))}
               {result.errorDetails.slice(0, 5).map((e) => (
-                <p key={`${e.name}-${e.error}`} className="mt-1 text-xs text-red-700">
+                <p key={`${e.name}-${e.error}`} className="mt-1 text-xs text-destructive">
                   {e.name}: {e.error}
                 </p>
               ))}
@@ -375,11 +384,11 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
           )}
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4">
+        <div className="flex justify-end gap-3 border-t border-border px-6 py-4">
           <button
             type="button"
             onClick={handleClose}
-            className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-lg border border-input px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
           >
             {result ? "Close" : "Cancel"}
           </button>
@@ -387,7 +396,7 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
             type="button"
             disabled={!parsed?.places.length || importing || parsing}
             onClick={() => void runImport()}
-            className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
           >
             {importing ? "Importing…" : `Import ${parsed?.places.length || 0} places`}
           </button>

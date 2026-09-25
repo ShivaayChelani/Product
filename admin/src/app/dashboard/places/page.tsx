@@ -5,19 +5,20 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Plus, Search, Check, X as XIcon, Edit, Trash2, MapPin,
-  RefreshCw, ChevronRight, Home, Upload, CheckSquare,
+  RefreshCw, ChevronRight, Upload, CheckSquare, Copy, ListFilter, Download,
 } from "lucide-react";
 import {
   getPlaces, getCityClusters, approvePlace, rejectPlace, deletePlace,
   fetchAllPlaces, bulkPlaceStatus,
 } from "@/services/places";
 import { useNotification } from "@/components/Notification";
-import DataTable from "@/components/DataTable";
+import DataTable, { exportTableCsv } from "@/components/DataTable";
 import type { Column } from "@/components/DataTable";
 import StatusBadge from "@/components/StatusBadge";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import PlaceForm from "@/components/PlaceForm";
 import PlaceImportModal from "@/components/PlaceImportModal";
+import PageHeader from "@/components/ui/PageHeader";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonCards } from "@/components/ui/Skeleton";
 import PlaceDetailDrawer from "./PlaceDetailDrawer";
@@ -33,6 +34,33 @@ import {
 import type { Place } from "@/types";
 
 type CityOption = { city: string; state: string; placeCount: number };
+type PlaceRow = Place & Record<string, unknown>;
+
+function CopyCoords({ place }: { place: PlaceRow }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        void navigator.clipboard.writeText(`${place.latitude},${place.longitude}`);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1200);
+      }}
+      className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+      title="Copy coordinates"
+      aria-label="Copy coordinates"
+    >
+      {copied ? <Check size={11} className="text-primary" /> : <Copy size={11} />}
+    </button>
+  );
+}
+
+function priorityChip(value: unknown) {
+  const n = typeof value === "number" ? value : Number(value ?? 0);
+  if (!n) return <span className="priority-chip">—</span>;
+  const tier = n >= 5 ? "priority-5" : n === 4 ? "priority-4" : n === 3 ? "priority-3" : "";
+  return <span className={`priority-chip ${tier}`}>{n}</span>;
+}
 
 function PlacesWorkspaceContent() {
   const { notify } = useNotification();
@@ -42,6 +70,7 @@ function PlacesWorkspaceContent() {
   const [urlReady, setUrlReady] = useState(false);
   const [filters, setFilters] = useState<PlacesFilters>({ touristOnly: true });
   const [searchInput, setSearchInput] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -58,6 +87,7 @@ function PlacesWorkspaceContent() {
   const [cityOptionsLoading, setCityOptionsLoading] = useState(false);
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
 
   const [detailPlaceId, setDetailPlaceId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -70,6 +100,8 @@ function PlacesWorkspaceContent() {
   const [importOpen, setImportOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const isCityWorkspace = !!(filters.city && filters.state);
   const serverFilters = useMemo(() => ({
@@ -103,6 +135,10 @@ function PlacesWorkspaceContent() {
     }, 300);
     return () => clearTimeout(t);
   }, [searchInput, urlReady]);
+
+  useEffect(() => {
+    setActiveSuggestionIndex(-1);
+  }, [searchInput]);
 
   const committedSearch = filters.search || "";
   const prevCommittedSearch = useRef(committedSearch);
@@ -225,6 +261,32 @@ function PlacesWorkspaceContent() {
     setSearchInput("");
     setFilters((f) => ({ ...f, search: "" }));
     setPage(1);
+    setShowSuggestions(false);
+  };
+
+  const pickSuggestion = (s: string) => {
+    setSearchInput(s);
+    setShowSuggestions(false);
+    setActiveSuggestionIndex(-1);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (searchSuggestions.length) setActiveSuggestionIndex((i) => Math.min(i + 1, searchSuggestions.length - 1));
+      else setShowSuggestions(true);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveSuggestionIndex((i) => Math.max(i - 1, -1));
+    } else if (e.key === "Enter") {
+      if (activeSuggestionIndex >= 0 && searchSuggestions[activeSuggestionIndex]) {
+        e.preventDefault();
+        pickSuggestion(searchSuggestions[activeSuggestionIndex]);
+      }
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+      setActiveSuggestionIndex(-1);
+    }
   };
 
   const handleSort = (key: string) => {
@@ -241,7 +303,7 @@ function PlacesWorkspaceContent() {
 
   const handleReject = async (id: string) => {
     setActionLoading(id);
-    try { await rejectPlace(id); refreshAll(); notify("success", "Place rejected"); }
+    try { await rejectPlace(id); refreshAll(); notify("error", "Place rejected"); }
     catch { notify("error", "Failed to reject"); }
     finally { setActionLoading(null); }
   };
@@ -299,46 +361,74 @@ function PlacesWorkspaceContent() {
     });
   };
 
-  const allColumns: Column<Place & Record<string, unknown>>[] = [
+  const allColumns: Column<PlaceRow>[] = [
     {
-      key: "select", header: (
+      key: "select",
+      header: (
         <input
           type="checkbox"
           aria-label="Select page"
           checked={allPageSelected}
           onChange={toggleSelectPage}
-          className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+          className="h-4 w-4 cursor-pointer rounded border-border accent-primary focus:ring-primary"
         />
       ) as unknown as string,
+      skipExport: true,
+      className: "w-10",
       render: (item) => (
         <input
           type="checkbox"
           aria-label={`Select ${String(item.name)}`}
           checked={selectedIds.has(item.id as string)}
           onChange={() => toggleSelect(item.id as string)}
-          className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+          className="h-4 w-4 cursor-pointer rounded border-border accent-primary focus:ring-primary"
         />
       ),
     },
     {
       key: "name", header: "Name", sortable: true,
+      className: "admin-sticky-col left min-w-[200px]",
       exportValue: (i) => i.name,
       render: (item) => (
-        <div className="flex items-center gap-3 min-w-[180px]">
+        <div className="flex items-center gap-3">
           {item.images?.[0] ? (
-            <img src={item.images[0] as string} alt="" className="h-9 w-9 rounded-lg object-cover shrink-0" />
+            <img src={item.images[0] as string} alt="" className="h-8 w-8 shrink-0 rounded-lg object-cover" />
           ) : (
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted"><MapPin size={16} className="text-muted-foreground" /></div>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted"><MapPin size={14} className="text-muted-foreground" /></div>
           )}
-          <button type="button" onClick={() => setDetailPlaceId(item.id as string)} className="font-medium text-left hover:text-emerald-600 hover:underline">
-            {highlightMatch(String(item.name), searchInput)}
-          </button>
+          <div className="min-w-0">
+            <button type="button" onClick={() => setDetailPlaceId(item.id as string)} className="block max-w-[220px] truncate text-left font-medium hover:text-primary hover:underline">
+              {highlightMatch(String(item.name), searchInput)}
+            </button>
+            <div className="mt-0.5 flex items-center gap-1.5 text-[10px] font-medium leading-none">
+              {Number(item.verificationLevel ?? 0) >= 2 && (
+                <span className="rounded-full bg-success/10 px-1.5 py-1 text-success">Verified</span>
+              )}
+              {Number(item.editorialPriority ?? 0) >= 3 && (
+                <span className="rounded-full bg-warning/10 px-1.5 py-1 text-warning">Featured</span>
+              )}
+            </div>
+          </div>
         </div>
       ),
     },
     { key: "category", header: "Category", sortable: true, exportValue: (i) => i.category, render: (i) => <span className="capitalize">{String(i.category).replace(/_/g, " ")}</span> },
-    { key: "city", header: "City", sortable: true, exportValue: (i) => i.city },
-    { key: "state", header: "State", sortable: true, exportValue: (i) => i.state },
+    {
+      key: "location", header: "Location",
+      exportValue: (i) => `${i.city || ""}, ${i.state || ""}`,
+      render: (i) => (
+        <div className="min-w-[150px]">
+          <div className="font-medium text-foreground">{String(i.city || "—")}</div>
+          <div className="text-xs text-muted-foreground">{String(i.state || "")}</div>
+          {Number.isFinite(Number(i.latitude)) && Number.isFinite(Number(i.longitude)) && (
+            <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+              <span className="tabular-nums">{Number(i.latitude).toFixed(4)}, {Number(i.longitude).toFixed(4)}</span>
+              <CopyCoords place={i} />
+            </div>
+          )}
+        </div>
+      ),
+    },
     {
       key: "editorialPriority",
       header: "Priority Order",
@@ -346,83 +436,78 @@ function PlacesWorkspaceContent() {
       className: "whitespace-nowrap",
       exportValue: (i) => i.editorialPriority ?? "",
       render: (i) => (
-        <span className="tabular-nums text-foreground">
-          {typeof i.editorialPriority === "number" ? i.editorialPriority : "—"}
-        </span>
+        priorityChip(i.editorialPriority)
       ),
     },
     { key: "status", header: "Status", exportValue: (i) => i.status, render: (i) => <StatusBadge status={i.status as string} /> },
     {
-      key: "coordinates", header: "Coordinates",
-      exportValue: (i) => `${i.latitude},${i.longitude}`,
-      render: (i) => (
-        <a href={`https://www.google.com/maps?q=${i.latitude},${i.longitude}`} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">
-          {Number(i.latitude).toFixed(4)}, {Number(i.longitude).toFixed(4)}
-        </a>
-      ),
-    },
-    {
       key: "actions", header: "Actions",
+      className: "admin-sticky-col right",
       render: (item) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center justify-end gap-0.5 whitespace-nowrap">
           {item.status === "PENDING" && (
             <>
-              <button onClick={() => handleApprove(item.id as string)} disabled={actionLoading === item.id} className="rounded-lg p-1.5 text-emerald-600 hover:bg-emerald-50" title="Approve"><Check size={16} /></button>
-              <button onClick={() => handleReject(item.id as string)} disabled={actionLoading === item.id} className="rounded-lg p-1.5 text-red-600 hover:bg-red-50" title="Reject"><XIcon size={16} /></button>
+              <button type="button" onClick={() => handleApprove(item.id as string)} disabled={actionLoading === item.id} className="row-action-btn row-action-success" title="Approve" aria-label={`Approve ${String(item.name)}`}><Check size={16} /></button>
+              <button type="button" onClick={() => handleReject(item.id as string)} disabled={actionLoading === item.id} className="row-action-btn row-action-danger" title="Reject" aria-label={`Reject ${String(item.name)}`}><XIcon size={16} /></button>
             </>
           )}
-          <button onClick={() => setPlaceForm({ open: true, place: item as Place })} className="rounded-lg p-1.5 text-blue-600 hover:bg-blue-50" title="Edit"><Edit size={16} /></button>
-          <button onClick={() => handleDelete(item.id as string)} disabled={actionLoading === item.id} className="rounded-lg p-1.5 text-red-600 hover:bg-red-50" title="Delete"><Trash2 size={16} /></button>
+          <button type="button" onClick={() => setPlaceForm({ open: true, place: item as Place })} className="row-action-btn row-action-info" title="Edit" aria-label={`Edit ${String(item.name)}`}><Edit size={16} /></button>
+          <button type="button" onClick={() => handleDelete(item.id as string)} disabled={actionLoading === item.id} className="row-action-btn row-action-danger" title="Delete" aria-label={`Delete ${String(item.name)}`}><Trash2 size={16} /></button>
         </div>
       ),
     },
   ];
 
+  const activeChips: { label: string; onRemove: () => void }[] = [];
+  if (filters.state) activeChips.push({ label: `State: ${filters.state}`, onRemove: () => syncUrl({ ...filters, state: "", city: "" }) });
+  if (filters.city) activeChips.push({ label: `City: ${filters.city}`, onRemove: () => syncUrl({ ...filters, city: "" }) });
+  if (filters.category) activeChips.push({ label: `Category: ${filters.category.replace(/_/g, " ")}`, onRemove: () => syncUrl({ ...filters, category: "" }) });
+  if (filters.verified) activeChips.push({ label: `Verified: ${filters.verified === "verified" ? "Yes" : "No"}`, onRemove: () => syncUrl({ ...filters, verified: "" }) });
+  if (filters.featured) activeChips.push({ label: `Featured: ${filters.featured === "featured" ? "Yes" : "No"}`, onRemove: () => syncUrl({ ...filters, featured: "" }) });
+  if (filters.status) activeChips.push({ label: `Status: ${filters.status.replace(/_/g, " ")}`, onRemove: () => syncUrl({ ...filters, status: "" }) });
+  if (effectivePlaceSearch(filters.search)) activeChips.push({ label: `Search: ${filters.search?.trim()}`, onRemove: clearSearch });
+
+  const dataRows = places as PlaceRow[];
+
   return (
     <div className="animate-fade-in">
-      <div className="mb-4">
-        <nav aria-label="Breadcrumb" className="mb-3 flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
-          <Link href="/dashboard" className="flex items-center rounded-md p-1 hover:bg-muted hover:text-foreground"><Home size={14} /></Link>
-          <ChevronRight size={14} className="opacity-50" />
-          <span>Tourism</span>
-          <ChevronRight size={14} className="opacity-50" />
-          <Link href="/dashboard/places" className="hover:text-foreground">Places</Link>
-          {filters.state && (<><ChevronRight size={14} className="opacity-50" /><span className={filters.city ? "" : "font-medium text-foreground"}>{filters.state}</span></>)}
-          {filters.city && (<><ChevronRight size={14} className="opacity-50" /><span className="font-medium text-foreground">{filters.city}</span></>)}
-        </nav>
+      <nav aria-label="Breadcrumb" className="mb-2 flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+        <span className="rounded-md px-1 py-0.5">Tourism</span>
+        <ChevronRight size={14} className="opacity-50" />
+        <Link href="/dashboard/places" className="rounded-md px-1 py-0.5 hover:bg-muted hover:text-foreground">Places</Link>
+        {filters.state && (<><ChevronRight size={14} className="opacity-50" /><span className={filters.city ? "px-1 py-0.5" : "px-1 py-0.5 font-medium text-foreground"}>{filters.state}</span></>)}
+        {filters.city && (<><ChevronRight size={14} className="opacity-50" /><span className="px-1 py-0.5 font-medium text-foreground">{filters.city}</span></>)}
+      </nav>
 
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              {isCityWorkspace ? `${filters.city}, ${filters.state}` : "Places"}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {isCityWorkspace
-                ? `City management workspace · ${totalRecords.toLocaleString()} tourist destinations`
-                : totalRecords > 0
-                  ? `${totalRecords.toLocaleString()} tourist destinations across India`
-                  : "Single source of truth for tourism place management"}
-            </p>
-          </div>
+      <PageHeader
+        title={isCityWorkspace ? `${filters.city}, ${filters.state}` : "Places"}
+        description={
+          isCityWorkspace
+            ? `City management workspace · ${totalRecords.toLocaleString()} tourist destinations`
+            : totalRecords > 0
+              ? `${totalRecords.toLocaleString()} tourist destinations across India`
+              : "Single source of truth for tourism place management"
+        }
+        actions={
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={refreshAll} className="admin-btn-secondary" aria-label="Refresh"><RefreshCw size={16} /> Refresh</button>
-            <button type="button" onClick={() => setImportOpen(true)} className="admin-btn-secondary inline-flex items-center gap-2">
-              <Upload size={16} /> Import CSV / Excel
-            </button>
+            <button type="button" onClick={refreshAll} className="admin-btn-secondary admin-btn-icon" aria-label="Refresh" title="Refresh"><RefreshCw size={16} /></button>
+            <button type="button" onClick={() => setImportOpen(true)} className="admin-btn-secondary"><Upload size={16} /> Import</button>
+            <button type="button" disabled={places.length === 0} onClick={() => exportTableCsv(allColumns, dataRows, "places")} className="admin-btn-secondary"><Download size={16} /> Export</button>
+            <button type="button" onClick={() => setPlaceForm({ open: true, place: null })} className="admin-btn-primary"><Plus size={16} /> Add Place</button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {selectedIds.size > 0 && (
-        <div className="admin-card mb-4 flex flex-wrap items-center gap-3 border-emerald-200 bg-emerald-50/50 p-3">
-          <CheckSquare size={16} className="text-emerald-600" />
-          <span className="text-sm font-medium text-foreground">
+        <div className="admin-card mb-4 flex flex-wrap items-center gap-3 border-primary/20 bg-primary/5 p-3">
+          <CheckSquare size={16} className="text-primary" />
+          <span className="text-sm font-semibold text-foreground">
             {selectedIds.size} selected
           </span>
-          <button type="button" disabled={bulkLoading} onClick={() => runBulkStatus("APPROVED")} className="admin-btn-primary inline-flex items-center gap-1.5">
+          <button type="button" disabled={bulkLoading} onClick={() => runBulkStatus("APPROVED")} className="admin-btn-primary">
             {bulkLoading ? "Working…" : (<><Check size={14} /> Approve selected</>)}
           </button>
-          <button type="button" disabled={bulkLoading} onClick={() => runBulkStatus("REJECTED")} className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
+          <button type="button" disabled={bulkLoading} onClick={() => runBulkStatus("REJECTED")} className="admin-btn-danger">
             <XIcon size={14} /> Reject selected
           </button>
           <button type="button" onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-muted-foreground hover:text-foreground">
@@ -432,22 +517,21 @@ function PlacesWorkspaceContent() {
       )}
 
       <div className="admin-card mb-4 p-4">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
-          <FilterSelect label="State" value={filters.state || ""} onChange={(v) => syncUrl({ ...filters, state: v, city: "" })} options={INDIAN_STATES} placeholder="All States" />
-          <FilterSelect label="City" value={filters.city || ""} onChange={(v) => syncUrl({ ...filters, city: v })} options={cityOptions.map((c) => c.city)} placeholder={cityOptionsLoading ? "Loading…" : filters.state ? "All Cities" : "Select state"} disabled={!filters.state && !cityOptions.length} />
-          <FilterSelect label="Category" value={filters.category || ""} onChange={(v) => syncUrl({ ...filters, category: v })} options={PLACE_CATEGORIES} placeholder="All Categories" />
-          <FilterSelect label="Verified" value={filters.verified || ""} onChange={(v) => syncUrl({ ...filters, verified: v as PlacesFilters["verified"] })} options={["verified", "unverified"]} placeholder="All" />
-          <FilterSelect label="Featured" value={filters.featured || ""} onChange={(v) => syncUrl({ ...filters, featured: v as PlacesFilters["featured"] })} options={["featured", "not"]} placeholder="All" />
-          <FilterSelect label="Status" value={filters.status || ""} onChange={(v) => syncUrl({ ...filters, status: v })} options={["PENDING", "APPROVED", "REJECTED"]} placeholder="All Status" />
-          <div className="relative sm:col-span-2">
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Search</label>
-            <div className="relative">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+            <div className="relative min-w-[200px] flex-1">
               <Search size={16} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
+                ref={searchInputRef}
+                role="combobox"
+                aria-expanded={showSuggestions && searchSuggestions.length > 0}
+                aria-controls="places-search-listbox"
+                aria-activedescendant={activeSuggestionIndex >= 0 ? `place-search-option-${activeSuggestionIndex}` : undefined}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                onFocus={() => setShowSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                onFocus={() => { if (searchSuggestions.length) setShowSuggestions(true); }}
+                onBlur={() => setTimeout(() => { setShowSuggestions(false); setActiveSuggestionIndex(-1); }, 150)}
+                onKeyDown={handleSearchKeyDown}
                 placeholder="Search by name, city or state..."
                 className="admin-input w-full pl-8 pr-8"
                 aria-label="Search by name, city or state"
@@ -464,10 +548,21 @@ function PlacesWorkspaceContent() {
                 </button>
               )}
               {showSuggestions && searchSuggestions.length > 0 && (
-                <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-border bg-card shadow-lg" role="listbox">
-                  {searchSuggestions.map((s) => (
-                    <li key={s}>
-                      <button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-muted" onMouseDown={() => { setSearchInput(s); setShowSuggestions(false); }}>
+                <ul id="places-search-listbox" role="listbox" aria-label="Search suggestions" className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-border bg-card py-1 shadow-lg">
+                  {searchSuggestions.map((s, idx) => (
+                    <li
+                      key={s}
+                      id={`place-search-option-${idx}`}
+                      role="option"
+                      aria-selected={idx === activeSuggestionIndex}
+                      className={idx === activeSuggestionIndex ? "bg-muted" : ""}
+                    >
+                      <button
+                        type="button"
+                        className={`w-full px-3 py-2 text-left text-sm ${idx === activeSuggestionIndex ? "text-foreground" : "hover:bg-muted"}`}
+                        onMouseDown={() => pickSuggestion(s)}
+                        onMouseEnter={() => setActiveSuggestionIndex(idx)}
+                      >
                         {highlightMatch(s, searchInput)}
                       </button>
                     </li>
@@ -475,21 +570,50 @@ function PlacesWorkspaceContent() {
                 </ul>
               )}
             </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">Search by place name, city or state.</p>
+            <label className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-sm">
+              <input type="checkbox" checked={filters.touristOnly !== false} onChange={(e) => syncUrl({ ...filters, touristOnly: e.target.checked })} className="h-4 w-4 rounded border-border accent-primary" />
+              Tourist destinations only
+            </label>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFilterOpen((o) => !o)}
+            className="admin-btn-secondary admin-btn-icon md:hidden"
+            aria-label={filterOpen ? "Hide filters" : "Show filters"}
+            aria-expanded={filterOpen}
+          >
+            <ListFilter size={16} />
+          </button>
+        </div>
+
+        <div className={`mt-3 ${filterOpen ? "block" : "hidden md:block"}`}>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <FilterSelect label="State" value={filters.state || ""} onChange={(v) => syncUrl({ ...filters, state: v, city: "" })} options={INDIAN_STATES} placeholder="All States" />
+            <FilterSelect label="City" value={filters.city || ""} onChange={(v) => syncUrl({ ...filters, city: v })} options={cityOptions.map((c) => c.city)} placeholder={cityOptionsLoading ? "Loading…" : filters.state ? "All Cities" : "Select state"} disabled={!filters.state && !cityOptions.length} />
+            <FilterSelect label="Category" value={filters.category || ""} onChange={(v) => syncUrl({ ...filters, category: v })} options={PLACE_CATEGORIES} placeholder="All Categories" />
+            <FilterSelect label="Verified" value={filters.verified || ""} onChange={(v) => syncUrl({ ...filters, verified: v as PlacesFilters["verified"] })} options={["verified", "unverified"]} placeholder="All" />
+            <FilterSelect label="Featured" value={filters.featured || ""} onChange={(v) => syncUrl({ ...filters, featured: v as PlacesFilters["featured"] })} options={["featured", "not"]} placeholder="All" />
+            <FilterSelect label="Status" value={filters.status || ""} onChange={(v) => syncUrl({ ...filters, status: v })} options={["PENDING", "APPROVED", "REJECTED"]} placeholder="All Status" />
           </div>
         </div>
-        <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm">
-          <input type="checkbox" checked={filters.touristOnly !== false} onChange={(e) => syncUrl({ ...filters, touristOnly: e.target.checked })} className="rounded border-border text-emerald-600" />
-          Tourist destinations only
-        </label>
-      </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        <button type="button" onClick={() => setPlaceForm({ open: true, place: null })} className="admin-btn-primary"><Plus size={16} /> Add Place</button>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {activeChips.map((chip) => (
+            <button key={chip.label} type="button" onClick={chip.onRemove} className="admin-filter-chip" title={`Remove ${chip.label}`}>
+              {chip.label}
+              <XIcon size={12} className="opacity-70" />
+            </button>
+          ))}
+          {activeChips.length > 0 && (
+            <button type="button" onClick={resetFilters} className="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
+              Reset filters
+            </button>
+          )}
+        </div>
       </div>
 
       {loadError && (
-        <div className="mb-4 flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           <span>{loadError}</span>
           <button type="button" onClick={refreshAll} className="font-medium underline">Retry</button>
         </div>
@@ -515,8 +639,10 @@ function PlacesWorkspaceContent() {
       ) : (
         <DataTable
           columns={allColumns}
-          data={places as (Place & Record<string, unknown>)[]}
+          data={dataRows}
           loading={loading}
+          retainRowsOnLoading={places.length > 0}
+          dense
           page={page}
           totalPages={totalPages}
           totalRecords={totalRecords}
@@ -528,6 +654,7 @@ function PlacesWorkspaceContent() {
           onSort={handleSort}
           sortKey={sortKey}
           sortDir={sortDir}
+          selectedRowIds={selectedIds}
           emptyMessage="No places match your filters"
         />
       )}

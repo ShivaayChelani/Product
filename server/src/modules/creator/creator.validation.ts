@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { REEL_TAGS } from '../social/reelTags';
 
 export const creatorAnalyticsQuerySchema = z.object({
   period: z.enum(['7d', '30d', '90d', 'all', 'custom']).optional(),
@@ -21,6 +22,7 @@ export const createDraftSchema = z.object({
   description: z.string().max(2000).optional(),
   placeId: z.string().optional(),
   vendorId: z.string().optional(),
+  tags: z.array(z.enum(REEL_TAGS)).max(REEL_TAGS.length).optional(),
 });
 
 export const updateCreatorProfileSchema = z.object({

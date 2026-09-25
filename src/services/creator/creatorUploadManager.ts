@@ -333,6 +333,7 @@ async function runUploadJob(localUploadId: string): Promise<void> {
           description,
           placeId: job.spotId || undefined,
           vendorId: job.vendorId || undefined,
+          tags: job.tags,
         });
         const published = await creatorApi.publishDraft(job.editReelId);
         rewardPoints = unwrapReelRewardPoints(published);
@@ -348,6 +349,7 @@ async function runUploadJob(localUploadId: string): Promise<void> {
           description,
           placeId: job.spotId || undefined,
           vendorId: job.vendorId || undefined,
+          tags: job.tags,
         });
         const payload = (res as { data?: Reel })?.data ?? (res as unknown as Reel);
         rewardPoints = unwrapReelRewardPoints(res) || unwrapReelRewardPoints(payload);

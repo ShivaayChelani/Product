@@ -425,6 +425,8 @@ export interface Reel {
   placeId: string | null;
   vendorId: string | null;
   eventId: string | null;
+  /** Canonical reel tag labels (subset of server REEL_TAGS vocabulary). */
+  tags?: string[];
   createdAt: string;
   creator: {
     id: string;

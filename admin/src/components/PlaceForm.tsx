@@ -393,6 +393,15 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
     }
   }, [formLatitude, formLongitude]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   const addTag = () => {
@@ -529,13 +538,13 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="mx-4 max-h-[95vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white p-6 shadow-2xl">
+    <div role="dialog" aria-modal="true" aria-labelledby="place-form-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="mx-4 max-h-[95vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-card p-6 text-card-foreground shadow-2xl">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">
+          <h2 id="place-form-title" className="text-xl font-bold text-foreground">
             {isEdit ? "Edit Place" : "Add Place"}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
             <X size={22} />
           </button>
         </div>
@@ -544,19 +553,19 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
           <div className="grid gap-5 lg:grid-cols-2">
             <div className="space-y-5">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
                   Name *
                 </label>
                 <input
                   value={form.name}
                   onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                   required
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                  className="w-full rounded-lg border border-input bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
                   Description *
                 </label>
                 <textarea
@@ -566,12 +575,12 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                   }
                   rows={3}
                   required
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                  className="w-full rounded-lg border border-input bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
                   Short Description
                 </label>
                 <textarea
@@ -581,12 +590,12 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                   }
                   rows={2}
                   placeholder="Brief one-line description (auto-filled from description if empty)"
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                  className="w-full rounded-lg border border-input bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
                   Category
                 </label>
                 <select
@@ -598,7 +607,7 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                       customCategory: e.target.value === "other" ? p.customCategory : "",
                     }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                  className="w-full rounded-lg border border-input bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 >
                   {categories.map((c) => (
                     <option key={c} value={c}>
@@ -614,13 +623,13 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                     }
                     placeholder="Write custom category (e.g. Wildlife sanctuary)"
                     required
-                    className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                    className="mt-2 w-full rounded-lg border border-input bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                 )}
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
                   Priority (itinerary)
                 </label>
                 <select
@@ -628,7 +637,7 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                   onChange={(e) =>
                     setForm((p) => ({ ...p, editorialPriority: Number(e.target.value) }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                  className="w-full rounded-lg border border-input bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 >
                   {PRIORITY_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -640,7 +649,7 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">
                     City *
                   </label>
                   <div className="relative">
@@ -656,10 +665,10 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                       onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)}
                       placeholder="Search city..."
                       required
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                      className="w-full rounded-lg border border-input bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     />
                     {showCityDropdown && (
-                      <div className="absolute z-10 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                      <div className="absolute z-10 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-border bg-card shadow-lg">
                         {citySuggestions.map((c) => (
                           <button
                             key={c}
@@ -669,7 +678,7 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                               setSearchQuery(c);
                               setShowCityDropdown(false);
                             }}
-                            className="w-full px-4 py-2 text-left text-sm hover:bg-emerald-50 hover:text-emerald-700"
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-primary/10 hover:text-primary"
                           >
                             {c}
                           </button>
@@ -679,7 +688,7 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                   </div>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">
                     State *
                   </label>
                   <select
@@ -688,7 +697,7 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                       setForm((p) => ({ ...p, state: e.target.value }))
                     }
                     required
-                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                    className="w-full rounded-lg border border-input bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   >
                     <option value="">Select State</option>
                     {INDIAN_STATES.map((s) => (
@@ -699,7 +708,7 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
                   Country
                 </label>
                 <input
@@ -707,7 +716,7 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                   onChange={(e) =>
                     setForm((p) => ({ ...p, country: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                  className="w-full rounded-lg border border-input bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
@@ -716,7 +725,7 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
               <div>
                 <div className="mb-3 grid grid-cols-2 gap-3">
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-600">
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
                       Latitude *
                     </label>
                     <input
@@ -730,11 +739,11 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                         setForm((p) => ({ ...p, latitude: Number.isFinite(n) ? n : Number.NaN }));
                       }}
                       required
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                      className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-600">
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
                       Longitude *
                     </label>
                     <input
@@ -748,18 +757,18 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                         setForm((p) => ({ ...p, longitude: Number.isFinite(n) ? n : Number.NaN }));
                       }}
                       required
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                      className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                 </div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-sm font-medium text-foreground">
                     Map (drag marker to set location)
                   </label>
                 </div>
                 <div
                   ref={mapRef}
-                  className="h-56 w-full rounded-lg border border-gray-300 overflow-hidden"
+                  className="h-56 w-full rounded-lg border border-input overflow-hidden"
                   style={{ zIndex: 1 }}
                 />
               </div>
@@ -767,15 +776,15 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
           </div>
 
           <div className="mb-4">
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Images</label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Images</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {form.images.map((img, i) => (
-                <div key={`${img}-${i}`} className="relative h-16 w-16 overflow-hidden rounded-lg border border-gray-200">
+                <div key={`${img}-${i}`} className="relative h-16 w-16 overflow-hidden rounded-lg border border-border">
                   <img src={img} alt="Place" className="h-full w-full object-cover" />
                   <button
                     type="button"
                     onClick={() => removeImage(i)}
-                    className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center bg-white/80 text-red-600 hover:bg-white"
+                    className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center bg-card/80 text-destructive hover:bg-card"
                   >
                     <X size={12} />
                   </button>
@@ -794,7 +803,7 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
               />
               <label
                 htmlFor="image-upload"
-                className={`cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 ${
+                className={`cursor-pointer rounded-lg border border-input px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted ${
                   uploading ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
@@ -804,20 +813,20 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
               Tags
             </label>
             <div className="flex flex-wrap gap-2">
               {form.tags.map((tag, i) => (
                 <span
                   key={`${tag}-${i}`}
-                  className="flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700"
+                  className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
                 >
                   {tag}
                   <button
                     type="button"
                     onClick={() => removeTag(tag)}
-                    className="hover:text-red-500"
+                    className="hover:text-destructive"
                   >
                     <X size={14} />
                   </button>
@@ -830,12 +839,12 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
                 placeholder="Add a tag..."
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                className="flex-1 rounded-lg border border-input bg-card px-4 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
               <button
                 type="button"
                 onClick={addTag}
-                className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-200"
+                className="rounded-lg bg-muted px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted/80"
               >
                 Add
               </button>
@@ -843,10 +852,10 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
           </div>
 
           {/* Entry fees, closed days, opening hours & best time */}
-          <div className="rounded-lg border border-gray-200 p-4 space-y-5">
+          <div className="rounded-lg border border-border p-4 space-y-5">
             <div>
-              <h3 className="mb-3 text-sm font-semibold text-gray-800">Entry fees (₹)</h3>
-              <label className="mb-3 flex items-center gap-2 text-sm text-gray-700">
+              <h3 className="mb-3 text-sm font-semibold text-foreground">Entry fees (₹)</h3>
+              <label className="mb-3 flex items-center gap-2 text-sm text-foreground">
                 <input
                   type="checkbox"
                   checked={!!form.isFreeEntry}
@@ -859,13 +868,13 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                         : {}),
                     }))
                   }
-                  className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  className="h-4 w-4 rounded border-input text-primary focus:ring-primary/50"
                 />
                 Free entry
               </label>
               <div className="grid gap-3 sm:grid-cols-3">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">Adult</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Adult</label>
                   <input
                     type="number"
                     min={0}
@@ -873,11 +882,11 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                     disabled={!!form.isFreeEntry}
                     onChange={(e) => setForm((p) => ({ ...p, ticketAdult: e.target.value, isFreeEntry: false }))}
                     placeholder="e.g. 50"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 disabled:bg-gray-50"
+                    className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-muted"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">Child</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Child</label>
                   <input
                     type="number"
                     min={0}
@@ -885,11 +894,11 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                     disabled={!!form.isFreeEntry}
                     onChange={(e) => setForm((p) => ({ ...p, ticketChild: e.target.value, isFreeEntry: false }))}
                     placeholder="e.g. 20"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 disabled:bg-gray-50"
+                    className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-muted"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">Foreigner</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Foreigner</label>
                   <input
                     type="number"
                     min={0}
@@ -897,32 +906,32 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                     disabled={!!form.isFreeEntry}
                     onChange={(e) => setForm((p) => ({ ...p, ticketForeigner: e.target.value, isFreeEntry: false }))}
                     placeholder="e.g. 200"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 disabled:bg-gray-50"
+                    className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-muted"
                   />
                 </div>
               </div>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
                     Fee basis
                   </label>
                   <select
                     value={form.ticketBasis || (form.isFreeEntry ? "FREE" : "")}
                     disabled={!!form.isFreeEntry}
                     onChange={(e) => setForm((p) => ({ ...p, ticketBasis: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 disabled:bg-gray-50"
+                    className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-muted"
                   >
                     <option value="">Auto (amounts = per person)</option>
                     {FEE_BASIS_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
                   </select>
-                  <p className="mt-1 text-[11px] text-gray-400">
+                  <p className="mt-1 text-[11px] text-muted-foreground">
                     Trip budgets charge per-person tickets × travellers; vehicle/group/flat are charged once; Unknown is excluded and flagged.
                   </p>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
                     Typical visit duration (minutes)
                   </label>
                 <input
@@ -932,9 +941,9 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                   value={form.estimatedDurationMinutes || ""}
                   onChange={(e) => setForm((p) => ({ ...p, estimatedDurationMinutes: e.target.value }))}
                   placeholder="e.g. 90"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 sm:w-56"
+                  className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-56"
                 />
-                <p className="mt-1 text-[11px] text-gray-400">
+                <p className="mt-1 text-[11px] text-muted-foreground">
                   Used by the trip scheduler for stop timing and day capacity (5–600).
                 </p>
                 </div>
@@ -944,8 +953,8 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
             <div>
               <div className="mb-2 flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800">Opening hours</h3>
-                  <p className="text-xs text-gray-500">
+                  <h3 className="text-sm font-semibold text-foreground">Opening hours</h3>
+                  <p className="text-xs text-muted-foreground">
                     Set each day separately — the itinerary scheduler uses these times. Close to open (e.g. 9:00 PM → 2:00 AM) is saved as an overnight window.
                   </p>
                 </div>
@@ -954,9 +963,10 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                 {DAYS_OF_WEEK.map((day) => {
                   const closed = form.dayClosed?.[day] === true;
                   return (
-                    <div key={day} className={`rounded-lg border p-3 ${closed ? "border-red-200 bg-red-50/40" : "border-gray-200"}`}>
+                    <div key={day} className={`rounded-lg border p-3 ${closed ? "border-destructive/30 bg-destructive/10"
+                                : "border-border"}`}>
                       <div className="flex items-center justify-between gap-3">
-                        <label className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                        <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                           <input
                             type="checkbox"
                             checked={closed}
@@ -966,10 +976,10 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                                 dayClosed: { ...(p.dayClosed || allOpen()), [day]: !closed },
                               }))
                             }
-                            className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                            className="h-4 w-4 rounded border-input accent-destructive focus:ring-destructive/50"
                           />
                           {day}
-                          {closed && <span className="text-xs font-normal text-red-600">Closed</span>}
+                          {closed && <span className="text-xs font-normal text-destructive">Closed</span>}
                         </label>
                         {!closed && (
                           <div className="flex gap-2">
@@ -984,7 +994,7 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                                   return { ...p, hoursByDay: next, dayClosed: allOpen() };
                                 })
                               }
-                              className="rounded-lg border border-gray-200 px-2 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-50"
+                              className="rounded-lg border border-border px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted"
                               title="Copy this day's first window to every day"
                             >
                               Copy to all days
@@ -1000,7 +1010,7 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                                   },
                                 }))
                               }
-                              className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100"
+                              className="rounded-lg border border-primary/30 bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/15"
                             >
                               + Window
                             </button>
@@ -1011,7 +1021,7 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                       {!closed && (
                         <div className="mt-3 space-y-2">
                           {(form.hoursByDay?.[day] || []).length === 0 && (
-                            <p className="text-xs text-gray-400">No windows — treated as closed. Add a window or tick Closed.</p>
+                            <p className="text-xs text-muted-foreground">No windows — treated as closed. Add a window or tick Closed.</p>
                           )}
                           {(form.hoursByDay?.[day] || []).map((w, wi) => {
                             const overnight =
@@ -1032,7 +1042,7 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                             return (
                               <div key={`${day}-${wi}`} className="grid grid-cols-[1fr_1fr_auto_auto] items-end gap-2">
                                 <div>
-                                  <label className="mb-0.5 block text-[11px] font-medium text-gray-500">Opens</label>
+                                  <label className="mb-0.5 block text-[11px] font-medium text-muted-foreground">Opens</label>
                                   <input
                                     value={w.open}
                                     onChange={(e) =>
@@ -1043,11 +1053,11 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                                       })
                                     }
                                     placeholder="9:00 AM"
-                                    className="w-full rounded-md border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                    className="w-full rounded-md border border-input bg-card px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                   />
                                 </div>
                                 <div>
-                                  <label className="mb-0.5 block text-[11px] font-medium text-gray-500">
+                                  <label className="mb-0.5 block text-[11px] font-medium text-muted-foreground">
                                     Closes{overnight ? " (next day)" : ""}
                                   </label>
                                   <input
@@ -1060,11 +1070,11 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                                       })
                                     }
                                     placeholder={overnight ? "2:00 AM" : "6:00 PM"}
-                                    className="w-full rounded-md border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                    className="w-full rounded-md border border-input bg-card px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                   />
                                 </div>
                                 {overnight ? (
-                                  <span className="mb-2 rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700">
+                                  <span className="mb-2 rounded bg-info/15 px-1.5 py-0.5 text-[10px] font-semibold text-info">
                                     Overnight
                                   </span>
                                 ) : (
@@ -1078,7 +1088,7 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                                       return { ...p, hoursByDay: { ...(p.hoursByDay || emptyHours()), [day]: dayWins } };
                                     })
                                   }
-                                  className="mb-0.5 rounded-md border border-red-200 px-2 py-1.5 text-[11px] font-medium text-red-600 hover:bg-red-50"
+                                  className="mb-0.5 rounded-md border border-destructive/30 px-2 py-1.5 text-[11px] font-medium text-destructive hover:bg-destructive/10"
                                 >
                                   ✕
                                 </button>
@@ -1094,53 +1104,53 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
             </div>
 
             <div>
-              <h3 className="mb-3 text-sm font-semibold text-gray-800">Best time to visit</h3>
+              <h3 className="mb-3 text-sm font-semibold text-foreground">Best time to visit</h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">Best season / months</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Best season / months</label>
                   <input
                     value={form.bestTimeMonths || ""}
                     onChange={(e) => setForm((p) => ({ ...p, bestTimeMonths: e.target.value }))}
                     placeholder="e.g. October to March"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                    className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">Reason (optional)</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Reason (optional)</label>
                   <input
                     value={form.bestTimeReason || ""}
                     onChange={(e) => setForm((p) => ({ ...p, bestTimeReason: e.target.value }))}
                     placeholder="e.g. Pleasant weather, fewer crowds"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                    className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 rounded-lg bg-blue-50 p-3 text-xs text-blue-700">
+          <div className="flex items-center gap-2 rounded-lg border border-info/25 bg-info/10 p-3 text-xs text-info">
             <MapPin size={16} />
             Drag the marker on the map to set location, or enter manually
           </div>
 
           {error && (
-            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+            <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           )}
 
-          <div className="flex justify-end gap-3 border-t border-gray-100 pt-5">
+          <div className="flex justify-end gap-3 border-t border-border pt-5">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              className="rounded-lg border border-input px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-muted"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? "Saving..." : isEdit ? "Update Place" : "Create Place"}
             </button>

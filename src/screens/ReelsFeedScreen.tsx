@@ -25,6 +25,7 @@ import { DEV_FLAGS } from '../config/devFlags';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { parseJsonStringArray } from '../utils/safeJson';
 import { socialApi } from '../services/api/social';
+import { REEL_TAG_LABELS } from '../features/travelSocial/reelTags';
 import type { RootStackParamList } from '../navigation/types';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -56,6 +57,7 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [activeCategory, setActiveCategory] = useState<ReelFilterCategory>('TRAVEL');
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [commentReelId, setCommentReelId] = useState<string | null>(null);
   const [categoryOpen, setCategoryOpen] = useState(false);
@@ -82,7 +84,7 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
     await AsyncStorage.setItem(SAVED_KEY, JSON.stringify(ids));
   }, []);
 
-  const loadFeed = useCallback(async (reset = false, customCategory = activeCategory) => {
+  const loadFeed = useCallback(async (reset = false, customCategory = activeCategory, customTag = activeTag) => {
     if (!reset && (loadingMoreRef.current || !hasMore || loading)) return;
     const gen = reset ? ++fetchGenRef.current : fetchGenRef.current;
     if (reset) {
@@ -100,6 +102,8 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
         reset ? undefined : (targetPage - 1) * 5,
         5,
         customCategory,
+        undefined,
+        customTag || undefined,
       );
 
       if (fetchGenRef.current !== gen) return;
@@ -130,18 +134,18 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
         loadingMoreRef.current = false;
       }
     }
-  }, [page, hasMore, activeCategory, loading]);
+  }, [page, hasMore, activeCategory, activeTag, loading]);
 
   useEffect(() => {
-    loadFeed(true, activeCategory);
+    loadFeed(true, activeCategory, activeTag);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCategory]);
+  }, [activeCategory, activeTag]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadFeed(true, activeCategory);
+    await loadFeed(true, activeCategory, activeTag);
     setRefreshing(false);
-  }, [loadFeed, activeCategory]);
+  }, [loadFeed, activeCategory, activeTag]);
 
   useEffect(() => {
     const fromFeed = reels
@@ -294,10 +298,16 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
       return;
     }
     setActiveCategory(cat);
+    setActiveTag(null);
+  };
+
+  const handleTagSelect = (tag: string) => {
+    setCategoryOpen(false);
+    setActiveTag(prevTag => (prevTag === tag ? null : tag));
   };
 
   const topPad = Math.max(insets.top, 44);
-  const filterLabel = activeCategory;
+  const filterLabel = activeTag ? `#${activeTag}` : activeCategory;
 
   return (
     <View style={styles.container}>
@@ -368,6 +378,20 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
                 {cat === activeCategory && <Icon name="checkmark" size={18} color={GOLD} />}
               </TouchableOpacity>
             ))}
+            <Text style={styles.sheetTagsTitle}>Browse by tag</Text>
+            <View style={styles.tagChips}>
+              {REEL_TAG_LABELS.map(tag => (
+                <TouchableOpacity
+                  key={tag}
+                  style={[styles.tagChip, activeTag === tag && styles.tagChipActive]}
+                  onPress={() => handleTagSelect(tag)}
+                >
+                  <Text style={[styles.tagChipText, activeTag === tag && styles.tagChipTextActive]}>
+                    {tag}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         </Pressable>
       </Modal>
@@ -453,6 +477,44 @@ const styles = StyleSheet.create({
     color: '#2C1810',
   },
   sheetRowTextActive: {
+    color: '#63300E',
+    fontWeight: '800',
+  },
+  sheetTagsTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#8B7355',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingTop: 4,
+  },
+  tagChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  tagChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#F3EFE9',
+    borderWidth: 1,
+    borderColor: '#E3DACD',
+  },
+  tagChipActive: {
+    backgroundColor: '#EFE7DB',
+    borderColor: '#B9834B',
+  },
+  tagChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2C1810',
+  },
+  tagChipTextActive: {
     color: '#63300E',
     fontWeight: '800',
   },

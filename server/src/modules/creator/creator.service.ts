@@ -353,6 +353,7 @@ export const creatorService = {
       description?: string;
       placeId?: string;
       vendorId?: string;
+      tags?: string[];
     },
   ) {
     const profile = await getApprovedProfile(userId);
@@ -377,6 +378,7 @@ export const creatorService = {
         thumbnail: input.thumbnail,
         title: input.title,
         description: input.description,
+        tags: input.tags || [],
         placeId: resolvedPlaceId,
         vendorId: input.vendorId,
         status: ReelStatus.DRAFT,

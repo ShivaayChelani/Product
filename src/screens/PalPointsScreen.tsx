@@ -188,22 +188,22 @@ export default function PalPointsScreen() {
           {/* Hero Section */}
           <View style={styles.heroCard}>
             <Text style={styles.heroLabel}>Your PalPoints</Text>
-            <Text style={styles.heroBalance}>{palPoints.toLocaleString()}</Text>
+            <Text style={styles.heroBalance} numberOfLines={1} adjustsFontSizeToFit>{palPoints.toLocaleString()}</Text>
             <Text style={styles.heroSub}>Available PalPoints</Text>
 
             <View style={styles.statsRow}>
               <View style={styles.statBox}>
-                <Text style={styles.statValue}>{lifetimeEarned.toLocaleString()}</Text>
+                <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{lifetimeEarned.toLocaleString()}</Text>
                 <Text style={styles.statLabel}>Earned</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statBox}>
-                <Text style={styles.statValue}>{lifetimeSpent.toLocaleString()}</Text>
+                <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{lifetimeSpent.toLocaleString()}</Text>
                 <Text style={styles.statLabel}>Redeemed</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statBox}>
-                <Text style={styles.statValue}>{palPoints.toLocaleString()}</Text>
+                <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{palPoints.toLocaleString()}</Text>
                 <Text style={styles.statLabel}>Available</Text>
               </View>
             </View>
@@ -215,9 +215,9 @@ export default function PalPointsScreen() {
               <View style={styles.rewardsCtaIcon}>
                 <Icon name="gift-outline" size={20} color="#FFF" />
               </View>
-              <View>
-                <Text style={styles.rewardsCtaTitle}>Explore Rewards</Text>
-                <Text style={styles.rewardsCtaSub}>Redeem points for exclusive perks</Text>
+              <View style={styles.rewardsCtaText}>
+                <Text style={styles.rewardsCtaTitle} numberOfLines={1}>Explore Rewards</Text>
+                <Text style={styles.rewardsCtaSub} numberOfLines={2}>Redeem points for exclusive perks</Text>
               </View>
             </View>
             <Icon name="arrow-forward" size={20} color={C.deep} />
@@ -228,31 +228,31 @@ export default function PalPointsScreen() {
             <Text style={styles.sectionTitle}>Ways to Earn</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.waysRow}>
               <TouchableOpacity style={styles.wayCard} onPress={() => navigation.navigate('CreateReel')}>
-                <Text style={styles.wayPoints}>+{rewardPoints.reel}</Text>
-                <Text style={styles.wayTitle}>First reel today</Text>
+                <Text style={styles.wayPoints} numberOfLines={1} adjustsFontSizeToFit>+{rewardPoints.reel}</Text>
+                <Text style={styles.wayTitle} numberOfLines={2}>First reel today</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.wayCard} onPress={() => navigation.navigate('CreatorTabs', { screen: 'Collaboration' })}>
-                <Text style={styles.wayPoints}>+{rewardPoints.collab}</Text>
-                <Text style={styles.wayTitle}>Complete a Collab</Text>
+                <Text style={styles.wayPoints} numberOfLines={1} adjustsFontSizeToFit>+{rewardPoints.collab}</Text>
+                <Text style={styles.wayTitle} numberOfLines={2}>Complete a Collab</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.wayCard}
                 onPress={() => navigateToVendorReviewMap(navigation)}
               >
-                <Text style={styles.wayPoints}>+{rewardPoints.review}</Text>
-                <Text style={styles.wayTitle}>Write a Vendor Review</Text>
+                <Text style={styles.wayPoints} numberOfLines={1} adjustsFontSizeToFit>+{rewardPoints.review}</Text>
+                <Text style={styles.wayTitle} numberOfLines={2}>Write a Vendor Review</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.wayCard} onPress={() => navigation.navigate('Wallet', { initialTab: 'earn' })}>
-                <Text style={styles.wayPoints}>+{rewardPoints.daily}</Text>
-                <Text style={styles.wayTitle}>Daily Login</Text>
+                <Text style={styles.wayPoints} numberOfLines={1} adjustsFontSizeToFit>+{rewardPoints.daily}</Text>
+                <Text style={styles.wayTitle} numberOfLines={2}>Daily Login</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.wayCard} onPress={() => navigation.navigate('MyTrips')}>
-                <Text style={styles.wayPoints}>+{rewardPoints.activity}</Text>
-                <Text style={styles.wayTitle}>Complete Itinerary</Text>
+                <Text style={styles.wayPoints} numberOfLines={1} adjustsFontSizeToFit>+{rewardPoints.activity}</Text>
+                <Text style={styles.wayTitle} numberOfLines={2}>Complete Itinerary</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.wayCard} onPress={() => navigation.navigate('HowItWorks')}>
-                <Text style={styles.wayPoints}>More</Text>
-                <Text style={styles.wayTitle}>Earn More</Text>
+                <Text style={styles.wayPoints} numberOfLines={1} adjustsFontSizeToFit>More</Text>
+                <Text style={styles.wayTitle} numberOfLines={2}>Earn More</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -445,6 +445,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
+    flexShrink: 1,
+  },
+  rewardsCtaText: {
+    flex: 1,
+    flexShrink: 1,
   },
   rewardsCtaIcon: {
     width: 40,
@@ -479,19 +485,22 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   wayCard: {
-    width: 120,
+    width: 130,
     backgroundColor: C.surface,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: C.border,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 104,
   },
   wayPoints: {
     fontSize: 20,
     fontWeight: '800',
     color: C.bronze,
     marginBottom: 8,
+    textAlign: 'center',
   },
   wayTitle: {
     fontSize: 12,

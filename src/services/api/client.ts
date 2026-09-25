@@ -161,6 +161,21 @@ class ApiClient {
     return this.token;
   }
 
+  /** Whether a session is persisted on this device (access or refresh token). */
+  async hasStoredSession(): Promise<boolean> {
+    try {
+      const stored = await SafeEncryptedStorage.getItem(TOKEN_KEY);
+      if (stored) return true;
+    } catch {
+    }
+    try {
+      const storedRefresh = await SafeEncryptedStorage.getItem(REFRESH_TOKEN_KEY);
+      return Boolean(storedRefresh);
+    } catch {
+      return false;
+    }
+  }
+
   async setRefreshToken(token: string | null) {
     this.refreshToken = token;
     if (token) {
