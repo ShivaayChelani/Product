@@ -642,24 +642,15 @@ async function run(): Promise<number> {
   await runReelEventLinkage(ctx);
 
   try {
-    const cancelResp = await fetchJson(`${baseUrl}/api/v1/events/${ctx.eventId}/cancel`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${ctx.userToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ reason: 'Smoke test cleanup.' }),
-    });
-    if (cancelResp.status < 200 || cancelResp.status >= 300) {
-      throw new Error(`Cancel endpoint returned ${cancelResp.status}`);
-    }
-    const cancelledDetail = await fetchJson(`${baseUrl}/api/v1/events/${ctx.eventId}`);
-    const finalStatus = cancelledDetail.body?.data?.status ?? cancelledDetail.body?.status;
-    if (cancelledDetail.status !== 200 || finalStatus !== 'CANCELLED') {
-      throw new Error(`Cancelled event verification failed. Status=${cancelledDetail.status}; finalStatus=${finalStatus ?? 'unknown'}`);
-    }
-    ctx.eventCancelled = true;
-    recordResult('Cancel Event Flow', 'PASS', `${baseUrl}/api/v1/events/${ctx.eventId}/cancel`, 'Smoke-test event has been cancelled and no longer appears as active.', `finalStatus=${finalStatus}`, cancelResp.status);
+    const cancelResult = await cancelAndConfirm(ctx, 'Smoke test cleanup.');
+    recordResult(
+      'Cancel Event Flow',
+      'PASS',
+      `${baseUrl}/api/v1/events/${ctx.eventId}/cancel`,
+      'Smoke event transitioned to CANCELLED; the authenticated owner detail confirms the authoritative status.',
+      `status=CANCELLED; public detail is intentionally hidden after cancellation${cancelResult.alreadyCancelled ? '; already cancelled before verification' : ''}`,
+      cancelResult.httpStatus,
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     recordResult('Cancel Event Flow', 'FAIL', `${baseUrl}/api/v1/events/${ctx.eventId}/cancel`, 'Cancellation did not update the event to the expected cancelled state.', message);
@@ -862,23 +853,7 @@ async function cleanup(ctx: SmokeContext): Promise<void> {
 
   if (ctx.eventId && !ctx.eventCancelled && ctx.userToken) {
     try {
-      const response = await fetchJson(`${ctx.baseUrl}/api/v1/events/${ctx.eventId}/cancel`, {
-        method: 'POST',
-        headers: {
-          ...auth(ctx.userToken),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ reason: 'Smoke test cleanup.' }),
-      });
-      if (response.status < 200 || response.status >= 300) {
-        throw new Error(`Could not cancel smoke event: ${response.status}`);
-      }
-      const verification = await fetchJson(`${ctx.baseUrl}/api/v1/events/${ctx.eventId}`);
-      const status = verification.body?.data?.status ?? verification.body?.status;
-      if (verification.status !== 200 || status !== 'CANCELLED') {
-        throw new Error(`Smoke event cancellation verification failed: status=${verification.status}; eventStatus=${status ?? 'unknown'}`);
-      }
-      ctx.eventCancelled = true;
+      await cancelAndConfirm(ctx, 'Smoke test cleanup.');
     } catch (error) {
       failures.push(`event cancellation: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -890,6 +865,63 @@ async function cleanup(ctx: SmokeContext): Promise<void> {
   } else if (ctx.reelLinkChanged || ctx.eventId || ctx.reportId) {
     recordResult('Cleanup', 'PASS', 'production smoke artifacts', 'Temporary production changes were restored or cancelled.');
   }
+}
+
+async function getAuthorizedEventStatus(ctx: SmokeContext): Promise<string> {
+  if (!ctx.eventId || !ctx.userToken) {
+    throw new Error('Cannot verify event status without the smoke event ID and owner session.');
+  }
+  const response = await fetchJson(`${ctx.baseUrl}/api/v1/events/${ctx.eventId}`, {
+    headers: { Authorization: `Bearer ${ctx.userToken}` },
+  });
+  const event = response.body?.data;
+  if (response.status !== 200 || String(event?.id) !== String(ctx.eventId) || typeof event?.status !== 'string') {
+    throw new Error(`Authenticated owner event detail did not provide authoritative status: HTTP ${response.status}; status=${event?.status ?? 'unknown'}`);
+  }
+  return event.status;
+}
+
+async function cancelAndConfirm(
+  ctx: SmokeContext,
+  reason: string,
+): Promise<{ httpStatus: number; alreadyCancelled: boolean }> {
+  if (!ctx.eventId || !ctx.userToken) {
+    throw new Error('Cannot cancel without the smoke event ID and owner session.');
+  }
+
+  const response = await fetchJson(`${ctx.baseUrl}/api/v1/events/${ctx.eventId}/cancel`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${ctx.userToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ reason }),
+  });
+
+  if (response.status === 409) {
+    const status = await getAuthorizedEventStatus(ctx);
+    if (status !== 'CANCELLED') {
+      throw new Error(`Cancel endpoint returned HTTP 409, but authoritative event status is ${status}.`);
+    }
+    ctx.eventCancelled = true;
+    return { httpStatus: response.status, alreadyCancelled: true };
+  }
+
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(`Cancel endpoint returned ${response.status}: ${JSON.stringify(response.body).slice(0, 400)}`);
+  }
+
+  const responseStatus = response.body?.data?.status ?? response.body?.status;
+  if (responseStatus !== 'CANCELLED') {
+    throw new Error(`Cancel endpoint succeeded but response status was ${responseStatus ?? 'unknown'}.`);
+  }
+
+  const authoritativeStatus = await getAuthorizedEventStatus(ctx);
+  if (authoritativeStatus !== 'CANCELLED') {
+    throw new Error(`Cancel endpoint returned success, but authoritative owner status is ${authoritativeStatus}.`);
+  }
+  ctx.eventCancelled = true;
+  return { httpStatus: response.status, alreadyCancelled: false };
 }
 
 run().then((exitCode) => {
