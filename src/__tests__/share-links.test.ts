@@ -3,7 +3,7 @@ import path from 'path';
 import {
   PALSAFAR_WEB_ORIGIN,
   buildReelShareUrl,
-  buildTripShareUrl,
+  buildSharedTripUrl,
   buildReelShareMessage,
   buildTripShareMessage,
   isPublicShareableReel,
@@ -13,6 +13,7 @@ import {
 describe('canonical share links', () => {
   const reelId = 'clxyz0123456789';
   const tripId = 'cltrip987654321';
+  const tripShareToken = 'eyJ2IjoxLCJ0cmlwSWQiOiJjbHRyaXA5ODc2NTQzMjEifQ.signature';
 
   it('builds a palsafar.com reel URL with the reel id and no auth token', () => {
     const url = buildReelShareUrl(reelId);
@@ -23,18 +24,17 @@ describe('canonical share links', () => {
     expect(url).not.toContain('onrender.com');
   });
 
-  it('builds a palsafar.com trip URL with the trip id and no auth token', () => {
-    const url = buildTripShareUrl(tripId);
-    expect(url).toBe(`${PALSAFAR_WEB_ORIGIN}/trip/${tripId}`);
-    expect(url).toContain(tripId);
-    expect(url).not.toMatch(/token|bearer|jwt/i);
+  it('builds a signed trip share URL with the server-issued token', () => {
+    const url = buildSharedTripUrl(tripShareToken);
+    expect(url).toBe(`${PALSAFAR_WEB_ORIGIN}/trip/shared/${tripShareToken}`);
+    expect(url).not.toContain(`/trip/${tripId}`);
   });
 
   it('rejects invalid or empty ids instead of inventing a URL', () => {
     expect(buildReelShareUrl('')).toBeNull();
     expect(buildReelShareUrl('https://evil.example/x')).toBeNull();
-    expect(buildTripShareUrl('../secret')).toBeNull();
-    expect(buildTripShareUrl('a')).toBeNull();
+    expect(buildSharedTripUrl('')).toBeNull();
+    expect(buildSharedTripUrl('../secret')).toBeNull();
   });
 
   it('does not expose draft or hidden reels as public share URLs', () => {
@@ -60,20 +60,21 @@ describe('canonical share links', () => {
       id: tripId,
       title: 'Trip to Jabalpur',
       destination: 'Jabalpur',
-    });
-    expect(tripMsg).toContain('https://palsafar.com/trip/');
-    expect(tripMsg).toContain(tripId);
+    }, tripShareToken);
+    expect(tripMsg).toContain(`https://palsafar.com/trip/shared/${tripShareToken}`);
+    expect(tripMsg).not.toContain(`/trip/${tripId}`);
     expect(tripMsg).toMatch(/Trip to Jabalpur/);
     expect(shareMessageContainsAuthToken(tripMsg!)).toBe(false);
   });
 
-  it('registers ReelDetail and TripDetail on the canonical https://palsafar.com paths', () => {
+  it('registers ReelDetail and signed TripShared on canonical https://palsafar.com paths', () => {
     const src = fs.readFileSync(
       path.join(__dirname, '../navigation/linking.ts'),
       'utf8',
     );
     expect(src).toMatch(/ReelDetail:\s*'reel\/:reelId'/);
-    expect(src).toMatch(/TripDetail:\s*'trip\/:tripId'/);
+    expect(src).toMatch(/TripShared:\s*'trip\/shared\/:token'/);
+    expect(src).not.toMatch(/TripDetail:\s*'trip\/:tripId'/);
     expect(src).toMatch(/https:\/\/palsafar\.com/);
   });
 });

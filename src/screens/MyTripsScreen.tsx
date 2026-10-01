@@ -20,7 +20,7 @@ import {
   resolveItineraryNavigation,
   resolveManualBuildNavigation,
 } from '../utils/tripNavigation';
-import { buildTripShareMessage } from '../services/sharing/shareLinks';
+import { buildSharedTripUrl, buildTripShareMessage } from '../services/sharing/shareLinks';
 import { useToast } from '../context/ToastContext';
 import { useMyTripsData } from '../features/myTrips/hooks/useMyTripsData';
 import { getUnreadBadgeCount, subscribeUnreadBadge } from '../services/notifications/notificationBadgeStore';
@@ -167,20 +167,22 @@ export default function MyTripsScreen({
   );
 
   const handleShareTrip = useCallback(async (trip: TripPlan) => {
-    const message = buildTripShareMessage(trip);
-    if (!message) {
-      Alert.alert('Unavailable', 'This trip cannot be shared.');
-      return;
-    }
+    if (!requireAuth('Sign in to share a trip.')) return;
     try {
+      const share = await tripsApi.createShareLink(trip.id);
+      const url = buildSharedTripUrl(share.token);
+      const message = buildTripShareMessage(trip, share.token);
+      if (!url || !message) {
+        throw new Error('Could not create a secure share link for this trip.');
+      }
       await Share.share({
         message,
         title: 'PalSafar Trip',
       });
-    } catch {
-      /* user dismissed */
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Could not share this trip.');
     }
-  }, []);
+  }, [requireAuth, showError]);
 
   const handleTripMenu = useCallback(
     (trip: TripPlan) => {

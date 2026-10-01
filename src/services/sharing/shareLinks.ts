@@ -28,11 +28,6 @@ export function buildReelShareUrl(reelId: string): string | null {
   return `${PALSAFAR_WEB_ORIGIN}/reel/${encodeURIComponent(reelId)}`;
 }
 
-export function buildTripShareUrl(tripId: string): string | null {
-  if (!isShareableEntityId(tripId)) return null;
-  return `${PALSAFAR_WEB_ORIGIN}/trip/${encodeURIComponent(tripId)}`;
-}
-
 /**
  * Signed, expiring read-only trip URL: https://palsafar.com/trip/shared/:token.
  * The token is opaque to the client — it is minted and verified server-side.
@@ -77,8 +72,8 @@ export function buildTripShareMessage(trip: {
   id: string;
   title?: string | null;
   destination?: string | null;
-}): string | null {
-  const url = buildTripShareUrl(trip.id);
+}, shareToken: string): string | null {
+  const url = buildSharedTripUrl(shareToken);
   if (!url) return null;
   const title = (trip.title || '').trim();
   const destination = (trip.destination || '').trim();

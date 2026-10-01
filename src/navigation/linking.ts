@@ -31,7 +31,6 @@ export const linking: LinkingOptions<RootStackParamList> = {
           vendorId: (id: string) => id,
         },
       },
-      TripDetail: 'trip/:tripId',
       TripShared: 'trip/shared/:token',
       ReelDetail: 'reel/:reelId',
       LegalDocument: {

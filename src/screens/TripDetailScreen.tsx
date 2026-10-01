@@ -8,7 +8,7 @@ import Pal from '../design/DesignSystem';
 import { GradientButton } from '../components/ui/GradientButton';
 import { tripsApi, TripPlan, TripPlanStop, TripProgressResponse, TravelPace, BudgetTier, AvoidOption, customBudgetAmountForRequest } from '../services/api/trips';
 import { buildTripExportText } from '../utils/tripExport';
-import { buildTripShareUrl, buildSharedTripUrl } from '../services/sharing/shareLinks';
+import { buildSharedTripUrl } from '../services/sharing/shareLinks';
 import { useToast } from '../context/ToastContext';
 import TripItineraryView, { ItineraryTab } from '../components/trip/TripItineraryView';
 import { normalizeTripDays, normalizeTripPlan, stopListKey } from '../utils/normalizeTripPlan';
@@ -216,14 +216,10 @@ export default function TripDetailScreen({
 
   const resolveShareableUrl = async (): Promise<string | null> => {
     if (!trip) return null;
-    try {
-      const share = await tripsApi.createShareLink(trip.id);
-      if (share?.url) return share.url;
-      if (share?.token) return buildSharedTripUrl(share.token);
-    } catch {
-      // Server unavailable / not authed — fall through to the legacy id URL.
-    }
-    return buildTripShareUrl(trip.id);
+    const share = await tripsApi.createShareLink(trip.id);
+    const url = buildSharedTripUrl(share.token);
+    if (!url) throw new Error('Could not create a secure share link for this trip.');
+    return url;
   };
 
   const handleShareTrip = async () => {
@@ -236,7 +232,9 @@ export default function TripDetailScreen({
         message,
         title: `${trip.title || trip.destination} — PalSafar Itinerary`,
       });
-    } catch { }
+    } catch (err: any) {
+      showError(err?.message || 'Could not share this trip.');
+    }
   };
 
   const handleExportTrip = async () => {
