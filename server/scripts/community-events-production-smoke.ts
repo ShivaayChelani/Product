@@ -17,6 +17,7 @@ const RESULTS: Array<{
   name: string;
   status: 'PASS' | 'FAIL' | 'BLOCKED' | 'NON-BLOCKING WARNING';
   endpoint: string;
+  category: ResultCategory;
   httpStatus?: number;
   detail: string;
   evidence: string;
@@ -38,8 +39,11 @@ type SmokeContext = {
   userPassword: string;
   adminEmail: string;
   adminPassword: string;
+  creatorEmail?: string;
+  creatorPassword?: string;
   userToken: string;
   adminToken: string;
+  creatorToken?: string;
   eventId?: string;
   eventTitle?: string;
   reportId?: string;
@@ -49,6 +53,24 @@ type SmokeContext = {
   reportHandled?: boolean;
   eventCancelled?: boolean;
 };
+
+type ResultCategory = 'EVENT LIFECYCLE' | 'REEL ↔ EVENT' | 'GLOBAL';
+
+const EVENT_LIFECYCLE_RESULTS = new Set([
+  'Create Event',
+  'Moderation Queue',
+  'Admin Approval',
+  'Map Visibility',
+  'Search Visibility',
+  'Event Detail',
+  'Report Flow',
+  'Admin Report Handling',
+  'Feature Flow',
+  'Authorization Checks',
+  'Cancel Event Flow',
+  'Regression Checks',
+  'Cleanup',
+]);
 
 const ARRANGE = {
   eventTitlePrefix: '[SMOKE TEST] PalSafar Community Event',
@@ -78,7 +100,12 @@ function recordResult(
   evidence = '',
   httpStatus?: number,
 ) {
-  RESULTS.push({ name, status, endpoint, httpStatus, detail, evidence });
+  const category: ResultCategory = name === 'Reel ↔ Event Linkage'
+    ? 'REEL ↔ EVENT'
+    : EVENT_LIFECYCLE_RESULTS.has(name)
+      ? 'EVENT LIFECYCLE'
+      : 'GLOBAL';
+  RESULTS.push({ name, status, endpoint, category, httpStatus, detail, evidence });
   const label = status === 'PASS' ? OK : status === 'FAIL' ? FAIL : status === 'BLOCKED' ? BLOCK : WARN;
   const payload = `${label} ${name}: ${detail}${httpStatus ? ` (HTTP ${httpStatus})` : ''}`;
   console.log(payload);
@@ -181,13 +208,28 @@ function sanitizeSummary() {
     `Timestamp: ${TIME_STAMP}`,
     `Overall Status: ${overall}`,
     '',
-    '## Results',
+    '## Event Lifecycle Results',
     '',
-    ...RESULTS.map((result) => `- ${result.status}: ${result.name} | ${result.endpoint} | ${result.detail}`),
+    ...RESULTS.filter((result) => result.category === 'EVENT LIFECYCLE')
+      .map((result) => `- ${result.status}: ${result.name} | ${result.endpoint} | ${result.detail}`),
     '',
-    '## Blockers',
+    '## Reel ↔ Event Result',
     '',
-    ...RESULTS.filter((result) => result.status === 'BLOCKED').map((result) => `- ${result.name}: ${result.detail}`),
+    ...RESULTS.filter((result) => result.category === 'REEL ↔ EVENT')
+      .map((result) => `- ${result.status}: ${result.name} | ${result.endpoint} | ${result.detail}`),
+    '',
+    '## Global Checks',
+    '',
+    ...RESULTS.filter((result) => result.category === 'GLOBAL')
+      .map((result) => `- ${result.status}: ${result.name} | ${result.endpoint} | ${result.detail}`),
+    '',
+    '## Global Blockers',
+    '',
+    ...RESULTS.filter((result) => result.category === 'GLOBAL' && result.status === 'BLOCKED')
+      .map((result) => `- ${result.name}: ${result.detail}`),
+    ...(RESULTS.every((result) => result.category !== 'GLOBAL' || result.status !== 'BLOCKED')
+      ? ['- None']
+      : []),
     '',
     '## Non-Blockers',
     '',
@@ -229,6 +271,8 @@ async function run(): Promise<number> {
   const userPassword = process.env.SMOKE_USER_PASSWORD ?? '';
   const adminEmail = process.env.SMOKE_ADMIN_EMAIL ?? '';
   const adminPassword = process.env.SMOKE_ADMIN_PASSWORD ?? '';
+  const creatorEmail = process.env.SMOKE_CREATOR_EMAIL ?? '';
+  const creatorPassword = process.env.SMOKE_CREATOR_PASSWORD ?? '';
 
   const requiredCheck = REQUIRED_ENV.every((key) => Boolean(process.env[key] && process.env[key]!.trim()));
   if (!requiredCheck) {
@@ -246,6 +290,8 @@ async function run(): Promise<number> {
     userPassword,
     adminEmail,
     adminPassword,
+    creatorEmail,
+    creatorPassword,
     userToken: '',
     adminToken: '',
   };
@@ -312,26 +358,6 @@ async function run(): Promise<number> {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     recordResult('Admin Authentication', 'BLOCKED', `${baseUrl}/api/v1/admin/events`, 'Admin authentication or moderation access failed.', message);
-    fs.writeFileSync(REPORT_PATH, sanitizeSummary(), 'utf8');
-    return 2;
-  }
-
-  try {
-    const creatorReels = await fetchJson(`${baseUrl}/api/v1/social/creators/me/reels?limit=50`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${ctx.userToken}` },
-    });
-    const publishedReels = asArray(creatorReels.body?.data?.items)
-      .filter((reel: any) => reel.status === 'APPROVED' && reel.id);
-    if (creatorReels.status !== 200 || publishedReels.length === 0) {
-      throw new Error(`Smoke user needs an approved creator profile and an approved reel to verify event linkage without publishing a new reel. Status ${creatorReels.status}.`);
-    }
-    const reel = publishedReels[0];
-    ctx.reelId = String(reel.id);
-    ctx.originalReelEventId = reel.eventId ?? null;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    recordResult('Reel ↔ Event Linkage', 'BLOCKED', `${baseUrl}/api/v1/social/creators/me/reels`, 'A published smoke-user reel is required to exercise event linkage without creating permanent production reward data.', message);
     fs.writeFileSync(REPORT_PATH, sanitizeSummary(), 'utf8');
     return 2;
   }
@@ -480,47 +506,6 @@ async function run(): Promise<number> {
   }
 
   try {
-    const creatorReel = await fetchJson(`${baseUrl}/api/v1/social/creators/me/reels?limit=50`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${ctx.userToken}` },
-    });
-    if (creatorReel.status !== 200 || !ctx.reelId) {
-      throw new Error(`Could not access the approved smoke-user reel: ${creatorReel.status}`);
-    }
-    ctx.reelLinkChanged = true;
-    const linkResp = await fetchJson(`${baseUrl}/api/v1/social/reels/${ctx.reelId}`, {
-      method: 'PATCH',
-      headers: {
-        Authorization: `Bearer ${ctx.userToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ eventId: ctx.eventId }),
-    });
-    if (linkResp.status < 200 || linkResp.status >= 300) {
-      throw new Error(`Linking the published reel to the smoke event failed: ${linkResp.status}. ${JSON.stringify(linkResp.body).slice(0, 400)}`);
-    }
-    const eventReels = await fetchJson(`${baseUrl}/api/v1/events/${ctx.eventId}/reels?limit=50`);
-    const linkedReels = asArray(eventReels.body?.data);
-    if (eventReels.status !== 200 || !linkedReels.some((reel: any) => String(reel.id) === ctx.reelId)) {
-      throw new Error(`Event -> Reel listing did not contain reel ${ctx.reelId}; status=${eventReels.status}`);
-    }
-
-    const reelDetail = await fetchJson(`${baseUrl}/api/v1/social/reels/${ctx.reelId}`, {
-      headers: { Authorization: `Bearer ${ctx.userToken}` },
-    });
-    const detailEventId = reelDetail.body?.data?.eventId ?? reelDetail.body?.data?.event?.id;
-    if (reelDetail.status !== 200 || String(detailEventId) !== String(ctx.eventId)) {
-      throw new Error(`Reel -> Event detail did not contain event ${ctx.eventId}; status=${reelDetail.status}; eventId=${detailEventId ?? 'missing'}`);
-    }
-    recordResult('Reel ↔ Event Linkage', 'PASS', `${baseUrl}/api/v1/events/${ctx.eventId}/reels`, 'The smoke event lists the linked published reel, and reel detail points back to the smoke event.', `reelId=${ctx.reelId}; eventId=${ctx.eventId}`, eventReels.status);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    recordResult('Reel ↔ Event Linkage', 'FAIL', `${baseUrl}/api/v1/social/reels/${ctx.reelId}`, 'Both reel-to-event and event-to-reel linkage must be verified.', message);
-    fs.writeFileSync(REPORT_PATH, sanitizeSummary(), 'utf8');
-    return 1;
-  }
-
-  try {
     const reportResp = await fetchJson(`${baseUrl}/api/v1/events/${ctx.eventId}/report`, {
       method: 'POST',
       headers: {
@@ -654,6 +639,8 @@ async function run(): Promise<number> {
     return 1;
   }
 
+  await runReelEventLinkage(ctx);
+
   try {
     const cancelResp = await fetchJson(`${baseUrl}/api/v1/events/${ctx.eventId}/cancel`, {
       method: 'POST',
@@ -712,16 +699,128 @@ async function run(): Promise<number> {
   }
 }
 
+async function runReelEventLinkage(ctx: SmokeContext): Promise<void> {
+  const endpoint = `${ctx.baseUrl}/api/v1/creator/reels`;
+  if (!ctx.creatorEmail?.trim() || !ctx.creatorPassword?.trim()) {
+    recordResult(
+      'Reel ↔ Event Linkage',
+      'BLOCKED',
+      endpoint,
+      'Dedicated approved creator fixture is not configured. Set SMOKE_CREATOR_EMAIL and SMOKE_CREATOR_PASSWORD for an approved creator account with an existing APPROVED reel.',
+    );
+    return;
+  }
+  const creatorEmail = ctx.creatorEmail.trim().toLowerCase();
+  if (
+    creatorEmail === ctx.userEmail.trim().toLowerCase()
+    || creatorEmail === ctx.adminEmail.trim().toLowerCase()
+  ) {
+    recordResult(
+      'Reel ↔ Event Linkage',
+      'BLOCKED',
+      endpoint,
+      'The creator fixture must be a dedicated account, separate from both the event-submitting smoke user and admin.',
+    );
+    return;
+  }
+
+  try {
+    ctx.creatorToken = await login(ctx.baseUrl, ctx.creatorEmail, ctx.creatorPassword);
+    const reelsResponse = await fetchJson(`${endpoint}?status=APPROVED&limit=50`, {
+      headers: { Authorization: `Bearer ${ctx.creatorToken}` },
+    });
+    const now = Date.now();
+    const reels = asArray(reelsResponse.body?.data?.items)
+      .filter((reel: any) => (
+        reel.status === 'APPROVED'
+        && reel.id
+        && !reel.eventId
+        && (!reel.scheduledAt || new Date(reel.scheduledAt).getTime() <= now)
+      ));
+    if (reelsResponse.status !== 200 || reels.length === 0) {
+      recordResult(
+        'Reel ↔ Event Linkage',
+        'BLOCKED',
+        endpoint,
+        `Dedicated creator fixture needs an existing, public APPROVED reel without an event link; listing returned HTTP ${reelsResponse.status} and ${reels.length} matching reels.`,
+        'The smoke test never creates a reel, so it does not create production reward/points side effects.',
+        reelsResponse.status,
+      );
+      return;
+    }
+
+    const reel = reels[0];
+    ctx.reelId = String(reel.id);
+    ctx.originalReelEventId = reel.eventId ?? null;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    recordResult(
+      'Reel ↔ Event Linkage',
+      'BLOCKED',
+      endpoint,
+      'The dedicated creator account could not authenticate or access its approved reel fixture.',
+      message,
+    );
+    return;
+  }
+
+  try {
+    ctx.reelLinkChanged = true;
+    const linkResponse = await fetchJson(`${ctx.baseUrl}/api/v1/social/reels/${ctx.reelId}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${ctx.creatorToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ eventId: ctx.eventId }),
+    });
+    if (linkResponse.status < 200 || linkResponse.status >= 300) {
+      throw new Error(`Linking the published reel to the smoke event failed: ${linkResponse.status}. ${JSON.stringify(linkResponse.body).slice(0, 400)}`);
+    }
+
+    const eventReels = await fetchJson(`${ctx.baseUrl}/api/v1/events/${ctx.eventId}/reels?limit=50`);
+    const linkedReels = asArray(eventReels.body?.data);
+    if (eventReels.status !== 200 || !linkedReels.some((reel: any) => String(reel.id) === ctx.reelId)) {
+      throw new Error(`Event -> Reel listing did not contain reel ${ctx.reelId}; status=${eventReels.status}`);
+    }
+
+    const reelDetail = await fetchJson(`${ctx.baseUrl}/api/v1/social/reels/${ctx.reelId}`, {
+      headers: { Authorization: `Bearer ${ctx.creatorToken}` },
+    });
+    const detailEventId = reelDetail.body?.data?.eventId ?? reelDetail.body?.data?.event?.id;
+    if (reelDetail.status !== 200 || String(detailEventId) !== String(ctx.eventId)) {
+      throw new Error(`Reel -> Event detail did not contain event ${ctx.eventId}; status=${reelDetail.status}; eventId=${detailEventId ?? 'missing'}`);
+    }
+    recordResult(
+      'Reel ↔ Event Linkage',
+      'PASS',
+      `${ctx.baseUrl}/api/v1/events/${ctx.eventId}/reels`,
+      'Both directions were verified: the event lists the linked reel, and reel detail references the smoke event.',
+      `reelId=${ctx.reelId}; eventId=${ctx.eventId}`,
+      eventReels.status,
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    recordResult(
+      'Reel ↔ Event Linkage',
+      'FAIL',
+      `${ctx.baseUrl}/api/v1/social/reels/${ctx.reelId}`,
+      'Both Reel -> Event and Event -> Reel linkage must be verified.',
+      message,
+    );
+  }
+}
+
 async function cleanup(ctx: SmokeContext): Promise<void> {
   const failures: string[] = [];
   const auth = (token: string) => ({ Authorization: `Bearer ${token}` });
 
-  if (ctx.reelId && ctx.reelLinkChanged) {
+  if (ctx.reelId && ctx.reelLinkChanged && ctx.creatorToken) {
     try {
       const response = await fetchJson(`${ctx.baseUrl}/api/v1/social/reels/${ctx.reelId}`, {
         method: 'PATCH',
         headers: {
-          ...auth(ctx.userToken),
+          ...auth(ctx.creatorToken),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ eventId: ctx.originalReelEventId }),
@@ -730,7 +829,7 @@ async function cleanup(ctx: SmokeContext): Promise<void> {
         throw new Error(`Could not restore reel event link: ${response.status}`);
       }
       const verification = await fetchJson(`${ctx.baseUrl}/api/v1/social/reels/${ctx.reelId}`, {
-        headers: auth(ctx.userToken),
+        headers: auth(ctx.creatorToken),
       });
       const restoredEventId = verification.body?.data?.eventId ?? null;
       if (verification.status !== 200 || restoredEventId !== ctx.originalReelEventId) {

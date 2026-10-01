@@ -35,6 +35,10 @@ jobs:
           SMOKE_USER_PASSWORD: ${{ secrets.SMOKE_USER_PASSWORD }}
           SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
           SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+          # Dedicated account with an approved creator profile and an existing
+          # public, unlinked APPROVED reel. The smoke test never creates reels.
+          SMOKE_CREATOR_EMAIL: ${{ secrets.SMOKE_CREATOR_EMAIL }}
+          SMOKE_CREATOR_PASSWORD: ${{ secrets.SMOKE_CREATOR_PASSWORD }}
         run: |
           cd server
           npm run smoke:community-events
