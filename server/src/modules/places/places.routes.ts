@@ -12,7 +12,8 @@ import {
   createEventSchema, updateEventSchema,
   reviewSchema, vendorUpdatePlaceSchema,
 } from './places.validation';
-import { statsLimiter, createPlaceLimiter, videoUploadLimiter, placesDiscoveryLimiter, metricWriteLimiter } from '../../config/rateLimit';
+import { statsLimiter, createPlaceLimiter, videoUploadLimiter, placesDiscoveryLimiter, metricWriteLimiter, createEventLimiter, updateEventLimiter } from '../../config/rateLimit';
+import { legacyEventsController } from '../events/legacy.events.controller';
 
 // ── Public / User Router (mounted at /places) ──
 const router = Router();
@@ -69,8 +70,12 @@ router.get('/:id/reviews', placesController.getReviews);
 router.post('/:id/reviews/:reviewId/helpful', authenticate, placesController.markReviewHelpful);
 
 // Offers & Events (read-only public)
+// The events handler proxies through the Community Events service so it applies
+// the same moderation/date visibility gate as /events, and it now verifies that
+// the parent Place is publicly visible. Rate limited: this route was previously
+// an unauthenticated, unthrottled read of every event attached to any place id.
 router.get('/:id/offers', placesController.getOffers);
-router.get('/:id/events', placesController.getEvents);
+router.get('/:id/events', placesDiscoveryLimiter, legacyEventsController.listForPlace);
 
 // Status update (admin via places router - legacy)
 router.patch('/:id/status', authenticate, requireContentOps, validate(updatePlaceStatusSchema), placesController.updateStatus);
@@ -106,10 +111,14 @@ vendorRouter.get('/:id/offers', placesController.getOffers);
 vendorRouter.post('/:id/offers', validate(createOfferSchema), placesController.addOffer);
 vendorRouter.patch('/:id/offers/:offerId', validate(updateOfferSchema), placesController.updateOffer);
 vendorRouter.delete('/:id/offers/:offerId', placesController.deleteOffer);
-vendorRouter.get('/:id/events', placesController.getEvents);
-vendorRouter.post('/:id/events', validate(createEventSchema), placesController.addEvent);
-vendorRouter.patch('/:id/events/:eventId', validate(updateEventSchema), placesController.updateEvent);
-vendorRouter.delete('/:id/events/:eventId', placesController.deleteEvent);
+// Legacy Place-scoped event routes. Kept for backwards compatibility, but all
+// three writes now proxy through the Community Events service so they share its
+// moderation rules and — critically — validate the `:id` place segment, which
+// the old handlers silently ignored.
+vendorRouter.get('/:id/events', placesDiscoveryLimiter, legacyEventsController.listForPlace);
+vendorRouter.post('/:id/events', createEventLimiter, validate(createEventSchema), legacyEventsController.createForPlace);
+vendorRouter.patch('/:id/events/:eventId', updateEventLimiter, validate(updateEventSchema), legacyEventsController.updateForPlace);
+vendorRouter.delete('/:id/events/:eventId', updateEventLimiter, legacyEventsController.deleteForPlace);
 vendorRouter.post('/:id/images', validate(addImageSchema), placesController.addImage);
 vendorRouter.delete('/:id/images/:imageId', placesController.deleteImage);
 vendorRouter.post('/:id/videos', videoUploadLimiter, validate(addVideoSchema), placesController.addVideo);

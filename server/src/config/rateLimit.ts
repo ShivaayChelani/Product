@@ -210,6 +210,42 @@ export const createHiddenGemLimiter = createLimiter({
   message: { success: false, data: null, message: 'Hidden gem submission limit reached (10/hour). Try again later.' },
 });
 
+// ── Community Events ─────────────────────────────────────────────────────────
+// The audit found that the legacy Place/Vendor event write routes had NO rate
+// limiting at all, so an authenticated user could flood the map feed. These
+// three cover the distinct costs: creating a row that enters the moderation
+// queue, mutating a row, and reading the public map at high frequency.
+export const createEventLimiter = createLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, data: null, message: 'Event submission limit reached (10/hour). Try again later.' },
+});
+
+/** Edits are cheaper than creates but can still drain the moderation queue. */
+export const updateEventLimiter = createLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, data: null, message: 'Event edit limit reached (30/hour). Try again later.' },
+});
+
+/**
+ * The map client debounces at 400 ms while panning, so a legitimate session
+ * fires far more reads than writes. Cached at the edge and in `cache` for
+ * minutes at a time; 120/min leaves ample headroom for a fast pan while still
+ * stopping a scripted scrape.
+ */
+export const eventMapLimiter = createLimiter({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, data: null, message: 'Too many map requests. Slow down and try again.' },
+});
+
 export const videoUploadLimiter = createLimiter({
   windowMs: 60 * 60 * 1000,
   max: 5,
@@ -308,6 +344,30 @@ export const huntAnswerLimiter = createLimiter({
     return userId ? `hunt-answer:${userId}` : `ip:${rateLimitClientIp(req)}`;
   },
   message: { success: false, data: null, message: 'Too many answer attempts. Please try again later.' },
+});
+
+/**
+ * Spreadsheet bulk-import endpoints.
+ *
+ * Parsing a workbook is the most expensive CPU/memory operation reachable by
+ * an authenticated admin, and the global limiter's window is too coarse to
+ * stop a tight loop of large uploads. Keyed per user so one operator cannot
+ * lock out the rest of the content team.
+ */
+export const spreadsheetImportLimiter = createLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const { userId } = peekAuth(req);
+    return userId ? `spreadsheet-import:${userId}` : `ip:${rateLimitClientIp(req)}`;
+  },
+  message: {
+    success: false,
+    data: null,
+    message: 'Too many spreadsheet imports. Please wait before trying again.',
+  },
 });
 
 export const ssvCallbackLimiter = createLimiter({

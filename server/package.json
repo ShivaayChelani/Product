@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "cross-env NODE_OPTIONS=--max-old-space-size=1024 tsc --project tsconfig.build.json && prisma generate",
+    "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 tsc --project tsconfig.build.json && prisma generate",
     "typecheck": "prisma generate && tsc --noEmit -p tsconfig.json",
     "start": "node --max-old-space-size=512 dist/src/index.js",
     "db:migrate": "prisma migrate deploy",

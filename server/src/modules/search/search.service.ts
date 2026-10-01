@@ -7,6 +7,7 @@ import {
 } from '../rewards/offer-eligibility';
 import { getPublicVendorListingWhere } from '../vendors/vendor-public-visibility';
 import { collapseRepeats, scoreAdminMatch } from './search-ranking';
+import { publicEventWhere } from '../events/events-public-visibility';
 
 async function searchPlacesFuzzy(opts: {
   q: string;
@@ -207,15 +208,40 @@ export const searchService = {
         take: limit,
       }),
 
-      // Events
-      prisma.placeEvent.findMany({
+      // Events — read from the standalone `events` table, NOT the archived
+      // `place_events`. Searching the legacy table was one of the audit's
+      // contract defects: it returned rows with no moderation status and no
+      // coordinates, and it silently missed every event created through the
+      // Community Events API. `publicEventWhere()` supplies the same gate the
+      // map and list use, so search can never surface a PENDING event.
+      prisma.event.findMany({
         where: {
+          ...publicEventWhere(),
           OR: [
             { title: { contains: q, mode: 'insensitive' } },
             { description: { contains: q, mode: 'insensitive' } },
+            { city: { contains: q, mode: 'insensitive' } },
           ],
         },
-        select: { id: true, title: true, description: true, imageUrl: true, startDate: true, placeId: true },
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          description: true,
+          eventType: true,
+          startDate: true,
+          endDate: true,
+          startTime: true,
+          endTime: true,
+          latitude: true,
+          longitude: true,
+          coverImage: true,
+          city: true,
+          state: true,
+          linkedPlaceId: true,
+          linkedVendorId: true,
+        },
+        orderBy: [{ startDate: 'asc' }],
         take: limit,
       }),
 
@@ -257,7 +283,31 @@ export const searchService = {
       pointsRequired: o.pointsRequired,
     }));
 
-    const totalResults = placesRaw.length + hiddenGemsRaw.length + reelsRaw.length + vendors.length + creators.length + events.length + offers.length;
+    // Normalize the event rows onto the field names the client already consumes
+    // (`imageUrl`, `placeId`) while exposing the new ones. Emitting the raw
+    // `events` columns instead would break SearchScreen, which destructures
+    // `imageUrl` — one of the audit's reported contract mismatches.
+    const normalizedEvents = events.map((e) => ({
+      id: e.id,
+      slug: e.slug,
+      title: e.title,
+      description: e.description,
+      imageUrl: e.coverImage,
+      coverImage: e.coverImage,
+      eventType: e.eventType,
+      startDate: e.startDate,
+      endDate: e.endDate,
+      startTime: e.startTime,
+      endTime: e.endTime,
+      latitude: e.latitude,
+      longitude: e.longitude,
+      city: e.city,
+      state: e.state,
+      placeId: e.linkedPlaceId,
+      vendorId: e.linkedVendorId,
+    }));
+
+    const totalResults = placesRaw.length + hiddenGemsRaw.length + reelsRaw.length + vendors.length + creators.length + normalizedEvents.length + offers.length;
 
     // Log the search
     await prisma.searchQueryLog.create({
@@ -274,7 +324,7 @@ export const searchService = {
       reels: reelsRaw,
       vendors,
       creators,
-      events,
+      events: normalizedEvents,
       offers,
       meta: {
         query: q,

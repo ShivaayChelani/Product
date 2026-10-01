@@ -10,94 +10,99 @@ datasource db {
 }
 
 model User {
-  id                     String                 @id @default(cuid())
-  email                  String                 @unique
-  password               String?
-  name                   String
-  emailVerified          Boolean                @default(false) @map("email_verified")
-  bio                    String?
-  interests              String[]               @default([])
-  avatarStyle            Int                    @default(0) @map("avatar_style")
-  avatar                 String?
-  verificationStatus     VerificationStatus     @default(NONE) @map("verification_status")
-  verifiedAt             DateTime?              @map("verified_at")
-  verifiedById           String?                @map("verified_by_id")
-  createdAt              DateTime               @default(now()) @map("created_at")
-  updatedAt              DateTime               @updatedAt @map("updated_at")
-  badges                 String[]               @default([])
-  permission             Role                   @default(USER)
-  activeMode             Role                   @default(USER) @map("active_mode")
-  razorpayCustomerId     String?                @map("razorpay_customer_id")
-  aiGenerationLogs       AiGenerationLog[]
-  announcementsCreated   Announcement[]         @relation("AnnouncementCreatedBy")
-  appFeedback            AppFeedback[]
-  authAccounts           AuthAccount[]
-  audits                 AuditLog[]             @relation("AuditActor")
-  completedChallenges    ChallengeCompletion[]
-  createdChallenges      Challenge[]
-  checkIns               CheckIn[]              @relation("UserCheckIns")
-  collections            Collection[]           @relation("UserCollections")
-  couponRedemptions      CouponRedemption[]
-  creatorProfile         CreatorProfile?
-  deviceTokens           DeviceToken[]
-  followers              Follow[]               @relation("Followers")
-  following              Follow[]               @relation("Following")
-  notifications          InAppNotification[]
-  invoices               Invoice[]
-  legalVersionsAuthored  LegalDocumentVersion[] @relation("LegalVersionCreatedBy")
-  legalVersionsPublished LegalDocumentVersion[] @relation("LegalVersionPublishedBy")
-  paymentTransactions    PaymentTransaction[]
-  stats                  PlaceStat[]            @relation("UserStats")
-  approvedPlaces         Place[]                @relation("ApprovedPlaces")
-  placesLastVerified     Place[]                @relation("PlaceLastVerifiedBy")
-  submittedPlaces        Place[]                @relation("SubmittedPlaces")
-  pointBalance           PointBalance?
-  pointTransactions      PointTransaction[]
-  refundedRedemptions    Redemption[]           @relation("RefundedRedemptions")
-  redemptions            Redemption[]
-  verifiedRedemptions    Redemption[]           @relation("VerifiedRedemptions")
-  reelComments           ReelComment[]
-  reelLikes              ReelLike[]
-  reelReports            ReelReport[]
-  reelSaves              ReelSave[]
-  refreshTokens          RefreshToken[]
-  refundsProcessed       Refund[]               @relation("RefundProcessor")
-  refundsRequested       Refund[]               @relation("RefundRequester")
-  reviews                Review[]               @relation("UserReviews")
-  rewardClaims           RewardClaim[]
-  treasureHuntProgress   TreasureHuntProgress[]
-  riddleProgress         RiddleProgress[]
-  riddleDailyAttempts    RiddleDailyAttempt[]
-  treasureHuntImports    TreasureHuntImportLog[]
+  id                         String                  @id @default(cuid())
+  email                      String                  @unique
+  password                   String?
+  name                       String
+  emailVerified              Boolean                 @default(false) @map("email_verified")
+  bio                        String?
+  interests                  String[]                @default([])
+  avatarStyle                Int                     @default(0) @map("avatar_style")
+  avatar                     String?
+  verificationStatus         VerificationStatus      @default(NONE) @map("verification_status")
+  verifiedAt                 DateTime?               @map("verified_at")
+  verifiedById               String?                 @map("verified_by_id")
+  createdAt                  DateTime                @default(now()) @map("created_at")
+  updatedAt                  DateTime                @updatedAt @map("updated_at")
+  badges                     String[]                @default([])
+  permission                 Role                    @default(USER)
+  activeMode                 Role                    @default(USER) @map("active_mode")
+  razorpayCustomerId         String?                 @map("razorpay_customer_id")
+  aiGenerationLogs           AiGenerationLog[]
+  announcementsCreated       Announcement[]          @relation("AnnouncementCreatedBy")
+  appFeedback                AppFeedback[]
+  authAccounts               AuthAccount[]
+  audits                     AuditLog[]              @relation("AuditActor")
+  completedChallenges        ChallengeCompletion[]
+  createdChallenges          Challenge[]
+  checkIns                   CheckIn[]               @relation("UserCheckIns")
+  collections                Collection[]            @relation("UserCollections")
+  couponRedemptions          CouponRedemption[]
+  creatorProfile             CreatorProfile?
+  deviceTokens               DeviceToken[]
+  followers                  Follow[]                @relation("Followers")
+  following                  Follow[]                @relation("Following")
+  notifications              InAppNotification[]
+  invoices                   Invoice[]
+  legalVersionsAuthored      LegalDocumentVersion[]  @relation("LegalVersionCreatedBy")
+  legalVersionsPublished     LegalDocumentVersion[]  @relation("LegalVersionPublishedBy")
+  paymentTransactions        PaymentTransaction[]
+  stats                      PlaceStat[]             @relation("UserStats")
+  approvedPlaces             Place[]                 @relation("ApprovedPlaces")
+  placesLastVerified         Place[]                 @relation("PlaceLastVerifiedBy")
+  submittedPlaces            Place[]                 @relation("SubmittedPlaces")
+  pointBalance               PointBalance?
+  pointTransactions          PointTransaction[]
+  refundedRedemptions        Redemption[]            @relation("RefundedRedemptions")
+  redemptions                Redemption[]
+  verifiedRedemptions        Redemption[]            @relation("VerifiedRedemptions")
+  reelComments               ReelComment[]
+  reelLikes                  ReelLike[]
+  reelReports                ReelReport[]
+  reelSaves                  ReelSave[]
+  reelViews                  ReelView[]
+  refreshTokens              RefreshToken[]
+  refundsProcessed           Refund[]                @relation("RefundProcessor")
+  refundsRequested           Refund[]                @relation("RefundRequester")
+  reviews                    Review[]                @relation("UserReviews")
+  rewardClaims               RewardClaim[]
+  treasureHuntProgress       TreasureHuntProgress[]
+  riddleProgress             RiddleProgress[]
+  riddleDailyAttempts        RiddleDailyAttempt[]
+  treasureHuntImports        TreasureHuntImportLog[]
   treasureHuntImportsDeleted TreasureHuntImportLog[] @relation("ImportDeleter")
-  rideDestinations       RideDestination[]
-  rideFavorites          RideFavorite[]
-  rideHistory            RideHistory[]
-  rideRequests           RideRequest[]
-  collaborators          TripCollaborator[]
-  tripPlans              TripPlan[]             @relation("UserTrips")
-  userAppPreference      UserAppPreference?
-  blocksReceived         UserBlock[]            @relation("UserBlocksReceived")
-  blocksMade             UserBlock[]            @relation("UserBlocksMade")
-  reviewedPlaceImages    UserPlaceImage[]       @relation("reviewer")
-  userPlaceImages        UserPlaceImage[]
-  approvedUserRoles      UserRole[]             @relation("UserRoleApprover")
-  userRoles              UserRole[]             @relation("UserRoleAssignments")
-  subscriptions          UserSubscription[]
-  verifiedBy             User?                  @relation("VerifiedUsers", fields: [verifiedById], references: [id])
-  verifiedUsers          User[]                 @relation("VerifiedUsers")
-  approvedOffers         VendorOffer[]          @relation("ApprovedOffers")
-  rejectedOffers         VendorOffer[]          @relation("RejectedOffers")
-  vendorReviews          VendorReview[]         @relation("UserVendorReviews")
-  reviewedVendors        Vendor[]               @relation("VendorReviewer")
-  vendor                 Vendor?
-  walletTransactions     WalletTransaction[]
-  wallet                 Wallet?
-  user_badges            user_badges[]
-  user_streaks           user_streaks?
-  user_xp                user_xp?
-  xp_transactions        xp_transactions[]
-  legalAcceptance        LegalAcceptance?
+  rideDestinations           RideDestination[]
+  rideFavorites              RideFavorite[]
+  rideHistory                RideHistory[]
+  rideRequests               RideRequest[]
+  collaborators              TripCollaborator[]
+  tripPlans                  TripPlan[]              @relation("UserTrips")
+  userAppPreference          UserAppPreference?
+  blocksReceived             UserBlock[]             @relation("UserBlocksReceived")
+  blocksMade                 UserBlock[]             @relation("UserBlocksMade")
+  reviewedPlaceImages        UserPlaceImage[]        @relation("reviewer")
+  userPlaceImages            UserPlaceImage[]
+  approvedUserRoles          UserRole[]              @relation("UserRoleApprover")
+  userRoles                  UserRole[]              @relation("UserRoleAssignments")
+  subscriptions              UserSubscription[]
+  verifiedBy                 User?                   @relation("VerifiedUsers", fields: [verifiedById], references: [id])
+  verifiedUsers              User[]                  @relation("VerifiedUsers")
+  approvedOffers             VendorOffer[]           @relation("ApprovedOffers")
+  rejectedOffers             VendorOffer[]           @relation("RejectedOffers")
+  vendorReviews              VendorReview[]          @relation("UserVendorReviews")
+  reviewedVendors            Vendor[]                @relation("VendorReviewer")
+  vendor                     Vendor?
+  walletTransactions         WalletTransaction[]
+  wallet                     Wallet?
+  user_badges                user_badges[]
+  user_streaks               user_streaks?
+  user_xp                    user_xp?
+  xp_transactions            xp_transactions[]
+  legalAcceptance            LegalAcceptance?
+  createdEvents              Event[]                 @relation("CreatedEvents")
+  approvedEvents             Event[]                 @relation("ApprovedEvents")
+  eventReports               EventReport[]           @relation("ReportedEvents")
+  reviewedEventReports       EventReport[]           @relation("ReviewedEventReports")
 
   @@index([permission])
   @@index([activeMode])
@@ -258,6 +263,7 @@ model Vendor {
   palPointsPartner      VendorPalPointsPartner?
   reels                 VendorReel[]
   vendorReviews         VendorReview[]
+  linkedEvents          Event[]                  @relation("LinkedVendorEvents")
   reviewedBy            User?                    @relation("VendorReviewer", fields: [reviewedById], references: [id])
   user                  User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -367,6 +373,11 @@ model Redemption {
   pointsSpent   Int              @map("points_spent")
   discountValue Float            @map("discount_value")
   discountType  String           @map("discount_type")
+  /// Uniquely identifies an instant vendor-code redemption. Also stored in the
+  /// wallet-scanner prompt as the "verification code" a traveler shows a vendor:
+  /// a redemption is VERIFIED by the vendor entering this code (or a vendor QR),
+  /// NOT by scanning the dedicated reels-style QR. Single semantic — do not
+  /// overload as a payment/QR-payment channel.
   qrCode        String           @unique @map("qr_code")
   receiptNumber String?          @unique @map("receipt_number")
   status        RedemptionStatus @default(PENDING)
@@ -586,6 +597,7 @@ model Place {
   duplicateCandidatesA     PlaceDuplicateCandidate[] @relation("DupPlaceA")
   duplicateCandidatesB     PlaceDuplicateCandidate[] @relation("DupPlaceB")
   events                   PlaceEvent[]
+  linkedEvents             Event[]                   @relation("LinkedPlaceEvents")
   fieldProvenance          PlaceFieldProvenance[]
   placeImages              PlaceImage[]
   mergeEventsAsCanonical   PlaceMergeLog[]           @relation("MergeCanonical")
@@ -636,6 +648,14 @@ model Place {
   @@index([name(ops: raw("gin_trgm_ops"))], map: "places_name_trgm_idx", type: Gin)
   @@index([searchVector], map: "places_search_idx", type: Gin)
   @@index([status])
+  // Spatial index for the /places/map bounding-box filter.
+  // Created in 0_baseline, dropped by 1_sync_schema, and never restored, so
+  // ST_Intersects(location, ...) was sequential-scanning the whole table.
+  // The named map keeps this stable across `prisma migrate`.
+  @@index([location], type: Gist, map: "places_location_idx")
+  // Functional index so LOWER(category) in the map/category filters stays
+  // sargable instead of forcing a sequential scan.
+  @@index([category(ops: raw("lower(category::text)"))], map: "places_category_lower_idx")
   @@map("places")
 }
 
@@ -940,22 +960,146 @@ model PlaceOffer {
   @@map("place_offers")
 }
 
+/// LEGACY — ARCHIVED. Superseded by the standalone `Event` model.
+///
+/// This table predates Community Events. It was vendor-scoped, had NO
+/// coordinates, NO owner and NO moderation status, so it could not represent a
+/// real-world event. Every row was copied into `events` (id preserved) by
+/// migration 20260930120000_community_events, and `reels.event_id` now points at
+/// `events` instead. The table and this model are intentionally RETAINED — not
+/// dropped — so no legacy data is destroyed and the copy can be re-verified.
+/// Nothing in the application reads or writes it. An operator may drop it in a
+/// separate, explicitly reviewed migration once the copy has been verified.
 model PlaceEvent {
   id          String    @id @default(cuid())
   placeId     String    @map("place_id")
   title       String
   description String?
   imageUrl    String?   @map("image_url")
+  /// Deliberately has NO `@default`: the live `place_events.start_date` column has
+  /// NO database default. This is a legacy table that nothing ever inserts into,
+  /// so a default would be unreachable at best and untrue to the database at worst.
+  /// Do not re-add `@default(now())` here.
   startDate   DateTime  @map("start_date")
   endDate     DateTime? @map("end_date")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   place       Place     @relation(fields: [placeId], references: [id], onDelete: Cascade)
-  reels       Reel[]
 
   @@index([placeId])
   @@index([startDate])
   @@map("place_events")
+}
+
+/// Community Events.
+///
+/// Standalone by design: a linked Place and/or Vendor is OPTIONAL, so a one-off
+/// public happening ("51 Ft Maa Durga Darbar") can exist without any existing
+/// tourist Place or Vendor. Unlike `PlaceEvent`, this model owns its own
+/// coordinates, its own moderator lifecycle, and its own address.
+model Event {
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  title       String
+  description String?
+  eventType   EventType   @default(OTHER) @map("event_type")
+  status      EventStatus @default(PENDING)
+
+  /// Inclusive first day of the event (UTC midnight).
+  startDate DateTime @map("start_date")
+  /// Inclusive last day. REQUIRED, not nullable: public visibility is a single
+  /// `end_date >= today` comparison, so a NULL would make a row silently
+  /// invisible forever rather than failing loudly. The write path defaults
+  /// endDate to startDate, giving one-day events the correct semantics.
+  endDate   DateTime @map("end_date")
+  /// Local wall-clock "HH:MM" (24h). Stored as text, never converted to a
+  /// timestamp — an event's time-of-day is not a UTC instant.
+  startTime String?  @map("start_time")
+  endTime   String?  @map("end_time")
+
+  /// Exact real-world position. Both columns are REQUIRED for a public event;
+  /// the service rejects NULL / NaN / Infinity / out-of-range / (0,0) rather
+  /// than fabricating a fallback, and `location` is maintained by the
+  /// `trg_events_location` trigger (never written by application code).
+  latitude  Float?
+  longitude Float?
+  location  Unsupported("geography(Point,4326)")?
+
+  address String?
+  city    String  @default("")
+  state   String  @default("")
+  country String  @default("India")
+
+  coverImage String?  @map("cover_image")
+  images     String[] @default([])
+
+  createdById        String?   @map("created_by_id")
+  approvedById       String?   @map("approved_by_id")
+  approvedAt         DateTime? @map("approved_at")
+  rejectedAt         DateTime? @map("rejected_at")
+  rejectionReason    String?   @map("rejection_reason")
+  /// The organiser withdrew an already-published event. Distinct from REJECTED,
+  /// which means moderation refused it.
+  cancelledAt        DateTime? @map("cancelled_at")
+  cancellationReason String?   @map("cancellation_reason")
+  publishedAt        DateTime? @map("published_at")
+  isFeatured         Boolean   @default(false) @map("is_featured")
+
+  linkedPlaceId  String? @map("linked_place_id")
+  linkedVendorId String? @map("linked_vendor_id")
+
+  /// Provenance for rows copied out of the archived `place_events` table.
+  /// NULL for every event created through the Community Events API.
+  legacyPlaceEventId String? @unique @map("legacy_place_event_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  createdBy  User?         @relation("CreatedEvents", fields: [createdById], references: [id], onDelete: SetNull)
+  approvedBy User?         @relation("ApprovedEvents", fields: [approvedById], references: [id], onDelete: SetNull)
+  place      Place?        @relation("LinkedPlaceEvents", fields: [linkedPlaceId], references: [id], onDelete: SetNull)
+  vendor     Vendor?       @relation("LinkedVendorEvents", fields: [linkedVendorId], references: [id], onDelete: SetNull)
+  reels      Reel[]        @relation("ReelEvent")
+  reports    EventReport[]
+
+  @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([status, startDate])
+  @@index([createdById])
+  @@index([eventType])
+  @@index([city])
+  @@index([state])
+  @@index([linkedPlaceId])
+  @@index([linkedVendorId])
+  @@index([latitude, longitude])
+  @@map("events")
+}
+
+/// A user-reported problem with a Community Event. Reporting never mutates the
+/// Event: it creates a moderation queue row that an admin resolves.
+model EventReport {
+  id             String            @id @default(cuid())
+  eventId        String            @map("event_id")
+  userId         String            @map("user_id")
+  reason         EventReportReason
+  details        String?
+  status         EventReportStatus @default(PENDING)
+  reviewedById   String?           @map("reviewed_by_id")
+  reviewedAt     DateTime?         @map("reviewed_at")
+  resolutionNote String?           @map("resolution_note")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  event      Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user       User  @relation("ReportedEvents", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("ReviewedEventReports", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([eventId, userId, reason])
+  @@index([eventId])
+  @@index([userId])
+  @@index([status])
+  @@map("event_reports")
 }
 
 model Review {
@@ -1161,7 +1305,7 @@ model TripCollaborator {
   @@map("trip_collaborators")
 }
 
-/// Audit trail for AI itinerary generation requests â€” persists even for
+/// Audit trail for AI itinerary generation requests — persists even for
 /// failed/ephemeral generations, and backs "regenerate history".
 model AiGenerationLog {
   id            String    @id @default(cuid())
@@ -1341,9 +1485,10 @@ model Reel {
   savesList           ReelSave[]
   collaboration       Collaboration?           @relation(fields: [collaborationId], references: [id])
   creator             CreatorProfile           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  event               PlaceEvent?              @relation(fields: [eventId], references: [id])
+  event               Event?                   @relation("ReelEvent", fields: [eventId], references: [id], onDelete: SetNull)
   place               Place?                   @relation(fields: [placeId], references: [id])
   vendor              Vendor?                  @relation(fields: [vendorId], references: [id])
+  viewsList           ReelView[]
 
   @@index([creatorId])
   @@index([placeId])
@@ -1452,6 +1597,24 @@ model ReelSave {
   @@map("reel_saves")
 }
 
+/// One row per (reel, authenticated viewer). The unique constraint is the
+/// authority for de-duplication: the public counter on `reels.views` is only
+/// incremented when this row is newly created.
+model ReelView {
+  id        String   @id @default(cuid())
+  reelId    String   @map("reel_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  reel      Reel     @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reelId, userId])
+  @@index([reelId])
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@map("reel_views")
+}
+
 model SystemSetting {
   id          String   @id @default(cuid())
   category    String   @default("general")
@@ -1512,14 +1675,14 @@ model Riddle {
 
   status      String   @default("ACTIVE")
   rewardCoins Int      @default(10) @map("reward_coins")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   importLogId String? @map("import_log_id")
 
-  importLog TreasureHuntImportLog? @relation(fields: [importLogId], references: [id], onDelete: SetNull)
-  hunt     TreasureHunt          @relation(fields: [huntId], references: [id], onDelete: Cascade)
-  progress RiddleProgress[]
+  importLog     TreasureHuntImportLog? @relation(fields: [importLogId], references: [id], onDelete: SetNull)
+  hunt          TreasureHunt           @relation(fields: [huntId], references: [id], onDelete: Cascade)
+  progress      RiddleProgress[]
   dailyAttempts RiddleDailyAttempt[]
 
   @@index([huntId])
@@ -1611,8 +1774,8 @@ model TreasureHuntImportLog {
   deletedAt   DateTime? @map("deleted_at")
   deletedById String?   @map("deleted_by_id")
 
-  uploadedBy User    @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
-  deletedBy  User?   @relation("ImportDeleter", fields: [deletedById], references: [id], onDelete: SetNull)
+  uploadedBy User     @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  deletedBy  User?    @relation("ImportDeleter", fields: [deletedById], references: [id], onDelete: SetNull)
   riddles    Riddle[]
 
   @@index([uploadedById])
@@ -1676,23 +1839,23 @@ model RewardClaim {
 /// Created additive by migration 20260918120000_add_moderation_cases; code degrades
 /// gracefully to the derived-only queue until the migration is applied.
 model ModerationCase {
-  id                     String   @id @default(cuid())
-  caseIdentifier         String   @unique @map("case_identifier")
-  caseType               String   @map("case_type")
-  entityId               String   @map("entity_id")
-  entityName             String?  @map("entity_name")
-  reporterId             String?  @map("reporter_id")
-  reporterName           String?  @map("reporter_name")
-  reason                 String?
-  severity               String?
-  priority               String?
-  status                 String   @default("PENDING") @map("status")
-  assignedModeratorId    String?  @map("assigned_moderator_id")
-  assignedModeratorName  String?  @map("assigned_moderator_name")
-  resolutionNotes        String?  @map("resolution_notes")
-  resolvedAt             DateTime? @map("resolved_at")
-  createdAt              DateTime @default(now()) @map("created_at")
-  updatedAt              DateTime @updatedAt @map("updated_at")
+  id                    String    @id @default(cuid())
+  caseIdentifier        String    @unique @map("case_identifier")
+  caseType              String    @map("case_type")
+  entityId              String    @map("entity_id")
+  entityName            String?   @map("entity_name")
+  reporterId            String?   @map("reporter_id")
+  reporterName          String?   @map("reporter_name")
+  reason                String?
+  severity              String?
+  priority              String?
+  status                String    @default("PENDING") @map("status")
+  assignedModeratorId   String?   @map("assigned_moderator_id")
+  assignedModeratorName String?   @map("assigned_moderator_name")
+  resolutionNotes       String?   @map("resolution_notes")
+  resolvedAt            DateTime? @map("resolved_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
 
   @@index([status])
   @@index([caseType])
@@ -1751,7 +1914,7 @@ model SearchQueryLog {
   @@map("search_query_logs")
 }
 
-/// One row per (document type, locale) â€” the addressable "slot" that always has
+/// One row per (document type, locale) — the addressable "slot" that always has
 /// at most one PUBLISHED version at a time. Content itself lives in LegalDocumentVersion
 /// so every edit is versioned and nothing is ever destructively overwritten.
 model LegalDocument {
@@ -1793,7 +1956,7 @@ model LegalDocumentVersion {
   @@map("legal_document_versions")
 }
 
-/// Admin-authored in-app banners/notices (separate from push notifications â€” these
+/// Admin-authored in-app banners/notices (separate from push notifications — these
 /// are pulled by clients on demand and shown while active, not delivered as events).
 model Announcement {
   id          String               @id @default(cuid())
@@ -1827,7 +1990,7 @@ model SubscriptionPlan {
   color                  String?                 @default("#B9834B")
   status                 PlanStatus              @default(DRAFT)
   sortOrder              Int                     @default(0) @map("sort_order")
-  /// Legacy feature/limits JSON â€” synced from plan_limits / plan_permissions for clients
+  /// Legacy feature/limits JSON — synced from plan_limits / plan_permissions for clients
   features               Json                    @default("{}")
   trialDays              Int                     @default(0) @map("trial_days")
   gracePeriodDays        Int                     @default(3) @map("grace_period_days")
@@ -1981,26 +2144,28 @@ model Refund {
 }
 
 model Coupon {
-  id             String             @id @default(cuid())
-  code           String             @unique
-  type           CouponType
-  ownerType      CouponOwnerType    @default(ADMIN) @map("owner_type")
-  vendorId       String?            @map("vendor_id")
-  value          Float
-  maxDiscount    Float?             @map("max_discount")
-  minPurchase    Float?             @map("min_purchase")
-  usageLimit     Int?               @map("usage_limit")
-  usedCount      Int                @default(0) @map("used_count")
-  perUserLimit   Int                @default(1) @map("per_user_limit")
-  startsAt       DateTime?          @map("starts_at")
-  expiresAt      DateTime?          @map("expires_at")
-  isActive       Boolean            @default(true) @map("is_active")
-  description    String?
-  createdAt      DateTime           @default(now()) @map("created_at")
-  updatedAt      DateTime           @updatedAt @map("updated_at")
-  recipientEmail String?            @map("recipient_email")
-  redemptions    CouponRedemption[]
-  vendor         Vendor?            @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  id                  String             @id @default(cuid())
+  code                String             @unique
+  type                CouponType
+  ownerType           CouponOwnerType    @default(ADMIN) @map("owner_type")
+  vendorId            String?            @map("vendor_id")
+  value               Float
+  maxDiscount         Float?             @map("max_discount")
+  minPurchase         Float?             @map("min_purchase")
+  usageLimit          Int?               @map("usage_limit")
+  usedCount           Int                @default(0) @map("used_count")
+  perUserLimit        Int                @default(1) @map("per_user_limit")
+  startsAt            DateTime?          @map("starts_at")
+  expiresAt           DateTime?          @map("expires_at")
+  isActive            Boolean            @default(true) @map("is_active")
+  description         String?
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+  recipientEmail      String?            @map("recipient_email")
+  /// Restricts a platform coupon to specific plan slugs. Empty = every plan.
+  applicablePlanSlugs String[]           @default([]) @map("applicable_plan_slugs")
+  redemptions         CouponRedemption[]
+  vendor              Vendor?            @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@index([vendorId])
   @@index([isActive, expiresAt])
@@ -2008,16 +2173,28 @@ model Coupon {
 }
 
 model CouponRedemption {
-  id        String   @id @default(cuid())
-  couponId  String   @map("coupon_id")
-  userId    String   @map("user_id")
-  orderRef  String?  @map("order_ref")
-  createdAt DateTime @default(now()) @map("created_at")
-  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  couponId        String   @map("coupon_id")
+  userId          String   @map("user_id")
+  orderRef        String?  @map("order_ref")
+  /// Immutable financial snapshot of the redemption.
+  /// Editing a coupon's percentage later must never rewrite these values, so
+  /// historical revenue/discount reporting stays truthful.
+  originalPaise   Int      @default(0) @map("original_paise")
+  discountPaise   Int      @default(0) @map("discount_paise")
+  finalPaise      Int      @default(0) @map("final_paise")
+  discountPercent Float?   @map("discount_percent")
+  planId          String?  @map("plan_id")
+  planSlug        String?  @map("plan_slug")
+  subscriptionId  String?  @map("subscription_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  coupon          Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([couponId])
   @@index([userId])
+  @@index([couponId, createdAt])
+  @@index([planSlug])
   @@map("coupon_redemptions")
 }
 
@@ -2623,6 +2800,63 @@ enum AuditAction {
   COLLABORATION_COMPLETED
   SETTINGS_UPDATED
   SETTINGS_RESET
+  EVENT_CREATED
+  EVENT_UPDATED
+  EVENT_APPROVED
+  EVENT_REJECTED
+  EVENT_UNPUBLISHED
+  EVENT_CANCELLED
+  EVENT_FEATURED
+  EVENT_DELETED
+  EVENT_REPORTED
+  EVENT_REPORT_RESOLVED
+}
+
+/// Community Event taxonomy. Stored as a native enum so the database — not the
+/// application — rejects a free-form value; the mobile client sends one of
+/// these exact keys.
+enum EventType {
+  FESTIVAL
+  RELIGIOUS
+  CULTURAL
+  FAIR_MELA
+  CONCERT
+  EXHIBITION
+  SPORTS
+  FOOD
+  COMMUNITY
+  LOCAL
+  OTHER
+}
+
+/// Moderation lifecycle for a Community Event.
+///
+/// PENDING / APPROVED / REJECTED / CANCELLED are stored states.
+/// EXPIRED is a *derived* public condition (`end_date < now()`), never written
+/// by a nightly job — public queries apply it as a date predicate.
+enum EventStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  EXPIRED
+}
+
+enum EventReportReason {
+  FAKE_EVENT
+  WRONG_LOCATION
+  DUPLICATE
+  CANCELLED
+  INAPPROPRIATE
+  MISLEADING
+  OTHER
+}
+
+enum EventReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
 }
 
 enum TransactionType {

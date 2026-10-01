@@ -14,6 +14,13 @@ interface ApiResponseOptions {
   statusCode?: number;
   pagination?: PaginationMeta;
   message?: string;
+  /**
+   * Extra top-level envelope fields for endpoints whose data is a bare array
+   * (map feeds, nearby searches) and therefore has nowhere else to carry
+   * count/limit/hasMore. Emitted as a sibling of `data`, matching the existing
+   * `pagination` convention.
+   */
+  meta?: Record<string, unknown>;
 }
 
 export function sendSuccess<T>(res: Response, data: T, options?: ApiResponseOptions) {
@@ -24,6 +31,10 @@ export function sendSuccess<T>(res: Response, data: T, options?: ApiResponseOpti
 
   if (options?.pagination) {
     body.pagination = options.pagination;
+  }
+
+  if (options?.meta) {
+    body.meta = options.meta;
   }
 
   body.message = options?.message || 'Success';

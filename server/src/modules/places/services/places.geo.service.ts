@@ -20,6 +20,73 @@ function joinOr(conditions: Prisma.Sql[]): Prisma.Sql {
   return conditions.reduce((acc, c) => Prisma.sql`${acc} OR ${c}`);
 }
 
+/**
+ * Normalize a client-supplied bounding box into a valid PostGIS envelope.
+ *
+ * `ST_MakeEnvelope` requires xmin < xmax and ymin < ymax and raises
+ * "ERROR: Invalid envelope" otherwise, which surfaced as an unhandled 500 from
+ * every geo endpoint whenever a client sent a crossed or inverted box
+ * (e.g. north < south, or east < west). Taking min/max makes the endpoints
+ * resilient to that input instead of failing the whole request.
+ */
+export function normalizeBounds(
+  n: number,
+  s: number,
+  e: number,
+  w: number,
+): { north: number; south: number; east: number; west: number } {
+  return {
+    north: Math.max(n, s),
+    south: Math.min(n, s),
+    east: Math.max(e, w),
+    west: Math.min(e, w),
+  };
+}
+
+/** Hard cap on rows returned by GET /places/map. */
+export const MAP_MAX_LIMIT = 1000;
+/**
+ * Hard cap on how many category filters a single map request may carry.
+ *
+ * The mobile client expands one selected chip into every known alias spelling
+ * (3 variants per key) across ALL distinct production category values, which
+ * produced URLs of 4-34 KB. Long request lines are rejected by the Render edge
+ * as 502 before they ever reach this process, so an unbounded list is both a
+ * DoS vector and the cause of the production 502s.
+ */
+export const MAP_MAX_CATEGORIES = 64;
+export const MAP_MAX_CATEGORY_LEN = 64;
+
+/**
+ * Normalize + cap the `categories` / `category` query params.
+ *
+ * - drops empty and over-long values
+ * - de-duplicates (previously only exact-match deduped, and only via indexOf)
+ * - caps the count, so a pathological client cannot build an unbounded
+ *   N-branch OR chain or an enormous SQL statement
+ * - returns a lower-cased set so the OR chain matches the functional index
+ *   `places_category_lower_idx` on `lower(category::text)`
+ */
+export function normalizeCategoryList(query: {
+  categories?: string;
+  category?: string;
+}): string[] {
+  const raw: string[] = [];
+  if (query.categories) raw.push(...query.categories.split(','));
+  if (query.category) raw.push(query.category);
+
+  const seen = new Set<string>();
+  for (const value of raw) {
+    const v = value.trim().toLowerCase();
+    if (!v) continue;
+    if (v.length > MAP_MAX_CATEGORY_LEN) continue;
+    if (seen.has(v)) continue;
+    seen.add(v);
+    if (seen.size >= MAP_MAX_CATEGORIES) break;
+  }
+  return [...seen];
+}
+
 export const placesGeoService = {
   async search(query: {
     q?: string;
@@ -206,10 +273,12 @@ export const placesGeoService = {
     tags?: string;
     limit?: string;
   }) {
-    const north = parseFloat(query.north);
-    const south = parseFloat(query.south);
-    const east = parseFloat(query.east);
-    const west = parseFloat(query.west);
+    const { north, south, east, west } = normalizeBounds(
+      parseFloat(query.north),
+      parseFloat(query.south),
+      parseFloat(query.east),
+      parseFloat(query.west),
+    );
     const limit = Math.min(parseInt(query.limit || '200', 10), 500);
 
     const conditions: Prisma.Sql[] = [
@@ -326,10 +395,12 @@ export const placesGeoService = {
     category?: string;
     limit?: string;
   }) {
-    const north = parseFloat(query.north);
-    const south = parseFloat(query.south);
-    const east = parseFloat(query.east);
-    const west = parseFloat(query.west);
+    const { north, south, east, west } = normalizeBounds(
+      parseFloat(query.north),
+      parseFloat(query.south),
+      parseFloat(query.east),
+      parseFloat(query.west),
+    );
     const limit = Math.min(parseInt(query.limit || '200', 10), 500);
 
     const conditions: Prisma.Sql[] = [
@@ -522,19 +593,22 @@ export const placesGeoService = {
     limit?: string;
     cursor?: string;
   }) {
-    const north = parseFloat(query.north);
-    const south = parseFloat(query.south);
-    const east = parseFloat(query.east);
-    const west = parseFloat(query.west);
-    const zoom = parseInt(query.zoom || '12', 10);
-    const limit = Math.min(parseInt(query.limit || '1000', 10), 1000);
+    const { north, south, east, west } = normalizeBounds(
+      parseFloat(query.north),
+      parseFloat(query.south),
+      parseFloat(query.east),
+      parseFloat(query.west),
+    );
+    const zoom = parsePositiveInt(query.zoom, 12);
+    // Previously `Math.min(parseInt(query.limit || '1000', 10), 1000)`:
+    //   limit=abc -> NaN  -> "LIMIT NaN" -> Postgres error -> HTTP 500
+    //   limit=-5  -> -4    -> "LIMIT -4"  -> Postgres error -> HTTP 500
+    // Use the same safe clamp as every other service in this module.
+    const limit = Math.min(MAP_MAX_LIMIT, Math.max(1, parsePositiveInt(query.limit, MAP_MAX_LIMIT)));
     const verifiedOnly = query.verifiedOnly === 'true' || query.verifiedOnly === '1';
     const CLUSTER_MAX_ZOOM = -1; // Disabled clustering per user request
 
-    const categoryList = [
-      ...(query.categories?.split(',').map((c) => c.trim()).filter(Boolean) || []),
-      ...(query.category ? [query.category.trim()] : []),
-    ].filter((v, i, a) => a.indexOf(v) === i);
+    const categoryList = normalizeCategoryList(query);
 
     const conditions: Prisma.Sql[] = [
       Prisma.sql`p.status = 'APPROVED'`,
@@ -548,7 +622,10 @@ export const placesGeoService = {
       conditions.push(Prisma.sql`p.data_quality = 'VERIFIED'`);
     }
     if (categoryList.length > 0) {
-      const catConditions = categoryList.map((c) => Prisma.sql`LOWER(p.category::text) = LOWER(${c})`);
+      // categoryList is already lower-cased by normalizeCategoryList, so the
+      // right-hand side is a constant and this stays sargable against
+      // places_category_lower_idx (lower(category::text)).
+      const catConditions = categoryList.map((c) => Prisma.sql`LOWER(p.category::text) = ${c}`);
       conditions.push(Prisma.sql`(${joinOr(catConditions)})`);
     }
     const whereClause = joinConditions(conditions);
@@ -601,8 +678,15 @@ export const placesGeoService = {
         LIMIT ${Math.min(limit, 300)}
       `;
 
-      const totalResult: any = await prisma.$queryRaw`SELECT COUNT(*) FROM places p WHERE ${whereClause}`;
-      const totalInViewport = Number(totalResult[0]?.count || 0);
+      // NOTE: a `SELECT COUNT(*) ... WHERE <same bbox+category filter>` used to
+      // run here purely to populate `totalInViewport`. That was a second full
+      // aggregate scan on every single map request, and at low zoom (whole-
+      // country viewport) it had to count every matching row - a direct
+      // contributor to the 2s/3s/10.9s traces and the Render edge 502s.
+      // Nothing in the mobile app, the server, or any test ever read
+      // `totalInViewport`; it was dead weight on the hottest read path, so the
+      // count and the field are gone. Cluster `count` values (which ARE used)
+      // still come from the single grouped query above.
 
       const result = {
         mode: 'clusters' as const,
@@ -620,7 +704,6 @@ export const placesGeoService = {
         })),
         places: [] as ReturnType<typeof mapMapPlaceRow>[],
         nextCursor: null as string | null,
-        totalInViewport,
       };
       await cache.set(ck, result, 60);
       return result;
@@ -677,8 +760,9 @@ export const placesGeoService = {
       nextCursor = Buffer.from(`${scoreVal}|${last.id}`).toString('base64url');
     }
 
-    const countResult: any = await prisma.$queryRaw`SELECT COUNT(*) FROM places p WHERE ${whereClause}`;
-    const totalInViewport = Number(countResult[0]?.count || 0);
+    // See the cluster-branch note above: this second aggregate COUNT is removed
+    // for the same reason. The LIMIT-ed page plus `nextCursor` is the pagination
+    // contract, and it needs no total.
 
     const result = {
       mode: 'places' as const,
@@ -687,7 +771,6 @@ export const placesGeoService = {
       places,
       clusters: [] as object[],
       nextCursor,
-      totalInViewport,
     };
     await cache.set(ck, result, 60);
     return result;

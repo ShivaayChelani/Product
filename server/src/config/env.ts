@@ -160,6 +160,23 @@ export const env = {
     bundleId: process.env.APPLE_IAP_BUNDLE_ID || '',
     env: process.env.APPLE_IAP_ENV || 'production',
   },
+  /**
+   * Public link association (Android App Links / iOS Universal Links). The API
+   * serves /.well-known/assetlinks.json and /.well-known/apple-app-site-association
+   * for the host that fronts the share URLs, so the canonical domain can point
+   * at this service and verified links keep working.
+   */
+  appLink: {
+    packageName: process.env.ANDROID_APP_PACKAGE_NAME || 'com.palsasafar',
+    /** Play upload/signing SHA-256 fingerprint(s), colon-separated, comma-separated list. */
+    androidCertFingerprints: process.env.ANDROID_APP_CERT_FINGERPRINTS || '',
+    iosBundleId: process.env.IOS_APP_BUNDLE_ID || 'com.palsasafar',
+    /** Required before Universal Links verify; empty means "not configured yet". */
+    iosTeamId: process.env.IOS_TEAM_ID || '',
+    /** Web URL for the Play Store install prompt on the share landing page. */
+    androidStoreUrl: process.env.ANDROID_STORE_URL || '',
+    iosStoreUrl: process.env.IOS_STORE_URL || '',
+  },
   isProduction,
   /** Tourist APIs return only dataQuality=VERIFIED when true (default false for backward compatibility). */
   placesPublicVerifiedOnly: process.env.PLACES_PUBLIC_VERIFIED_ONLY === 'true',

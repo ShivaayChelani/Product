@@ -23,6 +23,7 @@ export enum AppEvents {
   OFFER_APPROVED = 'OFFER_APPROVED',
   OFFER_REJECTED = 'OFFER_REJECTED',
   OFFER_DISABLED = 'OFFER_DISABLED',
+  OFFER_ENABLED = 'OFFER_ENABLED',
   POINTS_EARNED = 'POINTS_EARNED',
   POINTS_SPENT = 'POINTS_SPENT',
   REDEMPTION_CREATED = 'REDEMPTION_CREATED',
@@ -416,6 +417,31 @@ eventBus.on(AppEvents.OFFER_DISABLED, async (payload: {
     }
   } catch (error) {
     logger.error({ error, offerId: payload.offerId }, 'Failed to send offer disabled notification');
+  }
+});
+
+eventBus.on(AppEvents.OFFER_ENABLED, async (payload: {
+  offerId: string;
+  offerTitle: string;
+  vendorId: string;
+}) => {
+  try {
+    const { prisma } = await import('../config/database');
+    const vendor = await prisma.vendor.findUnique({
+      where: { id: payload.vendorId },
+      select: { userId: true },
+    });
+    if (vendor) {
+      await notificationService.sendToUser(
+        vendor.userId,
+        'Offer Enabled',
+        `"${payload.offerTitle}" is now live again.`,
+        { offerId: payload.offerId, type: 'offer_enabled' },
+        'offer_enabled',
+      );
+    }
+  } catch (error) {
+    logger.error({ error, offerId: payload.offerId }, 'Failed to send offer enabled notification');
   }
 });
 

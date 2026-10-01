@@ -1,6 +1,34 @@
 import { z } from 'zod';
 import { REEL_TAGS } from './reelTags';
 
+/**
+ * Canonical normalisation for Creator usernames.
+ * Applied at the Zod boundary so every downstream caller receives the
+ * already-normalised value.  Rules:
+ *   1. Strip surrounding whitespace
+ *   2. Strip leading '@' characters (e.g. @username → username)
+ *   3. Lowercase
+ *
+ * This mirrors the runtime normalisation already used by checkUsernameAvailability
+ * and updateProfile, ensuring no code-path can accidentally store a mixed-case
+ * or padded username.
+ */
+export function normalizeCreatorUsername(raw: string): string {
+  return raw.trim().replace(/^@+/, '').toLowerCase();
+}
+
+/** Zod chain that validates THEN normalises a creator username string. */
+const usernameField = z
+  .string()
+  .min(3, 'Username must be at least 3 characters')
+  .max(30, 'Username must be at most 30 characters')
+  .regex(/^[a-zA-Z0-9_.@\s]+$/, 'Username can only contain alphanumeric characters and underscores')
+  .transform(normalizeCreatorUsername)
+  .refine(
+    (v) => /^[a-z0-9_.]+$/.test(v),
+    'Username can only contain alphanumeric characters, underscores, and dots',
+  );
+
 /** Empty / whitespace / null become undefined so optional link fields stay optional. */
 const optionalLink = (max: number) =>
   z.preprocess(
@@ -15,10 +43,7 @@ const optionalUrl = () =>
   );
 
 export const applyCreatorSchema = z.object({
-  username: z.string()
-    .min(3, 'Username must be at least 3 characters')
-    .max(30, 'Username must be at most 30 characters')
-    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain alphanumeric characters and underscores'),
+  username: usernameField,
   fullName: z.string().min(2, 'Full name is required').max(120, 'Full name must be at most 120 characters'),
   bio: z.string().min(20, 'Bio must be at least 20 characters').max(500, 'Bio must be at most 500 characters'),
   travelCategories: z.array(z.string().min(1).max(40))
@@ -40,11 +65,7 @@ export const applyCreatorSchema = z.object({
 });
 
 export const updateCreatorProfileSchema = z.object({
-  username: z.string()
-    .min(3, 'Username must be at least 3 characters')
-    .max(30, 'Username must be at most 30 characters')
-    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain alphanumeric characters and underscores')
-    .optional(),
+  username: usernameField.optional(),
   bio: z.string().max(500, 'Bio must be at most 500 characters').optional(),
   avatar: optionalUrl(),
   fullName: z.string().min(2).max(120).optional(),

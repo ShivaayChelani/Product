@@ -1,5 +1,6 @@
 import { prisma } from '../../config/database';
-import { CreatorStatus, Role, RoleAssignmentStatus, VendorListingStatus } from '@prisma/client';
+import { logger } from '../../config/logger';
+import { CreatorStatus, Prisma, Role, RoleAssignmentStatus, VendorListingStatus } from '@prisma/client';
 import { ApiError, ErrorCodes } from '../../shared/utils/ApiError';
 import { mapCreatorStatusToRoleStatus } from '../../shared/utils/specialtyRoles';
 import { roleTransitionService } from '../../shared/services/roleTransition.service';
@@ -12,12 +13,15 @@ import {
   REEL_SHARE_DEDUP_MS,
   REEL_VIEW_DEDUP_MS,
 } from '../../shared/utils/actionDedup';
+import { recordUniqueView } from '../../shared/utils/reelViewDedup';
 import {
   awardCreatorDailyReelInTx,
   CREATOR_DAILY_REEL_FALLBACK_POINTS,
   getIndiaRewardDate,
   resolveDailyReelPoints,
 } from './creatorDailyReelReward';
+import { notifyCreatorDailyReelReward } from './creatorDailyReelNotification';
+import { resolveReelEventLink, sanitizeReelEvent, isAdminUser } from './reelEventLink';
 import type {
   ApplyCreatorInput,
   UpdateCreatorProfileInput,
@@ -66,8 +70,32 @@ const reelResponseInclude = {
       status: true,
     },
   },
+  // Selected wide enough to run the public-visibility check, then narrowed by
+  // `sanitizeReelEvent` in `applyLiveEngagement` — the fields needed for the
+  // check must never reach the response.
   event: {
-    select: { id: true, title: true },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      eventType: true,
+      startDate: true,
+      endDate: true,
+      coverImage: true,
+      city: true,
+      state: true,
+      status: true,
+      createdById: true,
+      place: {
+        select: {
+          status: true,
+          mergedIntoId: true,
+          dataQuality: true,
+          source: true,
+          verificationLevel: true,
+        },
+      },
+    },
   },
   _count: {
     select: { comments: true, likesList: true, savesList: true },
@@ -128,14 +156,23 @@ type LiveEngagement<T extends LiveEngagementCounts> = Omit<T, '_count'> & {
 
 function applyLiveEngagement<T extends LiveEngagementCounts>(item: T): LiveEngagement<T> {
   const { _count, ...rest } = item;
-  return {
+  const shaped = {
     ...rest,
     likes: _count?.likesList ?? item.likes ?? 0,
     commentsCount: _count?.comments ?? 0,
     saves: _count?.savesList ?? item.saves ?? 0,
     views: item.views ?? 0,
     shares: item.shares ?? 0,
-  };
+  } as LiveEngagement<T>;
+  // Every reel response funnels through here, so this is the one place a
+  // non-public event can be stripped off a reel payload. A reel linked before
+  // `resolveReelEventLink` existed must not keep leaking an unapproved event.
+  if ('event' in shaped) {
+    (shaped as { event?: unknown }).event = sanitizeReelEvent(
+      (item as { event?: unknown }).event as Parameters<typeof sanitizeReelEvent>[0],
+    );
+  }
+  return shaped;
 }
 
 async function loadCreatorReelList(
@@ -169,13 +206,22 @@ export const socialService = {
         tx,
       );
 
+      // Normalise username here as defence-in-depth (Zod also normalises at the
+      // controller boundary, but we do it again in case the service is ever called
+      // directly, e.g. from admin tooling or tests).
+      const normalizedUsername = input.username.trim().replace(/^@+/, '').toLowerCase();
+
       const [existingForUser, existingForUsername] = await Promise.all([
         tx.creatorProfile.findUnique({ where: { userId } }),
-        tx.creatorProfile.findUnique({ where: { username: input.username } }),
+        tx.creatorProfile.findFirst({
+          where: {
+            username: { equals: normalizedUsername, mode: 'insensitive' },
+          },
+        }),
       ]);
 
       if (existingForUsername && existingForUsername.userId !== userId) {
-        throw new ApiError(400, 'Username is already taken.');
+        throw new ApiError(400, 'Username is already taken.', true, 'USERNAME_ALREADY_TAKEN');
       }
 
       if (existingForUser) {
@@ -199,7 +245,7 @@ export const socialService = {
       }
 
       const profileData = {
-        username: input.username,
+        username: normalizedUsername,
         fullName: input.fullName,
         bio: input.bio,
         avatar: input.avatar,
@@ -223,6 +269,10 @@ export const socialService = {
               verified: false,
               rejectionReason: null,
             },
+          }).catch((err: unknown) => {
+            const e = err as { code?: string };
+            if (e?.code === 'P2002') throw new ApiError(400, 'Username is already taken.', true, 'USERNAME_ALREADY_TAKEN');
+            throw err;
           })
         : await tx.creatorProfile.create({
             data: {
@@ -230,6 +280,10 @@ export const socialService = {
               ...profileData,
               status: 'PENDING',
             },
+          }).catch((err: unknown) => {
+            const e = err as { code?: string };
+            if (e?.code === 'P2002') throw new ApiError(400, 'Username is already taken.', true, 'USERNAME_ALREADY_TAKEN');
+            throw err;
           });
 
       await roleTransitionService.finalizeApplication(userId, Role.CONTENT_CREATOR, tx);
@@ -607,7 +661,12 @@ export const socialService = {
         dataToUpdate.vendorListingStatus = null;
       }
     }
-    if (input.eventId !== undefined) dataToUpdate.eventId = input.eventId;
+    if (input.eventId !== undefined) {
+      dataToUpdate.eventId = await resolveReelEventLink(input.eventId, {
+        viewerUserId: userId,
+        isAdmin: await isAdminUser(userId),
+      });
+    }
     if (input.tags !== undefined) dataToUpdate.tags = input.tags || [];
 
     const updated = await prisma.reel.update({
@@ -819,6 +878,14 @@ export const socialService = {
       }
     }
 
+    // Validated, not written through: an eventId that does not exist, or that
+    // the creator is not allowed to tag, must fail the upload rather than
+    // create a dangling or unauthorised link.
+    const resolvedEventId = await resolveReelEventLink(input.eventId, {
+      viewerUserId: userId,
+      isAdmin: await isAdminUser(userId),
+    });
+
     // Idempotency: retry with the same uploaded video must not create duplicate reels.
     const recentDuplicate = await prisma.reel.findFirst({
       where: {
@@ -851,7 +918,7 @@ export const socialService = {
           placeId: resolvedPlaceId,
           vendorId: taggedVendor?.id || null,
           vendorListingStatus: taggedVendor ? VendorListingStatus.PENDING : null,
-          eventId: input.eventId || null,
+          eventId: resolvedEventId,
         },
         include: reelResponseInclude,
       });
@@ -877,6 +944,14 @@ export const socialService = {
       }).catch(() => undefined);
     }
 
+    // Posted after the transaction committed: only a real award notifies, so the
+    // "first reel of the day" limit also limits this to one notification.
+    notifyCreatorDailyReelReward({
+      userId,
+      reelId: result.reel.id,
+      points: result.rewardPoints,
+    });
+
     return {
       ...result.reel,
       rewardPoints: result.rewardPoints,
@@ -898,6 +973,8 @@ export const socialService = {
         points: dailyReelPoints,
       }),
     );
+
+    notifyCreatorDailyReelReward({ userId, reelId, points: rewardPoints });
 
     return {
       rewardPoints,
@@ -1326,30 +1403,93 @@ export const socialService = {
     });
   },
 
-  async incrementViews(reelId: string, actorKey: string) {
+  /**
+   * Record a reel view.
+   *
+   * Authenticated viewers are de-duplicated by the `reel_views` unique index on
+   * (reel_id, user_id), which is permanent and enforced by Postgres — the
+   * public counter moves exactly once no matter how often the reel is opened,
+   * replayed, or requested concurrently. Anonymous callers have no durable
+   * identity, so they keep the existing best-effort IP/session slot; see
+   * `claimActionSlot`.
+   */
+  async incrementViews(reelId: string, actorKey: string, viewerUserId?: string | null) {
     const reel = await prisma.reel.findUnique({
       where: { id: reelId },
-      select: { id: true, views: true, creatorId: true },
+      select: { id: true, views: true, creatorId: true, creator: { select: { userId: true } } },
     });
     if (!reel) throw new ApiError(404, 'Reel not found.');
 
-    const claimed = await claimActionSlot(`reel-view:${reelId}:${actorKey}`, REEL_VIEW_DEDUP_MS);
-    if (!claimed) {
-      return { id: reel.id, views: reel.views };
+    const readCurrent = async () => {
+      // Re-read rather than reuse the value fetched at the start of the request:
+      // a duplicate usually means a competing transaction just committed.
+      const current = await prisma.reel.findUnique({
+        where: { id: reelId },
+        select: { id: true, views: true },
+      });
+      return { id: reelId, views: current?.views ?? reel.views };
+    };
+
+    if (!viewerUserId) {
+      // Anonymous: no durable identity exists without inventing one, so fall
+      // back to the pre-existing short-lived per-actor slot.
+      const claimed = await claimActionSlot(`reel-view:${reelId}:${actorKey}`, REEL_VIEW_DEDUP_MS);
+      if (!claimed) {
+        return { ...(await readCurrent()), counted: false, outcome: 'anonymous-duplicate' as const };
+      }
+      // Still transactional, so the public counter and the creator's lifetime
+      // total can never drift apart.
+      const updated = await prisma.$transaction(async (tx) => {
+        const bumped = await tx.reel.update({
+          where: { id: reelId },
+          data: { views: { increment: 1 } },
+          select: { id: true, views: true },
+        });
+        await tx.creatorProfile.update({
+          where: { id: reel.creatorId },
+          data: { totalViews: { increment: 1 } },
+        });
+        return bumped;
+      });
+      return { ...updated, counted: true, outcome: 'anonymous' as const };
     }
 
-    const updated = await prisma.reel.update({
-      where: { id: reelId },
-      data: { views: { increment: 1 } },
-      select: { id: true, views: true },
-    });
+    const isOwner = reel.creator.userId === viewerUserId;
 
-    await prisma.creatorProfile.update({
-      where: { id: reel.creatorId },
-      data: { totalViews: { increment: 1 } },
-    });
+    // The insert and the increment share one transaction: if the insert loses
+    // the unique-index race, the increment is rolled back with it.
+    const bumpInsideTx = async (tx: Prisma.TransactionClient) => {
+      await tx.reelView.create({ data: { reelId, userId: viewerUserId } });
+      const updated = await tx.reel.update({
+        where: { id: reelId },
+        data: { views: { increment: 1 } },
+        select: { id: true, views: true },
+      });
+      await tx.creatorProfile.update({
+        where: { id: reel.creatorId },
+        data: { totalViews: { increment: 1 } },
+      });
+      return updated;
+    };
 
-    return updated;
+    let decision: Awaited<ReturnType<typeof recordUniqueView<{ id: string; views: number }>>>;
+    try {
+      decision = await recordUniqueView({
+        isOwner,
+        claimUniqueViewer: () => prisma.$transaction((tx) => bumpInsideTx(tx)),
+        readCurrent,
+      });
+    } catch (err) {
+      // A transient write failure must not break playback, but it must be
+      // visible — otherwise view counts silently under-report.
+      logger.warn(
+        { err, reelId, viewerUserId },
+        '[REEL-VIEW] failed to record view; returning current count uncounted',
+      );
+      return { ...(await readCurrent()), counted: false, outcome: 'error' as const };
+    }
+
+    return { ...decision.result, counted: decision.counted, outcome: decision.outcome };
   },
 
   async incrementShares(reelId: string, actorKey: string) {

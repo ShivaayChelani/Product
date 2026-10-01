@@ -30,6 +30,7 @@ import vendorsRoutes from './modules/vendors/vendors.routes';
 import pointsRoutes from './modules/points/points.routes';
 import redemptionsRoutes from './modules/redemptions/redemptions.routes';
 import hiddenGemsRoutes, { adminRouter as adminHiddenGemsRoutes } from './modules/hidden-gems/hiddenGems.routes';
+import eventsRoutes, { adminRouter as adminEventsRoutes } from './modules/events/events.routes';
 import notificationRoutes, { adminRouter as adminNotificationRoutes } from './modules/notifications/notification.routes';
 import walletRoutes from './modules/wallet/wallet.routes';
 import rewardsRoutes from './modules/rewards/rewards.routes';
@@ -55,6 +56,7 @@ import databaseAdminRoutes from './modules/database-admin/database-admin.routes'
 import userAppRoutes from './modules/user-app/user-app.routes';
 import collaborationsRoutes, { collaborationsAdminRouter } from './modules/collaborations/collaborations.routes';
 import appPublicRoutes from './modules/app/app.routes';
+import appLinkRoutes from './modules/app-link/appLink.routes';
 import adminPanelRoutes from './modules/admin-panel/admin-panel.routes';
 import routingRoutes from './modules/routing/directions.routes';
 
@@ -157,6 +159,13 @@ app.use(correlationMiddleware);
 app.use(httpLogger);
 
 app.use('/uploads', authMiddleware, express.static(path.join(__dirname, '../uploads')));
+
+/**
+ * Shared-link surface. Mounted at the origin root (not under /api/v1) because
+ * share links are https://palsafar.com/reel/:reelId, and the domain verifiers
+ * probe /.well-known/ at the root. Registered before the 404 handler.
+ */
+app.use(appLinkRoutes);
 
 // Request timeout — AI itinerary generation needs longer than normal CRUD.
 app.use((req, _res, next) => {
@@ -268,6 +277,12 @@ apiV1.use('/points', pointsRoutes);
 apiV1.use('/redemptions', redemptionsRoutes);
 apiV1.use('/hidden-gems', hiddenGemsRoutes);
 apiV1.use('/admin/hidden-gems', adminHiddenGemsRoutes);
+// Community Events. The public router is mounted at the top level rather than
+// under /places so an event is a first-class entity: it has its own coordinates
+// and does not require a parent Place. The legacy PlaceEvent routes are kept for
+// backwards compatibility but now proxy through this service.
+apiV1.use('/events', eventsRoutes);
+apiV1.use('/admin/events', adminEventsRoutes);
 apiV1.use('/notifications', notificationRoutes);
 apiV1.use('/admin/notifications', adminNotificationRoutes);
 apiV1.use('/wallet', walletRoutes);
