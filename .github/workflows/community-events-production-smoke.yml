@@ -1,0 +1,69 @@
+name: Production Community Events Smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 7 * * 1,3,5'
+
+jobs:
+  community-events-smoke:
+    name: Community Events Production Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'server/package-lock.json'
+
+      - name: Install server dependencies
+        run: cd server && npm ci --no-audit --no-fund
+
+      - name: Run production event smoke test
+        id: smoke
+        env:
+          PROD_BASE_URL: ${{ secrets.PROD_BASE_URL }}
+          SMOKE_USER_EMAIL: ${{ secrets.SMOKE_USER_EMAIL }}
+          SMOKE_USER_PASSWORD: ${{ secrets.SMOKE_USER_PASSWORD }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+        run: |
+          cd server
+          npm run smoke:community-events
+        continue-on-error: true
+
+      - name: Publish smoke summary
+        if: always()
+        run: |
+          if [ -f server/artifacts/community-events-production-smoke-report.md ]; then
+            echo '## Production Community Events Smoke Test' >> "$GITHUB_STEP_SUMMARY"
+            cat server/artifacts/community-events-production-smoke-report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Smoke report was not generated.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: community-events-production-smoke-results
+          path: |
+            server/artifacts/**
+          if-no-files-found: warn
+
+      - name: Enforce smoke result
+        if: always()
+        run: |
+          if [ "${{ steps.smoke.outcome }}" != "success" ]; then
+            echo "Community Events production smoke test failed, was blocked, or reported warnings that require investigation."
+            exit 1
+          fi
+          echo "Community Events production smoke test passed."
