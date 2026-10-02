@@ -1,12 +1,15 @@
 import { env } from '../../config/env';
 import { socialService } from '../social/social.service';
+import { tripsService } from '../trips/trips.service';
 import { ApiError } from '../../shared/utils/ApiError';
 import {
   buildAppleAppSiteAssociation,
   buildAssetLinks,
   isSafePublicId,
   renderReelLandingPage,
+  renderTripLandingPage,
   type ReelShareMeta,
+  type TripShareMeta,
 } from './appLink.associations';
 
 /**
@@ -62,6 +65,35 @@ export const appLinkService = {
 
     return renderReelLandingPage({
       reelId,
+      origin,
+      meta,
+      androidStoreUrl: env.appLink.androidStoreUrl,
+      iosStoreUrl: env.appLink.iosStoreUrl,
+    });
+  },
+
+  /**
+   * Browser fallback for https://<origin>/trip/shared/:token. Reuses the same
+   * signed-token verification (and sanitized projection) as the public API, so
+   * an invalid/expired token still renders an install/Open-in-app page instead
+   * of the API's JSON 400.
+   */
+  async tripLandingPage(token: string, origin: string): Promise<string> {
+    let meta: Partial<TripShareMeta> | null;
+    try {
+      const trip = await tripsService.getSharedTrip(token);
+      meta = {
+        title: trip.title ?? '',
+        destination: trip.destination ?? '',
+        days: typeof trip.days === 'number' ? trip.days : 0,
+        coverImage: trip.coverImage ?? '',
+      };
+    } catch {
+      meta = null;
+    }
+
+    return renderTripLandingPage({
+      token,
       origin,
       meta,
       androidStoreUrl: env.appLink.androidStoreUrl,

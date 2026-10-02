@@ -9,5 +9,6 @@ const router = Router();
 router.get('/.well-known/assetlinks.json', appLinkController.assetLinks);
 router.get('/.well-known/apple-app-site-association', appLinkController.appleAppSiteAssociation);
 router.get('/reel/:reelId', globalLimiter, appLinkController.reelLandingPage);
+router.get('/trip/shared/:token', globalLimiter, appLinkController.tripLandingPage);
 
 export default router;

@@ -1,9 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildTripShareUrl,
   createTripShareToken,
   verifyTripShareToken,
   TRIP_SHARE_TOKEN_TTL_MS,
 } from '../modules/trips/shareToken';
+
+describe('trip share URLs', () => {
+  it('uses the production domain and signed shared-trip route', () => {
+    const token = 'signed.payload';
+    expect(buildTripShareUrl(token)).toBe(
+      `https://palsafar.in/trip/shared/${token}`,
+    );
+    expect(buildTripShareUrl(token)).not.toBe(`https://palsafar.in/trip/${token}`);
+  });
+});
 
 describe('trip share tokens', () => {
   const tripId = 'trip_1a2b3c4d';

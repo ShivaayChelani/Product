@@ -71,4 +71,15 @@ export const appLinkController = {
     res.set('X-Robots-Tag', 'noindex');
     res.status(200).send(html);
   }),
+
+  tripLandingPage: catchAsync(async (req: Request, res: Response) => {
+    const raw = req.params.token;
+    const token = Array.isArray(raw) ? raw[0] : raw;
+    const html = await appLinkService.tripLandingPage(token, requestOrigin(req));
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.set('Cache-Control', LANDING_CACHE_CONTROL);
+    res.set('Content-Security-Policy', LANDING_CSP);
+    res.set('X-Robots-Tag', 'noindex');
+    res.status(200).send(html);
+  }),
 };

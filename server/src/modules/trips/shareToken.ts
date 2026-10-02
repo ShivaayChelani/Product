@@ -14,6 +14,10 @@ const DEFAULT_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export const TRIP_SHARE_TOKEN_TTL_MS = DEFAULT_TTL_MS;
 
+export function buildTripShareUrl(token: string): string {
+  return `https://palsafar.in/trip/shared/${encodeURIComponent(token)}`;
+}
+
 function sign(payload: string): string {
   return crypto
     .createHmac('sha256', env.jwt.secret)

@@ -12,7 +12,12 @@ import {
 import { parseTripIntent, hasGlobalIntentSignals, extractPlaceNameCandidates } from './tripIntentParser';
 import { resolvePromptPlaceMentions } from './promptPlaceResolution';
 import { getCachedPlan, setCachedPlan, buildPlannerCacheKey } from './plannerCache';
-import { createTripShareToken, verifyTripShareToken, TRIP_SHARE_TOKEN_TTL_MS } from './shareToken';
+import {
+  buildTripShareUrl,
+  createTripShareToken,
+  verifyTripShareToken,
+  TRIP_SHARE_TOKEN_TTL_MS,
+} from './shareToken';
 import { selectFullRefreshAvoidIds, excludeRepeatedButKeepPinned } from './refreshAvoid';
 import {
   canonicalizeDestination,
@@ -710,7 +715,7 @@ export const tripsService = {
     const token = createTripShareToken(tripId);
     return {
       token,
-      url: `https://palsafar.com/trip/shared/${token}`,
+      url: buildTripShareUrl(token),
       expiresAt: new Date(Date.now() + TRIP_SHARE_TOKEN_TTL_MS).toISOString(),
     };
   },

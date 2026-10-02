@@ -239,3 +239,102 @@ ${playUrl ? `<meta name="twitter:player:stream" content="${escapeHtml(playUrl)}"
 </body>
 </html>`;
 }
+
+export type TripShareMeta = {
+  title: string;
+  destination: string;
+  days: number;
+  coverImage: string;
+};
+
+const DEFAULT_TRIP_TITLE = 'View this itinerary on PalSafar';
+
+/**
+ * Browser fallback for a shared itinerary. Mirrors `renderReelLandingPage`:
+ * real Open Graph / Twitter card data plus a custom-scheme link, so a share
+ * that the OS did not hand to the app still shows the trip instead of the
+ * JSON 404 the API would otherwise return for `/trip/shared/:token`.
+ */
+export function renderTripLandingPage(input: {
+  token: string;
+  origin: string;
+  meta?: Partial<TripShareMeta> | null;
+  androidStoreUrl?: string;
+  iosStoreUrl?: string;
+}): string {
+  const { token, origin } = input;
+  const base = origin.replace(/\/+$/, '');
+  const canonical = `${base}/trip/shared/${encodeURIComponent(token)}`;
+  const deepLink = `palsafar://trip/shared/${encodeURIComponent(token)}`;
+
+  const title = (input.meta?.title || '').trim() || DEFAULT_TRIP_TITLE;
+  const destination = (input.meta?.destination || '').trim();
+  const days = Number.isFinite(input.meta?.days) ? Number(input.meta?.days) : 0;
+  const image = (input.meta?.coverImage || '').trim() || `${base}/icon-512.png`;
+  const description = destination
+    ? `${days ? `${days}-day ` : ''}itinerary for ${destination}, shared from PalSafar.`
+    : 'A travel itinerary shared from PalSafar.';
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>${escapeHtml(title)} · PalSafar</title>
+<meta name="description" content="${escapeHtml(description)}" />
+<link rel="canonical" href="${escapeHtml(canonical)}" />
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="PalSafar" />
+<meta property="og:title" content="${escapeHtml(title)}" />
+<meta property="og:description" content="${escapeHtml(description)}" />
+<meta property="og:url" content="${escapeHtml(canonical)}" />
+<meta property="og:image" content="${escapeHtml(image)}" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${escapeHtml(title)}" />
+<meta name="twitter:description" content="${escapeHtml(description)}" />
+<meta name="twitter:image" content="${escapeHtml(image)}" />
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 16px 48px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0B0B0F; color: #F5F5F7; line-height: 1.5;
+    display: flex; justify-content: center;
+  }
+  main { width: 100%; max-width: 480px; }
+  .cover {
+    width: 100%; aspect-ratio: 16 / 9;
+    border-radius: 18px; background: #18181B center/cover no-repeat; display: block;
+  }
+  h1 { font-size: 20px; line-height: 1.3; margin: 16px 0 6px; }
+  p { margin: 0 0 12px; color: #A1A1AA; font-size: 14px; }
+  .meta { display: flex; gap: 14px; font-size: 13px; color: #71717A; margin-bottom: 20px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .btn {
+    display: inline-block; padding: 12px 18px; border-radius: 999px;
+    background: #1D4ED8; color: #fff; font-weight: 600; font-size: 14px; text-decoration: none;
+  }
+  .btn.secondary { background: transparent; border: 1px solid #3F3F46; color: #E4E4E7; }
+  footer { margin-top: 28px; font-size: 12px; color: #52525B; }
+</style>
+</head>
+<body>
+<main>
+  <div class="cover" style="background-image:url('${escapeHtml(image)}')"></div>
+  <h1>${escapeHtml(title)}</h1>
+  <p>${escapeHtml(description)}</p>
+  <div class="meta">
+    ${destination ? `<span>${escapeHtml(destination)}</span>` : ''}
+    ${days ? `<span>${days} day${days === 1 ? '' : 's'}</span>` : ''}
+  </div>
+  <div class="actions">
+    <a class="btn" href="${escapeHtml(deepLink)}">Open in PalSafar</a>
+    ${input.androidStoreUrl ? `<a class="btn secondary" href="${escapeHtml(input.androidStoreUrl)}">Get it on Google Play</a>` : ''}
+    ${input.iosStoreUrl ? `<a class="btn secondary" href="${escapeHtml(input.iosStoreUrl)}">Download on the App Store</a>` : ''}
+  </div>
+  <footer>Shared from PalSafar.</footer>
+</main>
+</body>
+</html>`;
+}
