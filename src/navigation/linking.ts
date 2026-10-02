@@ -4,13 +4,12 @@ import type { RootStackParamList } from './types';
 /**
  * Production deep links / App Links.
  * Custom scheme: palsafar://
- * HTTPS App Links: https://palsafar.com (requires assetlinks.json on the host).
+ * HTTPS App Links: https://palsafar.in (requires assetlinks.json on the host).
  */
 export const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [
     'palsafar://',
-    'https://palsafar.com',
-    'https://www.palsafar.com',
+    'https://palsafar.in',
   ],
   config: {
     screens: {

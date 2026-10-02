@@ -15,7 +15,7 @@ describe('canonical share links', () => {
   const tripId = 'cltrip987654321';
   const tripShareToken = 'eyJ2IjoxLCJ0cmlwSWQiOiJjbHRyaXA5ODc2NTQzMjEifQ.signature';
 
-  it('builds a palsafar.com reel URL with the reel id and no auth token', () => {
+  it('builds a palsafar.in reel URL with the reel id and no auth token', () => {
     const url = buildReelShareUrl(reelId);
     expect(url).toBe(`${PALSAFAR_WEB_ORIGIN}/reel/${reelId}`);
     expect(url).toContain(reelId);
@@ -51,7 +51,7 @@ describe('canonical share links', () => {
       status: 'APPROVED',
       description: '🤣🤣🤣',
     });
-    expect(reelMsg).toContain('https://palsafar.com/reel/');
+    expect(reelMsg).toContain('https://palsafar.in/reel/');
     expect(reelMsg).toContain(reelId);
     expect(reelMsg).toContain('🤣🤣🤣');
     expect(shareMessageContainsAuthToken(reelMsg!)).toBe(false);
@@ -61,13 +61,13 @@ describe('canonical share links', () => {
       title: 'Trip to Jabalpur',
       destination: 'Jabalpur',
     }, tripShareToken);
-    expect(tripMsg).toContain(`https://palsafar.com/trip/shared/${tripShareToken}`);
+    expect(tripMsg).toContain(`https://palsafar.in/trip/shared/${tripShareToken}`);
     expect(tripMsg).not.toContain(`/trip/${tripId}`);
     expect(tripMsg).toMatch(/Trip to Jabalpur/);
     expect(shareMessageContainsAuthToken(tripMsg!)).toBe(false);
   });
 
-  it('registers ReelDetail and signed TripShared on canonical https://palsafar.com paths', () => {
+  it('registers ReelDetail and signed TripShared on canonical https://palsafar.in paths', () => {
     const src = fs.readFileSync(
       path.join(__dirname, '../navigation/linking.ts'),
       'utf8',
@@ -75,6 +75,7 @@ describe('canonical share links', () => {
     expect(src).toMatch(/ReelDetail:\s*'reel\/:reelId'/);
     expect(src).toMatch(/TripShared:\s*'trip\/shared\/:token'/);
     expect(src).not.toMatch(/TripDetail:\s*'trip\/:tripId'/);
-    expect(src).toMatch(/https:\/\/palsafar\.com/);
+    expect(src).toContain('https://palsafar.in');
+    expect(src).not.toContain('palsafar.com');
   });
 });

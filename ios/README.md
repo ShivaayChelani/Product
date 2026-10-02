@@ -26,10 +26,10 @@ open ios/PalSafar.xcworkspace
    `ios/PalSafar/GoogleService-Info.plist`
    Then add it to the Xcode target **Copy Bundle Resources** (drag into the PalSafar group if not auto-detected).
 3. **APNs** — Apple Developer → Keys → APNs `.p8` → upload to Firebase → Project settings → Cloud Messaging.
-4. **Push capability** — Entitlements file already enables Push + Associated Domains (`palsafar.com`). Switch `aps-environment` to `production` for App Store / TestFlight archives.
+4. **Push capability** — Entitlements file already enables Push + Associated Domains (`palsafar.in`). Switch `aps-environment` to `production` for App Store / TestFlight archives.
 5. **Sentry dSYMs** — see `ios-sentry.setup.txt` and `sentry.properties`.
 6. **AdMob** — Info.plist `GADApplicationIdentifier` currently uses Google’s **sample** iOS app id; replace before App Store submission (same as Android).
-7. **Universal links** — Host `apple-app-site-association` (see `public/.well-known/apple-app-site-association.example`) at `https://palsafar.com/.well-known/apple-app-site-association` with your Apple Team ID.
+7. **Universal links** — Host `apple-app-site-association` (see `public/.well-known/apple-app-site-association.example`) at `https://palsafar.in/.well-known/apple-app-site-association` with your Apple Team ID.
 
 ## Simulator quick start (no Firebase plist)
 

@@ -1,7 +1,7 @@
 /**
  * Public link association + share landing pages.
  *
- * Shared Reel links are `https://palsafar.com/reel/:reelId` (see
+ * Shared Reel links are `https://palsafar.in/reel/:reelId` (see
  * src/services/sharing/shareLinks.ts and src/navigation/linking.ts). For those
  * links to open the app, the host serving that origin must answer:
  *   - GET /.well-known/assetlinks.json                 (Android App Links)
@@ -12,7 +12,7 @@
  * database, an HTTP server, or a real certificate.
  */
 
-export const SHARE_HOSTS = ['palsafar.com', 'www.palsafar.com'] as const;
+export const SHARE_HOSTS = ['palsafar.in'] as const;
 
 /** Paths the app actually routes; see linking.ts `config.screens`. */
 export const APP_LINK_PATHS = [

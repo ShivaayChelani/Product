@@ -26,7 +26,7 @@ function requestOrigin(req: Request): string {
   const proto = String(req.protocol || 'https').replace(/:$/, '');
   const host = req.get('host');
   if (host) return `${proto}://${host}`;
-  return 'https://palsafar.com';
+  return 'https://palsafar.in';
 }
 
 export const appLinkController = {

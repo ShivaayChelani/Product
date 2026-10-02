@@ -69,13 +69,12 @@
             <data android:scheme="palsafar" />
         </intent-filter>
 
-        <!-- HTTPS App Links (requires Digital Asset Links on palsafar.com) -->
+        <!-- HTTPS App Links (requires Digital Asset Links on palsafar.in) -->
         <intent-filter android:autoVerify="true">
             <action android:name="android.intent.action.VIEW" />
             <category android:name="android.intent.category.DEFAULT" />
             <category android:name="android.intent.category.BROWSABLE" />
-            <data android:scheme="https" android:host="palsafar.com" />
-            <data android:scheme="https" android:host="www.palsafar.com" />
+            <data android:scheme="https" android:host="palsafar.in" />
         </intent-filter>
       </activity>
     </application>

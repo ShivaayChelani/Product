@@ -212,7 +212,7 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
 
   const handleShareProfile = async () => {
     if (!profile) return;
-    const url = `https://palsafar.com/creator/${profile.username}`;
+    const url = `https://palsafar.in/creator/${profile.username}`;
     try {
       await Share.share({ message: `Follow @${profile.username} on PalSafar\n${url}`, url });
     } catch {
@@ -508,7 +508,7 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
                 style={styles.optionCard}
                 onPress={() => {
                   setOptionsModalVisible(false);
-                  Alert.alert('Copied', `https://palsafar.com/creator/${username}`);
+                  Alert.alert('Copied', `https://palsafar.in/creator/${username}`);
                 }}
               >
                 <View style={[styles.optionIconWrap, { backgroundColor: '#EEF4FF' }]}>

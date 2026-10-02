@@ -2,14 +2,14 @@
  * Canonical PalSafar public URLs for share sheets and App Links.
  * Must stay in sync with `src/navigation/linking.ts` prefixes + path config.
  *
- * HTTPS: https://palsafar.com/...
+ * HTTPS: https://palsafar.in/...
  * Custom scheme (same paths): palsafar://...
  *
  * Required host config (already declared in AndroidManifest / linking.ts):
- * - Digital Asset Links at https://palsafar.com/.well-known/assetlinks.json
- * - iOS associated domain applinks:palsafar.com
+ * - Digital Asset Links at https://palsafar.in/.well-known/assetlinks.json
+ * - iOS associated domain applinks:palsafar.in
  */
-export const PALSAFAR_WEB_ORIGIN = 'https://palsafar.com';
+export const PALSAFAR_WEB_ORIGIN = 'https://palsafar.in';
 
 const CUID_OR_UUID =
   /^[a-z0-9][a-z0-9_-]{7,127}$/i;
@@ -29,7 +29,7 @@ export function buildReelShareUrl(reelId: string): string | null {
 }
 
 /**
- * Signed, expiring read-only trip URL: https://palsafar.com/trip/shared/:token.
+ * Signed, expiring read-only trip URL: https://palsafar.in/trip/shared/:token.
  * The token is opaque to the client — it is minted and verified server-side.
  * Falls back to null when the token is unsafe to embed in a URL.
  */

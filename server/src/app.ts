@@ -162,7 +162,7 @@ app.use('/uploads', authMiddleware, express.static(path.join(__dirname, '../uplo
 
 /**
  * Shared-link surface. Mounted at the origin root (not under /api/v1) because
- * share links are https://palsafar.com/reel/:reelId, and the domain verifiers
+ * share links are https://palsafar.in/reel/:reelId, and the domain verifiers
  * probe /.well-known/ at the root. Registered before the 404 handler.
  */
 app.use(appLinkRoutes);
