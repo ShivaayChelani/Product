@@ -42,7 +42,7 @@ describe('Android photo/video permissions', () => {
     const reel = read('src/screens/CreateReelScreen.tsx');
     expect(reel).toMatch(/from 'react-native-image-picker'/);
     expect(reel).toMatch(/launchImageLibrary\(/);
-    expect(reel).toMatch(/mediaType: 'mixed'/);
+    expect(reel).toMatch(/mediaType: 'video'/);
     expect(reel).not.toMatch(/READ_MEDIA_IMAGES/);
     expect(reel).not.toMatch(/READ_MEDIA_VIDEO/);
     expect(reel).not.toMatch(/PermissionsAndroid/);

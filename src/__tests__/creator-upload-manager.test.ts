@@ -523,7 +523,7 @@ describe('CreateReel background upload wiring', () => {
     expect(src).toMatch(/navigateToWorkspaceHome\(navigation, 'CREATOR'\)/);
     expect(src).toMatch(/submitLockRef/);
     expect(src).toMatch(/if \(submitLockRef\.current\) return;/);
-    expect(src).toMatch(/mediaType: 'mixed'/);
+    expect(src).toMatch(/mediaType: 'video'/);
     expect(src).not.toMatch(/uploadReelVideo/);
   });
 });

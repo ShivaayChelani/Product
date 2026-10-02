@@ -6,6 +6,7 @@ import {
   buildSharedTripUrl,
   buildReelShareMessage,
   buildTripShareMessage,
+  buildCreatorShareUrl,
   isPublicShareableReel,
   shareMessageContainsAuthToken,
 } from '../services/sharing/shareLinks';
@@ -77,5 +78,54 @@ describe('canonical share links', () => {
     expect(src).not.toMatch(/TripDetail:\s*'trip\/:tripId'/);
     expect(src).toContain('https://palsafar.in');
     expect(src).not.toContain('palsafar.com');
+  });
+});
+
+describe('creator share links', () => {
+  const profileId = 'clcreator1234567890abcdef';
+
+  it('prefers the stable profile id over the username', () => {
+    const url = buildCreatorShareUrl({ id: profileId, username: 'palsafarin' });
+    expect(url).toBe(`https://palsafar.in/creator/${profileId}`);
+    expect(url).not.toContain('palsafar.com');
+    expect(url).not.toContain('onrender.com');
+  });
+
+  it('falls back to a clean username when no id is available', () => {
+    expect(buildCreatorShareUrl({ username: 'palsafarin' }))
+      .toBe('https://palsafar.in/creator/palsafarin');
+    expect(buildCreatorShareUrl({ id: '', username: 'palsafarin' }))
+      .toBe('https://palsafar.in/creator/palsafarin');
+  });
+
+  it('uses the id even when the legacy username holds a pasted Instagram URL', () => {
+    // The regression: these rows stored a pasted Instagram profile in
+    // `username`, so sharing `username` emitted an unreadable link. The id is
+    // stable and the server resolves it, so it wins.
+    const url = buildCreatorShareUrl({
+      id: profileId,
+      username: 'httpswwwinstagramcompalsafarin',
+    });
+    expect(url).toBe(`https://palsafar.in/creator/${profileId}`);
+    expect(url).not.toContain('instagram');
+  });
+
+  it('passes a stored username through verbatim rather than deriving a handle from it', () => {
+    expect(buildCreatorShareUrl({ username: 'httpswwwinstagramcompalsafarin' }))
+      .toBe('https://palsafar.in/creator/httpswwwinstagramcompalsafarin');
+  });
+
+  it('rejects empty and unsafe identifiers', () => {
+    expect(buildCreatorShareUrl({})).toBeNull();
+    expect(buildCreatorShareUrl({ username: '../secret' })).toBeNull();
+    expect(buildCreatorShareUrl({ username: 'a/b' })).toBeNull();
+    expect(buildCreatorShareUrl({ username: 'https://instagram.com/palsafarin' })).toBeNull();
+    expect(buildCreatorShareUrl({ username: 'ab' })).toBeNull();
+    expect(buildCreatorShareUrl({ username: 'x'.repeat(31) })).toBeNull();
+  });
+
+  it('never shares the placeholder fallback handle', () => {
+    expect(buildCreatorShareUrl({ username: 'creator' }))
+      .toBe('https://palsafar.in/creator/creator');
   });
 });

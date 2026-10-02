@@ -18,14 +18,46 @@ export function isShareableEntityId(id: unknown): id is string {
   if (typeof id !== 'string') return false;
   const trimmed = id.trim();
   if (!trimmed || trimmed.length > 128) return false;
-  if (trimmed.includes('/') || trimmed.includes('?') || trimmed.includes('#')) return false;
-  if (trimmed.includes('://')) return false;
+  if (!isSafePathSegment(trimmed)) return false;
   return CUID_OR_UUID.test(trimmed);
+}
+
+/** A path segment that can be embedded verbatim without restructuring the URL. */
+function isSafePathSegment(value: string): boolean {
+  if (value.includes('/') || value.includes('?') || value.includes('#')) return false;
+  if (value.includes('://')) return false;
+  return true;
 }
 
 export function buildReelShareUrl(reelId: string): string | null {
   if (!isShareableEntityId(reelId)) return null;
   return `${PALSAFAR_WEB_ORIGIN}/reel/${encodeURIComponent(reelId)}`;
+}
+
+/**
+ * Mirrors the server's username rule (social.validation.ts: 3-30 chars of
+ * `[a-zA-Z0-9_.]`) narrowed to what is safe as a single path segment.
+ */
+const PUBLIC_CREATOR_USERNAME = /^[a-zA-Z0-9_.]{3,30}$/;
+
+/**
+ * Public creator profile URL: https://palsafar.in/creator/:identifier
+ *
+ * Prefers the stable `CreatorProfile.id`. Legacy rows can hold a pasted
+ * Instagram URL in `username`, and deriving a handle from that would mint a
+ * link that does not resolve, so the username is only used when it already
+ * satisfies the app's own username rule. The server accepts either identifier.
+ */
+export function buildCreatorShareUrl(creator: {
+  id?: string | null;
+  username?: string | null;
+}): string | null {
+  if (isShareableEntityId(creator.id)) {
+    return `${PALSAFAR_WEB_ORIGIN}/creator/${encodeURIComponent(creator.id!.trim())}`;
+  }
+  const username = typeof creator.username === 'string' ? creator.username.trim() : '';
+  if (!PUBLIC_CREATOR_USERNAME.test(username)) return null;
+  return `${PALSAFAR_WEB_ORIGIN}/creator/${encodeURIComponent(username)}`;
 }
 
 /**

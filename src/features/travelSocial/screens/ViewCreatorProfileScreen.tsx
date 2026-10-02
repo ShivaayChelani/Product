@@ -23,6 +23,8 @@ import { TravelSocialTheme as T } from '../theme';
 import { formatSocialCount } from '../utils/formatCount';
 import { travelSocialQueryKeys } from '../api/queryClient';
 import { socialApi } from '../../../services/api';
+import { buildCreatorShareUrl } from '../../../services/sharing/shareLinks';
+import { copyToClipboard } from '../../../utils/clipboard';
 import { getReelThumbnail } from '../../../services/reelService';
 import { useUserContext } from '../../../context/UserContext';
 import { useDataContext } from '../../../context/DataContext';
@@ -210,14 +212,37 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
     }
   };
 
+  const publicProfileUrl = useMemo(
+    () => (profile ? buildCreatorShareUrl({ id: profile.id, username: profile.username }) : null),
+    [profile?.id, profile?.username],
+  );
+
   const handleShareProfile = async () => {
     if (!profile) return;
-    const url = `https://palsafar.in/creator/${profile.username}`;
+    const url = publicProfileUrl;
+    if (!url) {
+      Alert.alert('Cannot share', 'This creator profile has no shareable link yet.');
+      return;
+    }
     try {
-      await Share.share({ message: `Follow @${profile.username} on PalSafar\n${url}`, url });
+      await Share.share({
+        message: `Follow @${rawUsername} on PalSafar\n${url}`,
+        url,
+      });
     } catch {
       /* cancelled */
     }
+  };
+
+  const handleCopyProfileLink = async () => {
+    setOptionsModalVisible(false);
+    const url = publicProfileUrl;
+    if (!url) {
+      Alert.alert('Cannot copy', 'This creator profile has no shareable link yet.');
+      return;
+    }
+    const copied = await copyToClipboard(url, 'Copy profile link');
+    Alert.alert(copied ? 'Copied' : 'Could not copy', url);
   };
 
   const openMoreMenu = () => {
@@ -506,10 +531,7 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
             <View style={{ gap: 12 }}>
               <TouchableOpacity
                 style={styles.optionCard}
-                onPress={() => {
-                  setOptionsModalVisible(false);
-                  Alert.alert('Copied', `https://palsafar.in/creator/${username}`);
-                }}
+                onPress={handleCopyProfileLink}
               >
                 <View style={[styles.optionIconWrap, { backgroundColor: '#EEF4FF' }]}>
                   <Icon name="link" size={22} color="#2563EB" />

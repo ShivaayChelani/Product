@@ -190,7 +190,10 @@ export default function CreateReelScreen({
   const handlePickVideo = useCallback(async () => {
     try {
       const result = await launchImageLibrary({
-        mediaType: 'mixed',
+        // Video-only: every publish path downstream (collab submit and the normal
+        // create handler) runs the picked file through video compression, so
+        // letting the picker return a photo sent images down a video pipeline.
+        mediaType: 'video',
         selectionLimit: 1,
       });
       if (result.assets && result.assets[0]) {
@@ -485,8 +488,8 @@ export default function CreateReelScreen({
                   <View style={styles.uploadIconWrap}>
                     <Icon name="cloud-upload-outline" size={36} color={C.brown} />
                   </View>
-                  <Text style={styles.uploadTitle}>Tap to select photo or video</Text>
-                  <Text style={styles.uploadSub}>Photos and videos upload only when you publish</Text>
+                  <Text style={styles.uploadTitle}>Tap to select a video</Text>
+                  <Text style={styles.uploadSub}>Videos upload only when you publish</Text>
                   <Text style={styles.uploadSub}>Recommended: 9:16 (Portrait)</Text>
                 </View>
               )}

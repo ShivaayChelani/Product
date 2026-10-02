@@ -43,6 +43,17 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
+/**
+ * Prisma's `cuid()` shape: a leading "c" plus base36. Used to decide whether a
+ * public profile path segment is worth sending to the `id` column, since Prisma
+ * raises instead of returning zero rows when handed a malformed id. Kept
+ * deliberately narrow — a loose length check would also match legacy usernames
+ * that happen to be pasted into the same column.
+ */
+function isCuidLike(value: string): boolean {
+  return /^c[a-z0-9]{8,127}$/i.test(value);
+}
+
 async function getFollowingUserIdSet(followerId: string): Promise<Set<string>> {
   const rows = await prisma.follow.findMany({
     where: { followerId },
@@ -363,9 +374,20 @@ export const socialService = {
   },
 
   async getCreatorProfile(rawUsername: string, currentUserId?: string) {
-    const cleaned = rawUsername.trim().toLowerCase().replace(/^@+/, '');
+    const trimmed = rawUsername.trim();
+    const cleaned = trimmed.toLowerCase().replace(/^@+/, '');
+    // Shared profile links carry the stable CreatorProfile.id rather than the
+    // username, because legacy rows can hold a pasted Instagram URL in
+    // `username`. Resolve both, but only query `id` when the value can actually
+    // be one — Prisma rejects a malformed cuid instead of matching nothing.
     const profile = await prisma.creatorProfile.findFirst({
-      where: { username: { equals: cleaned, mode: 'insensitive' }, status: 'APPROVED' },
+      where: {
+        status: 'APPROVED',
+        OR: [
+          { username: { equals: cleaned, mode: 'insensitive' } },
+          ...(isCuidLike(trimmed) ? [{ id: trimmed }] : []),
+        ],
+      },
       include: {
         reels: {
           where: { status: 'APPROVED' },

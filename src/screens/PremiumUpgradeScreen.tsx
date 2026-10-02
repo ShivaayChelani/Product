@@ -247,11 +247,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     padding: 20,
     minHeight: 280,
+    // The artwork used to be absolutely positioned at right:-20/bottom:-10 over
+    // a 200x200 box, so it painted straight across the benefits row. Row layout
+    // plus normal flow keeps the two columns side by side at every width.
+    flexDirection: 'row',
   },
   heroContent: {
-    width: '65%',
-    justifyContent: 'space-between',
     flex: 1,
+    justifyContent: 'space-between',
   },
   heroTitleMain: {
     fontFamily: SANS_BOLD,
@@ -275,16 +278,18 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   heroImage: {
-    position: 'absolute',
-    right: -20,
-    bottom: -10,
-    width: 200,
-    height: 200,
+    // assets/ad_free.png is 210x310; deriving the height from the ratio keeps
+    // the illustration undistorted without hard-coding a second magic number.
+    width: 128,
+    aspectRatio: 210 / 310,
+    alignSelf: 'center',
+    marginLeft: 12,
   },
   miniPerksRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
+    flexWrap: 'wrap',
   },
   miniPerk: {
     alignItems: 'center',
