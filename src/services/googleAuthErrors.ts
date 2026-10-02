@@ -59,8 +59,13 @@ export function mapGoogleAuthFailure(error: unknown): GoogleAuthFailure {
     lower.includes('developer_error') ||
     lower.includes('url scheme')
   ) {
+    // This is the error that hid the real Google Sign-In root cause for so
+    // long: native code 10 means the *running build's* signing SHA-1 is not a
+    // registered OAuth client, and the original native message says exactly
+    // that. `cause` keeps it reachable for diagnostics instead of discarding it.
     const mapped = new Error(
       'Google Sign-In is not configured for this app build. Please try email sign-in.',
+      { cause: error },
     ) as GoogleAuthFailure;
     mapped.code = 'DEVELOPER_ERROR';
     mapped.status = 500;

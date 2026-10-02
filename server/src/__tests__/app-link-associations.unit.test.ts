@@ -287,7 +287,7 @@ describe('wiring into the API', () => {
     expect(linking).not.toMatch(/palsafar\.com/);
     expect(manifest).not.toMatch(/palsafar\.com/);
     expect(shareLinks).toMatch(/buildReelShareUrl[\s\S]{0,200}\/reel\//);
-    expect(linking).toMatch(/ReelDetail: 'reel\/:reelId'/);
+    expect(linking).toMatch(/path: 'reel\/:reelId'/);
     expect(linking).toMatch(/TripShared: 'trip\/shared\/:token'/);
     expect(shareLinks).toMatch(/\/trip\/shared\/\$\{encodeURIComponent\(trimmed\)\}/);
     expect(shareLinks).not.toMatch(/\/trip\/\$\{encodeURIComponent\(tripId\)\}/);

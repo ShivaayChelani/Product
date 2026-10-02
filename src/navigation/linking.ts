@@ -1,5 +1,6 @@
 import type { LinkingOptions } from '@react-navigation/native';
 import type { RootStackParamList } from './types';
+import { parseReelId } from './reelDeepLink';
 
 /**
  * Production deep links / App Links.
@@ -31,7 +32,13 @@ export const linking: LinkingOptions<RootStackParamList> = {
         },
       },
       TripShared: 'trip/shared/:token',
-      ReelDetail: 'reel/:reelId',
+      ReelDetail: {
+        path: 'reel/:reelId',
+        parse: ({ reelId }) => {
+          const id = parseReelId(reelId);
+          return id ? { reelId: id } : undefined;
+        },
+      },
       LegalDocument: {
         path: 'legal/:type',
         parse: {

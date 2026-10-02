@@ -7,6 +7,11 @@ import {
   ensureGoogleSignInConfigured,
 } from '../config/googleAuth';
 import { isGoogleSignInCancelled, mapGoogleAuthFailure } from './googleAuthErrors';
+import {
+  logGoogleAuthFailure,
+  logGoogleAuthStage,
+  type GoogleAuthStage,
+} from './googleAuthDiagnostics';
 import { parseJsonObject } from '../utils/safeJson';
 import { purgeUserLocalData } from './localStorageService';
 
@@ -211,19 +216,28 @@ export async function googleLogin(): Promise<
     throw new Error('Server API is required. Set USE_SERVER_API=true in devFlags.');
   }
 
+  let stage: GoogleAuthStage = 'configure';
   try {
+    logGoogleAuthStage('configure');
     ensureGoogleSignInConfigured();
+    stage = 'play-services';
     try {
+      logGoogleAuthStage('play-services');
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
     } catch (playError) {
       throw mapGoogleAuthFailure(playError);
     }
 
+    stage = 'sign-in';
+    logGoogleAuthStage('sign-in');
     const response = await GoogleSignin.signIn();
     if (!response || response.type !== 'success') {
       return null;
     }
     const idToken = response.data?.idToken;
+    stage = 'id-token';
+    // Only the presence of a token is logged, never the token itself.
+    logGoogleAuthStage('id-token', { hasIdToken: Boolean(idToken) });
     if (!idToken) {
       const missing = new Error(
         'Google Sign-In did not return an ID token. Check that the web client ID is configured.',
@@ -233,6 +247,8 @@ export async function googleLogin(): Promise<
     }
 
     // Phase 1 backend call — no legal meta
+    stage = 'backend-auth';
+    logGoogleAuthStage('backend-auth');
     const result = await authApi.googleLogin({ idToken });
 
     // New account: return signal + idToken for Phase 2
@@ -245,6 +261,7 @@ export async function googleLogin(): Promise<
       throw new Error('Google Sign-In returned an incomplete session. Please try again.');
     }
 
+    stage = 'session';
     let profile: UserProfile;
     try {
       profile = buildProfileFromApiUser((result as any).user);
@@ -253,6 +270,7 @@ export async function googleLogin(): Promise<
       await apiClient.setToken(null);
       throw new Error('Google Sign-In returned an incomplete session. Please try again.');
     }
+    logGoogleAuthStage('session', { hasUser: Boolean(profile.uid), role: profile.role });
     return {
       user: profile,
       session: {
@@ -264,8 +282,10 @@ export async function googleLogin(): Promise<
     };
   } catch (e: unknown) {
     if (isGoogleSignInCancelled(e)) {
+      logGoogleAuthStage('cancelled');
       return null;
     }
+    logGoogleAuthFailure(stage, e);
     throw mapGoogleAuthFailure(e);
   }
 }

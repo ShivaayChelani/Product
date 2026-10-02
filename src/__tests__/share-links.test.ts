@@ -73,7 +73,7 @@ describe('canonical share links', () => {
       path.join(__dirname, '../navigation/linking.ts'),
       'utf8',
     );
-    expect(src).toMatch(/ReelDetail:\s*'reel\/:reelId'/);
+    expect(src).toMatch(/path:\s*'reel\/:reelId'/);
     expect(src).toMatch(/TripShared:\s*'trip\/shared\/:token'/);
     expect(src).not.toMatch(/TripDetail:\s*'trip\/:tripId'/);
     expect(src).toContain('https://palsafar.in');
