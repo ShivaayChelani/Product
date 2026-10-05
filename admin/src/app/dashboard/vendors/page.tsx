@@ -33,11 +33,13 @@ export default function VendorsPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("");
+  const [statusInitialized, setStatusInitialized] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const status = params.get("status");
     if (status) setActiveTab(status);
+    setStatusInitialized(true);
   }, []);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -73,8 +75,9 @@ export default function VendorsPage() {
   }, []);
 
   useEffect(() => {
+    if (!statusInitialized) return;
     fetchVendors(activeTab, 1);
-  }, [activeTab, fetchVendors]);
+  }, [activeTab, fetchVendors, statusInitialized]);
 
   const handleVerify = (id: string, status: VendorStatus) => {
     const isApprove = status === "APPROVED";

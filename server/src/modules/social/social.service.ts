@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database';
 import { logger } from '../../config/logger';
-import { CreatorStatus, Prisma, Role, RoleAssignmentStatus, VendorListingStatus } from '@prisma/client';
+import { CreatorStatus, Prisma, ReelReportStatus, Role, RoleAssignmentStatus, VendorListingStatus } from '@prisma/client';
+import { getPaginationParams, paginatedResponse } from '../../shared/utils/pagination';
 import { ApiError, ErrorCodes } from '../../shared/utils/ApiError';
 import { mapCreatorStatusToRoleStatus } from '../../shared/utils/specialtyRoles';
 import { roleTransitionService } from '../../shared/services/roleTransition.service';
@@ -1413,16 +1414,23 @@ export const socialService = {
     });
   },
 
-  async listReelReports(status?: string) {
-    return prisma.reelReport.findMany({
-      where: status ? { status: status as any } : undefined,
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-      include: {
-        reel: { select: { id: true, title: true, creatorId: true } },
-        user: { select: { id: true, email: true, name: true } },
-      },
-    });
+  async listReelReports(query: { status?: ReelReportStatus; page?: string; limit?: string }) {
+    const pagination = getPaginationParams({ page: query.page, limit: query.limit });
+    const where: Prisma.ReelReportWhereInput | undefined = query.status ? { status: query.status } : undefined;
+    const [reports, total] = await Promise.all([
+      prisma.reelReport.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: pagination.skip,
+        take: pagination.limit,
+        include: {
+          reel: { select: { id: true, title: true, creatorId: true } },
+          user: { select: { id: true, email: true, name: true } },
+        },
+      }),
+      prisma.reelReport.count({ where }),
+    ]);
+    return paginatedResponse(reports, total, pagination);
   },
 
   /**

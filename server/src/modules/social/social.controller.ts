@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { socialService } from './social.service';
+import type { ReelReportStatus } from '@prisma/client';
 import { catchAsync } from '../../shared/utils/catchAsync';
 import { sendSuccess, sendCreated } from '../../shared/utils/response';
 import { ApiError } from '../../shared/utils/ApiError';
@@ -172,9 +173,13 @@ export const socialController = {
   }),
 
   listReelReports: catchAsync(async (req: any, res: Response) => {
-    const status = req.query.status ? String(req.query.status) : undefined;
-    const data = await socialService.listReelReports(status);
-    sendSuccess(res, data);
+    const status = req.query.status ? String(req.query.status) as ReelReportStatus : undefined;
+    const result = await socialService.listReelReports({
+      status,
+      page: typeof req.query.page === 'string' ? req.query.page : undefined,
+      limit: typeof req.query.limit === 'string' ? req.query.limit : undefined,
+    });
+    sendSuccess(res, result.data, { pagination: result.pagination });
   }),
 
   incrementViews: catchAsync(async (req: any, res: Response) => {

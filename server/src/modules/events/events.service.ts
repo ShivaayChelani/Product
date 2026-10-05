@@ -26,11 +26,13 @@ import type {
   CreateEventInput,
   EventListQueryInput,
   RejectEventInput,
+  AdminEventReportsQueryInput,
   ReportEventInput,
   UnpublishEventInput,
   UpdateEventInput,
 } from './events.validation';
 import { parseEventDate, normalizeEventTime } from './events.validation';
+import { buildEventLifecycleCountsWhere, buildEventLifecycleWhere, type EventLifecycle } from './events.lifecycle';
 
 /**
  * Where the moderation rules live.
@@ -594,37 +596,40 @@ export const eventsService = {
   async adminListEvents(query: AdminListEventsQueryInput) {
     const pagination = getPaginationParams({ page: query.page, limit: query.limit });
     const types = parseEventTypeFilter(query.types);
+    const now = new Date();
 
-    const where: Prisma.EventWhereInput = {
-      ...(query.status ? { status: query.status } : {}),
-      ...(types.length ? { eventType: { in: types } } : {}),
-      ...(query.city ? { city: { contains: query.city, mode: 'insensitive' } } : {}),
-      ...(query.state ? { state: { contains: query.state, mode: 'insensitive' } } : {}),
-      ...(query.createdById ? { createdById: query.createdById } : {}),
-      ...(query.linkedVendorId ? { linkedVendorId: query.linkedVendorId } : {}),
-      ...(query.linkedPlaceId ? { linkedPlaceId: query.linkedPlaceId } : {}),
-      ...(query.q
-        ? {
-            OR: [
-              { title: { contains: query.q, mode: 'insensitive' } },
-              { description: { contains: query.q, mode: 'insensitive' } },
-            ],
-          }
-        : {}),
-      ...(query.from || query.to
-        ? {
-            AND: [
-              ...(query.from ? [{ endDate: { gte: query.from } }] : []),
-              ...(query.to ? [{ startDate: { lte: query.to } }] : []),
-            ],
-          }
-        : {}),
-      ...(query.hasReports === 'true' || query.hasReports === '1'
-        ? { reports: { some: { status: 'PENDING' } } }
-        : {}),
-    };
+    const filters: Prisma.EventWhereInput[] = [];
+    if (query.lifecycle) filters.push(buildEventLifecycleWhere(query.lifecycle, now));
+    if (query.status && !query.lifecycle) filters.push({ status: query.status });
+    if (types.length) filters.push({ eventType: { in: types } });
+    if (query.city) filters.push({ city: { contains: query.city, mode: 'insensitive' } });
+    if (query.state) filters.push({ state: { contains: query.state, mode: 'insensitive' } });
+    if (query.createdById) filters.push({ createdById: query.createdById });
+    if (query.linkedVendorId) filters.push({ linkedVendorId: query.linkedVendorId });
+    if (query.linkedPlaceId) filters.push({ linkedPlaceId: query.linkedPlaceId });
+    if (query.q) {
+      filters.push({
+        OR: [
+          { title: { contains: query.q, mode: 'insensitive' } },
+          { description: { contains: query.q, mode: 'insensitive' } },
+        ],
+      });
+    }
+    if (query.from || query.to) {
+      filters.push({
+        AND: [
+          ...(query.from ? [{ endDate: { gte: query.from } }] : []),
+          ...(query.to ? [{ startDate: { lte: query.to } }] : []),
+        ],
+      });
+    }
+    if (query.hasReports === 'true' || query.hasReports === '1') {
+      filters.push({ reports: { some: { status: 'PENDING' } } });
+    }
+    const where: Prisma.EventWhereInput = filters.length ? { AND: filters } : {};
 
-    const [rows, total, counts] = await Promise.all([
+    const lifecycleWheres = buildEventLifecycleCountsWhere(now);
+    const [rows, total, counts, live, upcoming, ended] = await Promise.all([
       prisma.event.findMany({
         where,
         include: EVENT_INCLUDE,
@@ -634,6 +639,9 @@ export const eventsService = {
       }),
       prisma.event.count({ where }),
       this.statusCounts(),
+      prisma.event.count({ where: lifecycleWheres.LIVE }),
+      prisma.event.count({ where: lifecycleWheres.UPCOMING }),
+      prisma.event.count({ where: lifecycleWheres.ENDED }),
     ]);
 
     return {
@@ -643,6 +651,7 @@ export const eventsService = {
         pagination,
       ),
       statusCounts: counts,
+      lifecycleCounts: { LIVE: live, UPCOMING: upcoming, ENDED: ended } satisfies Record<EventLifecycle, number>,
     };
   },
 
@@ -844,18 +853,35 @@ export const eventsService = {
     return { id: report.id, status: report.status, createdAt: report.createdAt };
   },
 
-  async listReports(status?: string) {
-    const reports = await prisma.eventReport.findMany({
-      where: status ? { status: status as never } : {},
+  async listReports(query: AdminEventReportsQueryInput) {
+    const pagination = getPaginationParams({ page: query.page, limit: query.limit });
+    const where = query.status ? { status: query.status } : {};
+    const [reports, total] = await Promise.all([
+      prisma.eventReport.findMany({
+      where,
       include: {
-        event: { select: { id: true, title: true, status: true } },
+        event: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            city: true,
+            state: true,
+            startDate: true,
+            endDate: true,
+            coverImage: true,
+          },
+        },
         user: { select: { id: true, name: true, avatar: true } },
         reviewedBy: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
-      take: 100,
-    });
-    return reports;
+      skip: pagination.skip,
+      take: pagination.limit,
+      }),
+      prisma.eventReport.count({ where }),
+    ]);
+    return paginatedResponse(reports, total, pagination);
   },
 
   async resolveReport(reportId: string, adminId: string, resolutionNote?: string) {

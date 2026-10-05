@@ -14,6 +14,7 @@ import {
   createCollectionSchema,
   updateCollectionSchema,
   addPlaceToCollectionSchema,
+  adminReelReportsQuerySchema,
 } from './social.validation';
 
 const router = Router();
@@ -53,7 +54,7 @@ router.get('/reels/:id/comments', optionalAuth, socialController.listComments);
 
 // Reports (uses ReelReport model)
 router.post('/reels/:id/report', authenticate, socialController.reportReel);
-router.get('/admin/reel-reports', authenticate, requireAdmin, socialController.listReelReports);
+router.get('/admin/reel-reports', authenticate, requireAdmin, validate(adminReelReportsQuerySchema, 'query'), socialController.listReelReports);
 
 // ── Collections Endpoints ──
 router.post('/collections', authenticate, validate(createCollectionSchema), socialController.createCollection);

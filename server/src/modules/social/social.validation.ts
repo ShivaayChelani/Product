@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ReelReportStatus } from '@prisma/client';
 import { REEL_TAGS } from './reelTags';
 
 /**
@@ -134,6 +135,20 @@ export const updateCollectionSchema = z.object({
 export const addPlaceToCollectionSchema = z.object({
   placeId: z.string().min(1, 'Place ID is required'),
   note: z.string().max(500).optional(),
+});
+
+export const adminReelReportsQuerySchema = z.object({
+  page: z.string().optional(),
+  limit: z.string().optional().default('20'),
+  status: z
+    .string()
+    .trim()
+    .transform((value) => value.toUpperCase())
+    .refine((value) => Object.values(ReelReportStatus).includes(value as ReelReportStatus), {
+      message: 'Invalid reel report status.',
+    })
+    .transform((value) => value as ReelReportStatus)
+    .optional(),
 });
 
 export type ApplyCreatorInput = z.infer<typeof applyCreatorSchema>;

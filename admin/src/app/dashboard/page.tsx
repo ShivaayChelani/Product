@@ -12,6 +12,7 @@ import { getCanonicalStatus } from "@/services/canonical";
 import PageHeader from "@/components/ui/PageHeader";
 import { SkeletonCards } from "@/components/ui/Skeleton";
 import EmptyState from "@/components/ui/EmptyState";
+import NeedsAttention from "@/components/NeedsAttention";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, Legend,
@@ -98,6 +99,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="space-y-6 pb-20 animate-fade-in">
+        <NeedsAttention />
         <SkeletonCards count={8} />
       </div>
     );
@@ -105,15 +107,18 @@ export default function DashboardPage() {
 
   if (!data) {
     return (
-      <EmptyState
-        title="Failed to load dashboard"
-        description={loadError || "The analytics service may be unavailable. Check API Monitor and retry."}
-        action={
-          <button type="button" onClick={() => window.location.reload()} className="admin-btn-primary">
-            Retry
-          </button>
-        }
-      />
+      <div className="space-y-6">
+        <NeedsAttention />
+        <EmptyState
+          title="Failed to load dashboard"
+          description={loadError || "The analytics service may be unavailable. Check API Monitor and retry."}
+          action={
+            <button type="button" onClick={() => window.location.reload()} className="admin-btn-primary">
+              Retry
+            </button>
+          }
+        />
+      </div>
     );
   }
 
@@ -146,6 +151,8 @@ export default function DashboardPage() {
           </div>
         }
       />
+
+      <NeedsAttention />
 
       {/* System health */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -342,7 +349,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         
         {/* City Analytics */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
@@ -372,35 +379,6 @@ export default function DashboardPage() {
           </div>
           <div className="mt-6 flex justify-center opacity-30" aria-hidden="true">
             <MapPin size={120} className="text-blue-200" />
-          </div>
-        </div>
-
-        {/* Pending Approvals */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex flex-col gap-4">
-          <h2 className="text-sm font-bold text-gray-900 mb-2">Pending Approvals</h2>
-          
-          <div className="bg-red-50 rounded-xl p-4 flex items-center gap-4 border border-red-100">
-            <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center shrink-0">
-              <Diamond size={24} />
-            </div>
-            <div className="flex-1">
-              <p className="text-xs text-gray-500 font-medium">Hidden Gems</p>
-              <p className="text-xl font-bold text-gray-900">{d.pendingApprovals?.hiddenGems || 0}</p>
-              <p className="text-[10px] text-red-500 font-medium">Pending Review</p>
-            </div>
-            <Link href="/dashboard/hidden-gems" className="bg-red-100 text-red-600 text-xs font-bold px-4 py-2 rounded-lg hover:bg-red-200">Review Now</Link>
-          </div>
-
-          <div className="bg-emerald-50 rounded-xl p-4 flex items-center gap-4 border border-emerald-100">
-            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0">
-              <Store size={24} />
-            </div>
-            <div className="flex-1">
-              <p className="text-xs text-gray-500 font-medium">Vendors</p>
-              <p className="text-xl font-bold text-gray-900">{d.pendingApprovals?.vendors || 0}</p>
-              <p className="text-[10px] text-emerald-600 font-medium">Pending Approval</p>
-            </div>
-            <Link href="/dashboard/vendors?status=PENDING" className="bg-emerald-100 text-emerald-700 text-xs font-bold px-4 py-2 rounded-lg hover:bg-emerald-200">View Now</Link>
           </div>
         </div>
 

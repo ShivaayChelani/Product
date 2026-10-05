@@ -5,6 +5,7 @@ import { requireContentOps } from '../../middleware/adminCapabilities';
 import { validate } from '../../middleware/validate';
 import { createEventLimiter, eventMapLimiter, updateEventLimiter } from '../../config/rateLimit';
 import {
+  adminEventReportsQuerySchema,
   adminListEventsQuerySchema,
   approveEventSchema,
   cancelEventSchema,
@@ -16,6 +17,7 @@ import {
   nearbyEventsQuerySchema,
   rejectEventSchema,
   reportEventSchema,
+  resolveEventReportSchema,
   unpublishEventSchema,
   updateEventSchemaWithGuard,
 } from './events.validation';
@@ -86,10 +88,11 @@ export const adminRouter = Router();
 adminRouter.use(authenticate, requireAdmin);
 
 adminRouter.get('/', validate(adminListEventsQuerySchema, 'query'), eventsController.adminList);
-adminRouter.get('/reports', eventsController.listReports);
+adminRouter.get('/reports', validate(adminEventReportsQuerySchema, 'query'), eventsController.listReports);
 adminRouter.patch(
   '/reports/:reportId/resolve',
   requireContentOps,
+  validate(resolveEventReportSchema),
   eventsController.resolveReport,
 );
 adminRouter.get('/:id/visibility', eventsController.visibilityDiagnosis);

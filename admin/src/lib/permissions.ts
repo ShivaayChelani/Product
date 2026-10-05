@@ -9,7 +9,7 @@ const ROLE_ROUTE_PREFIXES: Record<AdminRole, string[]> = {
   ADMIN: ["*"],
   OPS_ADMIN: [
     "/dashboard", "/dashboard/users", "/dashboard/vendors", "/dashboard/creators", "/dashboard/collaborations",
-    "/dashboard/places", "/dashboard/canonical", "/dashboard/hidden-gems",
+    "/dashboard/events", "/dashboard/places", "/dashboard/canonical", "/dashboard/hidden-gems",
     "/dashboard/categories", "/dashboard/tags", "/dashboard/media", "/dashboard/reels",
     "/dashboard/moderation", "/dashboard/reviews", "/dashboard/offers", "/dashboard/redemptions", "/dashboard/campaigns",
     "/dashboard/riddle-hunt", "/dashboard/wallets", "/dashboard/palpoints", "/dashboard/rewards",
@@ -23,10 +23,10 @@ const ROLE_ROUTE_PREFIXES: Record<AdminRole, string[]> = {
     "/dashboard/palpoints", "/dashboard/wallets", "/dashboard/monetization",
   ],
   CONTENT_MODERATOR: [
-    "/dashboard", "/dashboard/places", "/dashboard/canonical", "/dashboard/reels",
+    "/dashboard", "/dashboard/events", "/dashboard/places", "/dashboard/canonical", "/dashboard/reels",
     "/dashboard/hidden-gems", "/dashboard/categories", "/dashboard/tags", "/dashboard/media",
     "/dashboard/moderation", "/dashboard/reviews", "/dashboard/riddle-hunt",
-    "/dashboard/legal", "/dashboard/announcements",
+    "/dashboard/legal", "/dashboard/announcements", "/dashboard/reports",
   ],
   FINANCE_MANAGER: [
     "/dashboard", "/dashboard/wallets", "/dashboard/palpoints", "/dashboard/rewards",
@@ -59,7 +59,15 @@ export function canAccessRoute(role: AdminRole | string | undefined, href: strin
   const prefixes = ROLE_ROUTE_PREFIXES[r];
   if (!prefixes) return false;
   if (prefixes.includes("*")) return true;
-  return prefixes.some((prefix) => href === prefix || href.startsWith(`${prefix}/`));
+  return prefixes.some((prefix) => prefix === "/dashboard"
+    ? href === prefix
+    : href === prefix || href.startsWith(`${prefix}/`));
+}
+
+export function isAdminNavigationItemActive(pathname: string, href: string): boolean {
+  return href === "/dashboard"
+    ? pathname === href
+    : pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export function getAdminRoleFromStorage(): AdminRole | null {

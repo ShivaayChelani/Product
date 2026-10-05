@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { EventReportReason, EventStatus, EventType } from '@prisma/client';
+import { EventReportReason, EventReportStatus, EventStatus, EventType } from '@prisma/client';
 
 /**
  * Community Event write validation.
@@ -323,6 +323,7 @@ export const adminListEventsQuerySchema = z.object({
       message: 'Invalid event status.',
     })
     .transform((v) => v as EventStatus | undefined),
+  lifecycle: z.enum(['LIVE', 'UPCOMING', 'ENDED']).optional(),
   types: z.string().optional(),
   city: z.string().trim().max(100).optional(),
   state: z.string().trim().max(100).optional(),
@@ -333,6 +334,24 @@ export const adminListEventsQuerySchema = z.object({
   from: optionalEventDateString,
   to: optionalEventDateString,
   hasReports: z.enum(['true', 'false', '1', '0']).optional(),
+});
+
+export const adminEventReportsQuerySchema = z.object({
+  page: z.string().optional(),
+  limit: z.string().optional().default('20'),
+  status: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (v ? v.toUpperCase() : undefined))
+    .refine((v) => v === undefined || Object.values(EventReportStatus).includes(v as EventReportStatus), {
+      message: 'Invalid event report status.',
+    })
+    .transform((v) => v as EventReportStatus | undefined),
+});
+
+export const resolveEventReportSchema = z.object({
+  resolutionNote: z.string().trim().max(500).optional(),
 });
 
 export const reportEventSchema = z.object({
@@ -353,4 +372,6 @@ export type UnpublishEventInput = z.infer<typeof unpublishEventSchema>;
 export type CancelEventInput = z.infer<typeof cancelEventSchema>;
 export type FeatureEventInput = z.infer<typeof featureEventSchema>;
 export type AdminListEventsQueryInput = z.infer<typeof adminListEventsQuerySchema>;
+export type AdminEventReportsQueryInput = z.infer<typeof adminEventReportsQuerySchema>;
+export type ResolveEventReportInput = z.infer<typeof resolveEventReportSchema>;
 export type ReportEventInput = z.infer<typeof reportEventSchema>;

@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard, MapPin, Users, Video, Flag, Compass, ScrollText, LogOut, Menu, X,
+  LayoutDashboard, MapPin, Users, Video, Flag, Compass, ScrollText, LogOut, Menu, X, CalendarDays,
   Store, Award, Tag, Wallet, Settings, Diamond, ScanLine, TrendingUp, DollarSign, Bell,
   Gift, Clapperboard, Megaphone, FolderLock, CreditCard, Receipt, BadgePercent, ImageIcon,
   ShieldCheck, Layers, Hash, Shield, Search, Sparkles, Database, Activity,
   Lock, ShieldAlert, Handshake, Smartphone
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { canAccessRoute, getAdminRoleFromStorage } from "@/lib/permissions";
+import { canAccessRoute, getAdminRoleFromStorage, isAdminNavigationItemActive } from "@/lib/permissions";
 import type { AdminRole } from "@/components/PermissionWrapper";
 
 const navGroups = [
@@ -21,7 +21,6 @@ const navGroups = [
   {
     title: "TOURISM",
     items: [
-      { href: "/dashboard/places", label: "Places", icon: MapPin },
       { href: "/dashboard/categories", label: "Categories", icon: Layers },
       { href: "/dashboard/hidden-gems", label: "Hidden Gems", icon: Diamond },
       { href: "/dashboard/canonical", label: "Canonical Places", icon: ShieldCheck },
@@ -31,9 +30,12 @@ const navGroups = [
   {
     title: "MODERATION",
     items: [
+      { href: "/dashboard/events", label: "Events", icon: CalendarDays },
+      { href: "/dashboard/places", label: "Places", icon: MapPin },
+      { href: "/dashboard/vendors", label: "Vendors", icon: Store },
       { href: "/dashboard/reviews", label: "Reviews", icon: Flag },
       { href: "/dashboard/moderation", label: "Unified Moderation", icon: Shield },
-      { href: "/dashboard/reels", label: "Reels", icon: Video },
+      { href: "/dashboard/reports", label: "Reports", icon: Flag },
     ],
   },
   {
@@ -41,7 +43,6 @@ const navGroups = [
     items: [
       { href: "/dashboard/users", label: "Users", icon: Users },
       { href: "/dashboard/creators", label: "Creators", icon: Clapperboard },
-      { href: "/dashboard/vendors", label: "Vendors", icon: Store },
       { href: "/dashboard/collaborations", label: "Collaborations", icon: Handshake },
     ],
   },
@@ -78,8 +79,13 @@ const navGroups = [
     title: "INSIGHTS",
     items: [
       { href: "/dashboard/analytics", label: "Analytics", icon: TrendingUp },
-      { href: "/dashboard/reports", label: "Reports", icon: Flag },
       { href: "/dashboard/search", label: "Search Admin", icon: Search },
+    ],
+  },
+  {
+    title: "CONTENT",
+    items: [
+      { href: "/dashboard/reels", label: "Reels & Content", icon: Video },
     ],
   },
   {
@@ -153,7 +159,7 @@ export default function Sidebar() {
             </p>
             <div className="space-y-0.5">
               {group.items.map((item) => {
-                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const active = isAdminNavigationItemActive(pathname, item.href);
                 return (
                   <Link
                     key={item.href}

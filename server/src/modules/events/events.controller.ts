@@ -6,6 +6,7 @@ import { sendSuccess, sendCreated } from '../../shared/utils/response';
 import { ADMIN_ROLES, hasRole } from '../../middleware/auth';
 import type {
   AdminListEventsQueryInput,
+  AdminEventReportsQueryInput,
   ApproveEventInput,
   CancelEventInput,
   CreateEventInput,
@@ -15,6 +16,7 @@ import type {
   NearbyEventsQueryInput,
   RejectEventInput,
   ReportEventInput,
+  ResolveEventReportInput,
   UnpublishEventInput,
   UpdateEventInput,
 } from './events.validation';
@@ -148,7 +150,7 @@ export const eventsController = {
     const result = await eventsService.adminListEvents(req.query as unknown as AdminListEventsQueryInput);
     sendSuccess(res, result.data, {
       pagination: result.pagination,
-      meta: { statusCounts: result.statusCounts },
+      meta: { statusCounts: result.statusCounts, lifecycleCounts: result.lifecycleCounts },
     });
   }),
 
@@ -186,14 +188,14 @@ export const eventsController = {
   }),
 
   listReports: catchAsync(async (req, res: Response) => {
-    const status = typeof req.query.status === 'string' ? req.query.status : undefined;
-    sendSuccess(res, await eventsService.listReports(status));
+    const result = await eventsService.listReports(req.query as unknown as AdminEventReportsQueryInput);
+    sendSuccess(res, result.data, { pagination: result.pagination });
   }),
 
   resolveReport: catchAsync(async (req, res: Response) => {
     const viewer = requireViewer(req);
-    const note = typeof req.body?.resolutionNote === 'string' ? req.body.resolutionNote : undefined;
-    sendSuccess(res, await eventsService.resolveReport(String(req.params.reportId), viewer.id, note));
+    const { resolutionNote } = req.body as ResolveEventReportInput;
+    sendSuccess(res, await eventsService.resolveReport(String(req.params.reportId), viewer.id, resolutionNote));
   }),
 
   /**

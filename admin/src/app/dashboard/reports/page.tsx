@@ -9,6 +9,7 @@ import { generateReport } from "@/services/reports";
 import PageHeader from "@/components/ui/PageHeader";
 import EmptyState from "@/components/ui/EmptyState";
 import { downloadTextFile, jsonRowsToHtmlTable, printReport } from "@/lib/exportUtils";
+import EventReportQueue from "./EventReportQueue";
 
 const REPORT_TYPES = [
   { value: "users", label: "Users Report", icon: Users, desc: "User registrations, roles, activity" },
@@ -130,6 +131,8 @@ export default function ReportsPage() {
         description="Generate platform reports with CSV export, Excel-compatible download, and print-to-PDF."
         icon={FileText}
       />
+
+      <EventReportQueue />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-1">

@@ -83,12 +83,9 @@ export async function toggleFeatureReel(id: string, featured: boolean): Promise<
 
 export async function getReelReports(params?: {
   status?: string;
-}): Promise<{ data: AdminReelReport[] }> {
-  const res = await client.get<{ success?: boolean; data: AdminReelReport[] } | AdminReelReport[]>(
-    "/social/admin/reel-reports",
-    { params },
-  );
-  const body = res.data as { data?: AdminReelReport[] } | AdminReelReport[];
-  if (Array.isArray(body)) return { data: body };
-  return { data: body.data || [] };
+  page?: number;
+  limit?: number;
+}): Promise<PaginatedResponse<AdminReelReport>> {
+  const res = await client.get<PaginatedResponse<AdminReelReport>>("/social/admin/reel-reports", { params });
+  return res.data;
 }
