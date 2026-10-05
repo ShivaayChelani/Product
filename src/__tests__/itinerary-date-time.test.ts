@@ -4,7 +4,7 @@
  * The server computes the trip day count at creation
  * (server/src/modules/trips/trips.service.ts create):
  *
- *   days = Math.max(1, Math.ceil((endDate - startDate) / 86400000) + 1)
+ *   days = Math.max(1, Math.floor((endDate - startDate) / 86400000) + 1)
  *
  * This suite mirrors that exact formula (a documented contract guard) so
  * month/year/leap boundaries are locked in mobile tests, and the mobile
@@ -16,12 +16,16 @@ import type { CreateTripInput, TravelPace, TimePreference } from '../services/ap
 const DAY_MS = 1000 * 60 * 60 * 24;
 
 /**
- * Contract mirror of the server's day-count formula. Kept byte-for-byte
- * identical to the backend implementation it protects.
+ * Contract mirror of the server's day-count formula (`computeTripDayCount` in
+ * server/src/modules/trips/trips.service.ts). Kept in step with it so month/year/
+ * leap boundaries are locked in on mobile too.
+ *
+ * `floor`, not `ceil`: a trip ending just after midnight on its final day still
+ * touches only that many calendar days.
  */
 export function computeTripDays(startDate?: string | null, endDate?: string | null): number {
   return startDate && endDate
-    ? Math.max(1, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / DAY_MS) + 1)
+    ? Math.max(1, Math.floor((new Date(endDate).getTime() - new Date(startDate).getTime()) / DAY_MS) + 1)
     : 1;
 }
 

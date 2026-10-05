@@ -138,9 +138,14 @@ describe('trip summary calculations', () => {
     expect(budget.entryTotal).toBe(450);
     expect(budget.foodTotal).toBe(3600);
     expect(budget.transportTotal).toBe(40);
-    expect(budget.grandTotal).toBe(4090);
+    // The headline total is deliberately entry + transport only. Food is a rough,
+    // non-authoritative allowance, so folding it into the total would present the
+    // estimate as a complete trip price. It stays disclosed via `foodTotal`.
+    expect(budget.grandTotal).toBe(490);
+    expect(budget.grandTotal).toBe(budget.entryTotal + budget.transportTotal);
+    expect(budget.grandTotal).not.toBe(budget.entryTotal + budget.foodTotal + budget.transportTotal);
     expect(budget.includesTravel).toBe(true);
-    expect(budget.scopeLabel).toBe('Entry + food + travel');
+    expect(budget.scopeLabel).toBe('Entry + transport');
   });
 
   it('omits travel for a local traveller and keeps entry plus food only', () => {
@@ -153,14 +158,14 @@ describe('trip summary calculations', () => {
     expect(local.transportTotal).toBe(0);
     expect(local.entryTotal).toBe(450);
     expect(local.foodTotal).toBe(3600);
-    expect(local.grandTotal).toBe(4050);
-    expect(local.scopeLabel).toBe('Entry + food');
+    expect(local.grandTotal).toBe(450);
+    expect(local.scopeLabel).toBe('Entry fees');
   });
 
   it('treats walking-only trips as local even without a home city', () => {
     const walking = computeTripBudget(makeTrip({ transportation: ['WALKING'] }));
     expect(walking.isLocal).toBe(true);
-    expect(walking.grandTotal).toBe(4050);
+    expect(walking.grandTotal).toBe(450);
   });
 
   it('formats duration without requiring calendar dates', () => {

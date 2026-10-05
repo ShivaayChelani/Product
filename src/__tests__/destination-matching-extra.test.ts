@@ -151,8 +151,15 @@ describe('isGenericDestination + normalizeDestinationKey', () => {
   });
 
   it('normalizes punctuation and district suffixes', () => {
-    expect(normalizeDestinationKey('Kolkata District!')).toBe('kolkata district');
+    expect(normalizeDestinationKey('Kolkata District!')).toBe('kolkata');
     expect(normalizeDestinationKey('  pune, mh  ')).toBe('pune mh');
+  });
+
+  it('leaves no interior gap when stripping noise words mid-string', () => {
+    // A key like "diu  gujarat" would miss the exact alias-table lookup used by
+    // canonicalizeDestination, so whitespace must collapse after the strip.
+    expect(normalizeDestinationKey('Diu district, Gujarat')).toBe('diu gujarat');
+    expect(normalizeDestinationKey('Mysore city, Karnataka')).toBe('mysore karnataka');
   });
 
   it('formats canonical labels with title case', () => {

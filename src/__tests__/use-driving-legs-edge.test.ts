@@ -143,8 +143,11 @@ describe('Section 19 — consecutive legs A→B, B→C, C→D', () => {
     let effectCb: any;
     (useEffect as jest.Mock).mockImplementation((cb) => { effectCb = cb; });
 
-    (getOSRMRoute as jest.Mock).mockImplementation(async (olat: number, _lng: number, dlat: number) => {
-      const seconds = (dlat - olat) * 60; // 10→20: 600s, 20→30: 1200s, 30→40: 1800s
+    // Key the mock off the ORIGIN latitude so each leg gets a distinct value and
+    // therefore proves ordering. (A (dlat - olat) delta would be constant 10 for
+    // every consecutive pair here, so it could not distinguish leg order.)
+    (getOSRMRoute as jest.Mock).mockImplementation(async (olat: number) => {
+      const seconds = olat * 60; // 10→600s, 20→1200s, 30→1800s
       return { durationSeconds: seconds, distanceMeters: seconds * 5, source: 'routing' };
     });
 

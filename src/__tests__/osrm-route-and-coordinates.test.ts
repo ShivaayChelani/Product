@@ -130,7 +130,8 @@ describe('Section 21 — guarded failures return null, never crash', () => {
     ((global as any).fetch as FetchMock).mockClear();
     await expect(getOSRMRoute(NaN, 10, 20, 20)).resolves.toBeNull();
     await expect(getOSRMRoute(10, 10, Infinity, 20)).resolves.toBeNull();
-    await expect(getOSRMRoute(10 as any, 10, 20 as any, 20)).resolves.toBeNull();
+    await expect(getOSRMRoute(undefined as any, 10, 20, 20)).resolves.toBeNull();
+    await expect(getOSRMRoute(10, 10, 20, null as any)).resolves.toBeNull();
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -187,7 +188,11 @@ describe('10-minute TTL cache: rounded-fixed key, deduped requests', () => {
     const first = await getOSRMRoute(28.61391, 77.20902, 28.70412, 77.10249);
     const second = await getOSRMRoute(28.61391, 77.20902, 28.70412, 77.10249);
     expect(first).not.toBeNull();
-    expect(second).toBe(first);
+    // A cache hit returns a copy with the TTL field stripped, so callers cannot
+    // mutate the cached entry. The single-fetch assertion below is the real
+    // cache contract.
+    expect(second).toEqual(first);
+    expect(second).not.toHaveProperty('expiresAt');
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 

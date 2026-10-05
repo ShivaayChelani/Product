@@ -111,6 +111,8 @@ describe('DUPLICATE — tripsApi.duplicate + duplicateStop flow', () => {
 });
 
 describe('REORDER — tripsApi.reorderStops + local order', () => {
+  beforeEach(() => jest.clearAllMocks());
+
   it('PATCHes the day reorder endpoint with stopIds in the new order', async () => {
     mockPatch.mockResolvedValue({ success: true });
     await tripsApi.reorderStops('day-1', ['s3', 's1', 's2']);

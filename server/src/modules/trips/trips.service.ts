@@ -616,11 +616,28 @@ function themeForDay(day: PlanDay, zones: Zone[], poolById: Map<string, Enriched
   return zoneAreaLabel(best, poolById);
 }
 
+const DAY_MS = 1000 * 60 * 60 * 24;
+
+/**
+ * Inclusive count of calendar days a trip spans.
+ *
+ * `floor` (not `ceil`) is required for correctness: the old `ceil` inflated any
+ * trip whose end timestamp was not exactly midnight. A trip from 2026-06-01T00:00Z
+ * to 2026-06-02T00:30Z touches 2 calendar days, but `ceil` reported 3, which also
+ * inflated every downstream budget estimate. Date-only inputs are midnight-aligned,
+ * so they are unaffected.
+ */
+export function computeTripDayCount(start?: Date | string | null, end?: Date | string | null): number {
+  if (!start || !end) return 1;
+  const startMs = new Date(start).getTime();
+  const endMs = new Date(end).getTime();
+  if (Number.isNaN(startMs) || Number.isNaN(endMs)) return 1;
+  return Math.max(1, Math.floor((endMs - startMs) / DAY_MS) + 1);
+}
+
 export const tripsService = {
   async create(data: any, userId: string) {
-    const days = data.startDate && data.endDate
-      ? Math.max(1, Math.ceil((new Date(data.endDate).getTime() - new Date(data.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
-      : 1;
+    const days = computeTripDayCount(data.startDate, data.endDate);
 
     const trip = await prismaTrip.create({
       data: {
@@ -755,7 +772,7 @@ export const tripsService = {
       const start = data.startDate ? new Date(data.startDate) : trip.startDate;
       const end = data.endDate ? new Date(data.endDate) : trip.endDate;
       if (start && end) {
-        newDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+        newDays = computeTripDayCount(start, end);
       }
     }
 

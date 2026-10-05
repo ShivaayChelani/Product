@@ -116,9 +116,10 @@ describe('apiClient error handling', () => {
   });
 
   it('abort/timeout surfaces an AbortError and never a false "not found"', async () => {
+    // The DOMException name argument already sets `name`; it is a WebIDL
+    // readonly attribute, so assigning to it throws a TypeError.
     const abortError = new DOMException('The operation was aborted', 'AbortError');
-    abortError.name = 'AbortError';
-    abortError.name = 'AbortError';
+    expect(abortError.name).toBe('AbortError');
     await setUpFetch(() => Promise.reject(abortError));
     await expect(apiClient.get('/trips')).rejects.toMatchObject({ name: 'AbortError' });
   });

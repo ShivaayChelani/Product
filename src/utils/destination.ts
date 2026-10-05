@@ -13,8 +13,12 @@ export function normalizeDestinationKey(raw: string): string {
     .toLowerCase()
     .trim()
     .replace(/[^\w\s]/g, ' ')
+    // Strip administrative noise BEFORE collapsing whitespace. Removing these
+    // words leaves a gap (e.g. "Diu district, Gujarat" -> "diu   gujarat"), and a
+    // key with an interior double space misses the exact alias/Set lookups in
+    // canonicalizeDestination and isGenericDestination.
+    .replace(/\b(india|city|town|district)\b/g, ' ')
     .replace(/\s+/g, ' ')
-    .replace(/\b(india|city|town|district)\b/g, '')
     .trim();
 }
 

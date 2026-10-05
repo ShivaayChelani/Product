@@ -34,9 +34,11 @@ export const linking: LinkingOptions<RootStackParamList> = {
       TripShared: 'trip/shared/:token',
       ReelDetail: {
         path: 'reel/:reelId',
-        parse: ({ reelId }) => {
-          const id = parseReelId(reelId);
-          return id ? { reelId: id } : undefined;
+        parse: {
+          // `parse` is a per-param map of (rawValue) => parsedValue. A malformed id
+          // must still resolve to ReelDetail with '' so the screen renders its own
+          // not-found state instead of the link silently falling through to Home.
+          reelId: (reelId: string) => parseReelId(reelId) ?? '',
         },
       },
       LegalDocument: {

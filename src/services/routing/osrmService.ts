@@ -52,12 +52,19 @@ const CACHE_TTL_MS = 10 * 60 * 1000;
 type CachedRoute = RouteResult & { expiresAt: number };
 const routeCache = new Map<string, CachedRoute>();
 
-/** Round coordinates to suppress GPS jitter in cache keys. */
+/**
+ * Round coordinates to suppress GPS jitter in cache keys.
+ *
+ * Bucket size is 1e-4 deg (~11 m), which is coarser than typical handheld GPS
+ * drift (~5-10 m). Rounding to a finer precision would let sub-bucket jitter
+ * produce a distinct key and defeat the cache, which is the opposite of what
+ * this is here for.
+ */
 function roundCoord(n: number): number {
-  return Math.round(n * 100000) / 100000;
+  return Math.round(n * 10000) / 10000;
 }
 
-/** Stable cache key incorporating profile, rounded origin, and precise destination */
+/** Stable cache key incorporating profile, rounded origin, and destination */
 function makeRouteCacheKey(
   originLat: number,
   originLng: number,
@@ -68,13 +75,13 @@ function makeRouteCacheKey(
   return (
     profile +
     '|' +
-    roundCoord(originLat).toFixed(5) +
+    roundCoord(originLat).toFixed(4) +
     ',' +
-    roundCoord(originLng).toFixed(5) +
+    roundCoord(originLng).toFixed(4) +
     '|' +
-    roundCoord(destLat).toFixed(5) +
+    roundCoord(destLat).toFixed(4) +
     ',' +
-    roundCoord(destLng).toFixed(5)
+    roundCoord(destLng).toFixed(4)
   );
 }
 
