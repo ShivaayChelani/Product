@@ -80,6 +80,34 @@ export const authController = {
     sendSuccess(res, result, { message: 'Google Login successful' });
   }),
 
+  appleLogin: catchAsync(async (req: Request, res: Response) => {
+    const {
+      identityToken,
+      nonce,
+      firstName,
+      lastName,
+      termsAccepted,
+      privacyAccepted,
+      termsVersion,
+      privacyVersion,
+      platform,
+    } = req.body;
+    const result = await authService.appleLogin(
+      identityToken,
+      nonce,
+      { termsAccepted, privacyAccepted, termsVersion, privacyVersion, platform },
+      { firstName, lastName },
+    );
+
+    if ('requiresLegalAcceptance' in result) {
+      sendSuccess(res, result, { message: 'Legal acceptance required before account creation.' });
+      return;
+    }
+
+    setAccessTokenCookie(res, result.accessToken);
+    sendSuccess(res, result, { message: 'Apple Login successful' });
+  }),
+
   refresh: catchAsync(async (req: Request, res: Response) => {
     const { refreshToken } = req.body;
     const result = await authService.refresh(refreshToken);
@@ -172,4 +200,3 @@ export const authController = {
     sendSuccess(res, result, { message: 'Vendor account setup successful' });
   }),
 };
-

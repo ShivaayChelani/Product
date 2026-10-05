@@ -347,7 +347,7 @@ class ApiClient {
       const { response, json } = await withTimeout(perform(), timeoutMs, () => controller.abort());
 
       if (!response.ok) {
-        if (response.status === 401 && !isRetry && !path.includes('/auth/refresh') && !path.includes('/auth/login') && !path.includes('/auth/register') && !path.includes('/auth/google')) {
+        if (response.status === 401 && !isRetry && !path.includes('/auth/refresh') && !path.includes('/auth/login') && !path.includes('/auth/register') && !path.includes('/auth/google') && !path.includes('/auth/apple')) {
           // Guests / anonymous callers hit auth-required endpoints without credentials.
           // Do not treat that as a session expiry — it would kick them to the splash screen.
           const hadAccessToken = Boolean(this.token);

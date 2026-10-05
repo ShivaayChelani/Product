@@ -24,3 +24,17 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
   isSuccessResponse: (response) => response && response.type === 'success',
   isErrorWithCode: () => false,
 }));
+
+jest.mock('react-native-get-random-values', () => {
+  if (!globalThis.crypto || typeof globalThis.crypto.getRandomValues !== 'function') {
+    const { randomFillSync } = require('crypto');
+    globalThis.crypto = {
+      ...(globalThis.crypto || {}),
+      getRandomValues: (typedArray) => {
+        randomFillSync(typedArray);
+        return typedArray;
+      },
+    };
+  }
+  return {};
+});

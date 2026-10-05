@@ -49,6 +49,22 @@ export interface GoogleLoginInput {
   platform?: 'ios' | 'android' | 'web';
 }
 
+export interface AppleLoginInput {
+  identityToken: string;
+  nonce: string;
+  firstName?: string;
+  lastName?: string;
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
+  termsVersion?: number;
+  privacyVersion?: number;
+  platform?: 'ios' | 'android' | 'web';
+}
+
+export interface AppleLoginRequiresLegal {
+  requiresLegalAcceptance: true;
+}
+
 /** Returned by Phase 1 of Google login when a brand-new account needs legal acceptance. */
 export interface GoogleLoginRequiresLegal {
   requiresLegalAcceptance: true;
@@ -180,6 +196,28 @@ export const authApi = {
     return loginData;
   },
 
+  async appleLogin(input: AppleLoginInput): Promise<LoginResponse | AppleLoginRequiresLegal> {
+    const res = await apiClient.post<LoginResponse | AppleLoginRequiresLegal>(
+      API_CONFIG.endpoints.auth.apple,
+      input,
+    );
+    const data = res.data;
+
+    if (data && 'requiresLegalAcceptance' in data && data.requiresLegalAcceptance) {
+      return data;
+    }
+
+    const loginData = data as LoginResponse;
+    if (!loginData?.accessToken) {
+      throw new Error('Apple Login succeeded but no access token was returned.');
+    }
+    await apiClient.setToken(loginData.accessToken);
+    if (loginData.refreshToken) {
+      await apiClient.setRefreshToken(loginData.refreshToken);
+    }
+    return loginData;
+  },
+
   async getProfile() {
     const res = await apiClient.get<LoginResponse['user']>(
       API_CONFIG.endpoints.auth.me,
@@ -294,4 +332,3 @@ export interface AccountDeletionInfo {
   creator: { id: string; status: string; username: string } | null;
   canSelfDelete: boolean;
 }
-

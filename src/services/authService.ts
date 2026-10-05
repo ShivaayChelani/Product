@@ -12,6 +12,9 @@ import {
   logGoogleAuthStage,
   type GoogleAuthStage,
 } from './googleAuthDiagnostics';
+import { appleAuth, generateAppleNonce } from '../config/appleAuth';
+import { isAppleSignInCancelled, mapAppleAuthFailure } from './appleAuthErrors';
+import { forgetAppleUserId, rememberAppleUserId } from './appleCredentialState';
 import { parseJsonObject } from '../utils/safeJson';
 import { purgeUserLocalData } from './localStorageService';
 
@@ -418,6 +421,122 @@ export async function resendRegisterOtp(email: string): Promise<boolean> {
   return true;
 }
 
+export type PendingAppleAuthorization = {
+  identityToken: string;
+  nonce: string;
+  appleUserId?: string;
+  firstName?: string;
+  lastName?: string;
+};
+
+export async function appleLogin(): Promise<
+  | { user: UserProfile; session: Session }
+  | { requiresLegalAcceptance: true; pendingAppleAuthorization: PendingAppleAuthorization }
+  | null
+> {
+  if (!DEV_FLAGS.USE_SERVER_API) {
+    throw new Error('Server API is required. Set USE_SERVER_API=true in devFlags.');
+  }
+
+  try {
+    const nonce = generateAppleNonce();
+    const response = await appleAuth.performRequest({
+      requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
+      requestedOperation: appleAuth.Operation.LOGIN,
+      nonce,
+    });
+    if (!response) return null;
+
+    if (!response.identityToken) {
+      const missingToken = new Error('Apple did not return an identity token. Please try again.') as Error & {
+        status?: number;
+      };
+      missingToken.status = 502;
+      throw missingToken;
+    }
+
+    const appleUserId = typeof response.user === 'string' ? response.user : undefined;
+    const pendingAppleAuthorization: PendingAppleAuthorization = {
+      identityToken: response.identityToken,
+      nonce: response.nonce || nonce,
+      ...(appleUserId ? { appleUserId } : {}),
+      ...(response.fullName?.givenName ? { firstName: response.fullName.givenName } : {}),
+      ...(response.fullName?.familyName ? { lastName: response.fullName.familyName } : {}),
+    };
+    const result = await authApi.appleLogin(pendingAppleAuthorization);
+    if ('requiresLegalAcceptance' in result) {
+      return { requiresLegalAcceptance: true, pendingAppleAuthorization };
+    }
+
+    if (!result?.accessToken || !result.user?.id) {
+      throw new Error('Apple Sign-In returned an incomplete session. Please try again.');
+    }
+
+    const profile = buildProfileFromApiUser(result.user);
+    try {
+      await persistAuthUser(profile);
+      await rememberAppleUserId(appleUserId);
+    } catch {
+      await apiClient.setToken(null);
+      throw new Error('Apple Sign-In returned an incomplete session. Please try again.');
+    }
+    return {
+      user: profile,
+      session: {
+        userId: profile.uid,
+        email: result.user.email,
+        role: profile.role,
+        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      },
+    };
+  } catch (error: unknown) {
+    if (isAppleSignInCancelled(error)) return null;
+    throw mapAppleAuthFailure(error);
+  }
+}
+
+export async function finalizeAppleLogin(
+  authorization: PendingAppleAuthorization,
+  legalMeta: LegalMeta,
+): Promise<{ user: UserProfile; session: Session } | null> {
+  if (!DEV_FLAGS.USE_SERVER_API) {
+    throw new Error('Server API is required. Set USE_SERVER_API=true in devFlags.');
+  }
+
+  try {
+    const result = await authApi.appleLogin({
+      ...authorization,
+      termsAccepted: true,
+      privacyAccepted: true,
+      termsVersion: legalMeta.termsVersion,
+      privacyVersion: legalMeta.privacyVersion,
+      platform: legalMeta.platform,
+    });
+    if ('requiresLegalAcceptance' in result) {
+      throw new Error('Legal acceptance was not recorded. Please reload and try again.');
+    }
+    if (!result?.accessToken || !result.user?.id) {
+      throw new Error('Apple Sign-In returned an incomplete session. Please try again.');
+    }
+
+    const profile = buildProfileFromApiUser(result.user);
+    await persistAuthUser(profile);
+    await rememberAppleUserId(authorization.appleUserId);
+    return {
+      user: profile,
+      session: {
+        userId: profile.uid,
+        email: result.user.email,
+        role: profile.role,
+        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      },
+    };
+  } catch (error: unknown) {
+    if (isAppleSignInCancelled(error)) return null;
+    throw mapAppleAuthFailure(error);
+  }
+}
+
 export async function logout(): Promise<void> {
   try {
     await GoogleSignin.signOut();
@@ -431,6 +550,7 @@ export async function logout(): Promise<void> {
   }
   await AsyncStorage.removeItem(AUTH_SESSION_KEY);
   await AsyncStorage.removeItem(AUTH_USER_KEY);
+  await forgetAppleUserId();
   await purgeUserLocalData();
 }
 

@@ -47,9 +47,22 @@ export const googleLoginSchema = z.object({
   platform: z.enum(['ios', 'android', 'web']).optional(),
 }).strict();
 
+export const appleLoginSchema = z.object({
+  identityToken: z.string().min(1, 'Apple identity token is required').max(8192, 'Apple identity token is too long'),
+  nonce: z.string().min(8, 'Nonce is required').max(256, 'Nonce is too long'),
+  firstName: z.string().trim().min(1).max(60).optional(),
+  lastName: z.string().trim().min(1).max(60).optional(),
+  termsAccepted: z.boolean().optional(),
+  privacyAccepted: z.boolean().optional(),
+  termsVersion: z.number().int().positive().optional(),
+  privacyVersion: z.number().int().positive().optional(),
+  platform: z.enum(['ios', 'android', 'web']).optional(),
+}).strict();
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type GoogleLoginInput = z.infer<typeof googleLoginSchema>;
+export type AppleLoginInput = z.infer<typeof appleLoginSchema>;
 
 
 export const forgotPasswordSchema = z.object({
@@ -123,4 +136,3 @@ export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;
 export type ActiveModeInput = z.infer<typeof activeModeSchema>;
-

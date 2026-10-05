@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { AppState, Platform, type AppStateStatus } from 'react-native';
+import { Alert, AppState, Platform, type AppStateStatus } from 'react-native';
 import { UserActiveMode, UserProfile } from '../types';
 import { loadUserProgress, saveUserProgress } from '../services/localStorageService';
 import {
   login, signup, logout, restoreSession, forgotPassword, setActiveMode as persistActiveMode,
   refreshSessionRoles, verifyRegisterEmail, resendRegisterOtp, googleLogin, finalizeGoogleLogin,
-  type LegalMeta,
+  appleLogin, finalizeAppleLogin, type LegalMeta, type PendingAppleAuthorization,
 } from '../services/authService';
 import { notificationService } from '../services/notificationService';
 import { apiClient } from '../services/api/client';
@@ -16,6 +16,13 @@ import { LegalAcceptanceModal } from '../components/auth/LegalAcceptanceModal';
 import { clearAppCaches } from '../features/settings/utils/storageManager';
 import { applyWalletPalPoints } from '../utils/syncPalPoints';
 import { attemptDailyOpenReward } from '../services/dailyOpenReward';
+import { canUseSignInWithApple } from '../config/appleAuth';
+import {
+  checkAppleCredentialState,
+  isAppleAccessRevoked,
+  isAppleIdentityTransferred,
+  observeAppleCredentialRevocation,
+} from '../services/appleCredentialState';
 
 interface UserContextType {
   user: UserProfile;
@@ -30,6 +37,7 @@ interface UserContextType {
   setUser: React.Dispatch<React.SetStateAction<UserProfile>>;
   setIsAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
   onGoogleLogin: () => Promise<boolean>;
+  onAppleLogin: () => Promise<boolean>;
   onLogin: (
     email: string,
     password: string,
@@ -207,7 +215,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const [legalModalVisible, setLegalModalVisible] = useState(false);
   const [pendingGoogleIdToken, setPendingGoogleIdToken] = useState<string | null>(null);
+  const [pendingAppleAuthorization, setPendingAppleAuthorization] = useState<PendingAppleAuthorization | null>(null);
   const [googleLegalLoading, setGoogleLegalLoading] = useState(false);
+  const [appleLegalLoading, setAppleLegalLoading] = useState(false);
   const [legalVersions, setLegalVersions] = useState<LegalCurrentVersions | null>(null);
 
   const onGoogleLogin = useCallback(async (): Promise<boolean> => {
@@ -261,6 +271,41 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }, [applyWalletPalPoints]);
 
+  const onAppleLogin = useCallback(async (): Promise<boolean> => {
+    if (!canUseSignInWithApple()) {
+      throw new Error('Sign in with Apple is not available on this device.');
+    }
+
+    setAuthLoading(true);
+    try {
+      const result = await appleLogin();
+      if (!result) return false;
+
+      if ('requiresLegalAcceptance' in result) {
+        setPendingAppleAuthorization(result.pendingAppleAuthorization);
+        try {
+          const versionRes = await legalApi.getCurrentVersions();
+          setLegalVersions(versionRes.data);
+        } catch {
+          setLegalVersions(null);
+        }
+        setLegalModalVisible(true);
+        return false;
+      }
+
+      setUser(prev => ({ ...prev, ...result.user }));
+      setIsAuthenticated(true);
+      trackAuthEvent('login', { mode: result.user.activeMode || result.user.activeRole });
+      void applyWalletPalPoints(setUser);
+      notificationService.requestPermission().then((granted) => {
+        if (granted) notificationService.registerDeviceToken().catch(() => {});
+      }).catch(() => {});
+      return true;
+    } finally {
+      setAuthLoading(false);
+    }
+  }, []);
+
   /** Called when user accepts legal docs in the Google legal gate modal. */
   const handleGoogleLegalAccept = useCallback(async (legalVersions: { termsVersion: number; privacyVersion: number }) => {
     if (!pendingGoogleIdToken) return;
@@ -295,10 +340,45 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }, [pendingGoogleIdToken, applyWalletPalPoints]);
 
+  const handleAppleLegalAccept = useCallback(async (legalVersions: { termsVersion: number; privacyVersion: number }) => {
+    if (!pendingAppleAuthorization) return;
+    setAppleLegalLoading(true);
+    try {
+      const result = await finalizeAppleLogin(pendingAppleAuthorization, {
+        termsVersion: legalVersions.termsVersion,
+        privacyVersion: legalVersions.privacyVersion,
+        platform: Platform.OS === 'ios' ? 'ios' : 'android',
+      });
+      setLegalModalVisible(false);
+      setPendingAppleAuthorization(null);
+      if (!result) return;
+
+      setUser(prev => ({ ...prev, ...result.user }));
+      setIsAuthenticated(true);
+      trackAuthEvent('signup', { mode: result.user.activeMode || result.user.activeRole });
+      void applyWalletPalPoints(setUser);
+      notificationService.requestPermission().then((granted) => {
+        if (granted) notificationService.registerDeviceToken().catch(() => {});
+      }).catch(() => {});
+    } finally {
+      setAppleLegalLoading(false);
+    }
+  }, [pendingAppleAuthorization]);
+
+  const handleLegalAccept = useCallback(
+    (versions: { termsVersion: number; privacyVersion: number }) =>
+      pendingAppleAuthorization
+        ? handleAppleLegalAccept(versions)
+        : handleGoogleLegalAccept(versions),
+    [pendingAppleAuthorization, handleAppleLegalAccept, handleGoogleLegalAccept],
+  );
+
   const handleGoogleLegalCancel = useCallback(() => {
     setLegalModalVisible(false);
     setPendingGoogleIdToken(null);
+    setPendingAppleAuthorization(null);
     setGoogleLegalLoading(false);
+    setAppleLegalLoading(false);
   }, []);
 
   const onLogin = useCallback(async (
@@ -412,6 +492,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setTimeout(() => setIsLoggingOut(false), 500);
   }, []);
 
+  const enforceAppleCredentialState = useCallback(async () => {
+    const state = await checkAppleCredentialState();
+    if (!isAppleAccessRevoked(state) && !isAppleIdentityTransferred(state)) return;
+
+    await onLogout();
+    Alert.alert(
+      'Sign in again',
+      isAppleAccessRevoked(state)
+        ? 'Your access to PalSafar was removed from your Apple ID. Please sign in again to continue.'
+        : 'Your Apple ID changed to a different Apple account. Please sign in again to continue.',
+    );
+  }, [onLogout]);
+
   const confirmLogout = useCallback(() => {
     setIsLogoutModalVisible(true);
   }, []);
@@ -447,11 +540,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
         refreshSession().catch(() => undefined);
         void applyWalletPalPoints(setUser);
         void attemptDailyOpenReward(setUser);
+        void enforceAppleCredentialState();
       }
     };
     const sub = AppState.addEventListener('change', onChange);
     return () => sub.remove();
-  }, [isAuthenticated, user.uid, refreshSession]);
+  }, [isAuthenticated, user.uid, refreshSession, enforceAppleCredentialState]);
+
+  useEffect(() => {
+    if (!isAuthenticated || user.uid === 'guest-user') return;
+    void enforceAppleCredentialState();
+    return observeAppleCredentialRevocation(() => {
+      void enforceAppleCredentialState();
+    });
+  }, [isAuthenticated, user.uid, enforceAppleCredentialState]);
 
   const setActiveMode = useCallback(async (mode: UserActiveMode) => {
     if (!isAuthenticated || user.uid === 'guest-user') {
@@ -536,7 +638,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   return (
     <UserContext.Provider value={{
       user, isAuthenticated, isGuest, isInitializing, authLoading, isStorageLoaded, isLoggingOut,
-      setUser, setIsAuthenticated, onGoogleLogin, onLogin, onSignup, onVerifyRegisterEmail, onResendRegisterOtp, onLogout, confirmLogout, onGuestContinue,
+      setUser, setIsAuthenticated, onGoogleLogin, onAppleLogin, onLogin, onSignup, onVerifyRegisterEmail, onResendRegisterOtp, onLogout, confirmLogout, onGuestContinue,
       onForgotPassword, setActiveMode, setActiveRole: setActiveMode, refreshSession, handleResetProgress,
     }}>
       {children}
@@ -551,8 +653,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       <LegalAcceptanceModal
         visible={legalModalVisible}
         legalVersions={legalVersions}
-        isLoading={googleLegalLoading}
-        onAccept={handleGoogleLegalAccept}
+        isLoading={googleLegalLoading || appleLegalLoading}
+        onAccept={handleLegalAccept}
         onCancel={handleGoogleLegalCancel}
         onOpenDocument={(type) => {
           // Navigate to the legal document screen using the root navigator ref.

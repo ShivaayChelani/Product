@@ -36,6 +36,8 @@ import {
 } from '../upload/media-cleanup.service';
 import { verifyGoogleIdToken } from './googleIdentity';
 import { resolveGoogleAccount } from './googleAccountResolution';
+import { joinAppleFullName, verifyAppleIdentityToken } from './appleIdentity';
+import { resolveAppleAccount } from './appleAccountResolution';
 import { legalService } from '../legal/legal.service';
 
 const ACCESS_TOKEN_EXPIRY = (env.jwt.expiresIn || '1h') as SignOptions['expiresIn'];
@@ -48,6 +50,7 @@ const REFRESH_TOKEN_EXPIRY_DAYS = 7;
  * not a grandfathered account — and must accept the current legal documents first.
  */
 const GOOGLE_SIGNIN_WINDOW_MS = 10 * 60 * 1000;
+const APPLE_SIGNIN_WINDOW_MS = 10 * 60 * 1000;
 
 function hashRefreshToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
@@ -225,6 +228,126 @@ async function issueRegisterOtpEmail(canonicalEmail: string): Promise<void> {
     input,
     { email: canonicalEmail, purpose: 'register_otp' },
   );
+}
+
+type SocialLegalInput = {
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
+  termsVersion?: number;
+  privacyVersion?: number;
+  platform?: string;
+};
+
+/**
+ * Post-identity legal gate shared by the social sign-in providers (Google, Apple).
+ *
+ * Runs AFTER the provider identity has been resolved into a `userId`, and decides
+ * whether that account may receive a session immediately or must accept the
+ * current legal documents first.
+ *
+ * Returns either a login session or a structured `{ requiresLegalAcceptance }`
+ * marker (a response, not an error) so the client can render its legal modal.
+ *
+ * This lives in exactly one place deliberately: the providers must behave
+ * identically. They previously diverged, which is how the Apple flow ended up
+ * wired into the controller and routes with no service implementation behind it.
+ */
+async function finalizeSocialLogin(
+  userId: string,
+  created: boolean,
+  legal: SocialLegalInput | undefined,
+  providerLabel: string,
+  signinWindowMs: number,
+) {
+  // Already legally accepted (registered or accepted in a prior Phase 2 session).
+  const existingAcceptance = await prisma.legalAcceptance.findUnique({ where: { userId } });
+  if (existingAcceptance) {
+    return createLoginSession(userId);
+  }
+
+  // A provider-created account (password:null) younger than this window is an
+  // in-flight registration — a Phase 1 shell, or a concurrent request for the same
+  // new identity — and MUST pass the legal gate before it can receive a session.
+  // Pre-existing accounts (grandfathered: a link or email/password created before
+  // the required-acceptance feature) keep logging in without any gate.
+  const freshShell = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { password: true, createdAt: true },
+  });
+  if (!freshShell) {
+    // A concurrent request for the same new identity already rolled back the user
+    // shell. Require the legal gate again instead of issuing a session for a
+    // deleted account.
+    return { requiresLegalAcceptance: true as const };
+  }
+  const createdDuringSignIn =
+    freshShell.password === null &&
+    freshShell.createdAt.getTime() > Date.now() - signinWindowMs;
+
+  if (created || createdDuringSignIn) {
+    const termsVersion = legal?.termsVersion;
+    const privacyVersion = legal?.privacyVersion;
+
+    // Brand-new account: legal acceptance is REQUIRED before issuing tokens.
+    const hasLegalAcceptance =
+      legal?.termsAccepted === true &&
+      legal?.privacyAccepted === true &&
+      typeof termsVersion === 'number' &&
+      typeof privacyVersion === 'number';
+
+    if (!hasLegalAcceptance) {
+      // Roll back the newly created user shell to avoid zombie records. The
+      // resolver created User + AuthAccount in a transaction; deleting the user
+      // cascades the AuthAccount row.
+      await prisma.user.delete({ where: { id: userId } }).catch((err: unknown) => {
+        logger.warn({ err, userId }, `Failed to rollback new ${providerLabel} user after legal rejection`);
+      });
+
+      return { requiresLegalAcceptance: true as const };
+    }
+
+    // Validate that the accepted versions match the currently published documents.
+    const currentVersions = await legalService.getCurrentVersions();
+    if (
+      termsVersion !== currentVersions.termsVersion ||
+      privacyVersion !== currentVersions.privacyVersion
+    ) {
+      // Roll back the user shell.
+      await prisma.user.delete({ where: { id: userId } }).catch(() => {});
+      throw new ApiError(
+        400,
+        'The legal document versions you accepted are out of date. Please reload the app and accept the current Terms & Conditions and Privacy Policy.',
+      );
+    }
+
+    // Record legal acceptance with a server-authoritative timestamp. A concurrent
+    // request may have already recorded it — tolerate the unique conflict.
+    await prisma.legalAcceptance
+      .create({
+        data: {
+          userId,
+          termsVersion,
+          privacyVersion,
+          platform: legal?.platform ?? null,
+        },
+      })
+      .catch((err: unknown) => {
+        if ((err as { code?: string } | null)?.code !== 'P2002') throw err;
+      });
+
+    try {
+      await prisma.wallet.upsert({
+        where: { userId },
+        update: {},
+        create: { userId, palPoints: 0, lifetimeEarned: 0, lifetimeSpent: 0 },
+      });
+    } catch (err) {
+      logger.warn({ err, userId }, `Failed to create wallet at ${providerLabel} registration — will be created lazily`);
+    }
+    eventBus.emit(AppEvents.USER_CREATED, { userId });
+  }
+
+  return createLoginSession(userId);
 }
 
 export const authService = {
@@ -517,103 +640,39 @@ export const authService = {
 
   async googleLogin(
     idToken: string,
-    legal?: {
-      termsAccepted?: boolean;
-      privacyAccepted?: boolean;
-      termsVersion?: number;
-      privacyVersion?: number;
-      platform?: string;
-    },
+    legal?: SocialLegalInput,
   ) {
     const identity = await verifyGoogleIdToken(idToken);
     const { userId, created } = await resolveGoogleAccount(identity);
 
-    // Already legally accepted (registered or accepted in a prior Phase 2) → session.
-    const existingAcceptance = await prisma.legalAcceptance.findUnique({ where: { userId } });
-    if (existingAcceptance) {
-      return createLoginSession(userId);
-    }
+    return finalizeSocialLogin(userId, created, legal, 'Google', GOOGLE_SIGNIN_WINDOW_MS);
+  },
 
-    // A fresh Google-only account that was created within this sign-in window is an
-    // in-flight registration (Phase 1 shell or a concurrent request for the same new
-    // identity) and MUST pass the legal gate before it can receive a session.
-    // Pre-existing accounts (grandfathered: Google link or email/password created
-    // before the required-acceptance feature) keep logging in without any gate.
-    const freshShell = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { password: true, createdAt: true },
+  /**
+   * Sign in (or register) with Apple.
+   *
+   * Identity is anchored exclusively on the verified Apple `sub`; the email is only
+   * a first-time linking fallback and is only ever honoured when Apple itself marks
+   * it verified. Apple sends the user's name OUT OF BAND and only on the very first
+   * authorization for the app, so `nameParts` is best-effort profile enrichment and
+   * never participates in identity.
+   */
+  async appleLogin(
+    identityToken: string,
+    nonce: string,
+    legal?: SocialLegalInput,
+    nameParts?: { firstName?: string | null; lastName?: string | null },
+  ) {
+    // Throws 401 on a bad signature/audience/issuer/expiry and on a nonce that does
+    // not match the SHA-256 digest Apple echoed back.
+    const identity = await verifyAppleIdentityToken(identityToken, nonce);
+    const { userId, created } = await resolveAppleAccount({
+      ...identity,
+      // Apple's token never carries the name; attach the client-forwarded one.
+      fullName: joinAppleFullName(nameParts),
     });
-    if (!freshShell) {
-      // A concurrent request for the same new Google identity already rolled back the
-      // user shell (Phase 1). There is no user to log into — require the legal gate
-      // again instead of issuing a session for a deleted account.
-      return { requiresLegalAcceptance: true as const };
-    }
-    const createdDuringSignIn =
-      freshShell.password === null &&
-      freshShell.createdAt.getTime() > Date.now() - GOOGLE_SIGNIN_WINDOW_MS;
 
-    if (created || createdDuringSignIn) {
-      // Brand-new Google account: legal acceptance is REQUIRED before issuing tokens.
-      const hasLegalAcceptance =
-        legal?.termsAccepted === true &&
-        legal?.privacyAccepted === true &&
-        typeof legal?.termsVersion === 'number' &&
-        typeof legal?.privacyVersion === 'number';
-
-      if (!hasLegalAcceptance) {
-        // Roll back the newly created user shell to avoid zombie records.
-        // resolveGoogleAccount created User + AuthAccount in a transaction; delete user cascades AuthAccount.
-        await prisma.user.delete({ where: { id: userId } }).catch((err: unknown) => {
-          logger.warn({ err, userId }, 'Failed to rollback new Google user after legal rejection');
-        });
-
-        // Return a structured response (not an error) so the frontend can show the legal gate modal.
-        return { requiresLegalAcceptance: true as const };
-      }
-
-      // Validate that the accepted versions match currently published legal documents.
-      const currentVersions = await legalService.getCurrentVersions();
-      if (
-        legal.termsVersion !== currentVersions.termsVersion ||
-        legal.privacyVersion !== currentVersions.privacyVersion
-      ) {
-        // Roll back the user shell
-        await prisma.user.delete({ where: { id: userId } }).catch(() => {});
-        throw new ApiError(
-          400,
-          'The legal document versions you accepted are out of date. Please reload the app and accept the current Terms & Conditions and Privacy Policy.',
-        );
-      }
-
-      // Record legal acceptance with server-authoritative timestamp.
-      // A concurrent Phase 2 may have already recorded it — tolerate the unique conflict.
-      await prisma.legalAcceptance
-        .create({
-          data: {
-            userId,
-            termsVersion: legal.termsVersion!,
-            privacyVersion: legal.privacyVersion!,
-            platform: legal.platform ?? null,
-          },
-        })
-        .catch((err: unknown) => {
-          if ((err as { code?: string } | null)?.code !== 'P2002') throw err;
-        });
-
-      try {
-        await prisma.wallet.upsert({
-          where: { userId },
-          update: {},
-          create: { userId, palPoints: 0, lifetimeEarned: 0, lifetimeSpent: 0 },
-        });
-      } catch (err) {
-        logger.warn({ err, userId }, 'Failed to create wallet at Google registration — will be created lazily');
-      }
-      eventBus.emit(AppEvents.USER_CREATED, { userId });
-    }
-
-    return createLoginSession(userId);
+    return finalizeSocialLogin(userId, created, legal, 'Apple', APPLE_SIGNIN_WINDOW_MS);
   },
 
   async refresh(refreshTokenStr: string) {
@@ -1228,5 +1287,3 @@ async function createRefreshToken(userId: string): Promise<string> {
 
   return token;
 }
-
-

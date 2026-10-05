@@ -12,16 +12,27 @@ import { AuthHeader } from '../components/auth/AuthHeader';
 import { PrimaryButton } from '../components/auth/PrimaryButton';
 import { SecondaryButton } from '../components/auth/SecondaryButton';
 import { SocialButton } from '../components/auth/SocialButton';
+import { AppleSignInButton } from '../components/auth/AppleSignInButton';
+import { canUseSignInWithApple } from '../config/appleAuth';
 
-export default function LoginSplashScreen({ navigation, onGoogleLogin, onGuestContinue }: any) {
+export default function LoginSplashScreen({ navigation, onGoogleLogin, onAppleLogin, onGuestContinue }: any) {
   const insets = useSafeAreaInsets();
   const contentPadBottom = useBottomSafePadding(28);
+  const appleAvailable = canUseSignInWithApple();
 
   const handleGoogle = async () => {
     try {
       if (onGoogleLogin) await onGoogleLogin();
     } catch (err: any) {
       Alert.alert('Google Sign-In', err?.message || 'Google Sign-In failed. Please try again.');
+    }
+  };
+
+  const handleApple = async () => {
+    try {
+      if (onAppleLogin) await onAppleLogin();
+    } catch (err: any) {
+      Alert.alert('Sign in with Apple', err?.message || 'Apple Sign-In failed. Please try again.');
     }
   };
 
@@ -62,6 +73,9 @@ export default function LoginSplashScreen({ navigation, onGoogleLogin, onGuestCo
             onPress={handleGoogle}
             style={styles.actionBtn}
           />
+          {appleAvailable ? (
+            <AppleSignInButton onPress={handleApple} style={styles.actionBtn} />
+          ) : null}
           <SocialButton
             type="guest"
             title="Continue as Guest"

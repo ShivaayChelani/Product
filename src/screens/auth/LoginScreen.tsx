@@ -17,6 +17,8 @@ import { AuthHeader } from '../../components/auth/AuthHeader';
 import { PrimaryButton } from '../../components/auth/PrimaryButton';
 import { InputField } from '../../components/auth/InputField';
 import { SocialButton } from '../../components/auth/SocialButton';
+import { AppleSignInButton } from '../../components/auth/AppleSignInButton';
+import { canUseSignInWithApple } from '../../config/appleAuth';
 import { useBackDismissesKeyboard } from '../../hooks/useBackDismissesKeyboard';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -27,6 +29,7 @@ interface LoginScreenProps {
     pass: string,
   ) => Promise<boolean | { requiresEmailVerification: true; email: string }>;
   onGoogleLogin: () => Promise<boolean>;
+  onAppleLogin?: () => Promise<boolean>;
   onSignup: () => void;
   onBack: () => void;
   onForgotPassword: () => void;
@@ -37,6 +40,7 @@ interface LoginScreenProps {
 export default function LoginScreen({ 
   onLogin, 
   onGoogleLogin,
+  onAppleLogin,
   onSignup, 
   onBack,
   onForgotPassword, 
@@ -45,6 +49,7 @@ export default function LoginScreen({
 }: LoginScreenProps) {
   const insets = useSafeAreaInsets();
   const { dismissThenNavigate } = useBackDismissesKeyboard();
+  const appleAvailable = canUseSignInWithApple();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -82,6 +87,14 @@ export default function LoginScreen({
       await onGoogleLogin();
     } catch (err: any) {
       Alert.alert('Google Sign-In', err?.message || 'Google Sign-In failed. Please try again.');
+    }
+  };
+
+  const handleApple = async () => {
+    try {
+      await onAppleLogin?.();
+    } catch (err: any) {
+      Alert.alert('Sign in with Apple', err?.message || 'Apple Sign-In failed. Please try again.');
     }
   };
 
@@ -163,6 +176,9 @@ export default function LoginScreen({
               onPress={handleGoogle} 
               style={styles.socialBtn}
             />
+            {appleAvailable ? (
+              <AppleSignInButton onPress={handleApple} style={styles.socialBtn} />
+            ) : null}
             <SocialButton 
               type="guest" 
               title="Continue as Guest" 

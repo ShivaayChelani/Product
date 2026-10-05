@@ -11,19 +11,20 @@ const Stack = createNativeStackNavigator<AuthStackParamList>();
 const BETA_PHONE_MESSAGE = 'Phone verification will be available in a future update.';
 
 function LoginSplashWrapper({ navigation }: any) {
-  const { onGoogleLogin, onGuestContinue } = useUserContext();
+  const { onGoogleLogin, onAppleLogin, onGuestContinue } = useUserContext();
   const Screen = useLazyScreen(() => require('../screens/LoginSplashScreen'));
   return (
     <Screen 
       navigation={navigation}
       onGoogleLogin={onGoogleLogin}
+      onAppleLogin={onAppleLogin}
       onGuestContinue={onGuestContinue}
     />
   );
 }
 
 function LoginWrapper({ navigation }: any) {
-  const { onLogin, onGoogleLogin, onGuestContinue, authLoading } = useUserContext();
+  const { onLogin, onGoogleLogin, onAppleLogin, onGuestContinue, authLoading } = useUserContext();
   const Screen = useLazyScreen(() => require('../screens/auth/LoginScreen'));
 
   return (
@@ -40,6 +41,7 @@ function LoginWrapper({ navigation }: any) {
         return result === true;
       }}
       onGoogleLogin={onGoogleLogin}
+      onAppleLogin={onAppleLogin}
       onSignup={() => navigation.navigate('Signup')}
       onBack={() => navigation.goBack()}
       onForgotPassword={() => navigation.navigate('ForgotPassword')}
@@ -55,7 +57,7 @@ function LoginWrapper({ navigation }: any) {
  * Phone OTP is not part of closed beta.
  */
 function SignupWrapper({ navigation }: any) {
-  const { onSignup, onGoogleLogin, onGuestContinue, authLoading } = useUserContext();
+  const { onSignup, onGoogleLogin, onAppleLogin, onGuestContinue, authLoading } = useUserContext();
   const Screen = useLazyScreen(() => require('../screens/auth/SignupScreen'));
   return (
     <Screen
@@ -71,6 +73,7 @@ function SignupWrapper({ navigation }: any) {
         return result === true;
       }}
       onGoogleLogin={onGoogleLogin}
+      onAppleLogin={onAppleLogin}
       onLogin={() => navigation.navigate('Login')}
       onBack={() => navigation.goBack()}
       onGuestContinue={onGuestContinue}

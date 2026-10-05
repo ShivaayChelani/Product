@@ -10,7 +10,7 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|@shopify/flash-list|@react-navigation)/)',
+    'node_modules/(?!(react-native|@react-native|@shopify/flash-list|@react-navigation|@invertase)/)',
   ],
   setupFiles: ['<rootDir>/jest.setup.js'],
   testEnvironment: 'node',

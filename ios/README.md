@@ -102,6 +102,23 @@ npm run android
 npm run build:android
 ```
 
+## Sign in with Apple
+
+The app uses `@invertase/react-native-apple-authentication` and Apple's native
+authorization button. The button is available on supported iOS devices only.
+Enable Sign in with Apple for the `com.palsasafar` App ID in the Apple Developer
+portal and regenerate both development and App Store provisioning profiles.
+
+The backend verifies identity tokens against Apple's JWKS. The native bundle ID
+is accepted as the default audience; optional `APPLE_CLIENT_IDS` and
+`APPLE_SERVICE_IDS` values allow additional app or Services IDs. Native iOS
+authentication does not require an Apple private key or client secret; do not
+place either in the app or repository.
+
+The app stores Apple's provider identifier locally for credential-state checks,
+clears it on logout, and checks revocation on foreground and Apple's revocation
+notification. An inconclusive state check does not end a session.
+
 ## App Store blockers (external)
 
 - Real `GoogleService-Info.plist` + APNs key
@@ -110,4 +127,4 @@ npm run build:android
 - Privacy Nutrition Labels / App Privacy details
 - Apple Developer Program membership + provisioning
 - Sentry auth token for release symbolication
-- Google Sign-In / Apple Sign-In if you enable social login (currently “Coming soon” on both platforms)
+- Google Sign-In configuration and Apple Developer portal capability/provisioning

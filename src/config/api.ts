@@ -53,6 +53,7 @@ export const API_CONFIG = {
       resendRegisterOtp: '/auth/register/resend-otp',
       login: '/auth/login',
       google: '/auth/google',
+      apple: '/auth/apple',
       me: '/auth/me',
       refresh: '/auth/refresh',
       logout: '/auth/logout',

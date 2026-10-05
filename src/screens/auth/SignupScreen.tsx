@@ -18,6 +18,8 @@ import { AuthHeader } from '../../components/auth/AuthHeader';
 import { PrimaryButton } from '../../components/auth/PrimaryButton';
 import { InputField } from '../../components/auth/InputField';
 import { SocialButton } from '../../components/auth/SocialButton';
+import { AppleSignInButton } from '../../components/auth/AppleSignInButton';
+import { canUseSignInWithApple } from '../../config/appleAuth';
 import { LegalConsentRow } from '../../components/auth/LegalConsentRow';
 import { legalApi, type LegalCurrentVersions } from '../../services/api/legal';
 import { useBackDismissesKeyboard } from '../../hooks/useBackDismissesKeyboard';
@@ -34,6 +36,7 @@ interface LegalMeta {
 interface SignupScreenProps {
   onSignup: (name: string, email: string, pass: string, legalMeta: LegalMeta) => Promise<boolean>;
   onGoogleLogin: () => Promise<boolean>;
+  onAppleLogin?: () => Promise<boolean>;
   onLogin: () => void;
   onBack: () => void;
   onGuestContinue: () => void;
@@ -57,6 +60,7 @@ function signupErrorMessage(err: unknown): string {
 export default function SignupScreen({
   onSignup,
   onGoogleLogin,
+  onAppleLogin,
   onLogin,
   onBack,
   onGuestContinue,
@@ -66,6 +70,7 @@ export default function SignupScreen({
 }: SignupScreenProps) {
   const insets = useSafeAreaInsets();
   const { dismissThenNavigate } = useBackDismissesKeyboard();
+  const appleAvailable = canUseSignInWithApple();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -177,6 +182,14 @@ export default function SignupScreen({
       await onGoogleLogin();
     } catch (err: any) {
       Alert.alert('Google Sign-Up', err?.message || 'Google Sign-Up failed. Please try again.');
+    }
+  };
+
+  const handleApple = async () => {
+    try {
+      await onAppleLogin?.();
+    } catch (err: any) {
+      Alert.alert('Sign up with Apple', err?.message || 'Apple Sign-Up failed. Please try again.');
     }
   };
 
@@ -323,6 +336,9 @@ export default function SignupScreen({
               onPress={handleGoogle}
               style={styles.socialBtn}
             />
+            {appleAvailable ? (
+              <AppleSignInButton mode="signUp" onPress={handleApple} style={styles.socialBtn} />
+            ) : null}
             <SocialButton
               type="guest"
               title="Continue as Guest"

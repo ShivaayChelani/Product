@@ -125,6 +125,8 @@ export const UNIT_TEST_FILES = [
   'src/__tests__/error-handler-json.unit.test.ts',
   'src/__tests__/google-identity.unit.test.ts',
   'src/__tests__/google-account-resolution.unit.test.ts',
+  'src/__tests__/apple-identity.unit.test.ts',
+  'src/__tests__/apple-account-resolution.unit.test.ts',
   'src/__tests__/safe-fetch-url.unit.test.ts',
   'src/__tests__/env-db-isolation.unit.test.ts',
   'src/__tests__/test-database-guard.unit.test.ts',
