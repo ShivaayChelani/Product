@@ -47,12 +47,12 @@ export const challengesController = {
   }),
 
   complete: catchAsync(async (req: any, res: Response) => {
-    const { proofUrl, qrCode, latitude, longitude } = req.body;
+    const { proofUrl, qrCode, latitude, longitude, accuracyM, isFromMockProvider } = req.body;
     const result = await challengesService.complete(
       req.params.id as string,
       req.user.id,
       proofUrl,
-      { qrCode, latitude, longitude },
+      { qrCode, latitude, longitude, accuracyM, isFromMockProvider },
     );
     sendSuccess(
       res,

@@ -22,6 +22,11 @@ export const completeChallengeSchema = z.object({
   qrCode: z.string().min(1).max(256).optional(),
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
+  // Reported GPS quality. Shape-checked here; the plausibility thresholds
+  // (null island, swapped axes, India bounds, mock provider, coarse accuracy)
+  // are enforced server-side against the stored challenge.
+  accuracyM: z.coerce.number().min(0).optional(),
+  isFromMockProvider: z.boolean().optional(),
 }).superRefine((data, ctx) => {
   // Proof fields are validated server-side against challenge.proofRequired;
   // schema only ensures well-formed optional inputs.

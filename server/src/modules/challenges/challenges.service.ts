@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/ApiError';
 import { getPaginationParams } from '../../shared/utils/pagination';
+import { assertValidCoordinatePair } from '../../shared/utils/coordinates';
 import { walletService } from '../wallet/wallet.service';
 import { ChallengeDifficulty, ChallengeProofType, ChallengeStatus } from '@prisma/client';
 
@@ -11,6 +12,33 @@ export interface CreateChallengeInput {
   category: string;
   proofRequired: ChallengeProofType;
 }
+
+export interface ChallengeProofMeta {
+  qrCode?: string;
+  latitude?: number;
+  longitude?: number;
+  /** Reported horizontal accuracy in metres, when the client has one. */
+  accuracyM?: number;
+  /** True when the OS flagged the fix as a mock/simulated provider. */
+  isFromMockProvider?: boolean;
+}
+
+/**
+ * A GPS fix worse than this is a coarse network/Cell-ID position, not a
+ * handset GPS reading, and cannot evidence "you were standing here".
+ */
+export const MAX_GPS_ACCURACY_METERS = 200;
+
+/**
+ * Server-authoritative reward table. The amount is derived only from the
+ * challenge row read back from the database, never from the request body, so a
+ * client cannot influence how many points a completion is worth.
+ */
+const COMPLETION_POINTS: Record<ChallengeDifficulty, number> = {
+  [ChallengeDifficulty.EASY]: 20,
+  [ChallengeDifficulty.MEDIUM]: 40,
+  [ChallengeDifficulty.HARD]: 75,
+};
 
 export const challengesService = {
   async listApproved(query: { category?: string; difficulty?: ChallengeDifficulty; search?: string; page?: number | string; limit?: number | string }) {
@@ -187,7 +215,7 @@ export const challengesService = {
     return updated;
   },
 
-  async complete(challengeId: string, userId: string, proofUrl?: string, proofMeta?: { qrCode?: string; latitude?: number; longitude?: number }) {
+  async complete(challengeId: string, userId: string, proofUrl?: string, proofMeta?: ChallengeProofMeta) {
     const challenge = await prisma.challenge.findUnique({ where: { id: challengeId } });
     if (!challenge) {
       throw new ApiError(404, 'Challenge not found');
@@ -208,13 +236,36 @@ export const challengesService = {
       }
     }
     if (challenge.proofRequired === 'GPS') {
-      const lat = proofMeta?.latitude;
-      const lng = proofMeta?.longitude;
-      if (typeof lat !== 'number' || typeof lng !== 'number' || Number.isNaN(lat) || Number.isNaN(lng)) {
-        throw new ApiError(400, 'GPS proof is required to complete this challenge.');
+      // Server-authoritative position validation. `assertValidCoordinatePair`
+      // is the canonical PalSafar write-path guard: it rejects a missing or
+      // blank value, NaN/Infinity, out-of-range values, Null Island (0, 0),
+      // a swapped axis pair, and anything outside India. The client cannot talk
+      // its way past any of these with a raw number.
+      assertValidCoordinatePair(proofMeta?.latitude, proofMeta?.longitude, {
+        label: 'GPS proof',
+      });
+
+      if (proofMeta?.isFromMockProvider === true) {
+        throw new ApiError(400, 'GPS proof rejected: simulated locations are not accepted.');
+      }
+
+      const accuracy = proofMeta?.accuracyM;
+      if (accuracy !== undefined) {
+        if (typeof accuracy !== 'number' || !Number.isFinite(accuracy) || accuracy < 0) {
+          throw new ApiError(400, 'GPS proof: accuracyM must be a finite, non-negative number.');
+        }
+        if (accuracy > MAX_GPS_ACCURACY_METERS) {
+          throw new ApiError(
+            400,
+            `GPS proof: reported accuracy ${Math.round(accuracy)}m is too coarse to confirm this challenge (max ${MAX_GPS_ACCURACY_METERS}m).`,
+          );
+        }
       }
     }
 
+    // Fast, friendly duplicate rejection. This is only an optimisation: the
+    // authoritative idempotency guard is the unique (challenge_id, user_id)
+    // index enforced inside the transaction below.
     const existing = await prisma.challengeCompletion.findUnique({
       where: {
         challengeId_userId: { challengeId, userId },
@@ -225,38 +276,57 @@ export const challengesService = {
       throw new ApiError(400, 'You have already completed this challenge.');
     }
 
-    const completion = await prisma.challengeCompletion.create({
-      data: {
-        challengeId,
-        userId,
-        proofUrl,
-      },
-    });
+    // Reward value comes from the difficulty stored on the challenge row, never
+    // from the request, so it cannot be inflated by the caller.
+    const completerPoints = COMPLETION_POINTS[challenge.difficulty];
+    if (typeof completerPoints !== 'number' || completerPoints <= 0) {
+      throw new ApiError(500, 'Challenge reward is not configured for this difficulty.');
+    }
 
-    // Increment completionsCount on challenge
-    const updatedChallenge = await prisma.challenge.update({
-      where: { id: challengeId },
-      data: {
-        completionsCount: { increment: 1 },
-      },
-    });
+    // Recording the completion, bumping the counter and paying the reward all
+    // happen in one transaction, so a partial failure can never leave a
+    // completion without its points (or the reverse). The unique index makes a
+    // duplicate or concurrent request lose here instead of double-paying.
+    let completion;
+    let updatedChallenge;
+    try {
+      ({ completion, updatedChallenge } = await prisma.$transaction(
+        async (tx) => {
+          const created = await tx.challengeCompletion.create({
+            data: {
+              challengeId,
+              userId,
+              proofUrl,
+            },
+          });
 
-    // Award completer reward points
-    // Easy -> 20, Medium -> 40, Hard -> 75
-    const completerPoints =
-      challenge.difficulty === ChallengeDifficulty.EASY
-        ? 20
-        : challenge.difficulty === ChallengeDifficulty.MEDIUM
-        ? 40
-        : 75;
+          const updated = await tx.challenge.update({
+            where: { id: challengeId },
+            data: {
+              completionsCount: { increment: 1 },
+            },
+          });
 
-    await walletService.earn(
-      userId,
-      completerPoints,
-      `Completed challenge: ${challenge.title}`,
-      challenge.id,
-      'challenge_completed'
-    );
+          await walletService.earn(
+            userId,
+            completerPoints,
+            `Completed challenge: ${challenge.title}`,
+            challenge.id,
+            'challenge_completed',
+            undefined,
+            tx,
+          );
+
+          return { completion: created, updatedChallenge: updated };
+        },
+        { timeout: 25000, maxWait: 20000 },
+      ));
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        throw new ApiError(400, 'You have already completed this challenge.');
+      }
+      throw err;
+    }
 
     // If there is a creator, process milestone rewards
     if (challenge.creatorId) {
