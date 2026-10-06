@@ -33,6 +33,22 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Diagnose Render secret availability
+        env:
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          if [ -n "${RENDER_SERVICE_ID:-}" ]; then
+            echo "RENDER_SERVICE_ID_PRESENT=true"
+          else
+            echo "RENDER_SERVICE_ID_PRESENT=false"
+          fi
+          if [ -n "${RENDER_API_KEY:-}" ]; then
+            echo "RENDER_API_KEY_PRESENT=true"
+          else
+            echo "RENDER_API_KEY_PRESENT=false"
+          fi
+
       - name: Trigger Render deploy
         id: trigger
         env:
