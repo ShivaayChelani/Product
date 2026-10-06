@@ -14,6 +14,7 @@ import TripItineraryView, { ItineraryTab } from '../components/trip/TripItinerar
 import { normalizeTripDays, normalizeTripPlan, stopListKey } from '../utils/normalizeTripPlan';
 import { loadDraftSnapshot } from '../utils/quickAddPlace';
 import { BottomNavigation } from '../components/navigation/BottomNavigation';
+import { openInternalDirections } from '../features/mapExplore/utils/internalDirections';
 import { AiRefineModal } from '../components/trips/AiRefineModal';
 
 const _transportEmojis: Record<string, string> = {
@@ -317,15 +318,22 @@ export default function TripDetailScreen({
     onNavigate?.('SpotDetail', { spotId: stop.place?.slug || stop.placeId });
   };
 
+  // Trip stop "Navigate" → PalSafar's own map, not an external maps app.
+  // `onNavigate` already speaks `navigate('MainTabs', { screen })`, so it can back
+  // the shared helper directly instead of this screen needing its own map stack.
   const handleNavigateStop = (stop: TripPlanStop) => {
-    const lat = stop.place?.latitude;
-    const lng = stop.place?.longitude;
-    if (lat == null || lng == null) {
-      showError('No coordinates for this place');
-      return;
-    }
-    const url = `https://maps.google.com/?daddr=${lat},${lng}&q=${encodeURIComponent(stop.place?.name || '')}`;
-    import('react-native').then(({ Linking }) => Linking.openURL(url));
+    const opened = openInternalDirections({
+      navigation: { navigate: (screen, params) => onNavigate?.(screen as string, params) },
+      destination: {
+        latitude: stop.place?.latitude,
+        longitude: stop.place?.longitude,
+        label: stop.place?.name || null,
+      },
+      context: 'trip_stop',
+      initialMapTab: 'places',
+      onUnavailable: showError,
+    });
+    if (!opened) return;
   };
 
   const _handleGenerateItinerary = async () => {

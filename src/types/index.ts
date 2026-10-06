@@ -154,6 +154,9 @@ export interface UserProfile {
     businessName: string;
     status?: ProfessionalRoleStatus | string;
     vendorCode?: string;
+    /** Present so a vendor reel's card can offer internal directions. */
+    latitude?: number | null;
+    longitude?: number | null;
   };
   badges?: string[];
 }
@@ -446,6 +449,9 @@ export interface Reel {
     businessName: string;
     city: string;
     state: string;
+    /** Present so a vendor reel's card can offer internal directions. */
+    latitude?: number | null;
+    longitude?: number | null;
   } | null;
   event?: {
     id: string;

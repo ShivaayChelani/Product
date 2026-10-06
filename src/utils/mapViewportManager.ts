@@ -1,5 +1,6 @@
 import type { MapFeedResponse } from '../services/api/places';
 import { parseJsonObject } from './safeJson';
+import { isMapLayerTab, type MapLayerTab } from '../features/mapExplore/utils/mapSegmentThumb';
 
 const MEMORY_TTL_MS = 8 * 60 * 1000;
 const MAX_MEMORY_ENTRIES = 48;
@@ -24,7 +25,7 @@ export type MapSession = {
   zoom: number;
   selectedMarkerId?: string;
   category?: string;
-  tab?: 'places' | 'vendors';
+  tab?: MapLayerTab;
   ts: number;
 };
 
@@ -192,7 +193,7 @@ export async function loadMapSession(): Promise<MapSession | null> {
       zoom,
       selectedMarkerId: typeof parsed.selectedMarkerId === 'string' ? parsed.selectedMarkerId : undefined,
       category: typeof parsed.category === 'string' ? parsed.category : undefined,
-      tab: parsed.tab === 'vendors' ? 'vendors' : parsed.tab === 'places' ? 'places' : undefined,
+      tab: isMapLayerTab(parsed.tab) ? parsed.tab : undefined,
       ts,
     };
   } catch {

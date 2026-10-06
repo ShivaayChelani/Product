@@ -51,6 +51,11 @@ export const MAP_CATEGORY_MARKERS: Record<string, MapMarkerConfig> = {
   railway_station: { color: '#1E3A8A', icon: 'train', label: 'Railway Station' },
   bus_station: { color: '#A95A30', icon: 'bus', label: 'Bus Station' },
   vendor: { color: '#F59E0B', icon: 'vendor', label: 'Vendor' },
+  /**
+   * Community Events layer. The server sends a per-EventType icon/label on
+   * `marker`, so this is only the fallback for an event with no type.
+   */
+  event: { color: '#1E5FD9', icon: 'event', label: 'Event' },
   default: { color: '#008F8F', icon: 'default', label: 'Place' },
 };
 

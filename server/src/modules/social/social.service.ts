@@ -71,7 +71,16 @@ const reelResponseInclude = {
     select: { id: true, name: true, city: true, state: true },
   },
   vendor: {
-    select: { id: true, businessName: true, city: true, state: true },
+    // latitude/longitude so the client can raise an in-app Direction action on a
+    // vendor-attributed reel without a second vendor fetch.
+    select: {
+      id: true,
+      businessName: true,
+      city: true,
+      state: true,
+      latitude: true,
+      longitude: true,
+    },
   },
   // Keep this shallow. Nested vendor/creator on Collaboration is 1:1 required and
   // 500s the whole reel read when either side is missing.
@@ -185,6 +194,281 @@ function applyLiveEngagement<T extends LiveEngagementCounts>(item: T): LiveEngag
     );
   }
   return shaped;
+}
+
+/**
+ * Categories whose membership is defined by a creator relationship. A
+ * self-serve vendor reel has no `CreatorProfile`, so it can never satisfy
+ * "Following" and must not be injected into a geo-scoped "Nearby" result set
+ * (that branch narrows by `reels.id`, which vendor reel ids can never match).
+ */
+const CREATOR_SCOPED_FEED_CATEGORIES = new Set(['Following', 'Nearby']);
+
+/**
+ * Resolve a vendor reel under the same public-listing gate the feed uses.
+ * Returns null when the id is not a vendor reel, or the reel is not publicly
+ * visible — callers then raise the same 404 a hidden creator reel gets.
+ */
+async function findPublicVendorReelForEngagement(vendorReelId: string) {
+  return prisma.vendorReel.findFirst({
+    where: { id: vendorReelId, vendor: getPublicVendorListingWhere() },
+    select: { id: true, vendorId: true },
+  });
+}
+
+async function likeVendorReel(userId: string, vendorReelId: string) {
+  const row = await findPublicVendorReelForEngagement(vendorReelId);
+  if (!row) throw new ApiError(404, 'Reel not found.');
+
+  const existing = await prisma.vendorReelLike.findUnique({
+    where: { vendorReelId_userId: { vendorReelId, userId } },
+  });
+  if (existing) return existing;
+
+  // The unique index is the de-duplication authority: the counter only moves
+  // when a row is newly inserted, so a double-tap cannot double-count.
+  const [like] = await Promise.all([
+    prisma.vendorReelLike.create({ data: { vendorReelId, userId } }),
+    prisma.vendorReel.update({
+      where: { id: vendorReelId },
+      data: { likes: { increment: 1 } },
+    }),
+  ]);
+  return like;
+}
+
+async function unlikeVendorReel(userId: string, vendorReelId: string) {
+  const row = await findPublicVendorReelForEngagement(vendorReelId);
+  if (!row) throw new ApiError(404, 'Reel not found.');
+
+  const like = await prisma.vendorReelLike.findUnique({
+    where: { vendorReelId_userId: { vendorReelId, userId } },
+  });
+  if (!like) return;
+
+  await prisma.vendorReelLike.delete({ where: { id: like.id } });
+  await prisma.vendorReel.update({
+    where: { id: vendorReelId },
+    data: { likes: { decrement: 1 } },
+  });
+}
+
+/** Share counter for a `vendor_reels` row, using the same dedup window as `reels`. */
+async function incrementVendorReelShares(vendorReelId: string, actorKey: string) {
+  const row = await findPublicVendorReelForEngagement(vendorReelId);
+  if (!row) throw new ApiError(404, 'Reel not found.');
+
+  const current = await prisma.vendorReel.findUnique({
+    where: { id: vendorReelId },
+    select: { shares: true },
+  });
+
+  const claimed = await claimActionSlot(
+    `reel-share:${vendorReelId}:${actorKey}`,
+    REEL_SHARE_DEDUP_MS,
+  );
+  if (!claimed) {
+    return { id: vendorReelId, shares: current?.shares ?? 0 };
+  }
+
+  return prisma.vendorReel.update({
+    where: { id: vendorReelId },
+    data: { shares: { increment: 1 } },
+    select: { id: true, shares: true },
+  });
+}
+
+type FeedVendorReelRow = {
+  id: string;
+  videoUrl: string;
+  thumbnail: string | null;
+  title: string | null;
+  description: string | null;
+  views: number;
+  likes: number;
+  shares: number;
+  createdAt: Date;
+  updatedAt: Date;
+  vendor: {
+    id: string;
+    businessName: string;
+    city: string | null;
+    state: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    userId: string;
+    imageUrl: string | null;
+  };
+  likesList?: { userId: string }[];
+  /**
+   * Authoritative total like count.
+   *
+   * Required separately from `likesList`, which is filtered to the viewer and is
+   * therefore 0 or 1 long. Without this, an anonymous viewer's projection would
+   * report `likesList: 0` and `applyLiveEngagement` would treat that as the real
+   * total, showing a popular reel with zero likes.
+   */
+  likeCount: number;
+};
+
+/**
+ * Project a `vendor_reels` row into the shape `reels` rows already have in the
+ * feed response.
+ *
+ * This is a read-time projection of the SAME record, not a copy: no `reels` row
+ * is written, so the vendor's reel stays a single record that can render both
+ * here and on the business profile. `source: 'VENDOR'` lets the client tell a
+ * self-serve vendor reel from a creator reel that merely carries a vendor tag.
+ */
+function projectVendorReelToFeedReel(row: FeedVendorReelRow) {
+  return {
+    id: row.id,
+    creatorId: row.vendor.userId,
+    videoUrl: row.videoUrl,
+    thumbnail: row.thumbnail,
+    title: row.title,
+    description: row.description,
+    likes: row.likes,
+    views: row.views,
+    shares: row.shares ?? 0,
+    saves: 0,
+    featured: false,
+    placeId: null,
+    vendorId: row.vendor.id,
+    vendorListingStatus: null,
+    eventId: null,
+    tags: [] as string[],
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    category: 'BUSINESS',
+    status: 'APPROVED',
+    scheduledAt: null,
+    collaborationId: null,
+    isCollaboration: false,
+    creator: {
+      id: row.vendor.id,
+      username: row.vendor.businessName,
+      avatar: row.vendor.imageUrl,
+      verified: true,
+      userId: row.vendor.userId,
+    },
+    place: null,
+    vendor: {
+      id: row.vendor.id,
+      businessName: row.vendor.businessName,
+      city: row.vendor.city,
+      state: row.vendor.state,
+      latitude: row.vendor.latitude,
+      longitude: row.vendor.longitude,
+    },
+    collaboration: null,
+    event: null,
+    source: 'VENDOR',
+    // Carried through so the feed's `isLiked = likesList.length > 0` check works
+    // for vendor reels too. Absent for anonymous viewers, which yields false.
+    likesList: row.likesList ?? [],
+    savesList: [],
+    _count: {
+      comments: 0,
+      // The true total, not the viewer-filtered list length. `applyLiveEngagement`
+      // reads `_count.likesList` first, so feeding it `row.likesList.length`
+      // would report 0 likes to anonymous viewers.
+      likesList: row.likeCount ?? row.likes ?? 0,
+      savesList: 0,
+    },
+  };
+}
+
+/**
+ * Vendor reels eligible for the global feed.
+ *
+ * Eligibility reuses the exact public-listing gate the business profile uses
+ * (`getPublicVendorListingWhere`: APPROVED, not suspended, live paid/trial
+ * subscription), so a feed row can never expose a reel the profile hides. There
+ * is no separate vendor-reel moderation column to honour.
+ */
+async function listEligibleFeedVendorReels(take: number, viewerId?: string) {
+  if (take <= 0) return [];
+  try {
+    return await queryEligibleFeedVendorReels(take, viewerId);
+  } catch (err) {
+    // Deploy-order safety net. This query selects `likesList`, so it throws
+    // P2021 if this code is live before migration
+    // 20261006000000_vendor_reel_feed has run. Without this guard the throw
+    // would propagate out of `listReels` and 500 the ENTIRE global feed,
+    // including every creator reel that has nothing to do with vendor reels.
+    // Degrading to creator-only keeps the app working in both orders; the
+    // migration then restores vendor rows on the next request.
+    if (isMissingVendorReelLikeTable(err)) {
+      console.warn('[social] vendor_reel_likes missing; serving creator-only feed', {
+        code: (err as { code?: string })?.code ?? null,
+      });
+      return [];
+    }
+    throw err;
+  }
+}
+
+/** Postgres undefined-table / undefined-column, as raised by Prisma P2021. */
+function isMissingVendorReelLikeTable(err: unknown): boolean {
+  const e = err as { code?: string; message?: string };
+  if (e?.code !== 'P2021') return false;
+  const msg = String(e?.message ?? '');
+  return msg.includes('vendor_reel_likes') || msg.includes('shares');
+}
+
+async function queryEligibleFeedVendorReels(take: number, viewerId?: string) {
+  const rows = await prisma.vendorReel.findMany({
+    where: { vendor: getPublicVendorListingWhere() },
+    orderBy: { createdAt: 'desc' },
+    take,
+    include: {
+      vendor: {
+        select: {
+          id: true,
+          businessName: true,
+          city: true,
+          state: true,
+          latitude: true,
+          longitude: true,
+          userId: true,
+          imageUrl: true,
+        },
+      },
+      ...(viewerId ? { likesList: { where: { userId: viewerId } } } : {}),
+      _count: { select: { likesList: true } },
+    },
+  } as any);
+  return (rows as unknown as FeedVendorReelRow[]).map(projectVendorReelToFeedReel);
+}
+
+/**
+ * Merge creator reels with vendor reels and apply the page window once.
+ *
+ * Both sources are ordered `createdAt desc`, so over-fetching `skip + limit`
+ * rows from each is enough to produce a correct global page — a page can never
+ * be starved by one source holding the top N slots.
+ */
+function mergeFeedPages<T extends { createdAt?: Date | string }>(
+  creatorReels: T[],
+  vendorReels: any[],
+  skip: number,
+  limit: number,
+  isTrending: boolean,
+): T[] {
+  if (vendorReels.length === 0) return creatorReels.slice(skip, skip + limit);
+  const byRecency = (a: any, b: any) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  if (isTrending) {
+    const score = (r: any) => (r.featured ? 1 : 0) * 1e9 + (r.likes ?? 0) * 5 + (r.views ?? 0);
+    // Ties broken by recency so Trending is deterministic across pages; without
+    // it two reels with equal engagement could swap places between requests and
+    // the client would see a duplicate on one page and a gap on the next.
+    return [...creatorReels, ...vendorReels]
+      .sort((a, b) => score(b) - score(a) || byRecency(a, b))
+      .slice(skip, skip + limit);
+  }
+  return [...creatorReels, ...vendorReels].sort(byRecency).slice(skip, skip + limit);
 }
 
 async function loadCreatorReelList(
@@ -1150,6 +1434,16 @@ export const socialService = {
       include.savesList = { where: { userId } };
     }
 
+    // Self-serve vendor reels live in `vendor_reels`, a table this query used to
+    // ignore entirely, so a vendor's Reel could render on the business profile
+    // and never in the normal feed. Union them in on every creator-independent
+    // tab so one record satisfies both surfaces.
+    const includeVendorReels = !CREATOR_SCOPED_FEED_CATEGORIES.has(query.category || '');
+    const vendorReels = includeVendorReels
+      ? await listEligibleFeedVendorReels(skip + limit, userId)
+      : [];
+    const isTrending = query.category === 'Trending';
+
     let items: any[];
     if ((query.category === 'For You' || !query.category) && query.lat && query.lng) {
       const uLat = parseFloat(query.lat);
@@ -1197,15 +1491,43 @@ export const socialService = {
         return b.reel.views - a.reel.views;
       });
 
-      items = sorted.slice(skip, skip + limit).map((x) => x.reel);
+// Rank every reel on one scale instead of appending vendor reels wholesale.
+      // Sorting by engagement alone discarded For You's distance-first rule, which
+      // would have let a far-away vendor reel outrank nearby creator reels.
+      const vendorRanked = vendorReels.map((r: any) => ({
+        reel: r,
+        distance: r.vendor?.latitude != null && r.vendor?.longitude != null
+          ? calculateDistance(uLat, uLng, r.vendor.latitude, r.vendor.longitude)
+          : Infinity,
+      }));
+      const merged = [
+        ...sorted,
+        ...vendorRanked.map((x: any) => ({
+          ...x,
+          isNearby: x.distance <= 100,
+        })),
+      ].sort((a, b) => {
+        if (a.isNearby && !b.isNearby) return -1;
+        if (!a.isNearby && b.isNearby) return 1;
+        if (a.isNearby && b.isNearby) return a.distance - b.distance;
+        if (a.reel.featured !== b.reel.featured) return b.reel.featured ? 1 : -1;
+        if (a.reel.likes !== b.reel.likes) return b.reel.likes - a.reel.likes;
+        if (a.reel.views !== b.reel.views) return b.reel.views - a.reel.views;
+        // Deterministic tie-break so paging cannot duplicate or drop a row.
+        return new Date(b.reel.createdAt).getTime() - new Date(a.reel.createdAt).getTime();
+      });
+      items = merged.slice(skip, skip + limit).map((x: any) => x.reel);
     } else {
-      items = await prisma.reel.findMany({
+      // Over-fetch when merging so page N is not starved by one source owning the
+      // first N rows; mergeFeedPages applies the real offset/limit window.
+      const creatorReels = await prisma.reel.findMany({
         where,
-        skip,
-        take: limit,
+        skip: vendorReels.length > 0 ? 0 : skip,
+        take: vendorReels.length > 0 ? skip + limit : limit,
         orderBy,
         include,
       });
+      items = mergeFeedPages(creatorReels, vendorReels, skip, limit, isTrending);
     }
 
     // Map item outputs
@@ -1235,7 +1557,10 @@ export const socialService = {
         vendor: { select: { userId: true } },
       },
     });
-    if (!reel) throw new ApiError(404, 'Reel not found.');
+    // Self-serve vendor reels are a separate table but must behave identically
+    // in the feed, so Like has to resolve both ids. The public-visibility gate is
+    // the same one the feed itself applied.
+    if (!reel) return likeVendorReel(userId, reelId);
     const isOwner = reel.creator?.userId === userId;
     const isCollabVendor = reel.vendor?.userId === userId;
     if (reel.status !== 'APPROVED' && !isOwner && !isCollabVendor) {
@@ -1266,7 +1591,7 @@ export const socialService = {
         vendor: { select: { userId: true } },
       },
     });
-    if (!reel) throw new ApiError(404, 'Reel not found.');
+    if (!reel) return unlikeVendorReel(userId, reelId);
     const isOwner = reel.creator?.userId === userId;
     const isCollabVendor = reel.vendor?.userId === userId;
     if (reel.status !== 'APPROVED' && !isOwner && !isCollabVendor) {
@@ -1524,7 +1849,9 @@ export const socialService = {
 
   async incrementShares(reelId: string, actorKey: string) {
     const reel = await prisma.reel.findUnique({ where: { id: reelId }, select: { id: true, shares: true } });
-    if (!reel) throw new ApiError(404, 'Reel not found.');
+    // Same dual-table resolution as Like, so sharing a vendor reel from the feed
+    // records a share instead of 404-ing behind a swallowed client catch.
+    if (!reel) return incrementVendorReelShares(reelId, actorKey);
 
     const claimed = await claimActionSlot(`reel-share:${reelId}:${actorKey}`, REEL_SHARE_DEDUP_MS);
     if (!claimed) {

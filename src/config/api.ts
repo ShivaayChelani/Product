@@ -204,6 +204,18 @@ export const API_CONFIG = {
       byId: (id: string) => `/collaborations/${id}`,
       canCollaborate: (creatorProfileId: string) => `/collaborations/vendor/can-collaborate/${creatorProfileId}`,
     },
+    /**
+     * Community Events. `/map`, `/nearby` and `/featured` are declared before
+     * `/:idOrSlug` on the server router, so those three segments are reserved
+     * and must never be used as an event id.
+     */
+    events: {
+      list: '/events',
+      featured: '/events/featured',
+      map: '/events/map',
+      nearby: '/events/nearby',
+      byIdOrSlug: (idOrSlug: string) => `/events/${idOrSlug}`,
+    },
     health: '/health',
     routing: {
       directions: '/routing/directions',

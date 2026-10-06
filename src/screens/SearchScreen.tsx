@@ -705,8 +705,16 @@ export default function SearchScreen({
 
   const handleResultPress = (type: string, item: any) => {
     const placeId = item.placeId || item.id;
+    // An Event is not an itinerary stop: it is a dated thing that happens at a
+    // place. Keep it out of the place-only flows instead of silently storing an
+    // event id where a place id is expected.
+    const isEventRow = type.toLowerCase() === 'event';
     if (isReplaceMode) {
-      if (type.toLowerCase() !== 'place' && type.toLowerCase() !== 'hidden gem' && type.toLowerCase() !== 'event') {
+      if (isEventRow) {
+        Alert.alert('Places only', 'Events cannot be added to an itinerary. Open the event to see where it happens.');
+        return;
+      }
+      if (type.toLowerCase() !== 'place' && type.toLowerCase() !== 'hidden gem') {
         Alert.alert('Places only', 'Choose a verified tourist place from the database.');
         return;
       }
@@ -718,7 +726,11 @@ export default function SearchScreen({
       return;
     }
     if (isItineraryMode) {
-      if (type.toLowerCase() !== 'place' && type.toLowerCase() !== 'hidden gem' && type.toLowerCase() !== 'event') {
+      if (isEventRow) {
+        Alert.alert('Places only', 'Events cannot be added to an itinerary. Open the event to see where it happens.');
+        return;
+      }
+      if (type.toLowerCase() !== 'place' && type.toLowerCase() !== 'hidden gem') {
         Alert.alert('Places only', 'Choose a tourist place to add to your itinerary.');
         return;
       }
@@ -729,9 +741,15 @@ export default function SearchScreen({
       return;
     }
     switch (type.toLowerCase()) {
+      case 'event':
+        // Universal search returns a slim event projection (title, slug, dates),
+        // so open EventDetail rather than treating the row as a place.
+        navigation.navigate('EventDetail', {
+          eventIdOrSlug: item.slug || item.id,
+        });
+        break;
       case 'place':
       case 'hidden gem':
-      case 'event':
         recordSearchedPlace({
           id: item.id || item.slug,
           name: item.name,
@@ -914,7 +932,18 @@ export default function SearchScreen({
           keyboardShouldPersistTaps="handled"
         >
           {FILTERS.map(f => (
-            <FilterChip key={f} label={f} active={activeFilter === f} onPress={() => setActiveFilter(f)} />
+            <FilterChip
+              key={f}
+              label={f}
+              active={activeFilter === f}
+              onPress={() => {
+                setActiveFilter(f);
+                // The Events chip is a doorway into the full Events feed, not
+                // just a narrower result slice: search results are capped and
+                // only carry a slim event projection.
+                if (f === 'Events') navigation.navigate('Events');
+              }}
+            />
           ))}
         </ScrollView>
       </View>

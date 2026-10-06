@@ -1,11 +1,40 @@
 import { apiClient as api } from './api/client';
+import type { EventType } from './api/events';
+
+/**
+ * A Community Event as returned by `GET /search/universal`.
+ *
+ * Deliberately NOT `CommunityEvent`: universal search returns a slimmed
+ * projection (see `normalizedEvents` in server search.service.ts) and omits
+ * moderation counts, the creator relation and the map marker group. Treat it as
+ * a search row only — open `EventDetail` to get the full record.
+ */
+export interface UniversalSearchEvent {
+  id: string;
+  slug?: string | null;
+  title: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  coverImage?: string | null;
+  eventType?: EventType | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  city?: string | null;
+  state?: string | null;
+  placeId?: string | null;
+  vendorId?: string | null;
+}
 
 export interface UniversalSearchResult {
   places: any[];
   vendors: any[];
   reels: any[];
   creators: any[];
-  events: any[];
+  events: UniversalSearchEvent[];
   offers: any[];
   hiddenGems: any[];
   meta: {
@@ -29,7 +58,7 @@ export function normalizeUniversalSearchResults(response: unknown): UniversalSea
   const vendors = arr('vendors');
   const reels = arr('reels');
   const creators = arr('creators');
-  const events = arr('events');
+  const events = arr('events') as UniversalSearchEvent[];
   const offers = arr('offers');
 
   const rawMeta = payload.meta as UniversalSearchResult['meta'] | undefined;

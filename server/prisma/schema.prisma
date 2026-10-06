@@ -61,6 +61,7 @@ model User {
   reelReports                ReelReport[]
   reelSaves                  ReelSave[]
   reelViews                  ReelView[]
+  vendorReelLikes            VendorReelLike[]
   refreshTokens              RefreshToken[]
   refundsProcessed           Refund[]                @relation("RefundProcessor")
   refundsRequested           Refund[]                @relation("RefundRequester")
@@ -329,12 +330,34 @@ model VendorReel {
   description String?
   views       Int      @default(0)
   likes       Int      @default(0)
+  shares      Int      @default(0)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  likesList   VendorReelLike[]
 
   @@index([vendorId])
   @@map("vendor_reels")
+}
+
+/// Per-viewer likes for self-serve vendor reels.
+///
+/// ReelLike cannot cover these: its `reelId` is a required FK onto `reels`, and
+/// vendor uploads live in `vendor_reels`. A dedicated table keeps the two
+/// independent so creator-reel constraints are never loosened, and so the
+/// global feed can union both without duplicating a Reel record.
+model VendorReelLike {
+  id           String     @id @default(cuid())
+  vendorReelId String     @map("vendor_reel_id")
+  userId       String     @map("user_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  vendorReel   VendorReel @relation(fields: [vendorReelId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorReelId, userId])
+  @@index([vendorReelId])
+  @@index([userId])
+  @@map("vendor_reel_likes")
 }
 
 model PointBalance {

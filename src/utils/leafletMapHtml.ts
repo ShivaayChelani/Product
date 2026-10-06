@@ -1,5 +1,6 @@
 /* eslint-disable no-useless-escape */
 import { LEAFLET_VENDOR_CSS, LEAFLET_VENDOR_JS } from './leafletVendor';
+import { DEFAULT_ROUTE_COLOR } from '../design/directionsTheme';
 
 const INDIA_BOUNDS: [[number, number], [number, number]] = [
   [6.0, 68.0],
@@ -55,6 +56,30 @@ ${safeCss}
     transform:rotate(45deg);
   }
   .map-pin.vendor-pin .pin-icon-box{transform:none}
+
+  /* Event pins: rounded square with a blue edge, so the Events layer never
+     reads as a place pin. Same geometry as vendor, different accent. */
+  .map-pin.event-pin .pin-badge{
+    width:30px;height:30px;border-radius:9px;
+    border:2px solid #EAF0FF;
+    box-shadow:
+      0 2px 7px rgba(0,0,0,.42);
+    transform:none;
+  }
+  .map-pin.event-pin .pin-icon-box{transform:none}
+  .map-pin.selected.event-pin .pin-badge{
+    transform:scale(1.1);
+    box-shadow:
+      0 0 0 4px rgba(234,240,255,.92),
+      0 0 0 8px rgba(30,95,217,.34),
+      0 6px 18px rgba(0,0,0,.4);
+  }
+  .map-pin.selected.event-pin .pin-badge{animation:vendorMarkerBounce .4s cubic-bezier(.175,.885,.32,1.275) forwards}
+  /* Featured events get a small dot so curation is visible without a legend. */
+  .pin-featured-dot{
+    position:absolute;top:-3px;left:-3px;width:11px;height:11px;border-radius:50%;
+    background:#F59E0B;border:1.5px solid #fff;z-index:2;
+  }
   .pin-offer-flag{
     position:absolute;top:-6px;right:-14px;z-index:2;
     background:linear-gradient(135deg,#EF4444 0%,#DC2626 100%);
@@ -307,6 +332,10 @@ var userMarker = null;
 var routeLayer = null;
 var labelLayout = {};
 var labelLayoutKey = '';
+
+/* Injected from the RN theme (src/design/directionsTheme.ts) so the route colour
+   is a token decision rather than a literal living in this WebView bundle. */
+var __PAL_ROUTE_COLOR__ = '${DEFAULT_ROUTE_COLOR}';
 
 function minPriorityForZoom(z) {
   // Zoom 4–7 major, 8–10 popular, 11–13 most places, 14+ all visible markers
@@ -576,6 +605,27 @@ function getCategoryIcon(iconId) {
   icons.airport = '<svg viewBox="0 0 20 20" fill="white"><path d="M2 11l7-2V3l2-1 1 7 5 2v2l-5-1v5l-2 1-1-6-7 1v-2z"/></svg>';
   icons.train = '<svg viewBox="0 0 20 20" fill="white"><rect x="4" y="2" width="12" height="13" rx="2"/><path d="M7 5h6M7 10h1M12 10h1M6 18l2-3M14 18l-2-3" stroke="white" stroke-width="1.5"/></svg>';
   icons.bus = '<svg viewBox="0 0 20 20" fill="white"><rect x="3" y="3" width="14" height="13" rx="2"/><rect x="5" y="5" width="10" height="5" fill="rgba(255,255,255,.5)"/><circle cx="6" cy="16" r="1.5"/><circle cx="14" cy="16" r="1.5"/></svg>';
+
+  /**
+   * Community Event marker icons.
+   *
+   * The server sends marker.icon per EventType (EVENT_TYPE_MARKER in
+   * events.helpers.ts) so web and mobile agree on the vocabulary; these aliases
+   * map those ids onto the existing glyph vocabulary instead of duplicating
+   * artwork. "event" is the fallback for an event with no type.
+   */
+  icons.event = '<svg viewBox="0 0 20 20" fill="white"><rect x="2.5" y="3.5" width="15" height="13" rx="2.5"/><path d="M2.5 7.5h15" stroke="var(--pin-color)" stroke-width="1.4"/><path d="M6 2v3M14 2v3" stroke="white" stroke-width="1.6" stroke-linecap="round"/><circle cx="7" cy="11.5" r="1.4" fill="var(--pin-color)"/><circle cx="11.5" cy="11.5" r="1.4" fill="var(--pin-color)"/></svg>';
+  icons['event-festival'] = icons['theme-park'];
+  icons['event-religious'] = icons.religious;
+  icons['event-cultural'] = icons['art-gallery'];
+  icons['event-mela'] = icons.shop;
+  icons['event-concert'] = '<svg viewBox="0 0 20 20" fill="white"><path d="M8 17V6l9-2v9" fill="none" stroke="white" stroke-width="1.8" stroke-linejoin="round"/><circle cx="6" cy="17" r="2"/><circle cx="15" cy="13" r="2"/></svg>';
+  icons['event-exhibition'] = icons['art-gallery'];
+  icons['event-sports'] = icons.adventure;
+  icons['event-food'] = icons.food;
+  icons['event-community'] = '<svg viewBox="0 0 20 20" fill="white"><circle cx="7" cy="7" r="2.4"/><circle cx="14" cy="8" r="2"/><path d="M2 16c0-2.6 2.2-4 5-4s5 1.4 5 4zM11 16c0-2 1.6-3.2 4-3.2s3 1.2 3 3.2z"/></svg>';
+  icons['event-local'] = icons.shopping;
+  icons['event-other'] = icons.event;
   return (icons[iconId] || icons.default).replace(/white/g, 'var(--pin-color)');
 }
 
@@ -584,8 +634,11 @@ function buildPin(marker, isSelected, isNew) {
   var iconId = marker.emoji || 'default';
   var svgIcon = getCategoryIcon(iconId);
   var isVendor = marker.type === 'vendor';
+  var isEvent = marker.type === 'event';
   var isCluster = marker.type === 'cluster';
-  var typeClass = isCluster ? ' cluster-pin' : (isVendor ? ' vendor-pin' : ' place-pin');
+  var typeClass = isCluster
+    ? ' cluster-pin'
+    : (isVendor ? ' vendor-pin' : (isEvent ? ' event-pin' : ' place-pin'));
   var selected = isSelected ? ' selected' : '';
   var newClass = isNew ? ' is-new' : '';
   var layout = labelLayout[marker.id] || { show: false, offsetX: 0 };
@@ -604,6 +657,9 @@ function buildPin(marker, isSelected, isNew) {
   pinHtml += '</div>';
   if (isVendor && marker.offerBadge) {
     pinHtml += '<div class="pin-offer-flag">' + escapeHtml(String(marker.offerBadge)) + '</div>';
+  }
+  if (isEvent && marker.isFeatured) {
+    pinHtml += '<div class="pin-featured-dot"></div>';
   }
   pinHtml += '</div>';
 
@@ -709,6 +765,8 @@ function markerSignature(m) {
     m.emoji || '',
     m.sublabel || '',
     String(m.labelPriority || 0),
+    // Featured dot is part of the pin, so a curation change must repaint.
+    m.isFeatured ? 'f' : '',
   ].join('|');
 }
 function normPinName(name) {
@@ -959,10 +1017,12 @@ window.__palMap = {
   clearRoute: clearRoute,
 };
 
-function drawRoute(coords) {
+function drawRoute(coords, color) {
   if (routeLayer) map.removeLayer(routeLayer);
   routeLayer = L.polyline(coords, {
-    color: '#B9834B',
+    // Injected by the RN side (INTERNAL_ROUTE_COLOR for internal directions) so
+    // the route colour is a token decision, not a literal buried in the WebView.
+    color: color || __PAL_ROUTE_COLOR__,
     weight: 6,
     opacity: 0.95,
     lineCap: 'round',
@@ -1016,7 +1076,7 @@ function handleMessage(event) {
       fitBounds(data.bounds, data.maxZoom);
       break;
     case 'drawRoute':
-      if (data.coords && data.coords.length) drawRoute(data.coords);
+      if (data.coords && data.coords.length) drawRoute(data.coords, data.color);
       break;
     case 'clearRoute':
       clearRoute();

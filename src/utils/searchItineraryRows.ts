@@ -12,7 +12,15 @@ export type SearchRenderableRow = {
   actionLabel: string;
 };
 
-const PLACE_LIKE = new Set(['place', 'hidden gem', 'event']);
+/**
+ * Types that represent a bookable *place* and may therefore be added to or
+ * swapped into an itinerary.
+ *
+ * Events are deliberately excluded. A Community Event is a point in time, not a
+ * stop on a route, and treating it as a place let Search add an event id into a
+ * place-only itinerary. It stays a browsable row that opens EventDetail.
+ */
+const PLACE_LIKE = new Set(['place', 'hidden gem']);
 
 export function isPlaceLikeType(type: string): boolean {
   return PLACE_LIKE.has(type.toLowerCase());

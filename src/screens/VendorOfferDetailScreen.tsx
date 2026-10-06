@@ -24,10 +24,10 @@ import { useUserContext } from '../context/UserContext';
 import { walletApi } from '../services/api/wallet';
 import {
   openVendorCall,
-  openVendorDirections,
   openVendorWebsite,
   openVendorWhatsApp,
 } from '../utils/vendorContactActions';
+import { openInternalDirections } from '../features/mapExplore/utils/internalDirections';
 import { loadSavedOfferIds, toggleSavedOfferId } from '../utils/savedOffers';
 
 const COLORS = {
@@ -200,8 +200,14 @@ export default function VendorOfferDetailScreen() {
   const userPoints = walletPoints ?? Number(user?.totalPoints || 0);
   const canRedeem = userPoints >= (offer.pointsRequired || 0);
 
+  // Vendor offer "Directions" → PalSafar's own map, not an external maps app.
   const openDirections = () => {
-    void openVendorDirections(vendorLat, vendorLng, vendorName);
+    openInternalDirections({
+      navigation,
+      destination: { latitude: vendorLat, longitude: vendorLng, label: vendorName },
+      context: 'vendor_offer',
+      initialMapTab: 'vendors',
+    });
   };
 
   const onRedeemPress = () => {

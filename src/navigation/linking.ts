@@ -1,6 +1,7 @@
 import type { LinkingOptions } from '@react-navigation/native';
 import type { RootStackParamList } from './types';
 import { parseReelId } from './reelDeepLink';
+import { parseEventIdOrSlug } from './eventDeepLink';
 
 /**
  * Production deep links / App Links.
@@ -39,6 +40,16 @@ export const linking: LinkingOptions<RootStackParamList> = {
           // must still resolve to ReelDetail with '' so the screen renders its own
           // not-found state instead of the link silently falling through to Home.
           reelId: (reelId: string) => parseReelId(reelId) ?? '',
+        },
+      },
+      Events: 'events',
+      EventDetail: {
+        path: 'event/:eventIdOrSlug',
+        parse: {
+          // Same contract as ReelDetail: a malformed id must still resolve to
+          // EventDetail with '' so the screen renders its own not-found state
+          // instead of the link silently falling through to Home.
+          eventIdOrSlug: (raw: string) => parseEventIdOrSlug(raw) ?? '',
         },
       },
       LegalDocument: {

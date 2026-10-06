@@ -1,8 +1,9 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, StatusBar, ImageBackground, Platform, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, StatusBar, ImageBackground, Platform, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Pal from '../design/DesignSystem';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { openInternalDirections } from '../features/mapExplore/utils/internalDirections';
 import { useTheme } from '../context/ThemeContext';
 import { useUserContext } from '../context/UserContext';
 import { TouristSpot, UserProfile } from '../types';
@@ -165,16 +166,20 @@ export default function ItineraryScreen(props: ItineraryScreenProps) {
     );
   };
 
+  // Itinerary "Navigate" → PalSafar's own map, not an external maps app.
+  // The old code branched on iOS/Android and had a bare `Linking.openURL` with no
+  // `.catch`, so a device without a maps app threw an unhandled rejection.
   const handleNavigate = (spot: TouristSpot) => {
-    const daddr = spot.latitude + ',' + spot.longitude;
-    const label = encodeURIComponent(spot.name);
-    if (Platform.OS === 'ios') {
-      Linking.openURL('maps://app?daddr=' + daddr + '&q=' + label).catch(() =>
-        Linking.openURL('https://maps.google.com/?daddr=' + daddr + '&q=' + label)
-      );
-    } else {
-      Linking.openURL('https://maps.google.com/?daddr=' + daddr + '&q=' + label);
-    }
+    openInternalDirections({
+      navigation,
+      destination: {
+        latitude: spot.latitude,
+        longitude: spot.longitude,
+        label: spot.name,
+      },
+      context: 'itinerary',
+      initialMapTab: 'places',
+    });
   };
 
   const handleViewDetails = (spot: TouristSpot) => {
@@ -304,28 +309,23 @@ export default function ItineraryScreen(props: ItineraryScreenProps) {
       <View style={[styles.startTripBar, { paddingBottom: startTripBottomPad }]}>
         <TouchableOpacity
           onPress={() => {
-            if (scheduledSpots.length > 0) {
-              const firstSpot = scheduledSpots[0].spot;
-              if (firstSpot.latitude && firstSpot.longitude) {
-                const lat = firstSpot.latitude;
-                const lng = firstSpot.longitude;
-                const label = firstSpot.name || 'First Stop';
-                const url = Platform.select({
-                  ios: `maps:0,0?q=${lat},${lng}(${encodeURIComponent(label)})`,
-                  android: `geo:0,0?q=${lat},${lng}(${encodeURIComponent(label)})`,
-                  default: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
-                });
-                if (url) {
-                  Linking.openURL(url).catch(() => {
-                    Alert.alert('Error', 'Could not open maps application.');
-                  });
-                }
-              } else {
-                Alert.alert('Directions', 'Coordinates not available for the first destination.');
-              }
-            } else {
+            if (scheduledSpots.length === 0) {
               Alert.alert('Itinerary Empty', 'Add some places to your itinerary to start the journey.');
+              return;
             }
+            // Route to the first stop internally. The old code treated a `0`
+            // coordinate as absent via a truthiness check, but also accepted
+            // other invalid pairs; `openInternalDirections` rejects all of them.
+            openInternalDirections({
+              navigation,
+              destination: {
+                latitude: scheduledSpots[0].spot.latitude,
+                longitude: scheduledSpots[0].spot.longitude,
+                label: scheduledSpots[0].spot.name || 'First Stop',
+              },
+              context: 'itinerary',
+              initialMapTab: 'places',
+            });
           }}
           style={styles.startTripBtn}
         >

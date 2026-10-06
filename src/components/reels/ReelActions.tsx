@@ -7,11 +7,9 @@ import {
   Animated,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { REEL_ACCENT } from './reelTheme';
 
 interface ReelActionsProps {
   isLiked: boolean;
-  isSaved: boolean;
   likeCount: number;
   commentCount: number;
   shareCount: number;
@@ -20,13 +18,11 @@ interface ReelActionsProps {
   onLike: () => void;
   onComment: () => void;
   onShare: () => void;
-  onSave: () => void;
   onMenu: () => void;
 }
 
 export const ReelActions: React.FC<ReelActionsProps> = React.memo(({
   isLiked,
-  isSaved,
   likeCount,
   commentCount,
   shareCount,
@@ -35,7 +31,6 @@ export const ReelActions: React.FC<ReelActionsProps> = React.memo(({
   onLike,
   onComment,
   onShare,
-  onSave,
   onMenu,
 }) => {
   const scale = useRef(new Animated.Value(1)).current;
@@ -103,12 +98,6 @@ export const ReelActions: React.FC<ReelActionsProps> = React.memo(({
 
       <ActionBtn icon="chatbubble-outline" count={commentCount} onPress={onComment} />
       <ActionBtn icon="paper-plane-outline" count={shareCount} onPress={onShare} />
-      <ActionBtn
-        icon={isSaved ? 'bookmark' : 'bookmark-outline'}
-        label="Save"
-        onPress={onSave}
-        color={isSaved ? REEL_ACCENT : '#fff'}
-      />
 
       <TouchableOpacity style={styles.actionButton} onPress={onMenu} activeOpacity={0.8}>
         <Ionicons name="ellipsis-vertical" size={24} color="#fff" style={styles.iconShadow} />

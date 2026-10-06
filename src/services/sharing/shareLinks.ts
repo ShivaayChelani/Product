@@ -35,6 +35,19 @@ export function buildReelShareUrl(reelId: string): string | null {
 }
 
 /**
+ * Public Community Event URL: https://palsafar.in/event/:slugOrId
+ *
+ * The server resolves `GET /api/v1/events/:idOrSlug`, so the slug and the cuid
+ * are equally valid. The slug is preferred because it is stable and readable;
+ * both go through the same `isShareableEntityId` gate so a crafted value can
+ * never restructure the URL or climb out of `/event/`.
+ */
+export function buildEventShareUrl(idOrSlug: string): string | null {
+  if (!isShareableEntityId(idOrSlug)) return null;
+  return `${PALSAFAR_WEB_ORIGIN}/event/${encodeURIComponent(idOrSlug)}`;
+}
+
+/**
  * Mirrors the server's username rule (social.validation.ts: 3-30 chars of
  * `[a-zA-Z0-9_.]`) narrowed to what is safe as a single path segment.
  */
@@ -98,6 +111,36 @@ export function buildReelShareMessage(reel: {
     return `Check out this reel on PalSafar! 🎬\n${caption}\n${url}`;
   }
   return `Check out this reel on PalSafar! 🎬\n${url}`;
+}
+
+/**
+ * Share text for a Community Event.
+ *
+ * Only APPROVED events are shareable: a PENDING/REJECTED/CANCELLED event would
+ * produce a link that resolves to a not-found page for whoever receives it.
+ */
+export function isPublicShareableEvent(event: {
+  id?: string | null;
+  slug?: string | null;
+  status?: string | null;
+}): boolean {
+  if (event.status && event.status !== 'APPROVED') return false;
+  return isShareableEntityId(event.slug || event.id);
+}
+
+export function buildEventShareMessage(event: {
+  id: string;
+  slug?: string | null;
+  status?: string | null;
+  title?: string | null;
+}): string | null {
+  if (!isPublicShareableEvent(event)) return null;
+  const url = buildEventShareUrl((event.slug || event.id).trim());
+  if (!url) return null;
+  const title = (event.title || '').trim();
+  return title
+    ? `Check out this event on PalSafar: ${title}\n${url}`
+    : `Check out this event on PalSafar\n${url}`;
 }
 
 export function buildTripShareMessage(trip: {

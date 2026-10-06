@@ -2,13 +2,17 @@ import React, { memo, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, LayoutChangeEvent } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { MapExploreTheme as T } from '../theme';
-import { mapSegmentThumbX } from '../utils/mapSegmentThumb';
+import { MAP_LAYER_TABS, mapSegmentThumbX, type MapLayerTab } from '../utils/mapSegmentThumb';
 
-type Tab = 'places' | 'vendors';
+const TAB_LABELS: Record<MapLayerTab, string> = {
+  places: 'Places',
+  events: 'Events',
+  vendors: 'Vendors',
+};
 
 type Props = {
-  active: Tab;
-  onChange: (tab: Tab) => void;
+  active: MapLayerTab;
+  onChange: (tab: MapLayerTab) => void;
 };
 
 function MapSegmentControlComponent({ active, onChange }: Props) {
@@ -18,7 +22,8 @@ function MapSegmentControlComponent({ active, onChange }: Props) {
   activeRef.current = active;
 
   const onLayout = (e: LayoutChangeEvent) => {
-    const w = (e.nativeEvent.layout.width - 8) / 2;
+    // One slot per layer, minus the 4px horizontal padding on each side.
+    const w = (e.nativeEvent.layout.width - 8) / MAP_LAYER_TABS.length;
     if (!(w > 0)) return;
     setSegmentWidth(prev => (Math.abs(prev - w) < 0.5 ? prev : w));
     // Snap immediately so PalPoints → Vendors does not paint a Places thumb first.
@@ -42,12 +47,13 @@ function MapSegmentControlComponent({ active, onChange }: Props) {
       <Animated.View
         style={[styles.thumb, { width: segmentWidth || undefined }, thumbStyle]}
       />
-      <Pressable style={styles.segment} onPress={() => onChange('places')}>
-        <Text style={[styles.label, active === 'places' && styles.labelActive]}>Places</Text>
-      </Pressable>
-      <Pressable style={styles.segment} onPress={() => onChange('vendors')}>
-        <Text style={[styles.label, active === 'vendors' && styles.labelActive]}>Vendors</Text>
-      </Pressable>
+      {MAP_LAYER_TABS.map((tab) => (
+        <Pressable key={tab} style={styles.segment} onPress={() => onChange(tab)}>
+          <Text style={[styles.label, active === tab && styles.labelActive]} numberOfLines={1}>
+            {TAB_LABELS[tab]}
+          </Text>
+        </Pressable>
+      ))}
     </View>
   );
 }
@@ -78,7 +84,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: T.text,
   },

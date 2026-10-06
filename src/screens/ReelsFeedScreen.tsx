@@ -22,14 +22,11 @@ import { ReelsTopBar } from '../features/travelSocial/components/ReelsTopBar';
 import { ReelActionRailPosition } from '../components/reels/reelLayout';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { DEV_FLAGS } from '../config/devFlags';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { parseJsonStringArray } from '../utils/safeJson';
 import { socialApi } from '../services/api/social';
 import { REEL_TAG_LABELS } from '../features/travelSocial/reelTags';
 import type { RootStackParamList } from '../navigation/types';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-
-const SAVED_KEY = 'PALSAFAR_SAVED_REELS';
+import { openInternalDirections } from '../features/mapExplore/utils/internalDirections';
 
 const CATEGORIES = ['BUSINESS', 'TRAVEL', 'Following'] as const;
 type ReelFilterCategory = (typeof CATEGORIES)[number];
@@ -61,7 +58,6 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
   const [error, setError] = useState<string | null>(null);
   const [commentReelId, setCommentReelId] = useState<string | null>(null);
   const [categoryOpen, setCategoryOpen] = useState(false);
-  const [savedReelIds, setSavedReelIds] = useState<string[]>([]);
   const [followingCreatorIds, setFollowingCreatorIds] = useState<string[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
 
@@ -69,20 +65,6 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
   const fetchGenRef = useRef(0);
 
   const insets = useSafeAreaInsets();
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const savedRaw = await AsyncStorage.getItem(SAVED_KEY);
-        if (savedRaw) setSavedReelIds(parseJsonStringArray(savedRaw));
-      } catch { /* offline */ }
-    })();
-  }, []);
-
-  const persistSaved = useCallback(async (ids: string[]) => {
-    setSavedReelIds(ids);
-    await AsyncStorage.setItem(SAVED_KEY, JSON.stringify(ids));
-  }, []);
 
   const loadFeed = useCallback(async (reset = false, customCategory = activeCategory, customTag = activeTag) => {
     if (!reset && (loadingMoreRef.current || !hasMore || loading)) return;
@@ -185,29 +167,6 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
     }
   }, [user, setUser, isGuest, promptGuestAuth, reels]);
 
-  const handleSave = useCallback(async (reelId: string) => {
-    if (isGuest || user?.uid === 'guest-user') {
-      promptGuestAuth('save reels');
-      return;
-    }
-    const isSaved = savedReelIds.includes(reelId);
-    const next = isSaved
-      ? savedReelIds.filter(id => id !== reelId)
-      : [...savedReelIds, reelId];
-    await persistSaved(next);
-    setReels(prev => prev.map(r =>
-      r.id === reelId ? { ...r, saves: Math.max(0, r.saves + (isSaved ? -1 : 1)) } : r,
-    ));
-
-    if (DEV_FLAGS.USE_SERVER_API) {
-      try {
-        const { socialApi } = require('../services/api/social') as typeof import('../services/api/social');
-        if (isSaved) await socialApi.unsaveReel(reelId);
-        else await socialApi.saveReel(reelId);
-      } catch { /* local state kept */ }
-    }
-  }, [savedReelIds, persistSaved, isGuest, user, promptGuestAuth]);
-
   const handleShare = useCallback(async (reel: Reel) => {
     const result = await shareReelAndRecord(reel);
     if (result === 'unavailable') {
@@ -218,6 +177,28 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
     setReels(prev => prev.map(r =>
       r.id === reel.id ? { ...r, shares: (r.shares || 0) + 1 } : r,
     ));
+  }, []);
+
+  /**
+ * Route to a vendor reel's business.
+ *
+ * The coordinate check lives here rather than in `ReelCard` so a vendor without
+ * a location yields `null` from the shared helper and simply produces no
+ * Direction affordance — `isValidLatLng` rejects `(0,0)`, swapped pairs and
+ * out-of-range values, none of which should route a user into the ocean.
+ */
+  const handleVendorDirections = useCallback((reel: Reel) => {
+    const vendor = reel.vendor;
+    openInternalDirections({
+      navigation,
+      destination: {
+        latitude: vendor?.latitude,
+        longitude: vendor?.longitude,
+        label: vendor?.businessName || null,
+      },
+      context: 'reel_vendor_card',
+      initialMapTab: 'vendors',
+    });
   }, []);
 
   const handleReelViewed = useCallback((reelId: string) => {
@@ -329,7 +310,6 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
           ...(user?.likedReels || []),
           ...reels.filter(r => r.isLiked).map(r => r.id),
         ]))}
-        savedReelIds={savedReelIds}
         followingCreatorIds={followingCreatorIds}
         currentUserId={user?.uid}
         onLoadMore={() => loadFeed(false)}
@@ -344,8 +324,8 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
           setCommentReelId(reelId);
         }}
         onShare={handleShare}
-        onSave={handleSave}
         onFollow={handleFollow}
+        onVendorDirections={handleVendorDirections}
         onPressAuthor={handlePressAuthor}
         onReport={handleReport}
         onRetry={() => loadFeed(true)}

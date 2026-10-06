@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -11,6 +11,7 @@ import { Reel } from '../../types';
 import { ReelPlayer } from './ReelPlayer';
 import { ReelActions, showReelMenu } from './ReelActions';
 import { ReelBottomPanel } from './ReelBottomPanel';
+import { resolveReelVendorActions } from './reelVendorActions';
 import LinearGradient from 'react-native-linear-gradient';
 import { HeartBurstOverlay } from '../../features/travelSocial/components/HeartBurstOverlay';
 import {
@@ -24,7 +25,6 @@ interface ReelCardProps {
   reel: Reel;
   isActive: boolean;
   isLiked: boolean;
-  isSaved: boolean;
   isFollowingCreator?: boolean;
   currentUserId?: string;
   itemHeight?: number;
@@ -33,17 +33,21 @@ interface ReelCardProps {
   onLike: (reelId: string) => void;
   onComment: (reelId: string) => void;
   onShare: (reel: Reel) => void;
-  onSave: (reelId: string) => void;
   onFollow?: (creatorProfileId: string, currentlyFollowing: boolean) => void;
   onPressAuthor?: (reel: Reel) => void;
   onReport?: (reelId: string) => void;
+  /**
+   * Route to a vendor reel's business. Only the feed supplies this, and only
+   * after it has confirmed the vendor has usable coordinates — the card must
+   * never offer a Direction button that goes nowhere.
+   */
+  onVendorDirections?: (reel: Reel) => void;
 }
 
 export const ReelCard: React.FC<ReelCardProps> = React.memo(({
   reel,
   isActive,
   isLiked,
-  isSaved,
   isFollowingCreator = false,
   currentUserId,
   itemHeight,
@@ -52,10 +56,10 @@ export const ReelCard: React.FC<ReelCardProps> = React.memo(({
   onLike,
   onComment,
   onShare,
-  onSave,
   onFollow,
   onPressAuthor,
   onReport: _onReport,
+  onVendorDirections,
 }) => {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -88,7 +92,6 @@ export const ReelCard: React.FC<ReelCardProps> = React.memo(({
   const handleLike = useCallback(() => onLike(reel.id), [reel.id, onLike]);
   const handleComment = useCallback(() => onComment(reel.id), [reel.id, onComment]);
   const handleShare = useCallback(() => onShare(reel), [reel, onShare]);
-  const handleSave = useCallback(() => onSave(reel.id), [reel.id, onSave]);
 
   const handleMenu = useCallback(() => {
     showReelMenu(() => _onReport?.(reel.id));
@@ -110,6 +113,22 @@ export const ReelCard: React.FC<ReelCardProps> = React.memo(({
     : null;
 
   const creator = reel.creator;
+
+  // Business actions live on the author card. They reuse `handleLike` and
+  // `handleShare` — the exact callbacks the right rail already calls — so the
+  // heart fill state cannot disagree between the rail and the card, and an
+  // optimistic failure rolls back in one place.
+  const vendorActions = useMemo(
+    () => resolveReelVendorActions({
+      vendor: reel.vendor,
+      isLiked,
+      canRoute: !!onVendorDirections,
+      onLike: handleLike,
+      onShare: handleShare,
+      onDirections: () => onVendorDirections?.(reel),
+    }),
+    [reel, isLiked, onVendorDirections, handleLike, handleShare],
+  );
 
   // Fix for bad scraped usernames that were Instagram URLs stripped of punctuation
   let cleanUsername = creator?.username;
@@ -173,7 +192,6 @@ export const ReelCard: React.FC<ReelCardProps> = React.memo(({
 
       <ReelActions
         isLiked={isLiked}
-        isSaved={isSaved}
         likeCount={likeCount}
         commentCount={commentCount}
         shareCount={reel.shares}
@@ -182,7 +200,6 @@ export const ReelCard: React.FC<ReelCardProps> = React.memo(({
         onLike={handleLike}
         onComment={handleComment}
         onShare={handleShare}
-        onSave={handleSave}
         onMenu={handleMenu}
       />
 
@@ -204,6 +221,7 @@ export const ReelCard: React.FC<ReelCardProps> = React.memo(({
           isOwnReel={isOwnReel}
           onPressAuthor={onPressAuthor ? handlePressAuthor : undefined}
           onFollowAuthor={onFollow ? handleFollowAuthor : undefined}
+          vendorActions={vendorActions}
           progress={progress}
           showControls={isActive}
           paddingBottom={overlayInsets.contentPaddingBottom}

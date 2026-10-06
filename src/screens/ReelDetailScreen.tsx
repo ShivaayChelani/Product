@@ -181,7 +181,6 @@ export default function ReelDetailScreen({
         error={null}
         hasMore={false}
         likedReelIds={likedReelIds}
-        savedReelIds={[]}
         followingCreatorIds={[]}
         onLoadMore={() => {}}
         onRefresh={() => {}}
@@ -189,7 +188,6 @@ export default function ReelDetailScreen({
         onLike={handleLike}
         onComment={handleOpenComment}
         onShare={handleShare}
-        onSave={() => {}}
         isTabFocused={isFocused}
         onReelViewed={handleReelViewed}
         layoutMode="fullscreen"

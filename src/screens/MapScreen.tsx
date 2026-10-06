@@ -26,6 +26,7 @@ import { DEV_FLAGS } from '../config/devFlags';
 import RideOptionsSheet from '../components/RideOptionsSheet';
 import MapPlaceDetailCard from '../components/MapPlaceDetailCard';
 import MapVendorDetailCard from '../components/MapVendorDetailCard';
+import MapEventDetailCard from '../components/MapEventDetailCard';
 import { MapExploreSearchBar } from '../features/mapExplore/components/MapExploreSearchBar';
 import { MapCategoryChips } from '../features/mapExplore/components/MapCategoryChips';
 import { MapSegmentControl } from '../features/mapExplore/components/MapSegmentControl';
@@ -39,7 +40,10 @@ import {
   resolveExplicitMapTab,
   shouldOpenRoutedPlaceOnMap,
   shouldRestoreSavedMapTab,
+  type MapLayerTab,
 } from '../navigation/vendorReviewFlow';
+import { toEventMarkers } from '../features/events/eventMapMarkers';
+import { eventsApi } from '../services/api/events';
 import { generateLeafletHtml } from '../utils/leafletMapHtml';
 import { parseJsonObject } from '../utils/safeJson';
 import {
@@ -89,7 +93,10 @@ import {
 } from '../services/location/distance';
 import { useTravelTime } from '../services/location/useTravelTime';
 import { getOSRMRoute, formatRouteDistance, formatRouteDuration } from '../services/routing/osrmService';
+import { formatDistance, formatDuration } from '../services/location/distance';
 import { getRoutedDistanceFields } from '../services/location/routedDistance';
+import { INTERNAL_ROUTE_COLOR } from '../design/directionsTheme';
+import { openInternalDirections, resolveInternalDirectionsDestination } from '../features/mapExplore/utils/internalDirections';
 import { mergeMarkersPreservingSelection } from '../features/mapExplore/utils/mapSelectionLifecycle';
 import {
   logMapNavigate,
@@ -111,7 +118,7 @@ interface MarkerData {
   lat: number;
   lng: number;
   category: string;
-  type: 'place' | 'vendor' | 'cluster';
+  type: 'place' | 'vendor' | 'cluster' | 'event';
   image?: string | null;
   rating?: number;
   reviewCount?: number;
@@ -144,6 +151,13 @@ interface MarkerData {
   estimatedDuration?: number | null;
   likes?: number | null;
   isOpen?: boolean | null;
+  /** Community Events layer */
+  startDate?: string;
+  startTime?: string | null;
+  endTime?: string | null;
+  isFeatured?: boolean;
+  /** Slug or cuid — what EventDetail and share links need. */
+  eventIdOrSlug?: string;
 }
 
 interface MapScreenProps {
@@ -161,9 +175,22 @@ interface MapScreenProps {
   selectedPlaceId?: string;
   selectedPlaceKey?: number;
   selectedVendorId?: string;
-  initialMapTab?: 'places' | 'vendors';
+  initialMapTab?: MapLayerTab;
   mapTabKey?: number;
   reviewMode?: boolean;
+  /**
+   * Internal directions request. Every non-ride "take me there" affordance routes
+   * through this param so the app reuses the one OSRM + Leaflet pipeline instead
+   * of launching an external maps app.
+   */
+  directions?: {
+    latitude: number;
+    longitude: number;
+    label?: string | null;
+    context?: string;
+  } | null;
+  /** Monotonic token so the same destination can be re-routed on purpose. */
+  directionsKey?: number;
 }
 
 function getCategoryColor(cat?: string) {
@@ -222,6 +249,8 @@ export default function MapScreen({
   initialMapTab,
   mapTabKey,
   reviewMode = false,
+  directions,
+  directionsKey,
 }: MapScreenProps) {
   // useTheme intentionally omitted — unused
   const insets = useSafeAreaInsets();
@@ -258,7 +287,7 @@ export default function MapScreen({
     () => buildMapCategoryChips([]),
   );
   const [mapApiCategoryKeys, setMapApiCategoryKeys] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'places' | 'vendors'>(
+  const [activeTab, setActiveTab] = useState<MapLayerTab>(
     resolveExplicitMapTab(initialMapTab, reviewMode) ?? 'places',
   );
   const [showFilters, setShowFilters] = useState(true);
@@ -271,6 +300,7 @@ export default function MapScreen({
   const [_placesCache, _setPlacesCache] = useState<Record<string, MarkerData[]>>({});
   const [allPlaces, setAllPlaces] = useState<MarkerData[]>([]);
   const [allVendors, setAllVendors] = useState<MarkerData[]>([]);
+  const [allEvents, setAllEvents] = useState<MarkerData[]>([]);
   const [_isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isMapFetching, setIsMapFetching] = useState(false);
@@ -297,6 +327,7 @@ export default function MapScreen({
   
   const fetchCounterRef = useRef(0);
   const vendorFetchCounterRef = useRef(0);
+  const eventFetchCounterRef = useRef(0);
   const searchGenRef = useRef(0);
   const viewportDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastBoundsRef = useRef<{ north: number; south: number; east: number; west: number } | null>(null);
@@ -304,6 +335,7 @@ export default function MapScreen({
   const lastFetchKeyRef = useRef<string | null>(null);
   const lastFetchTsRef = useRef(0);
   const currentZoomRef = useRef(12);
+  const tabFetchedForRef = useRef<MapLayerTab | null>(null);
   const mapCursorRef = useRef<string | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [rideSheetVisible, setRideSheetVisible] = useState(false);
@@ -311,6 +343,10 @@ export default function MapScreen({
     distanceMeters: number;
     durationSeconds: number;
     geometry: [number, number][];
+    /** Destination name for the internal directions summary. */
+    label?: string | null;
+    /** Token colour the polyline was painted with. */
+    color?: string;
   } | null>(null);
   const [routeStatus, setRouteStatus] = useState<'idle' | 'loading' | 'success' | 'error' | 'no-route' | 'no-location'>('idle');
   const [routeCardVisible, setRouteCardVisible] = useState(false);
@@ -320,6 +356,8 @@ export default function MapScreen({
   const [routeLastOrigin, setRouteLastOrigin] = useState<UserPosition | null>(null);
   const [routeLastDest, setRouteLastDest] = useState<{lat: number, lng: number} | null>(null);
   const [routeLastProfile, setRouteLastProfile] = useState<'driving' | 'walking' | 'cycling'>('driving');
+  /** Name of the destination being routed to, for the directions summary. */
+  const routeDestinationLabelRef = useRef<string | null>(null);
 
   const [addedPlaceIds, setAddedPlaceIds] = useState<Set<string>>(new Set());
   const [addingPlaceId, setAddingPlaceId] = useState<string | null>(null);
@@ -355,8 +393,13 @@ export default function MapScreen({
       );
     } else if (data?.type === 'drawRoute' && Array.isArray(data.coords) && data.coords.length) {
       const coordsJson = JSON.stringify(data.coords);
+      // Pass the token colour through, validated against a literal hex so a
+      // malformed value can never be injected as arbitrary JS.
+      const colorJson = /^#[0-9a-fA-F]{6}$/.test(String(data.color ?? ''))
+        ? JSON.stringify(data.color)
+        : JSON.stringify(INTERNAL_ROUTE_COLOR);
       webViewRef.current?.injectJavaScript(
-        `(function(){try{if(window.__palMap&&window.__palMap.drawRoute)window.__palMap.drawRoute(${coordsJson});}catch(e){}true;})();`,
+        `(function(){try{if(window.__palMap&&window.__palMap.drawRoute)window.__palMap.drawRoute(${coordsJson},${colorJson});}catch(e){}true;})();`,
       );
     } else if (data?.type === 'clearRoute') {
       webViewRef.current?.injectJavaScript(
@@ -380,9 +423,14 @@ export default function MapScreen({
     destLat: number,
     destLng: number,
     profile: 'driving' | 'walking' | 'cycling' = 'driving',
+    // Internal directions (map card, vendor, event, trip, itinerary) all share
+    // one blue. Ride booking never reaches this function — it hands off to a
+    // provider app and draws nothing — so it cannot be recoloured by accident.
+    routeColor: string = INTERNAL_ROUTE_COLOR,
   ) => {
     const requestId = ++routeRequestIdRef.current;
     const originPos = effectivePositionRef.current ?? effectivePosition;
+    const routeDestinationLabel = routeDestinationLabelRef.current;
 
     if (
       originPos &&
@@ -441,11 +489,13 @@ export default function MapScreen({
           distanceMeters: result.distanceMeters,
           durationSeconds: result.durationSeconds,
           geometry: leafletGeometry,
+          label: routeDestinationLabel,
+          color: routeColor,
         });
         setRouteStatus('success');
         setIsNavigating(true);
 
-        postToWebView({ type: 'drawRoute', coords: leafletGeometry });
+        postToWebView({ type: 'drawRoute', coords: leafletGeometry, color: routeColor });
         postToWebView({
           type: 'fitBounds',
           bounds: [
@@ -840,6 +890,38 @@ export default function MapScreen({
     }
   }, [mapVendorToMarker]);
 
+  /**
+  * Community Events for the current viewport.
+  *
+  * Uses the same bounds + shared fetch plumbing as Places/Vendors rather than a
+  * second map. `includeOngoing: 'false'` matches the server default and keeps
+  * the feed to what is still bookable while an event in progress stays visible.
+  */
+  const fetchEventsForViewport = useCallback(async (
+    bounds: { north: number; south: number; east: number; west: number },
+    zoom: number,
+  ) => {
+    const fetchId = ++eventFetchCounterRef.current;
+    setIsMapFetching(true);
+    try {
+      if (isOfflineRef.current) throw new Error('offline');
+      const res = await eventsApi.mapFeed({
+        north: bounds.north,
+        south: bounds.south,
+        east: bounds.east,
+        west: bounds.west,
+        zoom,
+        includeOngoing: 'false',
+      });
+      if (fetchId !== eventFetchCounterRef.current) return;
+      setAllEvents(toEventMarkers(res.data ?? []) as unknown as MarkerData[]);
+    } catch {
+      // Leave the last good event set in place; the map keeps showing it.
+    } finally {
+      if (fetchId === eventFetchCounterRef.current) setIsMapFetching(false);
+    }
+  }, []);
+
   const scheduleMapFetch = useCallback((
     bounds: { north: number; south: number; east: number; west: number },
     zoom: number,
@@ -850,11 +932,13 @@ export default function MapScreen({
     viewportDebounceRef.current = setTimeout(() => {
       if (activeTab === 'vendors') {
         void fetchVendorsForViewport(bounds);
+      } else if (activeTab === 'events') {
+        void fetchEventsForViewport(bounds, zoom);
       } else {
         fetchMapData(bounds, zoom);
       }
     }, 400);
-  }, [fetchMapData, fetchVendorsForViewport, activeTab]);
+  }, [fetchMapData, fetchVendorsForViewport, fetchEventsForViewport, activeTab]);
 
   const fetchVendors = useCallback(async (force = false) => {
     if (lastBoundsRef.current) {
@@ -913,11 +997,16 @@ export default function MapScreen({
 
   const markerLookup = useMemo(() => {
     const map = new Map<string, MarkerData>();
-    [...allPlaces, ...allVendors].forEach(m => map.set(m.id, m));
+    [...allPlaces, ...allVendors, ...allEvents].forEach(m => map.set(m.id, m));
     return map;
-  }, [allPlaces, allVendors]);
+  }, [allPlaces, allVendors, allEvents]);
 
   const filteredMarkers: MarkerData[] = useMemo(() => {
+    if (activeTab === 'events') {
+      // Events are curated by the server; the map layer shows everything the
+      // bbox returned rather than re-implementing category filtering.
+      return dedupeMapMarkers(allEvents, 0.01);
+    }
     let list = activeTab === 'places' ? allPlaces : allVendors;
     if (activeTab === 'places') {
       const categoryKey = selectedMapCategory.trim().toLowerCase();
@@ -929,16 +1018,43 @@ export default function MapScreen({
       });
     }
     return activeTab === 'places' ? dedupeMapMarkers(list, 0.001) : dedupeMapMarkers(list, 0.01);
-  }, [allPlaces, allVendors, activeTab, selectedMapCategory]);
+  }, [allPlaces, allVendors, allEvents, activeTab, selectedMapCategory]);
 
-  const handleMapTabChange = useCallback((tab: 'places' | 'vendors') => {
+  const handleMapTabChange = useCallback((tab: MapLayerTab) => {
     setActiveTab(tab);
     setSelectedMarker(null);
     postToWebView({ type: 'setSelectedMarker', id: null });
-    if (tab === 'vendors') {
-      fetchVendors(true);
+    tabFetchedForRef.current = null;
+  }, [postToWebView]);
+
+  /**
+   * Loads whichever layer the map is now showing.
+   *
+   * Driven by `activeTab` rather than by the tap handler so every path that can
+   * change the layer is covered exactly once: the segmented control, an explicit
+   * `initialMapTab` route (Home/Search → Events), and the restored map session
+   * (a user who left on Events comes back to a populated Events layer instead of
+   * an empty one until the first pan).
+   */
+  useEffect(() => {
+    if (tabFetchedForRef.current === activeTab) return;
+    if (activeTab === 'places') {
+      if (!lastBoundsRef.current) return;
+      tabFetchedForRef.current = activeTab;
+      fetchMapData(lastBoundsRef.current, currentZoomRef.current);
+      return;
     }
-  }, [fetchVendors, postToWebView]);
+    if (activeTab === 'vendors') {
+      tabFetchedForRef.current = activeTab;
+      void fetchVendors(true);
+      return;
+    }
+    // Events need a bbox. Before the first mapBoundsChanged there is nothing to
+    // query, so leave the marker unset — scheduleMapFetch picks it up.
+    if (!lastBoundsRef.current) return;
+    tabFetchedForRef.current = activeTab;
+    void fetchEventsForViewport(lastBoundsRef.current, currentZoomRef.current);
+  }, [activeTab, fetchMapData, fetchVendors, fetchEventsForViewport]);
 
   const handleSelectMapCategory = useCallback((key: string) => {
     setSelectedMapCategory(prev => (prev === key ? prev : key));
@@ -964,9 +1080,11 @@ export default function MapScreen({
       labelPriority: getMarkerLabelPriority({
         category: m.category,
         rating: m.rating,
-        type: m.type === 'cluster' ? undefined : m.type,
+        type: m.type === 'cluster' || m.type === 'event' ? undefined : m.type,
         isCityGroup: m.isCityGroup,
       }),
+      // Pinned on the event marker so the featured dot repaints with the pin.
+      isFeatured: m.isFeatured,
     }));
   }, [filteredMarkers]);
 
@@ -1057,6 +1175,7 @@ export default function MapScreen({
     if (!isValidLatLng(marker.lat, marker.lng)) return;
     fetchCounterRef.current += 1;
     vendorFetchCounterRef.current += 1;
+    eventFetchCounterRef.current += 1;
     lockMapView();
     setSelectedMarker(marker);
     postToWebView({ type: 'panTo', lat: marker.lat, lng: marker.lng });
@@ -1248,7 +1367,9 @@ export default function MapScreen({
         ? remoteSuggestions
         : activeTab === 'vendors'
           ? allVendors
-          : [...allPlaces, ...allVendors];
+          : activeTab === 'events'
+            ? allEvents
+            : [...allPlaces, ...allVendors];
 
     const placeHits = (remoteSuggestions.length > 0 ? remoteSuggestions : allPlaces).filter(
       item =>
@@ -1306,7 +1427,7 @@ export default function MapScreen({
             .slice(0, 8);
 
     return [...cityRows, ...placeRows].slice(0, 10);
-  }, [searchQuery, remoteSuggestions, allPlaces, allVendors, activeTab]);
+  }, [searchQuery, remoteSuggestions, allPlaces, allVendors, allEvents, activeTab]);
 
   useEffect(() => {
     if (!isReliableUserPosition(effectivePosition)) {
@@ -1605,8 +1726,11 @@ export default function MapScreen({
         case 'cameraIdle': {
           if (lastBoundsRef.current) {
             lastFetchKeyRef.current = null;
+            const zoom = typeof data.zoom === 'number' ? data.zoom : currentZoomRef.current;
             if (activeTab === 'places') {
-              fetchMapData(lastBoundsRef.current, typeof data.zoom === 'number' ? data.zoom : currentZoomRef.current, { force: true });
+              fetchMapData(lastBoundsRef.current, zoom, { force: true });
+            } else if (activeTab === 'events') {
+              void fetchEventsForViewport(lastBoundsRef.current, zoom);
             } else {
               void fetchVendorsForViewport(lastBoundsRef.current);
             }
@@ -1620,7 +1744,7 @@ export default function MapScreen({
         }
       }
     } catch { }
-  }, [markerLookup, handleMarkerPress, scheduleMapFetch, fetchMapData, fetchVendorsForViewport, activeTab, pushUserLocationToMap, ALLOWED_MESSAGE_TYPES, postToWebView]);
+  }, [markerLookup, handleMarkerPress, scheduleMapFetch, fetchMapData, fetchVendorsForViewport, fetchEventsForViewport, activeTab, pushUserLocationToMap, ALLOWED_MESSAGE_TYPES, postToWebView]);
 
   useEffect(() => {
     if (mapReady || mapError) return;
@@ -1694,6 +1818,80 @@ export default function MapScreen({
     }
   }, [selectedMarker, savedPlaceIds, showSuccess, showError]);
 
+  /**
+ * The one internal directions sequence.
+ *
+ * Shared by the map place/vendor/event cards and by the `directions` route param
+ * that every non-ride workspace navigates to. Extracting it keeps permission
+ * handling, the fresh-GPS retry, and the OSRM fetch identical whichever surface
+ * asked, instead of re-implemented per workspace.
+ */
+  const startInternalRoute = useCallback(async (
+    dest: { latitude: number; longitude: number },
+    label?: string | null,
+  ) => {
+    routeDestinationLabelRef.current = label ?? null;
+    lockMapView();
+
+    let pos = effectivePositionRef.current ?? effectivePosition;
+    let permitted = hasPermission;
+    if (!permitted) {
+      const granted = await requestPermission();
+      if (!granted) {
+        console.warn('[PalSafarGPS] navigate_blocked', {
+          reason: 'permission_denied',
+          accuracyM: pos?.accuracy ?? null,
+          ageMs: pos?.timestamp != null ? Date.now() - pos.timestamp : null,
+          permission: false,
+        });
+        Alert.alert('Permission Denied', MAP_NAVIGATE_MESSAGES.permission_denied);
+        return false;
+      }
+      permitted = true;
+      pos = effectivePositionRef.current ?? effectivePosition;
+    }
+
+    if (!isNavigableUserPosition(pos)) {
+      console.warn('[PalSafarGPS] navigate_retry_fresh', {
+        ...describeUserPositionRejection(pos, NAVIGATION_ACCURACY_MAX_M),
+        permission: permitted,
+        provider: 'fused',
+      });
+      const fresh = await requestFreshPosition();
+      if (fresh) {
+        pos = fresh;
+        effectivePositionRef.current = fresh;
+      }
+    }
+
+    const plan = planMapPlaceNavigate({
+      hasPlace: true,
+      destLat: dest.latitude,
+      destLng: dest.longitude,
+      hasPermission: permitted,
+      currentPosition: pos,
+    });
+    logMapNavigate(plan);
+
+    if (plan.action !== 'route') {
+      console.warn('[PalSafarGPS] navigate_blocked', {
+        ...describeUserPositionRejection(pos, NAVIGATION_ACCURACY_MAX_M),
+        permission: permitted,
+        provider: 'fused',
+      });
+      Alert.alert('Location unavailable', MAP_NAVIGATE_MESSAGES.gps_unavailable);
+      return false;
+    }
+
+    try {
+      await calculateRoute(dest.latitude, dest.longitude);
+      return true;
+    } catch {
+      Alert.alert('Routing error', MAP_NAVIGATE_MESSAGES.routing_error);
+      return false;
+    }
+  }, [effectivePosition, hasPermission, requestPermission, requestFreshPosition, calculateRoute, lockMapView]);
+
   const handleNavigate = useCallback(async () => {
     const marker = selectedMarkerRef.current ?? selectedMarker;
     let plan = planMapPlaceNavigate({
@@ -1725,70 +1923,34 @@ export default function MapScreen({
     lockMapView();
     postToWebView({ type: 'setSelectedMarker', id: marker!.id });
 
-    let pos = effectivePositionRef.current ?? effectivePosition;
-    let permitted = hasPermission;
-    if (!permitted) {
-      const granted = await requestPermission();
-      if (!granted) {
-        console.warn('[PalSafarGPS] navigate_blocked', {
-          reason: 'permission_denied',
-          accuracyM: pos?.accuracy ?? null,
-          ageMs: pos?.timestamp != null ? Date.now() - pos.timestamp : null,
-          permission: false,
-        });
-        plan = planMapPlaceNavigate({
-          hasPlace: true,
-          destLat: dest.latitude,
-          destLng: dest.longitude,
-          hasPermission: false,
-          currentPosition: pos,
-        });
-        logMapNavigate(plan);
-        Alert.alert('Permission Denied', MAP_NAVIGATE_MESSAGES.permission_denied);
-        return;
-      }
-      permitted = true;
-      pos = effectivePositionRef.current ?? effectivePosition;
-    }
+    await startInternalRoute(dest, marker!.name);
+  }, [selectedMarker, effectivePosition, hasPermission, postToWebView, startInternalRoute, lockMapView]);
 
-    if (!isNavigableUserPosition(pos)) {
-      console.warn('[PalSafarGPS] navigate_retry_fresh', {
-        ...describeUserPositionRejection(pos, NAVIGATION_ACCURACY_MAX_M),
-        permission: permitted,
-        provider: 'fused',
-      });
-      const fresh = await requestFreshPosition();
-      if (fresh) {
-        pos = fresh;
-        effectivePositionRef.current = fresh;
-      }
-    }
+  /**
+   * Internal directions request from another workspace (vendor offer, event
+   * detail, trip stop, itinerary, reel business card).
+   *
+   * Gated on `mapReady` so the WebView can actually paint the polyline, and on
+   * `directionsKey` so re-pressing "Directions" for the same place re-routes
+   * while a stale param does not fire twice.
+   */
+  const lastDirectionsKeyRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!directions || directionsKey == null) return;
+    if (lastDirectionsKeyRef.current === directionsKey) return;
+    if (!mapReady) return;
 
-    plan = planMapPlaceNavigate({
-      hasPlace: true,
-      destLat: dest.latitude,
-      destLng: dest.longitude,
-      hasPermission: permitted,
-      currentPosition: pos,
-    });
-    logMapNavigate(plan);
-
-    if (plan.action !== 'route') {
-      console.warn('[PalSafarGPS] navigate_blocked', {
-        ...describeUserPositionRejection(pos, NAVIGATION_ACCURACY_MAX_M),
-        permission: permitted,
-        provider: 'fused',
-      });
-      Alert.alert('Location unavailable', MAP_NAVIGATE_MESSAGES.gps_unavailable);
+    const resolved = resolveInternalDirectionsDestination(directions);
+    if (!resolved) {
+      lastDirectionsKeyRef.current = directionsKey;
+      Alert.alert('Location unavailable', 'Directions are not available for this place.');
       return;
     }
 
-    try {
-      await calculateRoute(dest.latitude, dest.longitude);
-    } catch {
-      Alert.alert('Routing error', MAP_NAVIGATE_MESSAGES.routing_error);
-    }
-  }, [selectedMarker, effectivePosition, hasPermission, requestPermission, requestFreshPosition, postToWebView, calculateRoute, lockMapView]);
+    lastDirectionsKeyRef.current = directionsKey;
+    skipSessionTabRestoreRef.current = true;
+    void startInternalRoute(resolved, resolved.label);
+  }, [directions, directionsKey, mapReady, startInternalRoute]);
 
   const handleEndNavigation = useCallback(() => {
     setIsNavigating(false);
@@ -2133,6 +2295,28 @@ export default function MapScreen({
             <Icon name="close-circle" size={20} color="#FFF" />
             <Text style={styles.endNavText}>End Navigation</Text>
           </TouchableOpacity>
+
+          {/* Distance + ETA. The OSRM response already carried both; they were
+              computed and then discarded, so the summary is pure surfacing. */}
+          {route ? (
+            <View style={styles.routeSummary}>
+              {route.label ? (
+                <Text style={styles.routeSummaryLabel} numberOfLines={1}>
+                  {route.label}
+                </Text>
+              ) : null}
+              <View style={styles.routeSummaryStats}>
+                <Icon name="navigate" size={14} color={INTERNAL_ROUTE_COLOR} />
+                <Text style={styles.routeSummaryText}>
+                  {formatDistance(route.distanceMeters)}
+                </Text>
+                <Text style={styles.routeSummaryDivider}>·</Text>
+                <Text style={styles.routeSummaryText}>
+                  {formatDuration(route.durationSeconds)}
+                </Text>
+              </View>
+            </View>
+          ) : null}
         </View>
       )}
 
@@ -2303,7 +2487,12 @@ export default function MapScreen({
         <View style={{ position: 'absolute', top: fetchingChipTop, alignSelf: 'center', backgroundColor: 'rgba(30,30,50,0.88)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', pointerEvents: 'none' }}>
           {isMapFetching && <ActivityIndicator size="small" color={Pal.colors.light.primary} />}
           <Text style={{ marginLeft: isMapFetching ? 8 : 0, color: '#FFF', fontSize: 13, fontWeight: '600' }}>
-            {loadChip.message || (activeTab === 'vendors' ? 'Loading nearby vendors…' : 'Loading nearby places…')}
+            {loadChip.message
+              || (activeTab === 'vendors'
+                ? 'Loading nearby vendors…'
+                : activeTab === 'events'
+                  ? 'Loading nearby events…'
+                  : 'Loading nearby places…')}
           </Text>
         </View>
       )}
@@ -2368,6 +2557,22 @@ export default function MapScreen({
             navigation.navigate('VendorOfferDetail', { offerId });
           }}
           onWriteReview={() => handleWriteVendorReview(selectedMarker.id)}
+        />
+      )}
+
+      {selectedMarker && selectedMarker.type === 'event' && (
+        <MapEventDetailCard
+          marker={selectedMarker}
+          bottomInset={detailBottomInset}
+          locationUnavailable={!isReliableUserPosition(effectivePosition)}
+          onClose={closeSheet}
+          onBookRide={handleBookRide}
+          onNavigate={handleNavigate}
+          onOpenEvent={() => {
+            const eventIdOrSlug = selectedMarker.eventIdOrSlug || selectedMarker.id;
+            closeSheet();
+            navigation.navigate('EventDetail', { eventIdOrSlug });
+          }}
         />
       )}
 
@@ -2716,6 +2921,43 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
   },
   endNavText: { color: '#FFF', fontSize: 14, fontFamily: 'Inter-Bold' },
+  routeSummary: {
+    marginTop: 8,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    minWidth: 190,
+    borderLeftWidth: 3,
+    borderLeftColor: INTERNAL_ROUTE_COLOR,
+    shadowColor: '#0B1B2B',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.22,
+    shadowRadius: 9,
+    elevation: 6,
+  },
+  routeSummaryLabel: {
+    color: '#2C1810',
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 3,
+  },
+  routeSummaryStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  routeSummaryText: {
+    color: '#4A3427',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  routeSummaryDivider: {
+    color: '#9C8674',
+    fontSize: 13,
+    fontWeight: '600',
+  },
   searchBarContainer: {
     flex: 1,
     flexDirection: 'row',

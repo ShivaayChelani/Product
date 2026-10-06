@@ -1,4 +1,6 @@
 import { NavigatorScreenParams } from '@react-navigation/native';
+import type { EventType } from '../services/api/events';
+import type { MapLayerTab } from '../features/mapExplore/utils/mapSegmentThumb';
 
 export type AuthStackParamList = {
   Onboarding: undefined;
@@ -35,11 +37,25 @@ export type MainTabParamList = {
     selectedPlaceKey?: number;
     /** Map → Vendor “View on Map”: open this vendor’s detail card on the Vendors layer */
     selectedVendorId?: string;
-    /** Open Map on Places or Vendors layer (e.g. Home → Local Vendors) */
-    initialMapTab?: 'places' | 'vendors';
+    /** Open Map on the Places, Events or Vendors layer (e.g. Home → Local Vendors) */
+    initialMapTab?: MapLayerTab;
     mapTabKey?: number;
     /** PalPoints “Write now” — open Vendors tab and prompt user to pick a business */
     reviewMode?: boolean;
+    /**
+     * Internal PalSafar directions. Every non-ride "take me there" affordance
+     * routes through the Map screen rather than launching an external maps app.
+     * See `features/mapExplore/utils/internalDirections.ts`.
+     */
+    directions?: {
+      latitude: number;
+      longitude: number;
+      label?: string | null;
+      /** Which workspace asked, for diagnostics. */
+      context?: string;
+    };
+    /** Monotonic token so the same destination can be re-routed on purpose. */
+    directionsKey?: number;
   } | undefined;
   Itinerary: undefined;
   Profile: undefined;
@@ -124,6 +140,10 @@ export type RootStackParamList = {
   UserProfile: { openEdit?: boolean } | undefined;
   SpotDetail: { spotId: string };
   AdminCreatePlace: undefined;
+  /** Community Events discovery feed (list, filters, pagination). */
+  Events: { initialType?: EventType } | undefined;
+  /** Single Community Event. `eventIdOrSlug` accepts the cuid or the slug. */
+  EventDetail: { eventIdOrSlug: string };
   VendorOffers: undefined;
   VendorOfferDetail: { offerId: string };
   VendorDashboard: undefined;

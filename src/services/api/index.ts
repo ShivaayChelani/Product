@@ -4,6 +4,19 @@ export { authApi } from './auth';
 export type { LoginResponse, RegisterInput, LoginInput } from './auth';
 export { placesApi } from './places';
 export type { PlaceResponse, CreatePlaceInput, PlaceListQuery, NearbyQuery, ClusterQuery, PlaceStats, MapCluster, MapPlacePin } from './places';
+export { eventsApi, EVENT_TYPES, EVENT_STATUSES } from './events';
+export type {
+  CommunityEvent,
+  CommunityEventMapItem,
+  CommunityEventNearbyItem,
+  EventType,
+  EventStatus,
+  EventListQuery,
+  EventMapQuery,
+  NearbyEventsQuery,
+  EventMapMeta,
+  EventNearbyMeta,
+} from './events';
 export { usersApi } from './users';
 export { uploadApi } from './upload';
 export { gamificationApi } from './gamification';

@@ -18,6 +18,21 @@ type Props = {
   isOwnReel?: boolean;
   onPressAuthor?: () => void;
   onFollowPress?: () => void;
+  /**
+   * Business actions for a vendor reel's author card.
+   *
+   * Supplied only when the reel's vendor has usable coordinates, so a vendor
+   * without a location gets no dead Direction button. `isLiked` drives the fill
+   * state of the heart; the callback is the feed's own toggle handler, so the
+   * rail and the card can never disagree about whether the reel is liked.
+   */
+  vendorActions?: {
+    isLiked?: boolean;
+    onLike: () => void;
+    onShare: () => void;
+    /** Absent when the vendor has no routeable coordinates. */
+    onDirections?: () => void;
+  };
 };
 
 function ReelAuthorRowComponent({
@@ -29,8 +44,11 @@ function ReelAuthorRowComponent({
   isOwnReel,
   onPressAuthor,
   onFollowPress,
+  vendorActions,
 }: Props) {
-  const showFollow = !isOwnReel && !!onFollowPress;
+  // A business cannot be "followed" the way a creator can, so the trailing
+  // slot is either the Follow button or the vendor action row, never both.
+  const showFollow = !isOwnReel && !vendorActions && !!onFollowPress;
 
   return (
     <View style={styles.row} pointerEvents="box-none">
@@ -75,6 +93,47 @@ function ReelAuthorRowComponent({
             {isFollowing ? 'Following' : 'Follow'}
           </Text>
         </TouchableOpacity>
+      ) : null}
+
+      {vendorActions ? (
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={styles.actionChip}
+            onPress={vendorActions.onLike}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={vendorActions.isLiked ? 'Unlike this reel' : 'Like this reel'}
+          >
+            <Icon
+              name={vendorActions.isLiked ? 'heart' : 'heart-outline'}
+              size={16}
+              color={vendorActions.isLiked ? REEL_ACCENT : '#fff'}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionChip}
+            onPress={vendorActions.onShare}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Share this reel"
+          >
+            <Icon name="share-social-outline" size={16} color="#fff" />
+          </TouchableOpacity>
+
+          {vendorActions.onDirections ? (
+            <TouchableOpacity
+              style={[styles.actionChip, styles.directionChip]}
+              onPress={vendorActions.onDirections}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={`Get directions to ${displayName}`}
+            >
+              <Icon name="navigate-outline" size={16} color="#fff" />
+              <Text style={styles.directionChipText}>Directions</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
       ) : null}
     </View>
   );
@@ -159,5 +218,32 @@ const styles = StyleSheet.create({
   },
   followTextActive: {
     color: 'rgba(255,255,255,0.82)',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 0,
+  },
+  actionChip: {
+    height: 30,
+    minWidth: 30,
+    borderRadius: 15,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  directionChip: {
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: 10,
+  },
+  directionChipText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '800',
   },
 });

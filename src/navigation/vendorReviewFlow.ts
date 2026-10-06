@@ -1,7 +1,15 @@
 import type { NavigationProp, ParamListBase } from '@react-navigation/native';
 import type { MainTabParamList } from './types';
 
-export type MapLayerTab = 'places' | 'vendors';
+/** Map layer tabs. Re-exported from mapExplore so navigation code has one source. */
+export {
+  MAP_LAYER_TABS,
+  isMapLayerTab,
+  mapSegmentThumbX,
+  type MapLayerTab,
+} from '../features/mapExplore/utils/mapSegmentThumb';
+
+import { isMapLayerTab, type MapLayerTab } from '../features/mapExplore/utils/mapSegmentThumb';
 
 /** PalPoints / Wallet → Map → Vendors tab. */
 export function buildVendorReviewMapParams(): NonNullable<MainTabParamList['Map']> {
@@ -20,7 +28,8 @@ export function resolveExplicitMapTab(
   initialMapTab?: MapLayerTab | null,
   reviewMode?: boolean,
 ): MapLayerTab | null {
-  if (initialMapTab === 'places' || initialMapTab === 'vendors') return initialMapTab;
+  // Guard against a stale/unknown value arriving from a persisted session.
+  if (isMapLayerTab(initialMapTab)) return initialMapTab;
   if (reviewMode) return 'vendors';
   return null;
 }

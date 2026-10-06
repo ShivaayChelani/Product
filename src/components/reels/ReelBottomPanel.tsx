@@ -24,6 +24,13 @@ type Props = {
   isOwnReel?: boolean;
   onPressAuthor?: () => void;
   onFollowAuthor?: () => void;
+  /** Business actions for a vendor reel's author card. See ReelAuthorRow. */
+  vendorActions?: {
+    isLiked?: boolean;
+    onLike: () => void;
+    onShare: () => void;
+    onDirections?: () => void;
+  };
   progress: number;
   showControls: boolean;
   paddingBottom: number;
@@ -48,6 +55,7 @@ function ReelBottomPanelComponent({
   isOwnReel,
   onPressAuthor,
   onFollowAuthor,
+  vendorActions,
   progress,
   showControls,
   paddingBottom,
@@ -71,6 +79,7 @@ function ReelBottomPanelComponent({
           isOwnReel={isOwnReel}
           onPressAuthor={onPressAuthor}
           onFollowPress={onFollowAuthor}
+          vendorActions={vendorActions}
         />
       ) : null}
 

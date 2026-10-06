@@ -23,7 +23,6 @@ interface ReelFeedProps {
   error: string | null;
   hasMore: boolean;
   likedReelIds: string[];
-  savedReelIds: string[];
   followingCreatorIds: string[];
   currentUserId?: string;
   onLoadMore: () => void;
@@ -32,10 +31,11 @@ interface ReelFeedProps {
   onLike: (reelId: string) => void;
   onComment: (reelId: string) => void;
   onShare: (reel: Reel) => void;
-  onSave: (reelId: string) => void;
   onFollow?: (creatorProfileId: string, currentlyFollowing: boolean) => void;
   onPressAuthor?: (reel: Reel) => void;
   onReport?: (reelId: string) => void;
+  /** Route to a vendor reel's business. Supplied only for coordinate-backed vendors. */
+  onVendorDirections?: (reel: Reel) => void;
   layoutMode?: ReelLayoutMode;
   actionRailPosition?: ReelActionRailPosition;
   onRetry?: () => void;
@@ -50,7 +50,6 @@ export const ReelFeed: React.FC<ReelFeedProps> = React.memo(({
   error,
   hasMore,
   likedReelIds,
-  savedReelIds,
   followingCreatorIds,
   currentUserId,
   onLoadMore,
@@ -59,10 +58,10 @@ export const ReelFeed: React.FC<ReelFeedProps> = React.memo(({
   onLike,
   onComment,
   onShare,
-  onSave,
   onFollow,
   onPressAuthor,
   onReport,
+  onVendorDirections,
   layoutMode = 'tab',
   actionRailPosition,
   onRetry,
@@ -79,10 +78,9 @@ export const ReelFeed: React.FC<ReelFeedProps> = React.memo(({
     activeIndex,
     isTabFocused,
     likedReelIds,
-    savedReelIds,
     followingCreatorIds,
     likeFlags: reels.map(r => `${r.id}:${r.isLiked ? 1 : 0}:${r.likes}`).join('|'),
-  }), [activeIndex, isTabFocused, likedReelIds, savedReelIds, followingCreatorIds, reels]);
+  }), [activeIndex, isTabFocused, likedReelIds, followingCreatorIds, reels]);
 
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 60,
@@ -136,23 +134,22 @@ export const ReelFeed: React.FC<ReelFeedProps> = React.memo(({
           actionRailPosition={actionRailPosition}
           isActive={index === activeIndex && isTabFocused}
           isLiked={likedReelIds.includes(item.id) || !!item.isLiked}
-          isSaved={savedReelIds.includes(item.id) || !!item.isSaved}
           isFollowingCreator={isFollowingCreator}
           currentUserId={currentUserId}
           onLike={onLike}
           onComment={onComment}
           onShare={onShare}
-          onSave={onSave}
           onFollow={onFollow}
           onPressAuthor={onPressAuthor}
           onReport={onReport}
+          onVendorDirections={onVendorDirections}
         />
       </View>
     );
   }, [
-    viewportHeight, activeIndex, isTabFocused, likedReelIds, savedReelIds, followingCreatorIds,
-    currentUserId, layoutMode, actionRailPosition, onLike, onComment, onShare, onSave, onFollow,
-    onPressAuthor, onReport,
+    viewportHeight, activeIndex, isTabFocused, likedReelIds, followingCreatorIds,
+    currentUserId, layoutMode, actionRailPosition, onLike, onComment, onShare, onFollow,
+    onPressAuthor, onReport, onVendorDirections,
   ]);
 
   const keyExtractor = useCallback((item: Reel, index: number) => item.id || `reel-${index}`, []);

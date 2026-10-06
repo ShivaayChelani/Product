@@ -87,6 +87,14 @@ export async function openVendorWebsite(site?: string | null): Promise<void> {
   await openExternalUrl(url, 'Could not open the website.');
 }
 
+/**
+ * Open directions to a vendor in an external maps app.
+ *
+ * @deprecated Directions now route through PalSafar's own map. Use
+ * `openInternalDirections` from `features/mapExplore/utils/internalDirections`,
+ * which reuses the OSRM + Leaflet pipeline. Kept only so the URL builders above
+ * stay covered; no screen calls this.
+ */
 export async function openVendorDirections(
   latitude?: number | null,
   longitude?: number | null,

@@ -41,6 +41,7 @@ import { getRoutedDistanceFields } from '../services/location/routedDistance';
 import { walletApi } from '../services/api';
 import { hasValidImageUrl } from '../utils/imageUrl';
 import { buildNearbyVendorOffers } from '../utils/homeVendorOffers';
+import { HomeEventsStrip } from '../features/events/HomeEventsStrip';
 
 const TRAVELER_BANNER = require('../assets/traveler_banner.jpg');
 const MAP_BANNER = require('../assets/map_banner.jpg');
@@ -645,6 +646,17 @@ export default function HomeScreen({
     navigation.navigate('VendorOffers');
   }, [navigation]);
 
+  const openEvents = useCallback(() => {
+    navigation.navigate('Events');
+  }, [navigation]);
+
+  const openEvent = useCallback(
+    (eventIdOrSlug: string) => {
+      navigation.navigate('EventDetail', { eventIdOrSlug });
+    },
+    [navigation],
+  );
+
   const openOfferDetail = useCallback(
     (offerId: string) => {
       if (offerId.startsWith('demo-')) {
@@ -872,6 +884,9 @@ export default function HomeScreen({
               </ScrollView>
             )}
           </View>
+
+          {/* Community Events — featured strip + entry point to the Events feed */}
+          <HomeEventsStrip onOpenEvent={openEvent} onViewAll={openEvents} edgePadding={H_PAD} />
 
           {/* Vendor Offers Near You */}
           <View style={styles.sectionContainer}>

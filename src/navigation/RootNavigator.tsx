@@ -215,6 +215,26 @@ function TripPreviewWrapper() {
   return <Screen />;
 }
 
+/**
+ * Community Events discovery feed. The screen owns its own fetch/caching, so the
+ * wrapper only lazy-loads it; route params (initial type filter) come from
+ * `useRoute` inside the screen, same as the other lazy detail screens.
+ */
+function EventsWrapper() {
+  const Screen = useLazyScreen(() => require('../screens/EventsScreen'), 'Events');
+  return <Screen />;
+}
+
+/**
+ * Single Community Event, reached from the list, Home, Search, the map layer or
+ * a `palsafar.in/event/:slug` deep link.
+ */
+function EventDetailWrapper({ route }: any) {
+  const Screen = useLazyScreen(() => require('../screens/EventDetailScreen'), 'EventDetail');
+  const eventIdOrSlug = typeof route?.params?.eventIdOrSlug === 'string' ? route.params.eventIdOrSlug : '';
+  return <Screen eventIdOrSlug={eventIdOrSlug} />;
+}
+
 function VendorOffersWrapper({ navigation: _navigation }: any) {
   const { user } = useUserContext();
   const { vendors, vendorOffers, handleRedeemOffer } = useDataContext();
@@ -1081,6 +1101,8 @@ const sharedStackScreens = (
     <Stack.Screen name="UploadPlacePhoto" component={UploadPlacePhotoWrapper} />
     <Stack.Screen name="SpotDetail" component={SpotDetailScreen} />
     <Stack.Screen name="PlaceReels" component={PlaceReelsScreen} />
+    <Stack.Screen name="Events" component={EventsWrapper} />
+    <Stack.Screen name="EventDetail" component={EventDetailWrapper} />
     <Stack.Screen name="VendorOffers" component={VendorOffersWrapper} />
     <Stack.Screen name="VendorOfferDetail" component={VendorOfferDetailWrapper} />
     <Stack.Screen name="VendorDashboard" component={VendorDashboardWrapper} />
