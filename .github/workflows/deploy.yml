@@ -33,22 +33,6 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Diagnose Render secret availability
-        env:
-          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-        run: |
-          if [ -n "${RENDER_SERVICE_ID:-}" ]; then
-            echo "RENDER_SERVICE_ID_PRESENT=true"
-          else
-            echo "RENDER_SERVICE_ID_PRESENT=false"
-          fi
-          if [ -n "${RENDER_API_KEY:-}" ]; then
-            echo "RENDER_API_KEY_PRESENT=true"
-          else
-            echo "RENDER_API_KEY_PRESENT=false"
-          fi
-
       - name: Trigger Render deploy
         id: trigger
         env:
@@ -148,7 +132,7 @@ jobs:
               '{clearCache: "do_not_clear", commitId: $commit}')"
             post_render "$payload_commit" "commit pin"
 
-            if [ "$TRIGGER_CURL_EXIT" -ne 0 ] || [ "$TRIGGER_HTTP_CODE" -lt 200 ] || [ "$TRIGGER_HTTP_CODE" -ge 300 ]; then
+            if [ "$TRIGGER_HTTP_CODE" != "401" ] && { [ "$TRIGGER_CURL_EXIT" -ne 0 ] || [ "$TRIGGER_HTTP_CODE" -lt 200 ] || [ "$TRIGGER_HTTP_CODE" -ge 300 ]; }; then
               payload_latest='{"clearCache":"do_not_clear"}'
               post_render "$payload_latest" "latest commit fallback"
             fi
