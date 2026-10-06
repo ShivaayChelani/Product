@@ -127,7 +127,7 @@ function minutesToTimeSlot(minutes: number): TimeSlotKey {
 
 /** Assign start/end times for every stop in the given order. Never drops stops. */
 function scheduleOrderedStopsForDay(
-  day: { stops: Array<{ id: string; place: { latitude: number | null; longitude: number | null; ticketPrice: unknown } & Record<string, unknown> }> },
+  day: { stops: Array<{ id: string; place: { latitude: number | null; longitude: number | null; ticketPrice: unknown } & Record<string, unknown> | null }> },
   orderedStopIds: string[],
   _pace: string,
   _startLocation?: { latitude: number; longitude: number },
@@ -228,7 +228,11 @@ const TRIP_CITY_SELECT = {
   tripDays: {
     select: {
       stops: {
-        select: { place: { select: { city: true, state: true } } },
+        select: {
+          place: { select: { city: true, state: true } },
+          // Event stops hang off the Event row, so its city is the stop's city.
+          event: { select: { city: true, state: true } },
+        },
       },
     },
   },
@@ -236,18 +240,43 @@ const TRIP_CITY_SELECT = {
 
 type TripCitySnapshot = {
   destination: string | null;
-  tripDays: Array<{ stops: Array<{ place: { city: string | null; state: string | null } | null }> }>;
+  tripDays: Array<{
+    stops: Array<{
+      place: { city: string | null; state: string | null } | null;
+      event: { city: string | null; state: string | null } | null;
+    }>;
+  }>;
 };
 
 function stopCityKeys(trip: TripCitySnapshot): string[] {
   const keys = new Set<string>();
   for (const day of trip.tripDays) {
     for (const stop of day.stops) {
-      const key = cityKeyFromPlace(stop.place || {});
+      const key = cityKeyFromPlace(stop.place || stop.event || {});
       if (key) keys.add(key);
     }
   }
   return [...keys];
+}
+
+/**
+ * Keep only the stops anchored on a Place.
+ *
+ * Every route-distance, opening-hours, entry-fee and re-ordering pass in this
+ * file measures against `stop.place`. An event-anchored stop has no `place` —
+ * its name, coordinates and dates live on the Event row — so feeding one into
+ * those passes would mean measuring a distance to `null`. They are filtered
+ * out here instead of being coerced to (0,0), which would have silently put a
+ * phantom point in the Indian Ocean into every optimized route.
+ *
+ * Event stops are skipped by the planners, not destroyed: they keep the
+ * `startTime`/`endTime` they were created with, and the user can still see,
+ * reorder and remove them.
+ */
+function withPlace<S extends { place: unknown }>(
+  stops: S[],
+): Array<S & { place: NonNullable<S['place']> }> {
+  return stops.filter((s): s is S & { place: NonNullable<S['place']> } => s.place != null);
 }
 
 function assertTripAcceptsPlace(
@@ -386,6 +415,15 @@ const TRIP_INCLUDE = {
               recommendedDuration: true,
             },
           },
+          event: {
+            select: {
+              id: true, slug: true, title: true, eventType: true,
+              status: true, startDate: true, endDate: true,
+              startTime: true, endTime: true, address: true,
+              latitude: true, longitude: true, city: true, state: true,
+              coverImage: true, shortDescription: true, entryFee: true,
+            },
+          },
         },
       },
     },
@@ -508,7 +546,7 @@ async function loadPersistedCandidate(
   const byId = new Map<string, EnrichedPlace>();
   for (const day of rows.tripDays) {
     for (const s of day.stops) {
-      if (!s.place) continue;
+      if (!s.place || !s.placeId) continue;
       const record = placeRecordFromRow(s.place as unknown as PlaceRow);
       const place = enrichPlace(record, {
         travelerCount: Math.max(1, travelerCount),
@@ -536,6 +574,7 @@ async function loadPersistedCandidate(
       let lastEnd: number | null = null;
       let visit = 0;
       for (const s of day.stops) {
+        if (!s.placeId) continue;
         const place = byId.get(s.placeId);
         if (!place) continue;
         const start = minutesFromTimeString(s.startTime) ?? 0;
@@ -633,6 +672,155 @@ export function computeTripDayCount(start?: Date | string | null, end?: Date | s
   const endMs = new Date(end).getTime();
   if (Number.isNaN(startMs) || Number.isNaN(endMs)) return 1;
   return Math.max(1, Math.floor((endMs - startMs) / DAY_MS) + 1);
+}
+
+/**
+ * A stop can be anchored to a Place row OR an Event row — never both (the
+ * `trip_plan_stops_single_anchor_check` constraint enforces it). Everything
+ * `quickAdd` needs to size and place the stop is resolved up front into this
+ * neutral shape so the draft-trip find-or-create logic below is anchor-agnostic.
+ */
+type QuickAddAnchor = {
+  kind: 'place' | 'event';
+  city: string | null;
+  state: string | null;
+  placeId: string | null;
+  eventId: string | null;
+  title: string;
+  durationMinutes: number;
+  entryFee: number | null;
+};
+
+function eventDurationMinutes(event: { startTime: string | null; endTime: string | null }): number {
+  const toMinutes = (t: string) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + (m || 0);
+  };
+  if (event.startTime && event.endTime) {
+    const delta = toMinutes(event.endTime) - toMinutes(event.startTime);
+    if (delta > 0) return delta;
+  }
+  // No times supplied, or an end before a start (overnight fests): plan a
+  // half-day visit so the stop still shows up in the day's layout.
+  return 180;
+}
+
+async function quickAddAnchor(userId: string, anchor: QuickAddAnchor, explicitTripId?: string) {
+  const placeLike = { city: anchor.city, state: anchor.state };
+  const cityKey = cityKeyFromPlace(placeLike);
+  const destLabel = formatDestinationLabel(anchor.city || anchor.state || '') || anchor.city || 'My Trip';
+  const title = (anchor.city || anchor.state)
+    ? `Trip to ${formatDestinationLabel(anchor.city || anchor.state || '')}`
+    : 'My Itinerary';
+
+  const draftSelect = {
+    id: true,
+    ...TRIP_CITY_SELECT,
+  } as const;
+
+  return prisma.$transaction(
+    async (tx) => {
+      let trip: { id: string } | null = null;
+      let shouldAdoptDestination = false;
+
+      if (explicitTripId) {
+        const found = await tx.tripPlan.findFirst({
+          where: {
+            id: explicitTripId,
+            OR: [{ userId }, { collaborators: { some: { userId, role: { not: 'VIEWER' } } } }],
+          },
+          select: draftSelect,
+        });
+        if (!found) throw new ApiError(404, 'Trip not found or unauthorized');
+        assertTripAcceptsPlace(found, placeLike);
+        trip = { id: found.id };
+        shouldAdoptDestination = Boolean(cityKey) && isGenericDestination(found.destination);
+      } else {
+        const drafts = await tx.tripPlan.findMany({
+          where: { userId, status: 'DRAFT' },
+          orderBy: { updatedAt: 'desc' },
+          select: draftSelect,
+        });
+
+        const matching = cityKey
+          ? drafts.find(
+              (d) =>
+                tripCanAcceptPlaceCity(d.destination, stopCityKeys(d), cityKey) &&
+                destinationMatchesCity(d.destination, cityKey),
+            )
+          : undefined;
+        const adoptable = drafts.find(
+          (d) => isGenericDestination(d.destination) && stopCityKeys(d).length === 0,
+        );
+
+        if (matching) {
+          trip = { id: matching.id };
+        } else if (adoptable && cityKey) {
+          trip = { id: adoptable.id };
+          shouldAdoptDestination = true;
+        } else if (!cityKey && adoptable) {
+          trip = { id: adoptable.id };
+        }
+      }
+
+      if (!trip) {
+        trip = await tx.tripPlan.create({
+          data: {
+            title,
+            destination: destLabel,
+            userId,
+            days: 1,
+            status: 'DRAFT',
+            generationSource: 'MANUAL',
+            tripDays: { create: [{ dayNumber: 1 }] },
+          },
+          select: { id: true },
+        });
+      } else if (shouldAdoptDestination && cityKey) {
+        await tx.tripPlan.update({
+          where: { id: trip.id },
+          data: { destination: destLabel, title },
+        });
+      }
+
+      const day = await resolveQuickAddDay(tx, trip.id);
+
+      // Dedupe against whichever anchor the caller supplied. A trip can hold
+      // the same festival once, and the same place once — independently.
+      const existingStop = await tx.tripPlanStop.findFirst({
+        where: {
+          tripPlanDay: { tripPlanId: trip.id },
+          ...(anchor.kind === 'place' ? { placeId: anchor.placeId } : { eventId: anchor.eventId }),
+        },
+        select: { id: true },
+      });
+      if (existingStop) {
+        return { tripId: trip.id, stopId: existingStop.id, alreadyExists: true };
+      }
+
+      const maxOrder = await tx.tripPlanStop.findFirst({
+        where: { tripPlanDayId: day.id },
+        orderBy: { order: 'desc' },
+        select: { order: true },
+      });
+
+      const stop = await tx.tripPlanStop.create({
+        data: {
+          tripPlanDayId: day.id,
+          placeId: anchor.placeId,
+          eventId: anchor.eventId,
+          order: maxOrder ? maxOrder.order + 1 : 0,
+          duration: anchor.durationMinutes,
+          entryFee: anchor.entryFee,
+          isPinned: true,
+        },
+        select: { id: true },
+      });
+
+      return { tripId: trip.id, stopId: stop.id, alreadyExists: false };
+    },
+    { maxWait: 5_000, timeout: 10_000 },
+  );
 }
 
 export const tripsService = {
@@ -852,6 +1040,7 @@ export const tripsService = {
             stops: {
               create: day.stops.map(stop => ({
                 placeId: stop.placeId,
+                eventId: stop.eventId,
                 order: stop.order,
                 startTime: stop.startTime,
                 endTime: stop.endTime,
@@ -1022,7 +1211,9 @@ export const tripsService = {
     const updates: { id: string; data: any }[] = [];
 
     for (const day of trip.tripDays) {
-      const places = day.stops.map(s => s.place).filter(p => p.latitude && p.longitude);
+      const places = withPlace(day.stops)
+        .map((s) => s.place)
+        .filter((p) => p.latitude && p.longitude);
       if (places.length === 0) continue;
 
       const timeSlots: Record<string, typeof places> = {};
@@ -1116,7 +1307,7 @@ export const tripsService = {
       throw new ApiError(422, 'Add at least one place from the map before optimizing.');
     }
 
-    const stopsWithCoords = allStops.filter((s) => s.place?.latitude && s.place?.longitude);
+    const stopsWithCoords = withPlace(allStops).filter((s) => s.place.latitude && s.place.longitude);
     const withoutCoords = allStops.filter((s) => !s.place?.latitude || !s.place?.longitude);
 
     let orderedStopIds: string[];
@@ -1158,7 +1349,13 @@ export const tripsService = {
     }
 
     const durationByStopId = new Map(
-      allStops.map((s) => [s.id, Math.max(30, estimateDurationMinutes(s.place as any))]),
+      allStops.map((s) => [
+        s.id,
+        // An event stop carries its own duration from the form; a place stop
+        // derives one from the place. `s.place ?? {}` yields the category
+        // default rather than dereferencing null.
+        Math.max(30, s.duration ?? estimateDurationMinutes(s.place ?? {})),
+      ]),
     );
     const dayBuckets = packStopsIntoDayBuckets(orderedStopIds, durationByStopId, 'moderate');
     const stopById = new Map(allStops.map((s) => [s.id, s]));
@@ -1302,13 +1499,20 @@ export const tripsService = {
           place: { select: { name: true } },
         },
       });
-      previousPlaceIds = existingStops.map((s) => s.placeId);
+      // Only place-anchored stops are meaningful to the AI planner: event stops
+      // have no entry in the candidate pool, so carrying their ids into
+      // previous/pinned/excluded sets would make the plan differ from every
+      // regeneration and thrash the "same plan?" comparisons below.
+      const placeStops = existingStops.filter(
+        (s): s is typeof s & { placeId: string } => s.placeId !== null,
+      );
+      previousPlaceIds = placeStops.map((s) => s.placeId);
 
       // "Remove X" / "Replace X" — resolve name hints against the user's own
       // trip stops so those places are dropped from the regenerated plan.
       const hintExcludedIds = new Set<string>();
       if (intent.removeHints.length > 0) {
-        for (const stop of existingStops) {
+        for (const stop of placeStops) {
           const name = (stop.place?.name || '').toLowerCase();
           if (!name) continue;
           if (intent.removeHints.some((hint) => name.includes(hint) || hint.includes(name))) {
@@ -1331,26 +1535,26 @@ export const tripsService = {
       }
 
       if (effectiveRegenerateDay) {
-        const dayStops = existingStops.filter((s) => s.tripPlanDay.dayNumber === effectiveRegenerateDay);
+        const dayStops = placeStops.filter((s) => s.tripPlanDay.dayNumber === effectiveRegenerateDay);
         pinnedPlaceIds = Array.from(new Set([
           ...pinnedPlaceIds,
           ...dayStops.filter((s) => s.isPinned && !hintExcludedIds.has(s.placeId)).map((s) => s.placeId),
         ]));
         excludePlaceIds = Array.from(new Set([
-          ...existingStops
+          ...placeStops
             .filter((s) => s.tripPlanDay.dayNumber !== effectiveRegenerateDay || !s.isPinned)
             .map((s) => s.placeId),
           ...hintExcludedIds,
         ]));
       } else {
-        const existingPinned = existingStops.filter((s) => s.isPinned && !hintExcludedIds.has(s.placeId));
+        const existingPinned = placeStops.filter((s) => s.isPinned && !hintExcludedIds.has(s.placeId));
         pinnedPlaceIds = Array.from(new Set([...pinnedPlaceIds, ...existingPinned.map((s) => s.placeId)]));
         if (isRefresh) {
           // Full refresh: ask the engine to vary away from ALL current
           // non-pinned stops (not just Day 1) so the regenerated trip is
           // meaningfully different. Explicitly pinned places are never
           // excluded — they are force-added back below.
-          avoidHubIds = selectFullRefreshAvoidIds(existingStops, hintExcludedIds);
+          avoidHubIds = selectFullRefreshAvoidIds(placeStops, hintExcludedIds);
         }
       }
     }
@@ -2064,6 +2268,11 @@ export const tripsService = {
       where: { id: stopId },
       data: {
         placeId: place.id,
+        // Exactly-one-anchor: a stop may not reference a place and an event at
+        // the same time, or "remove from trip" would only ever clear one of
+        // them. Replacing an event stop with a verified place detaches the
+        // event explicitly rather than leaving it half-attached.
+        eventId: null,
         duration: estimateDurationMinutes(place),
         entryFee: parseEntryFee(place.ticketPrice) ?? undefined,
         reason: `Replaced with ${place.name} — verified place from PalSafar database.`,
@@ -2098,126 +2307,76 @@ export const tripsService = {
     return updatedStop;
   },
 
-  async quickAdd(userId: string, placeIdOrSlug: string, explicitTripId?: string) {
-    const place = await resolvePlaceForQuickAdd(placeIdOrSlug);
-    if (!place) throw new ApiError(404, 'Place not found.');
+  async quickAdd(userId: string, placeIdOrSlug: string | undefined, explicitTripId?: string, eventId?: string) {
+    const hasPlace = typeof placeIdOrSlug === 'string' && placeIdOrSlug.trim() !== '';
+    const hasEvent = typeof eventId === 'string' && eventId.trim() !== '';
 
-    const cityKey = cityKeyFromPlace(place);
-    const destLabel = formatDestinationLabel(place.city || place.state || '') || place.city || 'My Trip';
-    const title = (place.city || place.state)
-      ? `Trip to ${formatDestinationLabel(place.city || place.state || '')}`
-      : 'My Itinerary';
+    if (hasPlace && !hasEvent) {
+      const place = await resolvePlaceForQuickAdd(placeIdOrSlug!);
+      if (!place) throw new ApiError(404, 'Place not found.');
+      return quickAddAnchor(userId, {
+        kind: 'place',
+        city: place.city || null,
+        state: place.state || null,
+        placeId: place.id,
+        eventId: null,
+        title: place.name,
+        durationMinutes: estimateDurationMinutes(place),
+        entryFee: parseEntryFee(place.ticketPrice),
+      }, explicitTripId);
+    }
 
-    const draftSelect = {
-      id: true,
-      ...TRIP_CITY_SELECT,
-    } as const;
-
-    return prisma.$transaction(async (tx) => {
-      let trip: { id: string } | null = null;
-      let shouldAdoptDestination = false;
-
-      if (explicitTripId) {
-        const found = await tx.tripPlan.findFirst({
-          where: {
-            id: explicitTripId,
-            OR: [{ userId }, { collaborators: { some: { userId, role: { not: 'VIEWER' } } } }],
-          },
-          select: draftSelect,
-        });
-        if (!found) throw new ApiError(404, 'Trip not found or unauthorized');
-        assertTripAcceptsPlace(found, place);
-        trip = { id: found.id };
-        shouldAdoptDestination = Boolean(cityKey) && isGenericDestination(found.destination);
-      } else {
-        const drafts = await tx.tripPlan.findMany({
-          where: { userId, status: 'DRAFT' },
-          orderBy: { updatedAt: 'desc' },
-          select: draftSelect,
-        });
-
-        const matching = cityKey
-          ? drafts.find((d) => tripCanAcceptPlaceCity(d.destination, stopCityKeys(d), cityKey)
-            && destinationMatchesCity(d.destination, cityKey))
-          : undefined;
-        const adoptable = drafts.find(
-          (d) => isGenericDestination(d.destination) && stopCityKeys(d).length === 0,
-        );
-
-        if (matching) {
-          trip = { id: matching.id };
-        } else if (adoptable && cityKey) {
-          trip = { id: adoptable.id };
-          shouldAdoptDestination = true;
-        } else if (!cityKey && adoptable) {
-          trip = { id: adoptable.id };
-        }
-      }
-
-      if (!trip) {
-        trip = await tx.tripPlan.create({
-          data: {
-            title,
-            destination: destLabel,
-            userId,
-            days: 1,
-            status: 'DRAFT',
-            generationSource: 'MANUAL',
-            tripDays: { create: [{ dayNumber: 1 }] },
-          },
-          select: { id: true },
-        });
-      } else if (shouldAdoptDestination && cityKey) {
-        await tx.tripPlan.update({
-          where: { id: trip.id },
-          data: { destination: destLabel, title },
-        });
-      }
-
-      const day = await resolveQuickAddDay(tx, trip.id);
-
-      const existingStop = await tx.tripPlanStop.findFirst({
-        where: { tripPlanDay: { tripPlanId: trip.id }, placeId: place.id },
-        select: { id: true },
-      });
-      if (existingStop) {
-        return { tripId: trip.id, stopId: existingStop.id, alreadyExists: true };
-      }
-
-      const maxOrder = await tx.tripPlanStop.findFirst({
-        where: { tripPlanDayId: day.id },
-        orderBy: { order: 'desc' },
-        select: { order: true },
-      });
-
-      const stop = await tx.tripPlanStop.create({
-        data: {
-          tripPlanDayId: day.id,
-          placeId: place.id,
-          order: maxOrder ? maxOrder.order + 1 : 0,
-          duration: estimateDurationMinutes(place),
-          entryFee: parseEntryFee(place.ticketPrice),
-          isPinned: true,
+    if (hasEvent) {
+      const event = await prisma.event.findFirst({
+        where: {
+          id: eventId,
+          // The creator can plan around their own pending submission; everyone
+          // else only sees events that are actually live.
+          OR: [{ status: 'APPROVED' }, { createdById: userId }],
         },
-        select: { id: true },
+        select: {
+          id: true,
+          title: true,
+          city: true,
+          state: true,
+          startTime: true,
+          endTime: true,
+          entryFee: true,
+        },
       });
+      if (!event) throw new ApiError(404, 'Event not found.');
+      return quickAddAnchor(userId, {
+        kind: 'event',
+        city: event.city || null,
+        state: event.state || null,
+        placeId: null,
+        eventId: event.id,
+        title: event.title,
+        durationMinutes: eventDurationMinutes(event),
+        entryFee: event.entryFee ?? null,
+      }, explicitTripId);
+    }
 
-      return { tripId: trip.id, stopId: stop.id, alreadyExists: false };
-    }, { maxWait: 5_000, timeout: 10_000 });
+    throw new ApiError(400, 'Provide either a place or an event to add.');
   },
 
   async calculateTotalDistance(tripId: string): Promise<number> {
     const stops = await prismaStop.findMany({
       where: { tripPlanDay: { tripPlanId: tripId } },
-      include: { place: true },
+      include: {
+        place: { select: { latitude: true, longitude: true } },
+        // Event stops resolve their position from the event, so the reported
+        // total still covers the leg that gets the traveller to the festival.
+        event: { select: { latitude: true, longitude: true } },
+      },
       orderBy: [{ tripPlanDay: { dayNumber: 'asc' } }, { order: 'asc' }],
     });
 
     let total = 0;
     for (let i = 1; i < stops.length; i++) {
-      const prev = stops[i - 1].place;
-      const curr = stops[i].place;
-      if (prev.latitude && prev.longitude && curr.latitude && curr.longitude) {
+      const prev = stops[i - 1].place ?? stops[i - 1].event;
+      const curr = stops[i].place ?? stops[i].event;
+      if (prev?.latitude && prev?.longitude && curr?.latitude && curr?.longitude) {
         total += calcDistance(prev.latitude, prev.longitude, curr.latitude, curr.longitude);
       }
     }
@@ -2230,7 +2389,10 @@ export const tripsService = {
       select: { duration: true, place: { select: { category: true, recommendedDuration: true, estimatedDurationMinutes: true } } },
     });
 
-    return stops.reduce((sum, s) => sum + (s.duration || estimateDurationMinutes(s.place)), 0);
+    return stops.reduce(
+      (sum, s) => sum + (s.duration || estimateDurationMinutes(s.place ?? {})),
+      0,
+    );
   },
 
   async startTrip(tripId: string, userId: string) {

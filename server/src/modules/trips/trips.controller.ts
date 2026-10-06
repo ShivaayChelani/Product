@@ -92,7 +92,7 @@ export const tripsController = {
   }),
 
   quickAdd: catchAsync(async (req: any, res: Response) => {
-    const result = await tripsService.quickAdd(req.user.id, req.body.placeId, req.body.tripId);
+    const result = await tripsService.quickAdd(req.user.id, req.body.placeId, req.body.tripId, req.body.eventId);
     sendSuccess(res, result, {
       statusCode: result.alreadyExists ? 200 : 201,
       message: result.alreadyExists ? 'Already in your itinerary' : 'Added to your itinerary',

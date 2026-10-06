@@ -96,6 +96,9 @@ type MaterialEventSnapshot = {
   state: string;
   coverImage: string | null;
   images: string[];
+  /// The card teaser and the price — both are public claims about the event.
+  shortDescription: string | null;
+  entryFee: number | null;
 };
 
 /**
@@ -247,6 +250,13 @@ export const eventsService = {
     const types = parseEventTypeFilter(query.types);
     const mine = query.mine === 'true' || query.mine === '1';
 
+    // `mine=true` is an owner-only view. Without a viewer this used to reach
+    // `viewer!.id`, which throws a TypeError (500) instead of telling the
+    // caller they must sign in first (401).
+    if (mine && !viewer) {
+      throw new ApiError(401, 'Sign in to see your own events.');
+    }
+
     const where: Prisma.EventWhereInput = {
       ...(mine ? { createdById: viewer!.id } : publicEventWhere()),
       ...(types.length ? { eventType: { in: types } } : {}),
@@ -362,6 +372,11 @@ export const eventsService = {
         country: 'India',
         coverImage: input.coverImage ?? null,
         images: input.images ?? [],
+        shortDescription: input.shortDescription ?? null,
+        organizerName: input.organizerName ?? null,
+        organizerContact: input.organizerContact ?? null,
+        websiteUrl: input.websiteUrl ?? null,
+        entryFee: input.entryFee ?? null,
         createdById: userId,
         linkedPlaceId: input.linkedPlaceId ?? null,
         linkedVendorId: input.linkedVendorId ?? null,
@@ -445,6 +460,11 @@ export const eventsService = {
       // Clear then set: `images` is a scalar list, which Prisma cannot push to.
       changes.images = { set: input.images ?? [] };
     }
+    if (input.shortDescription !== undefined) changes.shortDescription = input.shortDescription ?? null;
+    if (input.organizerName !== undefined) changes.organizerName = input.organizerName ?? null;
+    if (input.organizerContact !== undefined) changes.organizerContact = input.organizerContact ?? null;
+    if (input.websiteUrl !== undefined) changes.websiteUrl = input.websiteUrl ?? null;
+    if (input.entryFee !== undefined) changes.entryFee = input.entryFee ?? null;
     if (coord) {
       changes.latitude = coord.latitude;
       changes.longitude = coord.longitude;
@@ -542,6 +562,32 @@ export const eventsService = {
       if (next !== prev) {
         // A short, near-identical rewrite is a typo fix; anything longer or
         // more different is new copy and re-enters moderation.
+        const withinLength =
+          next.length <= DESCRIPTION_TYPO_TOLERANCE && prev.length <= DESCRIPTION_TYPO_TOLERANCE;
+        if (!withinLength) return true;
+        if (diceSimilarity(normalizeForMatch(next), normalizeForMatch(prev)) < DESCRIPTION_TYPO_SIMILARITY) {
+          return true;
+        }
+      }
+    }
+
+    // A price on an APPROVED listing is a public claim: silently changing
+    // ₹0 to ₹200 (or back) after approval is exactly the bait-and-switch the
+    // moderation reset exists to prevent. Unlike `description` there is no
+    // typo tolerance — a fee is a number, so every change to it is deliberate.
+    if (input.entryFee !== undefined && (input.entryFee ?? null) !== existing.entryFee) return true;
+
+    // The teaser is copy, so it gets the same near-identical-rewrite exemption
+    // as `description`: fixing a spelling mistake must not unpublish a live
+    // event. `organizerName` / `organizerContact` / `websiteUrl` are
+    // deliberately NOT material — they are frequently-corrected contact
+    // details that say nothing about what the event is, when it runs or where
+    // it is, and resetting on every digit typo would train submitters to stop
+    // editing their listings entirely.
+    if (input.shortDescription !== undefined) {
+      const next = (input.shortDescription ?? '').trim();
+      const prev = (existing.shortDescription ?? '').trim();
+      if (next !== prev) {
         const withinLength =
           next.length <= DESCRIPTION_TYPO_TOLERANCE && prev.length <= DESCRIPTION_TYPO_TOLERANCE;
         if (!withinLength) return true;

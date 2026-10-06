@@ -119,6 +119,67 @@ const imageUrlList = z
   .optional();
 
 /**
+ * Rupees, `0` means free.
+ *
+ * A blank string becomes `null` ("not supplied") instead of being coerced to
+ * `0`: clearing the field must not silently publish the event as free. This is
+ * the same null-is-not-zero reasoning as `coordinateNumber`, one field over.
+ */
+const entryFeeNumber = z
+  .union([z.number(), z.string()])
+  .transform((v) => (typeof v === 'number' ? v : v.trim() === '' ? null : Number(v.trim())))
+  .refine((v) => v === null || Number.isFinite(v), 'Entry fee must be a number.')
+  .refine((v) => v === null || v >= 0, 'Entry fee cannot be negative.')
+  .optional()
+  .nullable();
+
+/** `http(s)` only. `new URL()` happily parses `javascript:` — never allow it. */
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Optional, blank-tolerant, protocol-restricted. `z.string().url()` alone is
+ * rejected here because it accepts `javascript:alert(1)` and because an empty
+ * string (a cleared form field) would fail validation instead of clearing.
+ */
+const optionalHttpUrl = z
+  .string()
+  .trim()
+  .max(2048, 'Website must be 2048 characters or fewer.')
+  .transform((v) => (v === '' ? null : v))
+  .refine((v) => v === null || isHttpUrl(v), 'Enter a valid website starting with http:// or https://.')
+  .optional()
+  .nullable();
+
+/**
+ * Free text the organiser supplies. Trimmed and length-capped, but otherwise
+ * deliberately un-validated: a contact is a phone number, an email or a line
+ * of prose depending on who typed it, and forcing one shape would reject
+ * legitimate flyers. The client renders it as plain text — never as HTML, and
+ * never as a link unless it independently parses as a URL or a tel: number.
+ */
+const optionalContact = z
+  .string()
+  .trim()
+  .max(200, 'Contact must be 200 characters or fewer.')
+  .optional()
+  .nullable();
+
+/** The one-line teaser shown on cards, search results and the share message. */
+const optionalShortDescription = z
+  .string()
+  .trim()
+  .max(300, 'Short description must be 300 characters or fewer.')
+  .optional()
+  .nullable();
+
+/**
  * Shared shape for create and update. `updateEventSchema` is the partial, so
  * the end>=start rule is re-checked in the service against the merged row
  * (a partial patch cannot see the stored counterpart).
@@ -153,6 +214,16 @@ const eventCoreShape = {
     .optional()
     .nullable(),
   images: imageUrlList,
+  shortDescription: optionalShortDescription,
+  organizerName: z
+    .string()
+    .trim()
+    .max(120, 'Organiser name must be 120 characters or fewer.')
+    .optional()
+    .nullable(),
+  organizerContact: optionalContact,
+  websiteUrl: optionalHttpUrl,
+  entryFee: entryFeeNumber,
   linkedPlaceId: z.string().trim().min(1).max(64).optional().nullable(),
   linkedVendorId: z.string().trim().min(1).max(64).optional().nullable(),
 };
@@ -205,6 +276,11 @@ export const updateEventSchema = z.object({
   state: eventCoreShape.state,
   coverImage: eventCoreShape.coverImage,
   images: eventCoreShape.images,
+  shortDescription: eventCoreShape.shortDescription,
+  organizerName: eventCoreShape.organizerName,
+  organizerContact: eventCoreShape.organizerContact,
+  websiteUrl: eventCoreShape.websiteUrl,
+  entryFee: eventCoreShape.entryFee,
   linkedPlaceId: eventCoreShape.linkedPlaceId,
   linkedVendorId: eventCoreShape.linkedVendorId,
 });

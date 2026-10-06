@@ -1056,6 +1056,28 @@ model Event {
   coverImage String?  @map("cover_image")
   images     String[] @default([])
 
+  /// Everything a real event flyer carries that the core row did not model.
+  /// All five are nullable: rows migrated from `place_events` predate them and
+  /// an old event without an organiser is perfectly valid.
+  ///
+  /// `shortDescription` is the one-line card summary used by search results and
+  /// the share message, so it is kept separate from `description` (the full
+  /// body, up to 5000 chars) instead of truncating at read time — truncation
+  /// would cut in the middle of a word.
+  shortDescription String?  @map("short_description")
+  /// Free-text display name, e.g. "Ujjain Municipal Corporation". Never used as
+  /// an identity: there is no FK, because an organiser is a person/organisation
+  /// in the real world, not a row in this database.
+  organizerName    String?  @map("organizer_name")
+  /// Phone or email as the organiser typed it. Stored verbatim and never
+  /// rendered as a link unless it parses as a URL/number, so a stray string
+  /// cannot become an injection vector in the client.
+  organizerContact String?  @map("organizer_contact")
+  websiteUrl       String?  @map("website_url")
+  /// Rupees, `0` means free. Float rather than String so a stop's `entryFee`
+  /// can be copied straight across without re-parsing user text.
+  entryFee         Float?   @map("entry_fee")
+
   createdById        String?   @map("created_by_id")
   approvedById       String?   @map("approved_by_id")
   approvedAt         DateTime? @map("approved_at")
@@ -1084,6 +1106,12 @@ model Event {
   vendor     Vendor?       @relation("LinkedVendorEvents", fields: [linkedVendorId], references: [id], onDelete: SetNull)
   reels      Reel[]        @relation("ReelEvent")
   reports    EventReport[]
+  /// Itinerary stops anchored on this event. CASCADE, mirroring the `place`
+  /// relation on TripPlanStop: a stop is only ever a projection of its anchor,
+  /// so when the anchor is deleted the stop has nothing left to name or locate
+  /// it with. SET NULL was rejected because the single-anchor CHECK would then
+  /// turn every event deletion into a constraint violation.
+  stops      TripPlanStop[]
 
   @@index([status])
   @@index([startDate])
@@ -1289,10 +1317,33 @@ model TripPlanDay {
   @@map("trip_plan_days")
 }
 
+/// One entry in a trip day. It references exactly one anchor: either a Place
+/// (`placeId`) or an Event (`eventId`).
+///
+/// WHY `placeId` IS OPTIONAL
+///   A Community Event is a real-world thing a tourist schedules, but it is NOT
+///   a Place row. Materialising one just to satisfy a NOT NULL constraint would
+///   put a fabricated Place into search, map layers, reviews, Nearby and vendor
+///   ownership — corrupted place data. So the anchor became a choice instead.
+///
+/// INVARIANT — enforced in the database, not just in application code
+///   `place_id IS NOT NULL OR event_id IS NOT NULL`. A stop with neither anchor
+///   would render as an unlabelled, unreachable node in the itinerary, so the
+///   migration adds a CHECK constraint that makes such a row impossible.
+///
+///   `place_id IS NOT NULL AND event_id IS NOT NULL` is also rejected: an anchor
+///   must be exactly one thing, otherwise "remove from trip" could delete a
+///   place linkage while silently leaving the event behind.
+///
+/// The existing `@@unique([tripPlanDayId, placeId])` is retained unchanged.
+/// PostgreSQL permits multiple NULLs in a unique index, so event stops (all
+/// with `placeId = NULL`) do not collide with it, while place stops keep their
+/// "one place per day" guarantee exactly as before.
 model TripPlanStop {
   id               String      @id @default(cuid())
   tripPlanDayId    String      @map("trip_plan_day_id")
-  placeId          String      @map("place_id")
+  placeId          String?     @map("place_id")
+  eventId          String?     @map("event_id")
   order            Int
   timeSlot         TimeSlot?   @map("time_slot")
   notes            String?
@@ -1307,12 +1358,14 @@ model TripPlanStop {
   entryFee         Float?      @map("entry_fee")
   reason           String?
   isPinned         Boolean     @default(false) @map("is_pinned")
-  place            Place       @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  place            Place?      @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  event            Event?      @relation(fields: [eventId], references: [id], onDelete: Cascade)
   tripPlanDay      TripPlanDay @relation(fields: [tripPlanDayId], references: [id], onDelete: Cascade)
 
   @@unique([tripPlanDayId, placeId])
   @@index([tripPlanDayId])
   @@index([tripPlanDayId, order])
+  @@index([eventId])
   @@map("trip_plan_stops")
 }
 

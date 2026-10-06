@@ -236,10 +236,16 @@ export const visitStopSchema = z.object({
   timestamp: z.union([z.string(), z.number()]).optional(),
 });
 
-export const quickAddSchema = z.object({
-  placeId: z.string().min(1, 'placeId is required'),
-  tripId: z.string().optional(),
-});
+export const quickAddSchema = z
+  .object({
+    placeId: z.string().min(1, 'placeId is required').optional(),
+    eventId: z.string().min(1, 'eventId is required').optional(),
+    tripId: z.string().optional(),
+  })
+  .refine((d) => (d.placeId !== undefined) !== (d.eventId !== undefined), {
+    message: 'Provide exactly one of placeId or eventId.',
+    path: ['placeId'],
+  });
 
 export const tripIdParamSchema = z.object({
   id: z.string(),

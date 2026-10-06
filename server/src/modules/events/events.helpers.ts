@@ -119,6 +119,13 @@ export function mapEventRow(
     state: event.state,
     coverImage: event.coverImage,
     images: event.images,
+    // Flyer facts. Public by design — a listing nobody can read the organiser,
+    // fee or teaser from is a listing nobody can attend.
+    shortDescription: event.shortDescription,
+    organizerName: event.organizerName,
+    organizerContact: event.organizerContact,
+    websiteUrl: event.websiteUrl,
+    entryFee: event.entryFee,
     isFeatured: event.isFeatured,
     isPast: past,
     placeId: event.linkedPlaceId,
