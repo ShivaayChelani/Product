@@ -20,6 +20,7 @@ import {
   shouldApplySearchResponse,
   placeHasCityMismatch,
   isCityFilterActive,
+  isPlaceLikeType,
 } from '../utils/searchItineraryRows';
 
 const root = path.join(__dirname, '..');
@@ -149,6 +150,102 @@ describe('buildUniversalRenderableRows', () => {
     });
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.every(r => r.type === 'Place')).toBe(true);
+  });
+
+  it('renders event rows in default mode', () => {
+    const rows = buildUniversalRenderableRows(
+      {
+        ...baseResults,
+        events: [
+          {
+            id: 'evt-1',
+            slug: 'kumbh-mela-2026',
+            title: 'Kumbh Mela 2026',
+            city: 'Ujjain',
+            eventType: 'FAIR_MELA',
+          },
+        ],
+      },
+      { activeFilter: 'All' },
+    );
+    const events = rows.filter(r => r.type === 'Event');
+    expect(events).toHaveLength(1);
+    expect(events[0].item.title).toBe('Kumbh Mela 2026');
+  });
+
+  it('keeps event rows browsable under the Events filter chip', () => {
+    const rows = buildUniversalRenderableRows(
+      { ...baseResults, events: [{ id: 'evt-1', title: 'Kumbh Mela 2026' }] },
+      { activeFilter: 'Events' },
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].type).toBe('Event');
+  });
+
+  it('excludes event rows from the place-only itinerary flow', () => {
+    const rows = buildUniversalRenderableRows(
+      {
+        ...baseResults,
+        events: [{ id: 'evt-1', slug: 'kumbh-mela-2026', title: 'Kumbh Mela 2026', city: 'Jabalpur' }],
+      },
+      {
+        mode: 'itinerary',
+        destination: 'Jabalpur',
+        activeFilter: 'All',
+        excludePlaceIds: [],
+        itineraryPlacesOnly: true,
+      },
+    );
+    expect(rows.some(r => r.type === 'Event')).toBe(false);
+    expect(rows.every(r => r.type === 'Place')).toBe(true);
+  });
+
+  it('excludes event rows from replace mode', () => {
+    const rows = buildUniversalRenderableRows(
+      { ...baseResults, events: [{ id: 'evt-1', title: 'Kumbh Mela 2026', city: 'Jabalpur' }] },
+      {
+        mode: 'replace',
+        destination: 'Jabalpur',
+        activeFilter: 'All',
+        excludePlaceIds: [],
+        itineraryPlacesOnly: true,
+      },
+    );
+    expect(rows.some(r => r.type === 'Event')).toBe(false);
+  });
+
+  it('isPlaceLikeType treats events as not place-like', () => {
+    expect(isPlaceLikeType('Event')).toBe(false);
+    expect(isPlaceLikeType('Place')).toBe(true);
+    expect(isPlaceLikeType('Hidden Gem')).toBe(true);
+  });
+});
+
+describe('event result routing', () => {
+  it('SearchScreen opens EventDetail for event rows', () => {
+    const src = read('screens/SearchScreen.tsx');
+    expect(src).toMatch(
+      /navigation\.navigate\('EventDetail',\s*\{\s*eventIdOrSlug: item\.slug \|\| item\.id,?\s*\}\)/,
+    );
+  });
+
+  it('SearchScreen event rows are not routed to onSelectSpot', () => {
+    const src = read('screens/SearchScreen.tsx');
+    const start = src.indexOf("case 'event':");
+    expect(start).toBeGreaterThan(0);
+    const eventCase = src.slice(start, src.indexOf("case 'place':", start));
+    expect(eventCase).toMatch(/navigate\('EventDetail'/);
+    expect(eventCase).not.toMatch(/onSelectSpot|recordSearchedPlace/);
+  });
+
+  it('Events filter chip opens the Events discovery screen', () => {
+    const src = read('screens/SearchScreen.tsx');
+    expect(src).toMatch(/if \(f === 'Events'\) navigation\.navigate\('Events'\)/);
+  });
+
+  it('itinerary flows reject event rows with a places-only alert', () => {
+    const src = read('screens/SearchScreen.tsx');
+    expect(src).toMatch(/Events cannot be added to an itinerary/);
   });
 });
 

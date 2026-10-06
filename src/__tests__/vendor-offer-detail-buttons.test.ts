@@ -15,7 +15,10 @@ describe('VendorOfferDetail buttons', () => {
     expect(screen).toContain('openVendorCall');
     expect(screen).toContain('openVendorWhatsApp');
     expect(screen).toContain('openVendorWebsite');
-    expect(screen).toContain('openVendorDirections');
+    // Directions now route through PalSafar's own map instead of launching an
+    // external maps app, so the offer screen must not reference the old helper.
+    expect(screen).toContain('openInternalDirections');
+    expect(screen).not.toContain('openVendorDirections');
     expect(screen).toContain('onSaveOffer');
     expect(screen).not.toMatch(/onSave=\{\(\) => \{\s*\}\}/);
     expect(screen).toContain('isSaved={isSaved}');

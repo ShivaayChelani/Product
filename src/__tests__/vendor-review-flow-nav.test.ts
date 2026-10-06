@@ -1,4 +1,8 @@
-import { mapSegmentThumbX } from '../features/mapExplore/utils/mapSegmentThumb';
+import {
+  mapSegmentThumbX,
+  isMapLayerTab,
+  MAP_LAYER_TABS,
+} from '../features/mapExplore/utils/mapSegmentThumb';
 import {
   buildVendorReviewMapParams,
   navigateToVendorReviewMap,
@@ -73,13 +77,21 @@ describe('vendorReviewFlow helpers', () => {
   });
 });
 
-describe('Map Places/Vendors thumb', () => {
-  it('sits on Places at x=0 and on Vendors at the measured half-width', () => {
+describe('Map Places/Events/Vendors thumb', () => {
+  it('sits on Places at x=0, Events at one segment and Vendors at two', () => {
     expect(mapSegmentThumbX('places', 180)).toBe(0);
-    expect(mapSegmentThumbX('vendors', 180)).toBe(180);
+    expect(mapSegmentThumbX('events', 180)).toBe(180);
+    expect(mapSegmentThumbX('vendors', 180)).toBe(360);
   });
 
-  it('does not park the thumb on Places when Vendors is active but width is not measured yet', () => {
+  it('does not park the thumb off-track when the segment width is not measured yet', () => {
     expect(mapSegmentThumbX('vendors', 0)).toBe(0);
+  });
+
+  it('exposes exactly three layers with Events in the middle', () => {
+    expect(MAP_LAYER_TABS).toEqual(['places', 'events', 'vendors']);
+    expect(isMapLayerTab('events')).toBe(true);
+    expect(isMapLayerTab('reels')).toBe(false);
+    expect(isMapLayerTab(undefined)).toBe(false);
   });
 });
