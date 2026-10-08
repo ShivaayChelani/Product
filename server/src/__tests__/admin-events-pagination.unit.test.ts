@@ -42,6 +42,7 @@ describe('admin event queue pagination and filters', () => {
       skip: 20,
       take: 10,
       where: {
+        deletedAt: null,
         AND: expect.arrayContaining([
           expect.objectContaining({ status: 'APPROVED', AND: expect.any(Array) }),
           expect.objectContaining({ city: { contains: 'Jabalpur', mode: 'insensitive' } }),

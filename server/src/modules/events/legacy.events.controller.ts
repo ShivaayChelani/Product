@@ -75,7 +75,7 @@ export const legacyEventsController = {
     // else sees only published, date-valid events.
     const privileged = viewer?.isAdmin === true;
     const where = privileged
-      ? { linkedPlaceId: place.id }
+      ? { linkedPlaceId: place.id, deletedAt: null }
       : { linkedPlaceId: place.id, ...publicEventWhere() };
 
     const rows = await prisma.event.findMany({

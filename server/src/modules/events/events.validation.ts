@@ -386,6 +386,10 @@ export const featureEventSchema = z.object({
   isFeatured: z.boolean(),
 });
 
+export const eventIdParamsSchema = z.object({
+  id: z.string().trim().min(1).max(128).regex(/^[A-Za-z0-9_-]+$/, 'Invalid event ID.'),
+});
+
 export const adminListEventsQuerySchema = z.object({
   page: z.string().optional(),
   limit: z.string().optional().default('20'),

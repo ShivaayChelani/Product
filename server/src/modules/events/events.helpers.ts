@@ -169,10 +169,12 @@ export function isEventPubliclyVisible(
   event: {
     status: EventStatus;
     endDate: Date;
+    deletedAt?: Date | null;
     place?: Parameters<typeof placeVisibilityWhere>[0];
   },
   now: Date = new Date(),
 ): boolean {
+  if (event.deletedAt) return false;
   if (event.status !== EventStatus.APPROVED) return false;
   if (isEventPastEnd(event, now)) return false;
   return placeVisibilityWhere(event.place ?? null);

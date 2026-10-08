@@ -11,6 +11,7 @@ import {
   cancelEventSchema,
   createEventSchema,
   eventListQuerySchema,
+  eventIdParamsSchema,
   eventMapQuerySchema,
   featureEventSchema,
   featuredEventsQuerySchema,
@@ -102,6 +103,13 @@ adminRouter.get('/:id/visibility', eventsController.visibilityDiagnosis);
  * drawer open — read-only admins do not need it.
  */
 adminRouter.get('/:id/duplicates', requireContentOps, eventsController.duplicates);
+adminRouter.delete(
+  '/:id',
+  requireContentOps,
+  updateEventLimiter,
+  validate(eventIdParamsSchema, 'params'),
+  eventsController.adminDelete,
+);
 adminRouter.patch(
   '/:id/approve',
   requireContentOps,

@@ -35,6 +35,7 @@ export const EVENT_LINK_ERRORS = {
 export type LinkableEvent = {
   status: string;
   endDate: Date;
+  deletedAt?: Date | null;
   /** Nullable: legacy rows migrated from `place_events` have no creator. */
   createdById: string | null;
 };
@@ -92,6 +93,8 @@ export function canLinkReelToEvent(event: LinkableEvent, ctx: LinkContext) {
   const isAdmin = ctx.isAdmin === true;
   const isOwner = event.createdById === ctx.viewerUserId;
 
+  if (event.deletedAt) return { allowed: false as const, reason: 'notVisible' as const };
+
   // Terminal decisions: admins may still attach (for moderation records), nobody else.
   if (event.status === 'REJECTED' || event.status === 'CANCELLED') {
     return isAdmin ? { allowed: true as const } : { allowed: false as const, reason: 'notVisible' as const };
@@ -123,6 +126,7 @@ export function isPubliclyLinkableEvent(
   place: Parameters<typeof canPublicViewPlace>[0] | null,
   isAdmin = false,
 ): boolean {
+  if (event.deletedAt) return false;
   if (event.status !== 'APPROVED') return false;
   if (isEventPastEnd(event)) return false;
   // A standalone event (legacy rows migrated from `place_events`, or an event
@@ -147,6 +151,7 @@ export type ReelEventSummary = {
 /** Everything `sanitizeReelEvent` needs in order to make its decision. */
 export type ReelEventCandidate = ReelEventSummary & {
   status: string;
+  deletedAt?: Date | null;
   createdById: string | null;
   place: Parameters<typeof canPublicViewPlace>[0] | null;
 };
@@ -193,11 +198,12 @@ export async function resolveReelEventLink(
   if (!key) return null;
 
   const event = await prisma.event.findFirst({
-    where: { OR: [{ id: key }, { slug: key }] },
+    where: { deletedAt: null, OR: [{ id: key }, { slug: key }] },
     select: {
       id: true,
       status: true,
       endDate: true,
+      deletedAt: true,
       createdById: true,
       place: {
         select: {

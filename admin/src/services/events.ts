@@ -117,6 +117,10 @@ export async function rejectEvent(id: string, reason: string): Promise<AdminEven
   return res.data.data;
 }
 
+export async function deleteAdminEvent(id: string): Promise<void> {
+  await client.delete(`/admin/events/${id}`);
+}
+
 export async function getEventDuplicates(id: string): Promise<{
   candidates: EventDuplicateCandidate[];
   unavailable: "no-valid-coordinates" | null;

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CalendarDays, Check, ChevronLeft, ChevronRight, Eye, Flag, MapPin, RefreshCw, Search, X } from "lucide-react";
+import { CalendarDays, Check, ChevronLeft, ChevronRight, Eye, Flag, MapPin, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { useNotification } from "@/components/Notification";
 import Drawer from "@/components/ui/Drawer";
 import PageHeader from "@/components/ui/PageHeader";
@@ -11,6 +11,7 @@ import StatusBadge from "@/components/StatusBadge";
 import { getApiErrorMessage } from "@/services/client";
 import {
   approveEvent,
+  deleteAdminEvent,
   getAdminEvents,
   getEventDuplicates,
   rejectEvent,
@@ -19,7 +20,7 @@ import {
   type EventStatus,
 } from "@/services/events";
 import { getAdminRoleFromStorage } from "@/lib/permissions";
-import { eventDurationDays, eventLifecycle, eventTypeLabel, formatEventDate } from "./eventModeration";
+import { canDeleteAdminEvent, eventDurationDays, eventLifecycle, eventTypeLabel, formatEventDate } from "./eventModeration";
 
 const PAGE_SIZE = 20;
 const MODERATION_STATUSES: Array<{ value: EventStatus | ""; label: string }> = [
@@ -69,8 +70,11 @@ function EventsWorkspace() {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [confirmApprove, setConfirmApprove] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<AdminEvent | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [canModerateEvents, setCanModerateEvents] = useState(false);
   const requestSequence = useRef(0);
+  const deleteInFlight = useRef(false);
 
   useEffect(() => {
     const role = getAdminRoleFromStorage();
@@ -175,6 +179,24 @@ function EventsWorkspace() {
       notify("error", getApiErrorMessage(err, "Could not reject this event."));
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const performDelete = async () => {
+    if (!deleteTarget || deleteInFlight.current) return;
+    deleteInFlight.current = true;
+    setDeleteLoading(true);
+    try {
+      await deleteAdminEvent(deleteTarget.id);
+      notify("success", "Event removed from active listings.");
+      setDeleteTarget(null);
+      if (selected?.id === deleteTarget.id) setSelected(null);
+      await load();
+    } catch (err) {
+      notify("error", getApiErrorMessage(err, "Could not remove this event."));
+    } finally {
+      deleteInFlight.current = false;
+      setDeleteLoading(false);
     }
   };
 
@@ -302,9 +324,21 @@ function EventsWorkspace() {
                       <td className="px-4 py-3"><StatusBadge status={event.status} /></td>
                       <td className="px-4 py-3 whitespace-nowrap">{formatEventDate(event.createdAt)}</td>
                       <td className="px-4 py-3">
-                        <button type="button" aria-label={`Review ${event.title}`} className="admin-btn-secondary whitespace-nowrap" onClick={() => void openReview(event)}>
-                          <Eye size={15} /> Review
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button type="button" aria-label={`Review ${event.title}`} className="admin-btn-secondary whitespace-nowrap" onClick={() => void openReview(event)}>
+                            <Eye size={15} /> Review
+                          </button>
+                          {canModerateEvents && canDeleteAdminEvent(event) && (
+                            <button
+                              type="button"
+                              aria-label={`Delete ${event.title}`}
+                              className="admin-btn-secondary whitespace-nowrap text-destructive"
+                              onClick={() => setDeleteTarget(event)}
+                            >
+                              <Trash2 size={15} /> Delete
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -429,6 +463,24 @@ function EventsWorkspace() {
           </div>
         )}
       </Drawer>
+      {deleteTarget && (
+        <div role="dialog" aria-modal="true" aria-labelledby="delete-event-title" className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl bg-card p-5 shadow-2xl">
+            <h2 id="delete-event-title" className="text-lg font-semibold">Delete Event?</h2>
+            <dl className="mt-4 space-y-2 text-sm">
+              <Detail label="Event">{deleteTarget.title}</Detail>
+              <Detail label="Date">{formatEventDate(deleteTarget.startDate)} – {formatEventDate(deleteTarget.endDate)}</Detail>
+              <Detail label="Status">{deleteTarget.status}</Detail>
+              <Detail label="City / location">{[deleteTarget.address, deleteTarget.city, deleteTarget.state].filter(Boolean).join(", ") || "—"}</Detail>
+            </dl>
+            <p className="mt-4 text-sm text-muted-foreground">This Event will be removed from active PalSafar listings. Historical itinerary records will be preserved.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" className="admin-btn-secondary" disabled={deleteLoading} onClick={() => setDeleteTarget(null)}>Cancel</button>
+              <button type="button" className="admin-btn-primary" disabled={deleteLoading} onClick={() => void performDelete()}>{deleteLoading ? "Deleting…" : "Delete Event"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

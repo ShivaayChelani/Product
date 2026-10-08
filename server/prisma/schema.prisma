@@ -102,6 +102,7 @@ model User {
   legalAcceptance            LegalAcceptance?
   createdEvents              Event[]                 @relation("CreatedEvents")
   approvedEvents             Event[]                 @relation("ApprovedEvents")
+  deletedEvents              Event[]                 @relation("DeletedEvents")
   eventReports               EventReport[]           @relation("ReportedEvents")
   reviewedEventReports       EventReport[]           @relation("ReviewedEventReports")
 
@@ -1080,6 +1081,8 @@ model Event {
 
   createdById        String?   @map("created_by_id")
   approvedById       String?   @map("approved_by_id")
+  deletedById        String?   @map("deleted_by_id")
+  deletedAt          DateTime? @map("deleted_at")
   approvedAt         DateTime? @map("approved_at")
   rejectedAt         DateTime? @map("rejected_at")
   rejectionReason    String?   @map("rejection_reason")
@@ -1102,6 +1105,7 @@ model Event {
 
   createdBy  User?         @relation("CreatedEvents", fields: [createdById], references: [id], onDelete: SetNull)
   approvedBy User?         @relation("ApprovedEvents", fields: [approvedById], references: [id], onDelete: SetNull)
+  deletedBy  User?         @relation("DeletedEvents", fields: [deletedById], references: [id], onDelete: SetNull)
   place      Place?        @relation("LinkedPlaceEvents", fields: [linkedPlaceId], references: [id], onDelete: SetNull)
   vendor     Vendor?       @relation("LinkedVendorEvents", fields: [linkedVendorId], references: [id], onDelete: SetNull)
   reels      Reel[]        @relation("ReelEvent")
@@ -1117,6 +1121,7 @@ model Event {
   @@index([startDate])
   @@index([endDate])
   @@index([status, startDate])
+  @@index([deletedAt])
   @@index([createdById])
   @@index([eventType])
   @@index([city])

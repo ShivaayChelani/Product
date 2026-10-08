@@ -87,6 +87,7 @@ export const publicEventWhere = (now: Date = new Date()): Prisma.EventWhereInput
 
   return {
     status: EventStatus.APPROVED,
+    deletedAt: null,
     endDate: { gte: cutoff },
     latitude: { not: null },
     longitude: { not: null },
@@ -114,6 +115,7 @@ export function publicEventSqlConditions(now: Date = new Date()): { sql: string;
 
   return {
     sql: `e.status = 'APPROVED'
+           AND e.deleted_at IS NULL
            AND e.end_date >= $1
            AND e.latitude IS NOT NULL
            AND e.longitude IS NOT NULL
@@ -130,6 +132,7 @@ export function publicEventSqlConditions(now: Date = new Date()): { sql: string;
 export function appendPublicEventSql(conditions: Prisma.Sql[], now: Date = new Date()): void {
   const cutoff = startOfTodayUtc(now);
   conditions.push(Prisma.sql`e.status = 'APPROVED'`);
+  conditions.push(Prisma.sql`e.deleted_at IS NULL`);
   // No OR-null branch: end_date is NOT NULL (see the 20260930120000 migration).
   conditions.push(Prisma.sql`e.end_date >= ${cutoff}`);
   conditions.push(Prisma.sql`e.latitude IS NOT NULL AND e.longitude IS NOT NULL`);

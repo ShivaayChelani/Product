@@ -154,6 +154,12 @@ export const eventsController = {
     });
   }),
 
+  adminDelete: catchAsync(async (req, res: Response) => {
+    const viewer = requireViewer(req);
+    const result = await eventsService.adminDeleteEvent(String(req.params.id), viewer.id);
+    sendSuccess(res, result);
+  }),
+
   approve: catchAsync(async (req, res: Response) => {
     const viewer = requireViewer(req);
     const input = req.body as ApproveEventInput;

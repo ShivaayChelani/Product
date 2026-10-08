@@ -32,7 +32,12 @@ import type {
   UpdateEventInput,
 } from './events.validation';
 import { parseEventDate, normalizeEventTime } from './events.validation';
-import { buildEventLifecycleCountsWhere, buildEventLifecycleWhere, type EventLifecycle } from './events.lifecycle';
+import {
+  buildEventLifecycleCountsWhere,
+  buildEventLifecycleWhere,
+  isAdminEventDeletable,
+  type EventLifecycle,
+} from './events.lifecycle';
 
 /**
  * Where the moderation rules live.
@@ -204,7 +209,7 @@ export const eventsService = {
   async listReels(idOrSlug: string, viewer: EventViewer | null, limit = 20) {
     await this.getEvent(idOrSlug, viewer);
     const event = await prisma.event.findFirst({
-      where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
+      where: { deletedAt: null, OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
       select: { id: true },
     });
     if (!event) throw new ApiError(404, 'Event not found.');
@@ -232,7 +237,7 @@ export const eventsService = {
   /** Resolve by primary key or slug. */
   async findRaw(idOrSlug: string): Promise<EventWithRelations | null> {
     return prisma.event.findFirst({
-      where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
+      where: { deletedAt: null, OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
       include: EVENT_INCLUDE,
     });
   },
@@ -258,7 +263,7 @@ export const eventsService = {
     }
 
     const where: Prisma.EventWhereInput = {
-      ...(mine ? { createdById: viewer!.id } : publicEventWhere()),
+      ...(mine ? { createdById: viewer!.id, deletedAt: null } : publicEventWhere()),
       ...(types.length ? { eventType: { in: types } } : {}),
       ...(query.city ? { city: { equals: query.city, mode: 'insensitive' } } : {}),
       ...(query.state ? { state: { equals: query.state, mode: 'insensitive' } } : {}),
@@ -410,7 +415,7 @@ export const eventsService = {
    * listing be edited freely, which defeats moderation.
    */
   async updateEvent(id: string, input: UpdateEventInput, viewer: EventViewer) {
-    const existing = await prisma.event.findUnique({ where: { id } });
+    const existing = await prisma.event.findFirst({ where: { id, deletedAt: null } });
     if (!existing) throw new ApiError(404, 'Event not found.');
     this.assertCanManage(existing, viewer, 'edit');
 
@@ -610,13 +615,16 @@ export const eventsService = {
    * their own PENDING/REJECTED submission.
    */
   async deleteEvent(id: string, viewer: EventViewer) {
-    const existing = await prisma.event.findUnique({
-      where: { id },
+    const existing = await prisma.event.findFirst({
+      where: { id, deletedAt: null },
       include: { _count: { select: { reels: true } } },
     });
     if (!existing) throw new ApiError(404, 'Event not found.');
     this.assertCanManage(existing, viewer, 'delete');
 
+    if (viewer.isAdmin && !isAdminEventDeletable(existing)) {
+      throw new ApiError(409, 'Only rejected, cancelled, expired, or ended events can be removed.');
+    }
     const isLivePublicly =
       existing.status === EventStatus.APPROVED && existing.endDate.getTime() >= startOfTodayUtc().getTime();
     if (isLivePublicly && !viewer.isAdmin) {
@@ -626,9 +634,40 @@ export const eventsService = {
       );
     }
 
-    await prisma.event.delete({ where: { id } });
+    const deletedAt = new Date();
+    const updated = await prisma.event.updateMany({
+      where: { id, deletedAt: null, updatedAt: existing.updatedAt },
+      data: { deletedAt, deletedById: viewer.id, isFeatured: false },
+    });
+    if (updated.count !== 1) throw new ApiError(409, 'The event changed before it could be removed. Refresh and try again.');
 
     await auditEvent('EVENT_DELETED', id, viewer.id, {
+      title: existing.title,
+      status: existing.status,
+      reelCount: existing._count.reels,
+    });
+
+    return { success: true };
+  },
+
+  async adminDeleteEvent(id: string, adminId: string) {
+    const existing = await prisma.event.findFirst({
+      where: { id, deletedAt: null },
+      include: { _count: { select: { reels: true } } },
+    });
+    if (!existing) throw new ApiError(404, 'Event not found.');
+    if (!isAdminEventDeletable(existing)) {
+      throw new ApiError(409, 'Only rejected, cancelled, expired, or ended events can be removed.');
+    }
+
+    const deletedAt = new Date();
+    const updated = await prisma.event.updateMany({
+      where: { id, deletedAt: null, updatedAt: existing.updatedAt },
+      data: { deletedAt, deletedById: adminId, isFeatured: false },
+    });
+    if (updated.count !== 1) throw new ApiError(409, 'The event changed before it could be removed. Refresh and try again.');
+
+    await auditEvent('EVENT_DELETED', id, adminId, {
       title: existing.title,
       status: existing.status,
       reelCount: existing._count.reels,
@@ -672,7 +711,7 @@ export const eventsService = {
     if (query.hasReports === 'true' || query.hasReports === '1') {
       filters.push({ reports: { some: { status: 'PENDING' } } });
     }
-    const where: Prisma.EventWhereInput = filters.length ? { AND: filters } : {};
+    const where: Prisma.EventWhereInput = { deletedAt: null, ...(filters.length ? { AND: filters } : {}) };
 
     const lifecycleWheres = buildEventLifecycleCountsWhere(now);
     const [rows, total, counts, live, upcoming, ended] = await Promise.all([
@@ -702,7 +741,7 @@ export const eventsService = {
   },
 
   async statusCounts() {
-    const grouped = await prisma.event.groupBy({ by: ['status'], _count: { _all: true } });
+    const grouped = await prisma.event.groupBy({ by: ['status'], where: { deletedAt: null }, _count: { _all: true } });
     const out: Record<string, number> = Object.fromEntries(Object.values(EventStatus).map((s) => [s, 0]));
     for (const g of grouped) out[g.status] = g._count._all;
     return out;
@@ -717,7 +756,7 @@ export const eventsService = {
    * invisible-but-public record.
    */
   async approveEvent(id: string, adminId: string, options: { force?: boolean; isFeatured?: boolean } = {}) {
-    const existing = await prisma.event.findUnique({ where: { id } });
+    const existing = await prisma.event.findFirst({ where: { id, deletedAt: null } });
     if (!existing) throw new ApiError(404, 'Event not found.');
     if (existing.status !== EventStatus.PENDING) {
       throw new ApiError(409, `Event is already ${existing.status.toLowerCase()}.`);
@@ -815,7 +854,7 @@ export const eventsService = {
   },
 
   async setFeatured(id: string, adminId: string, isFeatured: boolean) {
-    const existing = await prisma.event.findUnique({ where: { id } });
+    const existing = await prisma.event.findFirst({ where: { id, deletedAt: null } });
     if (!existing) throw new ApiError(404, 'Event not found.');
     if (isFeatured && existing.status !== EventStatus.APPROVED) {
       throw new ApiError(422, 'Only a published event can be featured.');
@@ -839,7 +878,7 @@ export const eventsService = {
     auditAction: 'EVENT_REJECTED' | 'EVENT_UNPUBLISHED' | 'EVENT_CANCELLED',
     ownerAllowed = false,
   ) {
-    const existing = await prisma.event.findUnique({ where: { id } });
+    const existing = await prisma.event.findFirst({ where: { id, deletedAt: null } });
     if (!existing) throw new ApiError(404, 'Event not found.');
     this.assertTransition(existing.status, to);
     if (ownerAllowed && existing.createdById !== actorId) {
@@ -877,7 +916,10 @@ export const eventsService = {
    * one complaint. Reporting never mutates the Event itself.
    */
   async reportEvent(id: string, userId: string, input: ReportEventInput) {
-    const event = await prisma.event.findUnique({ where: { id }, select: { id: true, title: true, status: true } });
+    const event = await prisma.event.findFirst({
+      where: { id, deletedAt: null },
+      select: { id: true, title: true, status: true },
+    });
     if (!event) throw new ApiError(404, 'Event not found.');
 
     const existing = await prisma.eventReport.findUnique({
@@ -974,7 +1016,8 @@ export const eventsService = {
       SELECT e.id, e.title, e.status, e.start_date,
              ST_Distance(e.location, ST_SetSRID(ST_MakePoint(${args.longitude}, ${args.latitude}), 4326)::geography) AS distance_m
       FROM events e
-      WHERE e.id <> COALESCE(${args.excludeId ?? ''}, '')
+      WHERE e.deleted_at IS NULL
+        AND e.id <> COALESCE(${args.excludeId ?? ''}, '')
         AND e.latitude IS NOT NULL AND e.longitude IS NOT NULL
         AND e.start_date BETWEEN ${windowStart} AND ${windowEnd}
         AND ST_DWithin(
@@ -1013,8 +1056,8 @@ export const eventsService = {
    * writes `EVENT_APPROVED` with `forced` + `duplicateCount`.
    */
   async adminListDuplicateCandidates(id: string) {
-    const event = await prisma.event.findUnique({
-      where: { id },
+    const event = await prisma.event.findFirst({
+      where: { id, deletedAt: null },
       select: {
         id: true,
         title: true,
@@ -1054,7 +1097,7 @@ export const eventsService = {
     // the fields an admin needs to judge a match, plus the similarity score the
     // scan computed but did not surface.
     const enriched = await prisma.event.findMany({
-      where: { id: { in: matches.map((m) => m.id) } },
+      where: { id: { in: matches.map((m) => m.id) }, deletedAt: null },
       select: {
         id: true,
         title: true,
@@ -1195,8 +1238,8 @@ export const eventsService = {
    * why an approved event still does not appear on the public map.
    */
   async explainPublicVisibility(eventId: string) {
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
+    const event = await prisma.event.findFirst({
+      where: { id: eventId, deletedAt: null },
       include: { place: { select: { id: true, name: true, status: true, mergedIntoId: true } } },
     });
     if (!event) throw new ApiError(404, 'Event not found.');

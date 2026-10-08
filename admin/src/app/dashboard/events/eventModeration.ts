@@ -35,6 +35,16 @@ export function eventLifecycle(
   return "ENDED";
 }
 
+export function canDeleteAdminEvent(
+  event: Pick<AdminEvent, "status" | "startDate" | "endDate" | "startTime" | "endTime">,
+  now = new Date(),
+): boolean {
+  if (event.status === "REJECTED" || event.status === "CANCELLED" || event.status === "EXPIRED") {
+    return true;
+  }
+  return event.status === "APPROVED" && eventLifecycle(event, now) === "ENDED";
+}
+
 export function eventDurationDays(startDate: string, endDate: string): number | null {
   const start = datePart(startDate);
   const end = datePart(endDate);

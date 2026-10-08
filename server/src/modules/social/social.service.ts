@@ -102,6 +102,7 @@ const reelResponseInclude = {
       eventType: true,
       startDate: true,
       endDate: true,
+      deletedAt: true,
       coverImage: true,
       city: true,
       state: true,

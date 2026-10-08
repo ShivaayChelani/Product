@@ -2330,6 +2330,7 @@ export const tripsService = {
       const event = await prisma.event.findFirst({
         where: {
           id: eventId,
+          deletedAt: null,
           // The creator can plan around their own pending submission; everyone
           // else only sees events that are actually live.
           OR: [{ status: 'APPROVED' }, { createdById: userId }],

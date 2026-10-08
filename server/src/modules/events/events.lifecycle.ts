@@ -53,6 +53,7 @@ export function buildEventLifecycleWhere(
   if (lifecycle === 'UPCOMING') {
     return {
       status: EventStatus.APPROVED,
+      deletedAt: null,
       OR: [
         { startDate: { gte: tomorrow } },
         { AND: [sameDayStart, { startTime: { gt: time } }] },
@@ -63,6 +64,7 @@ export function buildEventLifecycleWhere(
   if (lifecycle === 'LIVE') {
     return {
       status: EventStatus.APPROVED,
+      deletedAt: null,
       AND: [
         {
           OR: [
@@ -92,6 +94,7 @@ export function buildEventLifecycleWhere(
 
   return {
     status: EventStatus.APPROVED,
+    deletedAt: null,
     OR: [
       { endDate: { lt: today } },
       {
@@ -99,6 +102,26 @@ export function buildEventLifecycleWhere(
       },
     ],
   };
+}
+
+export function isAdminEventDeletable(
+  event: {
+    status: EventStatus;
+    startDate: Date;
+    endDate: Date;
+    startTime: string | null;
+    endTime: string | null;
+  },
+  now = new Date(),
+): boolean {
+  if (
+    event.status === EventStatus.REJECTED ||
+    event.status === EventStatus.CANCELLED ||
+    event.status === EventStatus.EXPIRED
+  ) {
+    return true;
+  }
+  return event.status === EventStatus.APPROVED && deriveEventLifecycle(event, now) === 'ENDED';
 }
 
 export function buildEventLifecycleCountsWhere(now = new Date()) {

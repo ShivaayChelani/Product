@@ -93,6 +93,7 @@ export const UNIT_TEST_FILES = [
   'src/__tests__/boundary-dataset.test.ts',
   'src/__tests__/canonical-pick.test.ts',
   'src/__tests__/events-lifecycle.unit.test.ts',
+  'src/__tests__/event-soft-delete.unit.test.ts',
   'src/__tests__/reel-report-validation.unit.test.ts',
   'src/__tests__/admin-events-pagination.unit.test.ts',
   'src/__tests__/destination.test.ts',

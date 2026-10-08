@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import { EventStatus } from '@prisma/client';
+import { isEventPubliclyVisible } from '../modules/events/events.helpers';
 import {
   buildEventLifecycleCountsWhere,
   buildEventLifecycleWhere,
   deriveEventLifecycle,
+  isAdminEventDeletable,
 } from '../modules/events/events.lifecycle';
+import { publicEventWhere, publicEventSqlConditions } from '../modules/events/events-public-visibility';
 
 describe('event lifecycle', () => {
   const approved = {
@@ -43,5 +47,48 @@ describe('event lifecycle', () => {
       OR: expect.any(Array),
     });
     expect(Object.keys(buildEventLifecycleCountsWhere(now))).toEqual(['LIVE', 'UPCOMING', 'ENDED']);
+  });
+
+  it('permits cleanup only for terminal states and completed approved events', () => {
+    const now = new Date('2026-10-10T18:00:00.000Z');
+    const ended = {
+      status: EventStatus.APPROVED,
+      startDate: new Date('2026-10-10T00:00:00.000Z'),
+      endDate: new Date('2026-10-10T00:00:00.000Z'),
+      startTime: '09:30',
+      endTime: '18:00',
+    };
+
+    expect(isAdminEventDeletable(ended, now)).toBe(true);
+    expect(isAdminEventDeletable(ended, new Date('2026-10-10T17:59:59.999Z'))).toBe(false);
+    expect(isAdminEventDeletable({ ...ended, status: EventStatus.PENDING }, now)).toBe(false);
+    expect(isAdminEventDeletable({ ...ended, status: EventStatus.REJECTED }, now)).toBe(true);
+    expect(isAdminEventDeletable({ ...ended, status: EventStatus.CANCELLED }, now)).toBe(true);
+    expect(isAdminEventDeletable({ ...ended, status: EventStatus.EXPIRED }, now)).toBe(true);
+  });
+
+  it('treats a missing end time as the end of the inclusive final day', () => {
+    const event = {
+      status: EventStatus.APPROVED,
+      startDate: new Date('2026-10-10T00:00:00.000Z'),
+      endDate: new Date('2026-10-10T00:00:00.000Z'),
+      startTime: null,
+      endTime: null,
+    };
+    expect(isAdminEventDeletable(event, new Date('2026-10-10T23:59:59.999Z'))).toBe(false);
+    expect(isAdminEventDeletable(event, new Date('2026-10-11T00:00:00.000Z'))).toBe(true);
+  });
+
+  it('excludes soft-deleted events from Prisma, SQL, and detail visibility rules', () => {
+    expect(publicEventWhere(new Date('2026-10-10T12:00:00.000Z'))).toMatchObject({ deletedAt: null });
+    expect(publicEventSqlConditions(new Date('2026-10-10T12:00:00.000Z')).sql).toContain('e.deleted_at IS NULL');
+    expect(buildEventLifecycleWhere('ENDED', new Date('2026-10-10T12:00:00.000Z'))).toMatchObject({
+      deletedAt: null,
+    });
+    expect(isEventPubliclyVisible({
+      status: EventStatus.APPROVED,
+      endDate: new Date('2026-10-12T00:00:00.000Z'),
+      deletedAt: new Date('2026-10-10T12:00:00.000Z'),
+    }, new Date('2026-10-10T12:00:00.000Z'))).toBe(false);
   });
 });
