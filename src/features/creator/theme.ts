@@ -5,27 +5,28 @@ import {
   STUDIO_TAB_CONTENT_GAP,
   getStudioTabBarClearance,
 } from '../../design/tabBarLayout';
+import { palette } from '../../config/theme';
 
-/** Shared creator studio tokens — cream/bronze chrome (aligned with VendorUI) */
+/** Shared creator studio tokens backed by the canonical PalSafar palette. */
 export const CreatorUI = {
   colors: {
-    bg: '#FFFFFF',
-    white: '#FFFFFF',
-    surface: '#FFFFFF',
-    soft: '#FDECBF',
-    peach: '#F8E8D8',
-    text: '#2C1810',
-    textSecondary: '#6D6D6D',
-    textMuted: '#A39990',
-    primary: '#7B4A22',
-    primaryDark: '#2C1810',
-    bronze: '#9A6B29',
-    deep: '#2C1810',
-    border: '#EBE0D0',
-    success: '#059669',
-    successBg: '#E8F7EE',
-    danger: '#DC4C4C',
-    shadow: 'rgba(44, 24, 16, 0.14)',
+    bg: palette.surface,
+    white: palette.surface,
+    surface: palette.surface,
+    soft: palette.primaryLight,
+    peach: palette.primaryLight,
+    text: palette.text,
+    textSecondary: palette.textSecondary,
+    textMuted: palette.textSecondary,
+    primary: palette.primary,
+    primaryDark: palette.primaryDark,
+    bronze: palette.primary,
+    deep: palette.text,
+    border: palette.border,
+    success: palette.success,
+    successBg: palette.successSoft,
+    danger: palette.error,
+    shadow: 'rgba(29, 36, 32, 0.14)',
   },
   space: {
     xs: 4,

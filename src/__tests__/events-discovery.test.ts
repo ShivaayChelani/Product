@@ -54,6 +54,7 @@ function read(rel: string) {
 }
 
 const CUID = 'clh7a1b2c3d4e5f6g7h8i9';
+const REAL_EVENT_ID = '819949f5-1ad5-4375-9155-46b649276fc7';
 
 describe('event formatting', () => {
   it('labels every EventType and falls back to Other', () => {
@@ -270,21 +271,32 @@ describe('event share links', () => {
     expect(isPublicShareableEvent({ id: CUID, status: 'APPROVED' })).toBe(true);
     expect(isPublicShareableEvent({ id: CUID, status: 'PENDING' })).toBe(false);
     expect(isPublicShareableEvent({ id: CUID, status: 'CANCELLED' })).toBe(false);
-    expect(isPublicShareableEvent({ slug: 'kumbh-mela-2026', status: 'APPROVED' })).toBe(true);
+    expect(isPublicShareableEvent({ id: '', status: 'APPROVED' })).toBe(false);
   });
 
-  it('builds a share message with the slug URL', () => {
+  it('builds a share message with the canonical event ID URL', () => {
     const message = buildEventShareMessage({
       id: CUID,
-      slug: 'kumbh-mela-2026',
       status: 'APPROVED',
       title: 'Kumbh Mela 2026',
     });
     expect(message).toContain('Kumbh Mela 2026');
-    expect(message).toContain('https://palsafar.in/event/kumbh-mela-2026');
+    expect(message).toContain(`https://palsafar.in/event/${CUID}`);
+    expect(message).not.toContain('kumbh-mela-2026');
     expect(
       buildEventShareMessage({ id: CUID, status: 'PENDING', title: 'Hidden' }),
     ).toBeNull();
+  });
+
+  it('uses the production Event ID URL even when a slug is available elsewhere', () => {
+    const message = buildEventShareMessage({
+      id: REAL_EVENT_ID,
+      status: 'APPROVED',
+      title: 'PALSAFAR HOME LIVE EVENT TEST 20261008-0138',
+    });
+    expect(message).toBe(
+      `Check out this event on PalSafar: PALSAFAR HOME LIVE EVENT TEST 20261008-0138\nhttps://palsafar.in/event/${REAL_EVENT_ID}`,
+    );
   });
 });
 
@@ -372,7 +384,7 @@ describe('event map markers', () => {
     hasCoordinates: true,
     coverImage: null,
     distanceMeters: null,
-    marker: { icon: 'storefront-outline', label: 'Fair / Mela', color: '#1D4ED8' },
+    marker: { icon: 'storefront-outline', label: 'Fair / Mela', color: '#1F4D3A' },
   };
 
   it('maps a positioned event into a plotable marker', () => {
@@ -430,10 +442,24 @@ describe('events navigation wiring', () => {
     expect(read('screens/EventsScreen.tsx')).toMatch(/navigation\.navigate\('EventDetail', \{ eventIdOrSlug \}\)/);
   });
 
+  it('renders a labeled Add Event action in the Events header', () => {
+    const src = read('screens/EventsScreen.tsx');
+    expect(src).toContain('testID="events-add-event"');
+    expect(src).toContain('accessibilityLabel="Add an event"');
+    expect(src).toMatch(/<Text style=\{styles\.headerBtnPrimaryText\}>Add Event<\/Text>/);
+    expect(src).toMatch(/navigation\.navigate\('AddEvent'\)/);
+  });
+
   it('renders the featured strip on Home', () => {
     const src = read('screens/HomeScreen.tsx');
     expect(src).toMatch(/<HomeEventsStrip/);
     expect(src).toMatch(/navigation\.navigate\('Events'\)/);
+  });
+
+  it('keeps consistent vertical separation before every Live Events state', () => {
+    const src = read('features/events/HomeEventsStrip.tsx');
+    expect(src).toMatch(/section:\s*\{\s*marginTop:\s*20,\s*marginBottom:\s*24\s*\}/);
+    expect(src.match(/style=\{\[styles\.section, \{ paddingHorizontal: edgePadding \}\]\}/g)).toHaveLength(4);
   });
 
   it('keeps the three-layer map control wired to the shared tab type', () => {

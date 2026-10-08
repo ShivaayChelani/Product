@@ -2,11 +2,11 @@ import React from 'react';
 import { ScrollView, Text, StyleSheet, Pressable } from 'react-native';
 
 const COLORS = {
-  activeBg: '#4B3B30', // Deep coffee
+  activeBg: '#1D2420', // Deep coffee
   activeText: '#FFFFFF',
   inactiveBg: '#FFFFFF',
   inactiveText: '#1F1A17',
-  border: '#E3DACD', // Subtle beige
+  border: '#D9E0DB', // Subtle beige
 };
 
 export type CollaborationFilterType = 'all' | 'pending' | 'accepted' | 'in_progress' | 'completed' | 'rejected';

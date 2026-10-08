@@ -31,15 +31,15 @@ import { PLAY_STORE_URL } from '../config/monitoringConfig';
 const HERO = require('../assets/settings_cover.png');
 
 const C = {
-  bg: '#FDF7F2',
-  ink: '#4A3427',
-  textSub: '#8B7355',
-  textMuted: '#B8A88A',
-  border: 'rgba(200, 155, 60, 0.12)',
+  bg: '#F7F6F1',
+  ink: '#1D2420',
+  textSub: '#68756D',
+  textMuted: '#68756D',
+  border: 'rgba(183, 121, 31, 0.12)',
   card: '#FFFFFF',
-  danger: '#DC4C4C',
-  dangerSoft: '#FEF2F2',
-  bronze: '#A67C52',
+  danger: '#C94A4A',
+  dangerSoft: '#FBEAEA',
+  bronze: '#1F4D3A',
 };
 
 const compact = (value: number) =>
@@ -289,7 +289,7 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
         key: 'edit',
         icon: 'person-outline',
         iconColor: C.ink,
-        iconBg: 'rgba(185,131,75,0.14)',
+        iconBg: 'rgba(183,121,31,0.14)',
         title: 'Account Information',
         subtitle: 'Edit name, bio and social links',
         onPress: () => setEditing(true),
@@ -298,7 +298,7 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
         key: 'password',
         icon: 'lock-closed-outline',
         iconColor: C.ink,
-        iconBg: 'rgba(185,131,75,0.14)',
+        iconBg: 'rgba(183,121,31,0.14)',
         title: 'Change Password',
         subtitle: 'Update your password',
         onPress: () => navigation.navigate('ChangePassword'),
@@ -306,8 +306,8 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
       {
         key: 'privacy',
         icon: 'shield-checkmark-outline',
-        iconColor: '#3B82F6',
-        iconBg: 'rgba(59,130,246,0.12)',
+        iconColor: '#1F4D3A',
+        iconBg: 'rgba(31,77,58,0.12)',
         title: 'Privacy Settings',
         subtitle: 'Manage your privacy preferences',
         onPress: () => navigation.navigate('PrivacySettings'),
@@ -325,8 +325,8 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
       {
         key: 'subscription',
         icon: 'card-outline',
-        iconColor: '#7C3AED',
-        iconBg: 'rgba(124,58,237,0.12)',
+        iconColor: '#1F4D3A',
+        iconBg: 'rgba(31,77,58,0.12)',
         title: 'Subscription & Billing',
         subtitle: 'Creator plans, upgrades & invoices',
         onPress: () => navigation.navigate('CreatorSubscription'),
@@ -337,8 +337,8 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
       {
         key: 'insights',
         icon: 'bar-chart-outline',
-        iconColor: '#3B82F6',
-        iconBg: 'rgba(59,130,246,0.12)',
+        iconColor: '#1F4D3A',
+        iconBg: 'rgba(31,77,58,0.12)',
         title: 'Insights',
         subtitle: 'Detailed analytics and performance',
         onPress: () => navigation.navigate('CreatorAnalytics'),
@@ -347,7 +347,7 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
         key: 'earnings',
         icon: 'star-outline',
         iconColor: C.ink,
-        iconBg: 'rgba(185,131,75,0.14)',
+        iconBg: 'rgba(183,121,31,0.14)',
         title: 'PalPoints',
         subtitle: 'Manage your creator rewards',
         onPress: () => navigation.navigate('PalPointsScreen'),
@@ -355,8 +355,8 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
       {
         key: 'subscription',
         icon: 'card-outline',
-        iconColor: '#7C3AED',
-        iconBg: 'rgba(124,58,237,0.12)',
+        iconColor: '#1F4D3A',
+        iconBg: 'rgba(31,77,58,0.12)',
         title: 'Subscription & Billing',
         subtitle: 'Creator plans, upgrades & invoices',
         onPress: () => navigation.navigate('CreatorSubscription'),
@@ -364,8 +364,8 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
       {
         key: 'notifications',
         icon: 'notifications-outline',
-        iconColor: '#D97706',
-        iconBg: 'rgba(234,179,8,0.14)',
+        iconColor: '#B7791F',
+        iconBg: 'rgba(1313,121,8,0.14)',
         title: 'Notifications',
         subtitle: 'Alerts and updates',
         onPress: () => navigation.navigate('Notifications'),
@@ -376,7 +376,7 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
       studioItems.push({
         key: 'public',
         icon: 'globe-outline',
-        iconColor: '#059669',
+        iconColor: '#2E7D55',
         iconBg: 'rgba(5,150,105,0.12)',
         title: 'Public Creator Page',
         subtitle: 'View how travelers see your profile',
@@ -394,7 +394,7 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
             key: 'terms',
             icon: 'document-text-outline',
             iconColor: C.ink,
-            iconBg: 'rgba(185,131,75,0.14)',
+            iconBg: 'rgba(183,121,31,0.14)',
             title: 'Creator Terms & Conditions',
             subtitle: 'Read our creator terms and conditions',
             onPress: () => navigation.navigate('LegalDocument', { type: 'CREATOR_TERMS', title: 'Creator Terms & Conditions' }),
@@ -407,8 +407,8 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
           {
             key: 'version',
             icon: 'phone-portrait-outline',
-            iconColor: '#3B82F6',
-            iconBg: 'rgba(59,130,246,0.12)',
+            iconColor: '#1F4D3A',
+            iconBg: 'rgba(31,77,58,0.12)',
             title: 'Version',
             rightText: '2.4.0',
           },
@@ -416,15 +416,15 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
             key: 'licenses',
             icon: 'clipboard-outline',
             iconColor: C.ink,
-            iconBg: 'rgba(185,131,75,0.14)',
+            iconBg: 'rgba(183,121,31,0.14)',
             title: 'Licenses',
             onPress: () => navigation.navigate('Licenses'),
           },
           {
             key: 'rate',
             icon: 'star-outline',
-            iconColor: '#D97706',
-            iconBg: 'rgba(234,179,8,0.14)',
+            iconColor: '#B7791F',
+            iconBg: 'rgba(1313,121,8,0.14)',
             title: 'Rate the App',
             subtitle: 'Share your feedback with us',
             onPress: () =>
@@ -603,7 +603,7 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
 
               <SocialField icon="logo-instagram" color="#E1306C" label="Instagram URL" value={instagram} onChangeText={setInstagram} placeholder="https://instagram.com/yourusername" />
               <SocialField icon="logo-youtube" color="#FF0000" label="YouTube URL" value={youtube} onChangeText={setYoutube} placeholder="https://youtube.com/@yourchannel" />
-              <SocialField icon="logo-facebook" color="#1877F2" label="Facebook URL" value={facebook} onChangeText={setFacebook} placeholder="https://facebook.com/yourprofile" />
+              <SocialField icon="logo-facebook" color="#1F4D3A" label="Facebook URL" value={facebook} onChangeText={setFacebook} placeholder="https://facebook.com/yourprofile" />
             </ScrollView>
 
             <View style={styles.editFooter}>
@@ -630,9 +630,9 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
 function EditField({ icon, label, value, onChangeText, valid, checking, invalid, errorText, showAvailableMessage }: any) {
   return (
     <View style={{ marginBottom: 12 }}>
-      <View style={[styles.editFieldCard, invalid && { borderColor: '#EF4444' }]}>
+      <View style={[styles.editFieldCard, invalid && { borderColor: '#C94A4A' }]}>
         <View style={styles.editFieldIconWrap}>
-          <Icon name={icon} size={20} color={invalid ? '#EF4444' : C.bronze} />
+          <Icon name={icon} size={20} color={invalid ? '#C94A4A' : C.bronze} />
         </View>
         <View style={styles.editFieldContent}>
           <Text style={styles.editFieldLabel}>{label}</Text>
@@ -652,8 +652,8 @@ function EditField({ icon, label, value, onChangeText, valid, checking, invalid,
             <Icon name="checkmark" size={12} color="#10B981" />
           </View>
         ) : invalid ? (
-          <View style={[styles.validBadge, { backgroundColor: '#FEE2E2' }]}>
-            <Icon name="close" size={12} color="#EF4444" />
+          <View style={[styles.validBadge, { backgroundColor: '#FBEAEA' }]}>
+            <Icon name="close" size={12} color="#C94A4A" />
           </View>
         ) : null}
       </View>
@@ -662,11 +662,11 @@ function EditField({ icon, label, value, onChangeText, valid, checking, invalid,
           Checking availability...
         </Text>
       ) : showAvailableMessage && valid ? (
-        <Text style={{ fontSize: 12, color: '#059669', marginTop: 4, marginLeft: 16, fontWeight: '600' }}>
+        <Text style={{ fontSize: 12, color: '#2E7D55', marginTop: 4, marginLeft: 16, fontWeight: '600' }}>
           ✓ Username available
         </Text>
       ) : invalid && errorText ? (
-        <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4, marginLeft: 16, fontWeight: '600' }}>
+        <Text style={{ fontSize: 12, color: '#C94A4A', marginTop: 4, marginLeft: 16, fontWeight: '600' }}>
           ✕ {errorText}
         </Text>
       ) : null}
@@ -722,7 +722,7 @@ const styles = StyleSheet.create({
   heroWrap: {
     height: 228,
     overflow: 'hidden',
-    backgroundColor: '#F3EBE0',
+    backgroundColor: '#F7F6F1',
   },
   heroImage: {
     ...StyleSheet.absoluteFillObject,
@@ -762,7 +762,7 @@ const styles = StyleSheet.create({
     padding: 14,
     ...Platform.select({
       ios: {
-        shadowColor: 'rgba(74,52,39,0.08)',
+        shadowColor: 'rgba(29,36,32,0.08)',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 1,
         shadowRadius: 12,
@@ -796,7 +796,7 @@ const styles = StyleSheet.create({
     borderRadius: 29,
   },
   avatarFallback: {
-    backgroundColor: 'rgba(185,131,75,0.18)',
+    backgroundColor: 'rgba(183,121,31,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -830,7 +830,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(185,131,75,0.12)',
+    backgroundColor: 'rgba(183,121,31,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -852,7 +852,7 @@ const styles = StyleSheet.create({
   statDivider: {
     width: StyleSheet.hairlineWidth,
     height: 28,
-    backgroundColor: 'rgba(74,52,39,0.12)',
+    backgroundColor: 'rgba(29,36,32,0.12)',
   },
   statValue: {
     fontSize: 15,
@@ -881,7 +881,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...Platform.select({
       ios: {
-        shadowColor: 'rgba(74,52,39,0.08)',
+        shadowColor: 'rgba(29,36,32,0.08)',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 1,
         shadowRadius: 12,
@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
   },
   rowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(74,52,39,0.08)',
+    borderBottomColor: 'rgba(29,36,32,0.08)',
   },
   iconCircle: {
     width: 44,
@@ -948,14 +948,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: C.danger,
   },
-  editRoot: { flex: 1, backgroundColor: '#FAFAFA' },
+  editRoot: { flex: 1, backgroundColor: '#F7F6F1' },
   editHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
-  editHeaderBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#F0EBE1', alignItems: 'center', justifyContent: 'center' },
+  editHeaderBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center' },
   editHeaderTitleWrap: { alignItems: 'center', flex: 1, paddingHorizontal: 16 },
   editHeaderTitle: { fontSize: 18, fontWeight: '800', color: C.ink },
   editHeaderSub: { fontSize: 12, color: C.textSub, marginTop: 2, textAlign: 'center' },
   editScroll: { paddingHorizontal: 16, paddingVertical: 24, paddingBottom: 100 },
-  photoCard: { backgroundColor: '#FCFAEE', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  photoCard: { backgroundColor: '#F7F6F1', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
   photoAvatarWrap: { width: 80, height: 80, borderRadius: 40, position: 'relative' },
   photoAvatar: { width: 80, height: 80, borderRadius: 40, borderWidth: 4, borderColor: '#FFF' },
   photoEditBadge: { position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: C.bronze, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFF' },
@@ -963,18 +963,18 @@ const styles = StyleSheet.create({
   photoTitle: { fontSize: 14, fontWeight: '700', color: C.ink },
   photoSub: { fontSize: 11, color: C.textSub, marginTop: 4, lineHeight: 16 },
   photoActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  changePhotoBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E5D6C5', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  changePhotoBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#D9E0DB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
   changePhotoText: { fontSize: 12, fontWeight: '700', color: C.bronze },
-  deletePhotoBtn: { width: 36, height: 36, borderRadius: 8, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E5D6C5', alignItems: 'center', justifyContent: 'center' },
-  editFieldCard: { backgroundColor: '#FFF', borderRadius: 12, borderWidth: 1, borderColor: '#F0EBE1', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 },
-  editFieldIconWrap: { width: 40, height: 40, borderRadius: 8, backgroundColor: '#FCFAEE', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  socialIconWrap: { width: 40, height: 40, borderRadius: 8, backgroundColor: '#F9F9F9', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  deletePhotoBtn: { width: 36, height: 36, borderRadius: 8, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#D9E0DB', alignItems: 'center', justifyContent: 'center' },
+  editFieldCard: { backgroundColor: '#FFF', borderRadius: 12, borderWidth: 1, borderColor: '#F7F6F1', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 },
+  editFieldIconWrap: { width: 40, height: 40, borderRadius: 8, backgroundColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  socialIconWrap: { width: 40, height: 40, borderRadius: 8, backgroundColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   editFieldContent: { flex: 1 },
   editFieldLabel: { fontSize: 11, fontWeight: '700', color: C.bronze, marginBottom: 2 },
   editFieldInput: { fontSize: 14, color: C.ink, paddingVertical: 8, paddingHorizontal: 0 },
-  validBadge: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#D1FAE5', alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
-  bioCard: { backgroundColor: '#FFF', borderRadius: 12, borderWidth: 1, borderColor: '#F0EBE1', flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 12, marginBottom: 24 },
-  bioIconWrap: { width: 40, height: 40, borderRadius: 8, backgroundColor: '#FCFAEE', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  validBadge: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#DDEBE3', alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
+  bioCard: { backgroundColor: '#FFF', borderRadius: 12, borderWidth: 1, borderColor: '#F7F6F1', flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 12, marginBottom: 24 },
+  bioIconWrap: { width: 40, height: 40, borderRadius: 8, backgroundColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   bioQuoteIcon: { fontSize: 24, fontWeight: '700', color: C.bronze, fontFamily: 'serif' },
   bioContent: { flex: 1 },
   bioInput: { fontSize: 14, color: C.ink, marginTop: 2, minHeight: 80, textAlignVertical: 'top', paddingVertical: 8, paddingHorizontal: 0 },
@@ -982,8 +982,8 @@ const styles = StyleSheet.create({
   socialHeader: { marginBottom: 12, paddingHorizontal: 4 },
   socialTitle: { fontSize: 15, fontWeight: '700', color: C.ink },
   socialSub: { fontSize: 12, color: C.textSub, marginTop: 2 },
-  editFooter: { backgroundColor: '#FFF', padding: 16, borderTopWidth: 1, borderTopColor: '#F0EBE1' },
-  editSaveBtn: { backgroundColor: '#593215', borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 },
+  editFooter: { backgroundColor: '#FFF', padding: 16, borderTopWidth: 1, borderTopColor: '#F7F6F1' },
+  editSaveBtn: { backgroundColor: '#1D2420', borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 },
   editSaveText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
   editFooterNote: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12 },
   editFooterNoteText: { fontSize: 12, color: C.textSub },

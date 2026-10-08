@@ -23,15 +23,15 @@ import { isVendorApproved } from '../utils/workspaceRoles';
 type PlaceReelsRouteProp = RouteProp<RootStackParamList, 'PlaceReels'>;
 
 const COLORS = {
-  bg: '#FDFBF7',
+  bg: '#F7F6F1',
   card: '#FFFFFF',
-  text: '#2C1810',
+  text: '#1D2420',
   textMuted: '#5E544C',
-  gold: '#A86C20',
-  divider: '#F0EBE1',
+  gold: '#B7791F',
+  divider: '#F7F6F1',
   chipBg: '#FFFFFF',
-  chipBgActive: '#63300E',
-  chipText: '#2C1810',
+  chipBgActive: '#16392B',
+  chipText: '#1D2420',
   chipTextActive: '#FFFFFF',
 };
 
@@ -131,7 +131,7 @@ export default function PlaceReelsScreen() {
           <Image source={{ uri: placeImage }} style={styles.bannerImage} />
         ) : (
           <View style={[styles.bannerImage, styles.bannerImagePlaceholder]}>
-            <Icon name="image-outline" size={24} color="#D0BFA5" />
+            <Icon name="image-outline" size={24} color="#DDEBE3" />
           </View>
         )}
       </View>
@@ -219,7 +219,7 @@ export default function PlaceReelsScreen() {
               {item.creator?.username || 'Creator'}
             </Text>
             {item.creator?.verified && (
-              <Icon name="checkmark-circle" size={14} color="#F5B041" style={{ marginLeft: 4 }} />
+              <Icon name="checkmark-circle" size={14} color="#B7791F" style={{ marginLeft: 4 }} />
             )}
           </View>
           <TouchableOpacity style={styles.cardMenuBtn}>
@@ -268,7 +268,7 @@ export default function PlaceReelsScreen() {
     return (
       <View style={styles.emptyWrap}>
         <View style={styles.emptyIconWrap}>
-          <Icon name="videocam-outline" size={48} color="#D0BFA5" />
+          <Icon name="videocam-outline" size={48} color="#DDEBE3" />
         </View>
         <Text style={styles.emptyTitle}>No Reels from this place yet</Text>
         <Text style={styles.emptyDesc}>
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
   },
   bannerWrap: {
     flexDirection: 'row',
-    backgroundColor: '#F7F3EC',
+    backgroundColor: '#F7F6F1',
     marginHorizontal: 16,
     marginTop: 8,
     borderRadius: 16,
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   bannerImagePlaceholder: {
-    backgroundColor: '#E8DDD0',
+    backgroundColor: '#D9E0DB',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
   sortBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FBF9F6',
+    backgroundColor: '#F7F6F1',
     borderWidth: 1,
     borderColor: COLORS.divider,
     paddingHorizontal: 12,
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.divider,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FBF9F6',
+    backgroundColor: '#F7F6F1',
   },
   listContent: {
     paddingBottom: 24,
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginRight: 16,
     position: 'relative',
-    backgroundColor: '#E8DDD0',
+    backgroundColor: '#D9E0DB',
   },
   reelThumb: {
     width: '100%',
@@ -558,14 +558,14 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     marginRight: 8,
-    backgroundColor: '#E8DDD0',
+    backgroundColor: '#D9E0DB',
   },
   creatorAvatarPlaceholder: {
     width: 24,
     height: 24,
     borderRadius: 12,
     marginRight: 8,
-    backgroundColor: '#63300E',
+    backgroundColor: '#16392B',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -633,7 +633,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F7F3EC',
+    backgroundColor: '#F7F6F1',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
@@ -656,11 +656,11 @@ const styles = StyleSheet.create({
   createBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#63300E',
+    backgroundColor: '#16392B',
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 24,
-    shadowColor: '#63300E',
+    shadowColor: '#16392B',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -673,7 +673,7 @@ const styles = StyleSheet.create({
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(253,251,247,0.8)',
+    backgroundColor: 'rgba(241,246,247,0.8)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -682,11 +682,11 @@ const styles = StyleSheet.create({
     right: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#A86C20',
+    backgroundColor: '#B7791F',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 28,
-    shadowColor: '#A86C20',
+    shadowColor: '#B7791F',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

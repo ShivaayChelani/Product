@@ -65,7 +65,7 @@ export default function ItinerarySummaryCard({
 
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <View style={[styles.statIconWrap, { backgroundColor: '#EFF6FF' }]}>
+            <View style={[styles.statIconWrap, { backgroundColor: '#DDEBE3' }]}>
               <MaterialIcons name="place" size={20} color={C.primary} />
             </View>
             <Text style={styles.statValue}>{totalSpots}</Text>
@@ -85,7 +85,7 @@ export default function ItinerarySummaryCard({
           <View style={styles.statDivider} />
 
           <View style={styles.statItem}>
-            <View style={[styles.statIconWrap, { backgroundColor: '#FEFCE8' }]}>
+            <View style={[styles.statIconWrap, { backgroundColor: '#F7F6F1' }]}>
               <Ionicons name="wallet-outline" size={20} color={C.primary} />
             </View>
             <Text style={styles.statValue}>₹{estimatedCost}</Text>
@@ -95,8 +95,8 @@ export default function ItinerarySummaryCard({
           <View style={styles.statDivider} />
 
           <View style={styles.statItem}>
-            <View style={[styles.statIconWrap, { backgroundColor: '#FEF2F2' }]}>
-              <Ionicons name="trophy-outline" size={20} color="#EF4444" />
+            <View style={[styles.statIconWrap, { backgroundColor: '#FBEAEA' }]}>
+              <Ionicons name="trophy-outline" size={20} color="#C94A4A" />
             </View>
             <Text style={styles.statValue}>{totalPoints}</Text>
             <Text style={styles.statLabel}>Points</Text>
@@ -158,18 +158,18 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
-    shadowColor: '#0A2540',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
     shadowRadius: 28,
     elevation: 10,
     borderWidth: 1,
-    borderColor: 'rgba(79, 140, 255, 0.08)',
+    borderColor: 'rgba(31, 77, 58, 0.08)',
     position: 'relative',
   },
   gradientTop: {
     height: 6,
-    backgroundColor: '#4F8CFF',
+    backgroundColor: '#1F4D3A',
     position: 'relative',
     overflow: 'hidden',
   },
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: '50%',
     bottom: 0,
-    backgroundColor: '#B9834B',
+    backgroundColor: '#1F4D3A',
     opacity: 0.5,
   },
   gradientAccent2: {
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#1D2420',
     letterSpacing: -0.4,
     flex: 1,
   },
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(79, 140, 255, 0.06)',
+    backgroundColor: 'rgba(31, 77, 58, 0.06)',
     position: 'absolute',
     right: -30,
     top: -20,
@@ -248,12 +248,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#1D2420',
     letterSpacing: -0.5,
   },
   statLabel: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#68756D',
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 44,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F7F6F1',
   },
   progressContainer: {
     marginBottom: 16,
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: '#F7F6F1',
   },
   paceLabelRow: {
     flexDirection: 'row',
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
   },
   paceLabel: {
     fontSize: 14,
-    color: '#64748B',
+    color: '#68756D',
     fontWeight: '600',
   },
   paceOptions: {
@@ -332,13 +332,13 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 14,
     borderRadius: 24,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F7F6F1',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#D9E0DB',
   },
   paceChipActive: {
     borderColor: C.primary,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#DDEBE3',
     shadowColor: C.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
   },
   paceText: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#68756D',
     fontWeight: '600',
   },
   paceTextActive: {

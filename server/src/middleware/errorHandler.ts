@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { ApiError } from '../shared/utils/ApiError';
-import { env } from '../config/env';
 import { logger } from '../config/logger';
 
 export const errorHandler = (
@@ -50,14 +49,12 @@ export const errorHandler = (
       response.message = err.message;
     }
   } else {
-    response.message = env.isProduction ? 'Internal server error' : err.message;
+    response.message = 'Internal server error';
   }
 
+  // Full error details (Prisma/DOM exceptions, stack traces) are logged
+  // server-side only and never returned to API clients in any environment.
   logger.error({ err, correlationId, statusCode, path: req.path }, response.message);
-
-  if (!env.isProduction && !(err instanceof ApiError) && !(err instanceof ZodError)) {
-    response.stack = err.stack;
-  }
 
   res.status(statusCode).json(response);
 };

@@ -13,15 +13,15 @@ import { PalPointsIcon } from '../PalPointsIcon';
 import { vendorsApi } from '../../services/api/vendors';
 
 const C = {
-  deep: '#3B1E12',
-  muted: '#8B7355',
-  mutedLight: '#B8A88A',
-  border: '#EDE6DC',
-  soft: '#F7F0E8',
+  deep: '#1D2420',
+  muted: '#68756D',
+  mutedLight: '#68756D',
+  border: '#DDEBE3',
+  soft: '#F7F6F1',
   white: '#FFFFFF',
-  success: '#16A34A',
-  bronze: '#B9834B',
-  purple: '#8B6BB5',
+  success: '#2E7D55',
+  bronze: '#1F4D3A',
+  purple: '#68756D',
 };
 
 type Props = {
@@ -103,12 +103,12 @@ export default function OfferStatsModal({ visible, offerId, offerTitle, onClose,
           ) : (
             <View style={styles.grid}>
               {[
-                { label: 'Views', value: stats.views, icon: 'eye-outline', color: C.bronze, bg: '#FFF3E4' },
-                { label: 'Clicks', value: stats.clicks, icon: 'hand-left-outline', color: '#3B82F6', bg: '#EAF2FB' },
+                { label: 'Views', value: stats.views, icon: 'eye-outline', color: C.bronze, bg: '#F7F6F1' },
+                { label: 'Clicks', value: stats.clicks, icon: 'hand-left-outline', color: '#1F4D3A', bg: '#F7F6F1' },
                 { label: 'Redeems', value: stats.redemptions, icon: 'gift-outline', color: C.success, bg: '#EAF7F0' },
                 { label: 'Verified', value: stats.verified, icon: 'checkmark-circle-outline', color: C.success, bg: '#EAF7F0' },
-                { label: 'Conversion', value: `${stats.conversion.toFixed(1)}%`, icon: 'trending-up', color: C.purple, bg: '#F3EEF8' },
-                { label: 'PalPoints', value: stats.pointsSpent, palPoints: true, color: C.purple, bg: '#F3EEF8' },
+                { label: 'Conversion', value: `${stats.conversion.toFixed(1)}%`, icon: 'trending-up', color: C.purple, bg: '#F7F6F1' },
+                { label: 'PalPoints', value: stats.pointsSpent, palPoints: true, color: C.purple, bg: '#F7F6F1' },
               ].map((item) => (
                 <View key={item.label} style={styles.card}>
                   <View style={[styles.iconWrap, { backgroundColor: item.bg }]}>
@@ -145,7 +145,7 @@ export default function OfferStatsModal({ visible, offerId, offerTitle, onClose,
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(30,14,8,0.45)',
+    backgroundColor: 'rgba(29,36,32,0.45)',
     justifyContent: 'flex-end',
   },
   sheet: {
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   },
   center: { paddingVertical: 36, alignItems: 'center' },
   loadingText: { marginTop: 10, color: C.muted, fontSize: 13 },
-  errorText: { color: '#DC2626', fontSize: 13, textAlign: 'center' },
+  errorText: { color: '#C94A4A', fontSize: 13, textAlign: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   card: {
     width: '48%',
@@ -218,5 +218,5 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: C.deep,
   },
-  primaryText: { fontSize: 14, fontWeight: '800', color: '#FFF9F2' },
+  primaryText: { fontSize: 14, fontWeight: '800', color: '#F7F6F1' },
 });

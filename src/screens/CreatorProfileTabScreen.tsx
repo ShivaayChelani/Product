@@ -151,7 +151,7 @@ export default function CreatorProfileTabScreen() {
             <View style={styles.heroNameRow}>
               <Text style={styles.heroName}>{displayName}</Text>
               {profile?.verified && (
-                <MaterialCommunityIcons name="check-decagram" size={18} color="#E5A041" style={{ marginLeft: 4 }} />
+                <MaterialCommunityIcons name="check-decagram" size={18} color="#B7791F" style={{ marginLeft: 4 }} />
               )}
             </View>
             <Text style={styles.heroUsername}>{username}</Text>
@@ -196,7 +196,7 @@ export default function CreatorProfileTabScreen() {
 
         {/* SIGN OUT */}
         <TouchableOpacity style={styles.signOutBtn} onPress={handleLogout} activeOpacity={0.8}>
-          <Icon name="log-out-outline" size={18} color="#EF4444" />
+          <Icon name="log-out-outline" size={18} color="#C94A4A" />
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
         
@@ -260,15 +260,15 @@ const styles = StyleSheet.create({
     height: 110,
     borderRadius: 55,
     borderWidth: 1,
-    borderColor: '#E5D6C5',
+    borderColor: '#D9E0DB',
   },
   avatarFallback: {
     width: 110,
     height: 110,
     borderRadius: 55,
-    backgroundColor: '#FCFAEE',
+    backgroundColor: '#F7F6F1',
     borderWidth: 1,
-    borderColor: '#E5D6C5',
+    borderColor: '#D9E0DB',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#F0EBE1',
+    borderColor: '#F7F6F1',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#F0EBE1',
+    borderColor: '#F7F6F1',
     marginBottom: 24,
     overflow: 'hidden',
   },
@@ -391,13 +391,13 @@ const styles = StyleSheet.create({
   },
   rowItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F2EB',
+    borderBottomColor: '#F7F6F1',
   },
   rowIconWrap: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#FCFAEE',
+    backgroundColor: '#F7F6F1',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     color: C.textSecondary,
   },
   signOutBtn: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#FBEAEA',
     borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -426,12 +426,12 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#FEE2E2',
+    borderColor: '#FBEAEA',
   },
   signOutText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#EF4444',
+    color: '#C94A4A',
   },
   footerNoteRow: {
     flexDirection: 'row',

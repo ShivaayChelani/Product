@@ -31,7 +31,7 @@ export const DrawerHeader: React.FC<DrawerHeaderProps> = ({
         resizeMode="cover"
       >
         <TouchableOpacity style={[styles.closeBtn, { top: insets.top + 10 }]} onPress={onClose} hitSlop={10}>
-          <Icon name="close" size={20} color="#63300E" />
+          <Icon name="close" size={20} color="#16392B" />
         </TouchableOpacity>
         
         <View style={styles.logoContainer}>
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     height: 250,
     width: '100%',
     position: 'relative',
-    backgroundColor: '#FAF5EE',
+    backgroundColor: '#F7F6F1',
   },
   closeBtn: {
     position: 'absolute',
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#EAE1D6', // Lighter color to match the image
+    backgroundColor: '#DDEBE3', // Lighter color to match the image
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 36,
     overflow: 'hidden',
-    backgroundColor: '#F3E8DA',
+    backgroundColor: '#F7F6F1',
   },
   avatarImage: {
     width: '100%',
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
   avatarInitial: {
     fontFamily: SERIF,
     fontSize: 32,
-    color: '#8A5A19',
+    color: '#B7791F',
   },
   profileText: {
     flex: 1,
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 24,
-    backgroundColor: '#986C45',
+    backgroundColor: '#1F4D3A',
     marginTop: 6,
   },
   guestChipText: {

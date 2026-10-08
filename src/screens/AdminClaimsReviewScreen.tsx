@@ -80,22 +80,22 @@ export default function AdminClaimsReviewScreen({ onBack }: AdminClaimsReviewScr
   const getStatusColor = (status: string) => {
     switch (String(status).toUpperCase()) {
       case 'PENDING':
-        return '#D97706';
+        return '#B7791F';
       case 'APPROVED':
       case 'COMPLETED':
       case 'DISPATCHED':
-        return '#059669';
+        return '#2E7D55';
       case 'REJECTED':
       case 'CANCELLED':
-        return '#DC2626';
+        return '#C94A4A';
       default:
-        return '#475569';
+        return '#68756D';
     }
   };
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1E293B" />
+      <StatusBar barStyle="light-content" backgroundColor="#1D2420" />
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
         <TouchableOpacity onPress={onBack}>
           <MaterialIcons name="arrow-back" size={24} color="#FFF" />
@@ -108,18 +108,18 @@ export default function AdminClaimsReviewScreen({ onBack }: AdminClaimsReviewScr
         style={styles.content}
         contentContainerStyle={{ paddingBottom: contentPadBottom }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#B9834B']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1F4D3A']} />
         }
       >
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: '#D97706' }]}>
+            <Text style={[styles.statValue, { color: '#B7791F' }]}>
               {claims.filter((c) => c.status === 'PENDING').length}
             </Text>
             <Text style={styles.statLabel}>Pending Claims</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: '#059669' }]}>
+            <Text style={[styles.statValue, { color: '#2E7D55' }]}>
               {claims.filter((c) => ['APPROVED', 'COMPLETED', 'DISPATCHED'].includes(c.status)).length}
             </Text>
             <Text style={styles.statLabel}>Dispatched</Text>
@@ -128,7 +128,7 @@ export default function AdminClaimsReviewScreen({ onBack }: AdminClaimsReviewScr
 
         {loading && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator color="#B9834B" />
+            <ActivityIndicator color="#1F4D3A" />
             <Text style={styles.loadingText}>Loading reward claims…</Text>
           </View>
         )}
@@ -153,7 +153,7 @@ export default function AdminClaimsReviewScreen({ onBack }: AdminClaimsReviewScr
                       <Image source={{ uri: claim.campaign.imageUrl }} style={styles.campaignThumb} />
                     ) : (
                       <View style={[styles.campaignThumb, styles.campaignThumbFallback]}>
-                        <Icon name="gift-outline" size={20} color="#B9834B" />
+                        <Icon name="gift-outline" size={20} color="#1F4D3A" />
                       </View>
                     )}
                     <View style={{ flex: 1 }}>
@@ -204,7 +204,7 @@ export default function AdminClaimsReviewScreen({ onBack }: AdminClaimsReviewScr
                         onPress={() => handleStatusChange(claim.id, claim.status, 'CANCELLED')}
                         disabled={updatingId === claim.id}
                       >
-                        <Text style={[styles.actionBtnText, { color: '#DC2626' }]}>Cancel Claim</Text>
+                        <Text style={[styles.actionBtnText, { color: '#C94A4A' }]}>Cancel Claim</Text>
                       </TouchableOpacity>
                     </>
                   ) : (
@@ -229,34 +229,34 @@ export default function AdminClaimsReviewScreen({ onBack }: AdminClaimsReviewScr
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F172A' },
+  container: { flex: 1, backgroundColor: '#1D2420' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingBottom: 16,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#1D2420',
   },
   title: { fontSize: 18, fontWeight: '800', color: '#FFF' },
   content: { flex: 1, padding: 16 },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   statCard: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#1D2420',
     borderRadius: 14,
     padding: 14,
     alignItems: 'center',
   },
   statValue: { fontSize: 22, fontWeight: '800' },
-  statLabel: { fontSize: 11, color: '#94A3B8', marginTop: 2 },
+  statLabel: { fontSize: 11, color: '#68756D', marginTop: 2 },
   loadingContainer: { alignItems: 'center', paddingVertical: 40, gap: 10 },
-  loadingText: { color: '#94A3B8', fontSize: 14 },
+  loadingText: { color: '#68756D', fontSize: 14 },
   emptyState: { alignItems: 'center', paddingVertical: 40, gap: 10 },
   emptyEmoji: { fontSize: 40 },
-  emptyText: { color: '#94A3B8', fontSize: 14 },
+  emptyText: { color: '#68756D', fontSize: 14 },
   claimCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#1D2420',
     borderRadius: 16,
     padding: 16,
     marginBottom: 14,
@@ -265,28 +265,28 @@ const styles = StyleSheet.create({
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 },
   campaignMeta: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  campaignThumb: { width: 42, height: 42, borderRadius: 8, backgroundColor: '#334155' },
+  campaignThumb: { width: 42, height: 42, borderRadius: 8, backgroundColor: '#68756D' },
   campaignThumbFallback: { justifyContent: 'center', alignItems: 'center' },
   campaignTitle: { color: '#FFF', fontSize: 15, fontWeight: '700' },
-  redemptionId: { color: '#94A3B8', fontSize: 11, marginTop: 2 },
+  redemptionId: { color: '#68756D', fontSize: 11, marginTop: 2 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   statusText: { fontSize: 11, fontWeight: '800' },
   detailsBox: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#1D2420',
     borderRadius: 12,
     padding: 12,
     marginTop: 12,
     gap: 6,
   },
-  detailRow: { color: '#CBD5E1', fontSize: 12, lineHeight: 18 },
+  detailRow: { color: '#D9E0DB', fontSize: 12, lineHeight: 18 },
   detailBold: { fontWeight: '700', color: '#FFF' },
   notesWrap: { marginTop: 6, paddingTop: 6, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
-  notesLabel: { color: '#B9834B', fontSize: 11, fontWeight: '800', marginBottom: 2 },
-  notesText: { color: '#E2E8F0', fontSize: 12, lineHeight: 18 },
+  notesLabel: { color: '#1F4D3A', fontSize: 11, fontWeight: '800', marginBottom: 2 },
+  notesText: { color: '#D9E0DB', fontSize: 12, lineHeight: 18 },
   actionRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
   actionBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  approveBtn: { backgroundColor: '#059669' },
-  rejectBtn: { backgroundColor: 'rgba(220,38,38,0.12)', borderWidth: 1, borderColor: '#DC2626' },
-  completeBtn: { backgroundColor: '#3B82F6' },
+  approveBtn: { backgroundColor: '#2E7D55' },
+  rejectBtn: { backgroundColor: 'rgba(220,38,38,0.12)', borderWidth: 1, borderColor: '#C94A4A' },
+  completeBtn: { backgroundColor: '#1F4D3A' },
   actionBtnText: { color: '#FFF', fontSize: 13, fontWeight: '800' },
 });

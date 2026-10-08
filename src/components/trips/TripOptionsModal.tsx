@@ -34,14 +34,14 @@ export const TripOptionsModal = ({ visible, trip, onShare, onDelete, onCancel }:
         <Animated.View style={[styles.dialog, { transform: [{ scale }] }]}>
           {/* Top Icon Circle */}
           <View style={styles.iconContainer}>
-            <Icon name="briefcase-outline" size={26} color="#63300E" style={styles.suitcase} />
-            <Icon name="leaf-outline" size={14} color="#63300E" style={styles.subIcon} />
+            <Icon name="briefcase-outline" size={26} color="#16392B" style={styles.suitcase} />
+            <Icon name="leaf-outline" size={14} color="#16392B" style={styles.subIcon} />
             {/* Sparkles */}
             <View style={styles.sparkleTopLeft}>
-              <Icon name="sparkles" size={10} color="#E0A774" />
+              <Icon name="sparkles" size={10} color="#1F4D3A" />
             </View>
             <View style={styles.sparkleBottomRight}>
-              <Icon name="sparkles" size={8} color="#E0A774" />
+              <Icon name="sparkles" size={8} color="#1F4D3A" />
             </View>
           </View>
 
@@ -51,19 +51,19 @@ export const TripOptionsModal = ({ visible, trip, onShare, onDelete, onCancel }:
           {/* Divider with Star */}
           <View style={styles.dividerContainer}>
             <View style={styles.dividerLine} />
-            <Icon name="star" size={12} color="#C49B74" style={styles.dividerStar} />
+            <Icon name="star" size={12} color="#B7791F" style={styles.dividerStar} />
             <View style={styles.dividerLine} />
           </View>
 
           {/* Action Buttons */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity 
-              style={[styles.actionBtn, { backgroundColor: '#FDF7F2', borderColor: '#FDF7F2' }]} 
+              style={[styles.actionBtn, { backgroundColor: '#F7F6F1', borderColor: '#F7F6F1' }]} 
               onPress={() => onShare(trip)} 
               activeOpacity={0.8}
             >
-              <Icon name="share-social-outline" size={18} color="#63300E" />
-              <Text style={[styles.actionText, { color: '#63300E' }]}>Share</Text>
+              <Icon name="share-social-outline" size={18} color="#16392B" />
+              <Text style={[styles.actionText, { color: '#16392B' }]}>Share</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -71,17 +71,17 @@ export const TripOptionsModal = ({ visible, trip, onShare, onDelete, onCancel }:
               onPress={() => onDelete(trip)} 
               activeOpacity={0.8}
             >
-              <Icon name="trash-outline" size={18} color="#EF4444" />
-              <Text style={[styles.actionText, { color: '#EF4444' }]}>Delete</Text>
+              <Icon name="trash-outline" size={18} color="#C94A4A" />
+              <Text style={[styles.actionText, { color: '#C94A4A' }]}>Delete</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.actionBtn, { backgroundColor: '#F8F6F4', borderColor: '#F8F6F4' }]} 
+              style={[styles.actionBtn, { backgroundColor: '#F7F6F1', borderColor: '#F7F6F1' }]} 
               onPress={onCancel} 
               activeOpacity={0.8}
             >
-              <Icon name="close-outline" size={20} color="#2D241D" />
-              <Text style={[styles.actionText, { color: '#2D241D' }]}>Cancel</Text>
+              <Icon name="close-outline" size={20} color="#1D2420" />
+              <Text style={[styles.actionText, { color: '#1D2420' }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -93,7 +93,7 @@ export const TripOptionsModal = ({ visible, trip, onShare, onDelete, onCancel }:
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(20, 16, 12, 0.5)',
+    backgroundColor: 'rgba(29, 36, 32, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     paddingHorizontal: 20,
     alignItems: 'center',
-    shadowColor: '#2D241D',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.08,
     shadowRadius: 24,
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: '#FDF7F2',
+    backgroundColor: '#F7F6F1',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
@@ -143,13 +143,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#2D241D',
+    color: '#1D2420',
     marginBottom: 8,
     textAlign: 'center',
   },
   description: {
     fontSize: 15,
-    color: '#5C534C',
+    color: '#68756D',
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#F3EBE3',
+    backgroundColor: '#F7F6F1',
   },
   dividerStar: {
     marginHorizontal: 12,

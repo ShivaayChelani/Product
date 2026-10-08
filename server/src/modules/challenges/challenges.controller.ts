@@ -3,6 +3,7 @@ import { challengesService } from './challenges.service';
 import { catchAsync } from '../../shared/utils/catchAsync';
 import { sendSuccess, sendCreated } from '../../shared/utils/response';
 import { ChallengeStatus } from '@prisma/client';
+import { ADMIN_ROLES, hasRole } from '../../middleware/auth';
 
 export const challengesController = {
   listApproved: catchAsync(async (req: Request, res: Response) => {
@@ -10,8 +11,14 @@ export const challengesController = {
     sendSuccess(res, result.data, { pagination: result.pagination });
   }),
 
-  getById: catchAsync(async (req: Request, res: Response) => {
-    const challenge = await challengesService.getById(req.params.id as string);
+  getById: catchAsync(async (req: any, res: Response) => {
+    const viewer = req.user?.id
+      ? {
+          id: req.user.id,
+          isAdmin: ADMIN_ROLES.some((role) => hasRole(req.user, role)),
+        }
+      : null;
+    const challenge = await challengesService.getById(req.params.id as string, viewer);
     sendSuccess(res, challenge);
   }),
 

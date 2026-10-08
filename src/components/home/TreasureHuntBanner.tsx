@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     fontWeight: '900',
-    color: '#9C642A',
+    color: '#111111',
     lineHeight: 36,
     letterSpacing: -0.5,
   },
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   ctaPill: {
-    backgroundColor: '#A1622D',
+    backgroundColor: '#111111',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 24,

@@ -1,17 +1,19 @@
 import { prisma } from '../../../config/database';
-import { generateSlug } from './places.helpers';
+import { generateSlug, sanitizeImageMetadata } from './places.helpers';
 import { validateBulkCoordinates } from './place-coordinates';
 
 export interface BulkPlaceInput {
   name: string;
   description?: string;
   shortDescription?: string;
+  canonicalName?: string | null;
   latitude?: number;
   longitude?: number;
   category?: string;
   tags?: string[];
   images?: string[];
   city?: string;
+  district?: string;
   state?: string;
   country?: string;
   openingHours?: Record<string, unknown>;
@@ -26,6 +28,12 @@ export interface BulkPlaceInput {
     adult?: number;
     child?: number;
     foreigner?: number;
+  };
+  imageMetadata?: {
+    image_page_url?: string | null;
+    image_source?: string | null;
+    image_author?: string | null;
+    image_license?: string | null;
   };
   editorialPriority?: number;
 }
@@ -141,6 +149,9 @@ export const placesBulkService = {
                 city: p.city ?? '',
                 state: p.state ?? '',
                 country: p.country ?? 'India',
+                district: p.district ?? '',
+                canonicalName: p.canonicalName || null,
+                imageMetadata: sanitizeImageMetadata(p.imageMetadata),
                 openingHours: p.openingHours ?? undefined,
                 ticketPrice: p.ticketPrice ?? undefined,
                 bestTimeToVisit: p.bestTimeToVisit ? { bestMonths: p.bestTimeToVisit } : undefined,
@@ -185,6 +196,9 @@ export const placesBulkService = {
               if (p.images) data.images = p.images;
               if (p.city) data.city = p.city;
               if (p.state) data.state = p.state;
+              if (p.district) data.district = p.district;
+              if (p.canonicalName !== undefined) data.canonicalName = p.canonicalName || null;
+              if (p.imageMetadata !== undefined) data.imageMetadata = sanitizeImageMetadata(p.imageMetadata);
               if (p.openingHours) data.openingHours = p.openingHours;
               if (p.ticketPrice) data.ticketPrice = p.ticketPrice;
               if (p.bestTimeToVisit) data.bestTimeToVisit = { bestMonths: p.bestTimeToVisit };

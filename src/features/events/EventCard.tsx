@@ -1,11 +1,4 @@
-/**
- * Community Event card.
- *
- * One card for both the Events feed and Home's strip so a "Festival" looks the
- * same wherever a traveller meets it. Blue-based on purpose: the app's Home
- * surface is brown/gold, and copying that palette here made events read as
- * vendor offers rather than civic programming.
- */
+/** Community Event card shared by the Events feed and Home's event strip. */
 import React, { memo } from 'react';
 import {
   Image,
@@ -27,20 +20,21 @@ import {
   formatEventLocation,
   formatEventTimeRange,
 } from './eventFormat';
+import { palette } from '../../config/theme';
 
 export const EVENT_COLORS = {
-  accent: '#1E5FD9',
-  accentSoft: '#EEF3FE',
-  accentBorder: '#D7E2FB',
-  live: '#0F9D58',
-  liveSoft: '#E7F5EC',
-  soon: '#B45309',
-  soonSoft: '#FFF4E5',
-  text: '#0F172A',
-  textSecondary: '#64748B',
-  textBody: '#475569',
-  border: '#E4E9F2',
-  card: '#FFFFFF',
+  accent: palette.primary,
+  accentSoft: '#F0EFEB',
+  accentBorder: palette.border,
+  live: '#111111',
+  liveSoft: '#111111',
+  soon: '#6B6B6B',
+  soonSoft: '#F0EFEB',
+  text: palette.text,
+  textSecondary: palette.textSecondary,
+  textBody: palette.text,
+  border: palette.border,
+  card: palette.surface,
 } as const;
 
 export type EventCardLayout = 'feed' | 'strip';
@@ -174,7 +168,7 @@ const styles = StyleSheet.create({
     borderColor: EVENT_COLORS.border,
     marginBottom: 14,
     overflow: 'hidden',
-    shadowColor: '#0F172A',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.07,
     shadowRadius: 14,
@@ -195,10 +189,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: EVENT_COLORS.accentBorder,
   },
-  badgeLive: { backgroundColor: EVENT_COLORS.liveSoft, borderColor: '#BFE6CE' },
-  badgeFeatured: { backgroundColor: EVENT_COLORS.soonSoft, borderColor: '#F5D9AE' },
+  badgeLive: { backgroundColor: '#111111', borderColor: '#111111' },
+  badgeFeatured: { backgroundColor: '#F0EFEB', borderColor: EVENT_COLORS.border },
   badgeText: { fontSize: 10.5, fontWeight: '700', color: EVENT_COLORS.accent, letterSpacing: 0.2 },
-  badgeTextLive: { color: EVENT_COLORS.live },
+  badgeTextLive: { color: '#FFFFFF' },
   body: { padding: 14, gap: 6 },
   title: { fontSize: 16, fontWeight: '700', color: EVENT_COLORS.text, lineHeight: 21 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

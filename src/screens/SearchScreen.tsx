@@ -18,6 +18,7 @@ import { parseJsonStringArray } from '../utils/safeJson';
 import { useHeaderSafePadding, useBottomSafePadding, useResponsive } from '../design/responsive';
 import { useNavigation } from '@react-navigation/native';
 import { isGenericDestination, placeBelongsToDestination } from '../utils/destination';
+import { palette } from '../config/theme';
 import {
   buildNearbyRenderableRows,
   buildUniversalRenderableRows,
@@ -27,26 +28,26 @@ import {
 } from '../utils/searchItineraryRows';
 
 // -----------------------------------------------------------------------------
-// Local skin/bronze/cream design system for the search experience
+// Search surfaces use the shared PalSafar palette.
 // -----------------------------------------------------------------------------
 const C = {
-  primary: '#B9834B',
-  primaryDark: '#63300E',
-  sky: '#D4A87A',
-  primarySoft: 'rgba(185, 131, 75, 0.10)',
-  primarySofter: 'rgba(185, 131, 75, 0.06)',
-  background: '#FFFFFF',
-  surface: '#FFFFFF',
-  surfaceMuted: '#FFFFFF',
-  skeleton: '#E8D9C4',
-  border: 'rgba(200, 155, 60, 0.15)',
-  borderStrong: 'rgba(200, 155, 60, 0.30)',
-  text: '#2C1810',
-  textSecondary: '#8B7355',
-  textMuted: '#B8A88A',
-  rating: '#FF9F1C',
-  white: '#FFFFFF',
-  cardShadow: 'rgba(185, 131, 75, 0.15)',
+  primary: palette.primary,
+  primaryDark: palette.primaryDark,
+  sky: palette.primaryLight,
+  primarySoft: 'rgba(31, 77, 58, 0.10)',
+  primarySofter: 'rgba(31, 77, 58, 0.06)',
+  background: palette.background,
+  surface: palette.surface,
+  surfaceMuted: palette.background,
+  skeleton: palette.primaryLight,
+  border: palette.border,
+  borderStrong: 'rgba(31, 77, 58, 0.3)',
+  text: palette.text,
+  textSecondary: palette.textSecondary,
+  textMuted: palette.textSecondary,
+  rating: palette.primary,
+  white: palette.surface,
+  cardShadow: 'rgba(29, 36, 32, 0.15)',
 } as const;
 
 const FILTERS = ['All', 'Places', 'Vendors', 'Offers', 'Events'] as const;
@@ -1331,7 +1332,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 248, 235, 0.95)',
+    backgroundColor: 'rgba(247, 246, 241, 0.95)',
     borderWidth: 1,
     borderColor: C.borderStrong,
   },

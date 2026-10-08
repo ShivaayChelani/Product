@@ -1,149 +1,9 @@
+import { darkTheme, lightTheme } from '../config/theme';
+
 export const PalSafarDesign = {
   colors: {
-    light: {
-      // Home-screen cream / bronze palette (canonical app light theme)
-      primary: '#B9834B',
-      primaryDark: '#63300E',
-      primaryLight: '#D4A87A',
-      primarySoft: 'rgba(185, 131, 75, 0.12)',
-      highlight: '#D4A87A',
-      buttonText: '#FFFFFF',
-      secondary: '#8B6B3A',
-      secondaryDark: '#63300E',
-      secondarySoft: 'rgba(139, 107, 58, 0.12)',
-      accent: '#B9834B',
-      accentDark: '#8B6B3A',
-      accentSoft: 'rgba(185, 131, 75, 0.12)',
-      success: '#2ECC71',
-      successSoft: 'rgba(46, 204, 113, 0.12)',
-      warning: '#FF9F1C',
-      warningSoft: 'rgba(255, 159, 28, 0.12)',
-      danger: '#FF5A5F',
-      dangerSoft: 'rgba(255, 90, 95, 0.12)',
-      error: '#FF5A5F',
-
-      background: '#FEF0E3',
-      backgroundSecondary: '#FEF0E3',
-      surface: '#FFFFFF',
-      surfaceElevated: '#F9F9F9',
-      surfaceSoft: '#FEF0E3',
-      surfaceHover: '#F9F9F9',
-      card: '#FFFFFF',
-      cardHover: '#F9F9F9',
-
-      text: '#2C1810',
-      textSecondary: '#8B7355',
-      textMuted: '#B8A88A',
-      textInverse: '#FFFFFF',
-      textLink: '#B9834B',
-
-      border: 'rgba(200, 155, 60, 0.15)',
-      borderSoft: 'rgba(200, 155, 60, 0.08)',
-      borderFocus: '#B9834B',
-      borderError: '#FF5A5F',
-
-      overlay: 'rgba(44, 24, 16, 0.45)',
-      overlayLight: 'rgba(44, 24, 16, 0.2)',
-
-      shadow: 'rgba(200, 155, 60, 0.15)',
-      shadowMedium: 'rgba(185, 131, 75, 0.2)',
-      shadowStrong: 'rgba(99, 48, 14, 0.25)',
-      glow: 'rgba(185, 131, 75, 0.35)',
-
-      mapWater: '#A8C5D4',
-      mapLand: '#E8D9C4',
-      mapRoad: '#D4C4A8',
-      mapRoute: '#B9834B',
-      hiddenGem: '#D4A87A',
-      heritage: '#B9834B',
-      nature: '#2ECC71',
-      water: '#4FC3F7',
-      reward: '#B9834B',
-
-      gradient: {
-        primary: ['#B9834B', '#D4A87A'],
-        primaryReverse: ['#D4A87A', '#B9834B'],
-        secondary: ['#FFFFFF', '#F9F9F9'],
-        accent: ['#B9834B', '#8B6B3A'],
-        gold: ['#B9834B', '#D4A87A'],
-        sunset: ['#FF5A5F', '#FF9F1C'],
-        ocean: ['#4FC3F7', '#2ECC71'],
-        dark: ['#63300E', '#8B6B3A'],
-        cream: ['#FFFFFF', '#FFFFFF', '#FFFFFF'],
-      },
-    },
-
-    dark: {
-      primary: '#B9834B',
-      primaryDark: '#63300E',
-      primaryLight: '#D4A87A',
-      primarySoft: 'rgba(185, 131, 75, 0.15)',
-      highlight: '#D4A87A',
-      buttonText: '#FFFFFF',
-      secondary: '#D4A87A',
-      secondaryDark: '#8B6B3A',
-      secondarySoft: 'rgba(212, 168, 122, 0.15)',
-      accent: '#B9834B',
-      accentDark: '#8B6B3A',
-      accentSoft: 'rgba(185, 131, 75, 0.15)',
-      success: '#2ECC71',
-      successSoft: 'rgba(46, 204, 113, 0.15)',
-      warning: '#FF9F1C',
-      warningSoft: 'rgba(255, 159, 28, 0.15)',
-      danger: '#FF5A5F',
-      dangerSoft: 'rgba(255, 90, 95, 0.15)',
-      error: '#FF5A5F',
-
-      background: '#1A120C',
-      backgroundSecondary: '#241810',
-      surface: '#2A1E14',
-      surfaceElevated: '#3A2A1C',
-      surfaceSoft: '#20160E',
-      surfaceHover: '#3A2A1C',
-      card: '#2A1E14',
-      cardHover: '#3A2A1C',
-
-      text: '#FFFFFF',
-      textSecondary: '#D4C4A8',
-      textMuted: '#8B7355',
-      textInverse: '#2C1810',
-      textLink: '#D4A87A',
-
-      border: 'rgba(185, 131, 75, 0.25)',
-      borderSoft: 'rgba(185, 131, 75, 0.12)',
-      borderFocus: '#B9834B',
-      borderError: '#FF5A5F',
-
-      overlay: 'rgba(0, 0, 0, 0.7)',
-      overlayLight: 'rgba(0, 0, 0, 0.5)',
-
-      shadow: 'rgba(0, 0, 0, 0.4)',
-      shadowMedium: 'rgba(0, 0, 0, 0.5)',
-      shadowStrong: 'rgba(0, 0, 0, 0.6)',
-      glow: 'rgba(185, 131, 75, 0.4)',
-
-      mapWater: '#0F1620',
-      mapLand: '#162218',
-      mapRoad: '#1C1C1E',
-      mapRoute: '#B9834B',
-      hiddenGem: '#D4A87A',
-      heritage: '#B9834B',
-      nature: '#2ECC71',
-      water: '#4FC3F7',
-      reward: '#B9834B',
-
-      gradient: {
-        primary: ['#B9834B', '#63300E'],
-        primaryReverse: ['#63300E', '#B9834B'],
-        secondary: ['#D4A87A', '#8B6B3A'],
-        accent: ['#B9834B', '#8B6B3A'],
-        gold: ['#B9834B', '#D4A87A'],
-        sunset: ['#FF5A5F', '#FF9F1C'],
-        ocean: ['#3DA5FF', '#4FC3F7'],
-        dark: ['#1A120C', '#2A1E14'],
-        cream: ['#1A120C', '#241810', '#1A120C'],
-      },
-    },
+    light: lightTheme,
+    dark: darkTheme,
   },
 
   spacing: {
@@ -249,14 +109,14 @@ export const PalSafarDesign = {
       elevation: 12,
     },
     glow: {
-      shadowColor: '#B9834B',
+      shadowColor: '#1F4D3A',
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.35,
       shadowRadius: 20,
       elevation: 8,
     },
     goldGlow: {
-      shadowColor: '#B9834B',
+      shadowColor: '#1F4D3A',
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.35,
       shadowRadius: 20,
@@ -299,7 +159,7 @@ export const PalSafarDesign = {
   },
 };
 
-export type PalColors = typeof Pal.colors.light;
+export type PalColors = typeof Pal.colors.light | typeof Pal.colors.dark;
 export type PalTheme = 'light' | 'dark';
 
 export const getColors = (theme: PalTheme): PalColors => Pal.colors[theme];
@@ -320,11 +180,11 @@ for (const _k of _cKeys) {
 }
 
 export const glassCardStyle: ViewStyle = {
-  backgroundColor: 'rgba(251, 239, 226, 0.92)',
+  backgroundColor: 'rgba(247, 246, 241, 0.92)',
   borderRadius: 16,
   borderWidth: 1,
-  borderColor: 'rgba(200, 155, 60, 0.15)',
-  shadowColor: 'rgba(185, 131, 75, 0.25)',
+  borderColor: 'rgba(183, 121, 31, 0.15)',
+  shadowColor: 'rgba(183, 121, 31, 0.25)',
   shadowOffset: { width: 0, height: 4 },
   shadowOpacity: 0.2,
   shadowRadius: 12,

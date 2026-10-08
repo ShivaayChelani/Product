@@ -35,12 +35,10 @@ export function buildReelShareUrl(reelId: string): string | null {
 }
 
 /**
- * Public Community Event URL: https://palsafar.in/event/:slugOrId
+ * Public Community Event URL: https://palsafar.in/event/:id
  *
- * The server resolves `GET /api/v1/events/:idOrSlug`, so the slug and the cuid
- * are equally valid. The slug is preferred because it is stable and readable;
- * both go through the same `isShareableEntityId` gate so a crafted value can
- * never restructure the URL or climb out of `/event/`.
+ * Event shares use the stable event id. Public slug routes remain supported by
+ * website links and inbound deep links; they are not used for share payloads.
  */
 export function buildEventShareUrl(idOrSlug: string): string | null {
   if (!isShareableEntityId(idOrSlug)) return null;
@@ -121,21 +119,19 @@ export function buildReelShareMessage(reel: {
  */
 export function isPublicShareableEvent(event: {
   id?: string | null;
-  slug?: string | null;
   status?: string | null;
 }): boolean {
   if (event.status && event.status !== 'APPROVED') return false;
-  return isShareableEntityId(event.slug || event.id);
+  return isShareableEntityId(event.id);
 }
 
 export function buildEventShareMessage(event: {
   id: string;
-  slug?: string | null;
   status?: string | null;
   title?: string | null;
 }): string | null {
   if (!isPublicShareableEvent(event)) return null;
-  const url = buildEventShareUrl((event.slug || event.id).trim());
+  const url = buildEventShareUrl(event.id.trim());
   if (!url) return null;
   const title = (event.title || '').trim();
   return title

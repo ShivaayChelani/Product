@@ -61,7 +61,7 @@ function MapSegmentControlComponent({ active, onChange }: Props) {
 const styles = StyleSheet.create({
   track: {
     flexDirection: 'row',
-    backgroundColor: T.background,
+    backgroundColor: '#F0EFEB',
     borderRadius: T.radiusButton,
     borderWidth: 1,
     borderColor: T.border,
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     top: 4,
     left: 4,
     bottom: 4,
-    backgroundColor: T.primary,
+    backgroundColor: '#111111',
     borderRadius: T.radiusButton - 4,
   },
   segment: {

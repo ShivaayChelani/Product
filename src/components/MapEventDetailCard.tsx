@@ -23,6 +23,7 @@ import {
   formatEventLocation,
   formatEventTimeRange,
 } from '../features/events/eventFormat';
+import { palette } from '../config/theme';
 
 /**
  * Marker shape the map hands over. Subset of `MarkerData` — only what this card
@@ -175,7 +176,7 @@ export default function MapEventDetailCard({
               accessibilityRole="button"
               accessibilityLabel="Close"
             >
-              <Icon name="close" size={18} color="#0F172A" />
+              <Icon name="close" size={18} color="#1D2420" />
             </TouchableOpacity>
           </View>
 
@@ -273,14 +274,14 @@ export default function MapEventDetailCard({
 }
 
 const C = {
-  accent: '#1E5FD9',
-  accentSoft: '#EEF3FE',
-  featured: '#B45309',
-  text: '#0F172A',
-  textSecondary: '#64748B',
-  textBody: '#475569',
-  border: '#E4E9F2',
-  live: '#0F9D58',
+  accent: '#1F4D3A',
+  accentSoft: '#DDEBE3',
+  featured: '#16392B',
+  text: '#1D2420',
+  textSecondary: '#68756D',
+  textBody: '#68756D',
+  border: '#F7F6F1',
+  live: '#2E7D55',
   liveSoft: '#E7F5EC',
 };
 
@@ -296,7 +297,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 4,
     paddingBottom: 16,
-    shadowColor: '#0F172A',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.12,
     shadowRadius: 22,
@@ -343,11 +344,11 @@ const styles = StyleSheet.create({
     backgroundColor: C.accentSoft,
   },
   badgeLive: { backgroundColor: C.liveSoft },
-  badgeSoon: { backgroundColor: '#FFF4E5' },
-  badgeFeatured: { backgroundColor: '#FFF7ED' },
+  badgeSoon: { backgroundColor: palette.primaryLight },
+  badgeFeatured: { backgroundColor: palette.primaryLight },
   badgeText: { fontSize: 10.5, fontWeight: '700', color: C.accent, letterSpacing: 0.2 },
   badgeTextLive: { color: C.live },
-  badgeTextSoon: { color: '#B45309' },
+  badgeTextSoon: { color: '#16392B' },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
   metaText: { fontSize: 12.5, color: C.textSecondary, flexShrink: 1 },
   description: { fontSize: 12.5, color: C.textBody, marginTop: 5, lineHeight: 18 },

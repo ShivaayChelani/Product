@@ -17,7 +17,7 @@ const variantColors = {
   primary: { bg: Pal.colors.dark.primary, text: '#fff', border: 'transparent' },
   secondary: { bg: Pal.colors.dark.secondary, text: '#fff', border: 'transparent' },
   success: { bg: Pal.colors.dark.success, text: '#fff', border: 'transparent' },
-  warning: { bg: Pal.colors.dark.warning, text: '#1A1A2E', border: 'transparent' },
+  warning: { bg: Pal.colors.dark.warning, text: '#1D2420', border: 'transparent' },
   accent: { bg: Pal.colors.dark.accent, text: '#fff', border: 'transparent' },
   danger: { bg: Pal.colors.dark.danger, text: '#fff', border: 'transparent' },
   outline: { bg: 'transparent', text: Pal.colors.dark.primary, border: Pal.colors.dark.primary },

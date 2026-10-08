@@ -74,7 +74,7 @@ export default function PremiumUpgradeScreen({ onBack }: { onBack?: () => void }
       <View style={styles.header}>
         {onBack ? (
           <TouchableOpacity onPress={onBack} style={styles.back}>
-            <Icon name="chevron-back" size={24} color="#5D3A1B" />
+            <Icon name="chevron-back" size={24} color="#16392B" />
           </TouchableOpacity>
         ) : <View style={{ width: 40 }} />}
         <Text style={styles.title}>PalSafar Premium</Text>
@@ -82,12 +82,12 @@ export default function PremiumUpgradeScreen({ onBack }: { onBack?: () => void }
           onPress={() => navigation.navigate('BillingHistory')}
           style={styles.back}
         >
-          <Icon name="receipt-outline" size={22} color="#5D3A1B" />
+          <Icon name="receipt-outline" size={22} color="#16392B" />
         </TouchableOpacity>
       </View>
 
       {loading ? (
-        <View style={styles.center}><ActivityIndicator color="#A67B48" /></View>
+        <View style={styles.center}><ActivityIndicator color="#B7791F" /></View>
       ) : error ? (
         <View style={styles.center}>
           <Text style={styles.error}>{error}</Text>
@@ -96,7 +96,7 @@ export default function PremiumUpgradeScreen({ onBack }: { onBack?: () => void }
       ) : (
         <ScrollView contentContainerStyle={[styles.list, { paddingBottom: contentPadBottom }]} showsVerticalScrollIndicator={false}>
           {isPremium ? (
-            <View style={{ backgroundColor: '#ECFDF5', borderRadius: 16, borderWidth: 1, borderColor: '#A7F3D0', padding: 16, gap: 4 }}>
+            <View style={{ backgroundColor: '#EAF3ED', borderRadius: 16, borderWidth: 1, borderColor: '#A7F3D0', padding: 16, gap: 4 }}>
               <Text style={{ fontFamily: SANS_BOLD, fontSize: 16, color: '#047857' }}>Premium active</Text>
               <Text style={{ fontFamily: SANS, fontSize: 13, color: '#065F46' }}>
                 {entitlements?.premiumExpiresAt
@@ -105,8 +105,8 @@ export default function PremiumUpgradeScreen({ onBack }: { onBack?: () => void }
               </Text>
             </View>
           ) : entitlements?.premiumExpired ? (
-            <View style={{ backgroundColor: '#FFF7ED', borderRadius: 16, borderWidth: 1, borderColor: '#FED7AA', padding: 16 }}>
-              <Text style={{ fontFamily: SANS_BOLD, fontSize: 16, color: '#9A3412' }}>Premium expired</Text>
+            <View style={{ backgroundColor: '#F8F0E1', borderRadius: 16, borderWidth: 1, borderColor: '#DDEBE3', padding: 16 }}>
+              <Text style={{ fontFamily: SANS_BOLD, fontSize: 16, color: '#B7791F' }}>Premium expired</Text>
             </View>
           ) : null}
  
@@ -122,19 +122,19 @@ export default function PremiumUpgradeScreen({ onBack }: { onBack?: () => void }
               <View style={styles.miniPerksRow}>
                 <View style={styles.miniPerk}>
                   <View style={styles.miniPerkIconWrap}>
-                    <Icon name="logo-closed-captioning" size={16} color="#B48530" />
+                    <Icon name="logo-closed-captioning" size={16} color="#B7791F" />
                   </View>
                   <Text style={styles.miniPerkText}>Ad-Free{'\n'}Experience</Text>
                 </View>
                 <View style={styles.miniPerk}>
                   <View style={styles.miniPerkIconWrap}>
-                    <Icon name="star" size={16} color="#B48530" />
+                    <Icon name="star" size={16} color="#B7791F" />
                   </View>
                   <Text style={styles.miniPerkText}>Premium{'\n'}Features</Text>
                 </View>
                 <View style={styles.miniPerk}>
                   <View style={styles.miniPerkIconWrap}>
-                    <Icon name="shield-checkmark" size={16} color="#B48530" />
+                    <Icon name="shield-checkmark" size={16} color="#B7791F" />
                   </View>
                   <Text style={styles.miniPerkText}>Secure{'\n'}& Private</Text>
                 </View>
@@ -145,9 +145,9 @@ export default function PremiumUpgradeScreen({ onBack }: { onBack?: () => void }
 
           {/* Section Divider */}
           <View style={styles.sectionDivider}>
-            <Icon name="diamond" size={8} color="#D8C3A5" />
+            <Icon name="diamond" size={8} color="#DDEBE3" />
             <Text style={styles.sectionDividerText}>Why Go Premium?</Text>
-            <Icon name="diamond" size={8} color="#D8C3A5" />
+            <Icon name="diamond" size={8} color="#DDEBE3" />
           </View>
 
           {/* Features List Card */}
@@ -216,34 +216,34 @@ const FeatureRow = ({ icon, title, subtitle, showDivider }: any) => (
   <View style={styles.featureRowWrap}>
     <View style={styles.featureRow}>
       <View style={styles.featureIconWrap}>
-        <Icon name={icon} size={18} color="#8F6220" />
+        <Icon name={icon} size={18} color="#B7791F" />
       </View>
       <View style={styles.featureTextWrap}>
         <Text style={styles.featureTitle}>{title}</Text>
         <Text style={styles.featureSubtitle}>{subtitle}</Text>
       </View>
-      <Icon name="chevron-forward" size={18} color="#D8C3A5" />
+      <Icon name="chevron-forward" size={18} color="#DDEBE3" />
     </View>
     {showDivider && <View style={styles.featureDivider} />}
   </View>
 );
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FDF9F2' },
+  safe: { flex: 1, backgroundColor: '#F7F6F1' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10 },
   back: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  title: { flex: 1, textAlign: 'center', fontSize: 18, fontFamily: SANS_BOLD, color: '#5D3A1B' },
+  title: { flex: 1, textAlign: 'center', fontSize: 18, fontFamily: SANS_BOLD, color: '#16392B' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  error: { color: '#8B7355', marginBottom: 12, textAlign: 'center' },
-  btnTry: { backgroundColor: '#B9834B', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24, alignItems: 'center' },
+  error: { color: '#68756D', marginBottom: 12, textAlign: 'center' },
+  btnTry: { backgroundColor: '#1F4D3A', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24, alignItems: 'center' },
   btnTryText: { color: '#fff', fontFamily: SANS_BOLD },
   list: { padding: 20, paddingTop: 10, gap: 24 },
   
   heroCard: {
-    backgroundColor: '#FCF7ED',
+    backgroundColor: '#F7F6F1',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#F2E5D0',
+    borderColor: '#DDEBE3',
     overflow: 'hidden',
     padding: 20,
     minHeight: 280,
@@ -259,20 +259,20 @@ const styles = StyleSheet.create({
   heroTitleMain: {
     fontFamily: SANS_BOLD,
     fontSize: 22,
-    color: '#3F220B',
+    color: '#1D2420',
     lineHeight: 28,
   },
   heroTitleAccent: {
     fontFamily: SANS_BOLD,
     fontSize: 22,
-    color: '#D4A35C',
+    color: '#B7791F',
     lineHeight: 28,
     marginBottom: 8,
   },
   heroSubtitle: {
     fontFamily: SANS,
     fontSize: 12,
-    color: '#4A3D33',
+    color: '#16392B',
     lineHeight: 18,
     paddingRight: 10,
     marginBottom: 20,
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#EAE1D5',
+    borderColor: '#DDEBE3',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   miniPerkText: {
     fontFamily: SANS,
     fontSize: 9,
-    color: '#4A3D33',
+    color: '#16392B',
     textAlign: 'center',
     lineHeight: 12,
   },
@@ -323,14 +323,14 @@ const styles = StyleSheet.create({
   sectionDividerText: {
     fontFamily: SANS_BOLD,
     fontSize: 14,
-    color: '#3F220B',
+    color: '#1D2420',
   },
 
   featuresCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#EAE1D5',
+    borderColor: '#DDEBE3',
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F9F1E2',
+    backgroundColor: '#F7F6F1',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontFamily: SANS_BOLD,
     fontSize: 14,
-    color: '#1A130D',
+    color: '#1D2420',
     marginBottom: 2,
   },
   featureSubtitle: {
@@ -367,15 +367,15 @@ const styles = StyleSheet.create({
   },
   featureDivider: {
     height: 1,
-    backgroundColor: '#F2E8DB',
+    backgroundColor: '#F7F6F1',
     width: '100%',
   },
 
   pricingCard: {
-    backgroundColor: '#FCF7ED',
+    backgroundColor: '#F7F6F1',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#EAE1D5',
+    borderColor: '#DDEBE3',
     padding: 20,
     paddingTop: 28,
     position: 'relative',
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -12,
     left: 20,
-    backgroundColor: '#C8944E',
+    backgroundColor: '#B7791F',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
   pricingPlanName: {
     fontFamily: SANS_BOLD,
     fontSize: 16,
-    color: '#3F220B',
+    color: '#1D2420',
     marginBottom: 2,
   },
   pricingCancelText: {
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
   priceAmount: {
     fontFamily: SANS_BOLD,
     fontSize: 28,
-    color: '#5D3A1B',
+    color: '#16392B',
   },
   pricePeriod: {
     fontFamily: SANS,
@@ -431,14 +431,14 @@ const styles = StyleSheet.create({
     color: '#8A7664',
   },
   upgradeBtn: {
-    backgroundColor: '#AD762E',
+    backgroundColor: '#B7791F',
     borderRadius: 12,
     paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: '#AD762E',
+    shadowColor: '#B7791F',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 10,
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
   footerDivider: {
     width: 1,
     height: '100%',
-    backgroundColor: '#D8C3A5',
+    backgroundColor: '#DDEBE3',
     marginHorizontal: 10,
   },
   footerText: {

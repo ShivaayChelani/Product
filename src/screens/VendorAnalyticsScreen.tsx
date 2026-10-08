@@ -23,24 +23,24 @@ import { useDataContext } from '../context/DataContext';
 import { useNavigation } from '@react-navigation/native';
 
 const C = {
-  bg: '#F7F5F2',
+  bg: '#F7F6F1',
   white: '#FFFFFF',
   soft: '#FFFFFF',
-  softOrange: '#FFF3E8',
+  softOrange: '#F7F6F1',
   softGreen: '#EAF7F0',
-  softPurple: '#F3EEF8',
-  softBlue: '#EAF2FB',
-  text: '#3B1E12',
-  textSecondary: '#8B7355',
-  textMuted: '#B8A88A',
-  primary: '#A67C52',
-  deep: '#3B1E12',
-  bronze: '#B9834B',
-  success: '#16A34A',
-  border: '#EDE6DC',
+  softPurple: '#F7F6F1',
+  softBlue: '#F7F6F1',
+  text: '#1D2420',
+  textSecondary: '#68756D',
+  textMuted: '#68756D',
+  primary: '#1F4D3A',
+  deep: '#1D2420',
+  bronze: '#1F4D3A',
+  success: '#2E7D55',
+  border: '#DDEBE3',
   pink: '#E8A0BF',
-  purple: '#8B6BB5',
-  visitors: '#6B3F2A',
+  purple: '#68756D',
+  visitors: '#16392B',
 };
 
 interface VendorAnalyticsScreenProps {
@@ -112,7 +112,7 @@ function MultiLineChart({
             <Path
               key={t}
               d={`M ${pad.left} ${y} L ${pad.left + innerW} ${y}`}
-              stroke="#F0E8DC"
+              stroke="#F7F6F1"
               strokeWidth={1}
             />
           );
@@ -177,7 +177,7 @@ function PeakHoursHeatmap({ intensity }: { intensity: number[][] }) {
                   {
                     width: cellW - 2,
                     height: cellH,
-                    backgroundColor: `rgba(107, 63, 42, ${alpha.toFixed(2)})`,
+                    backgroundColor: `rgba(22, 57, 43, ${alpha.toFixed(2)})`,
                   },
                 ]}
               />
@@ -484,8 +484,8 @@ export default function VendorAnalyticsScreen({ onBack: _onBack, vendorId, vendo
                     value: compact(Math.round(peopleSawOffers * 1.45) || 1256),
                     trend: viewsTrend,
                     icon: 'eye-outline' as const,
-                    iconBg: '#FFF3E8',
-                    iconColor: '#E8A04A',
+                    iconBg: '#F7F6F1',
+                    iconColor: '#1F4D3A',
                   },
                   {
                     key: 'offerViews',
@@ -494,7 +494,7 @@ export default function VendorAnalyticsScreen({ onBack: _onBack, vendorId, vendo
                     trend: viewsTrend,
                     icon: 'pricetag-outline' as const,
                     iconBg: '#EAF7F0',
-                    iconColor: '#16A34A',
+                    iconColor: '#2E7D55',
                   },
                   {
                     key: 'usersUsed',
@@ -502,8 +502,8 @@ export default function VendorAnalyticsScreen({ onBack: _onBack, vendorId, vendo
                     value: compact(summary.customers || 156),
                     trend: visitorsTrend,
                     icon: 'people-outline' as const,
-                    iconBg: '#F3EEF8',
-                    iconColor: '#8B6BB5',
+                    iconBg: '#F7F6F1',
+                    iconColor: '#68756D',
                   },
                   {
                     key: 'offerRedeems',
@@ -520,8 +520,8 @@ export default function VendorAnalyticsScreen({ onBack: _onBack, vendorId, vendo
                     value: compact(summary.pointsReceived || 24750),
                     trend: pointsTrend,
                     palPoints: true,
-                    iconBg: '#FEF9E7',
-                    iconColor: '#F5C542',
+                    iconBg: '#F7F6F1',
+                    iconColor: '#B7791F',
                   },
                 ].map((m) => (
                   <TouchableOpacity
@@ -545,9 +545,9 @@ export default function VendorAnalyticsScreen({ onBack: _onBack, vendorId, vendo
                       <Ionicons
                         name={m.trend.up ? 'arrow-up' : 'arrow-down'}
                         size={11}
-                        color={m.trend.up ? C.success : '#EF4444'}
+                        color={m.trend.up ? C.success : '#C94A4A'}
                       />
-                      <Text style={[styles.trendFiveText, { color: m.trend.up ? C.success : '#EF4444' }]}>
+                      <Text style={[styles.trendFiveText, { color: m.trend.up ? C.success : '#C94A4A' }]}>
                         {m.trend.pct}% vs last {dateRange} days
                       </Text>
                     </View>
@@ -558,10 +558,10 @@ export default function VendorAnalyticsScreen({ onBack: _onBack, vendorId, vendo
               {/* Multi-Line Performance Graph */}
               <View style={styles.graphLegendRow}>
                 {[
-                  { color: '#E8A04A', label: 'Profile Views' },
-                  { color: '#16A34A', label: 'Offer Views' },
-                  { color: '#8B6BB5', label: 'Users Used Offer' },
-                  { color: '#F5C542', label: 'PalPoints Redeemed' },
+                  { color: '#1F4D3A', label: 'Profile Views' },
+                  { color: '#2E7D55', label: 'Offer Views' },
+                  { color: '#68756D', label: 'Users Used Offer' },
+                  { color: '#B7791F', label: 'PalPoints Redeemed' },
                 ].map((l) => (
                   <View key={l.label} style={styles.legendItem}>
                     <View style={[styles.legendDot, { backgroundColor: l.color }]} />
@@ -573,19 +573,19 @@ export default function VendorAnalyticsScreen({ onBack: _onBack, vendorId, vendo
               <MultiLineChart
                 width={chartWidth}
                 series={[
-                  { color: '#E8A04A', values: chartData.views.map(v => Math.round(v * 1.45)) },
-                  { color: '#16A34A', values: chartData.views },
-                  { color: '#8B6BB5', values: chartData.visitors },
-                  { color: '#F5C542', values: chartData.redeems.map(r => r * 15) },
+                  { color: '#1F4D3A', values: chartData.views.map(v => Math.round(v * 1.45)) },
+                  { color: '#2E7D55', values: chartData.views },
+                  { color: '#68756D', values: chartData.visitors },
+                  { color: '#B7791F', values: chartData.redeems.map(r => r * 15) },
                 ]}
                 labels={chartData.labels}
               />
 
               {/* Insight Banner */}
               <View style={styles.insightBanner}>
-                <Ionicons name="bulb-outline" size={16} color="#B9834B" />
+                <Ionicons name="bulb-outline" size={16} color="#1F4D3A" />
                 <Text style={styles.insightBannerText}>
-                  <Text style={{ fontWeight: '800', color: '#63300E' }}>Insight: </Text>
+                  <Text style={{ fontWeight: '800', color: '#16392B' }}>Insight: </Text>
                   Your profile views and PalPoints redemptions are up! Keep promoting offers to convert more customers.
                 </Text>
               </View>
@@ -609,7 +609,7 @@ export default function VendorAnalyticsScreen({ onBack: _onBack, vendorId, vendo
                   redemptions.slice(0, 8).map((r) => (
                     <View key={r.id} style={styles.historyItemRow}>
                       <View style={[styles.historyIconCircle, { backgroundColor: '#EAF7F0' }]}>
-                        <MaterialCommunityIcons name="gift-outline" size={18} color="#059669" />
+                        <MaterialCommunityIcons name="gift-outline" size={18} color="#2E7D55" />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.historyItemTitle} numberOfLines={1}>
@@ -671,7 +671,7 @@ const styles = StyleSheet.create({
   // Dark Luxury Business Banner
   darkBizBanner: {
     marginHorizontal: VendorUI.space.screen,
-    backgroundColor: '#21140E',
+    backgroundColor: '#1D2420',
     borderRadius: 20,
     padding: 16,
     flexDirection: 'row',
@@ -696,8 +696,8 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 27,
     borderWidth: 2,
-    borderColor: '#F5C542',
-    backgroundColor: '#3B2418',
+    borderColor: '#B7791F',
+    backgroundColor: '#1D2420',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -710,14 +710,14 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#5A3A28',
+    backgroundColor: '#16392B',
     alignItems: 'center',
     justifyContent: 'center',
   },
   darkBizAvatarLetter: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#FFF9F2',
+    color: '#F7F6F1',
   },
   darkBizCheckOverlay: {
     position: 'absolute',
@@ -731,13 +731,13 @@ const styles = StyleSheet.create({
   darkBizName: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#FFF9F2',
+    color: '#F7F6F1',
     flexShrink: 1,
   },
   darkBizCategory: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255,249,242,0.8)',
+    color: 'rgba(247,246,241,0.8)',
     marginTop: 2,
   },
   darkBizLocRow: {
@@ -748,7 +748,7 @@ const styles = StyleSheet.create({
   },
   darkBizLoc: {
     fontSize: 11,
-    color: 'rgba(255,249,242,0.75)',
+    color: 'rgba(247,246,241,0.75)',
     flexShrink: 1,
   },
   darkBizViewBtn: {
@@ -765,7 +765,7 @@ const styles = StyleSheet.create({
   darkBizViewBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFF9F2',
+    color: '#F7F6F1',
   },
 
   // Performance Overview Header
@@ -777,7 +777,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     borderWidth: 1,
     borderColor: C.border,
-    shadowColor: 'rgba(30,16,8,0.06)',
+    shadowColor: 'rgba(29,36,32,0.06)',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -800,7 +800,7 @@ const styles = StyleSheet.create({
   },
   rangePillsRow: {
     flexDirection: 'row',
-    backgroundColor: '#F3EFEA',
+    backgroundColor: '#F7F6F1',
     borderRadius: 12,
     padding: 3,
     gap: 3,
@@ -829,7 +829,7 @@ const styles = StyleSheet.create({
   },
   fiveMetricCard: {
     width: 144,
-    backgroundColor: '#FAF8F5',
+    backgroundColor: '#F7F6F1',
     borderRadius: 14,
     padding: 12,
     borderWidth: 1,
@@ -883,18 +883,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: '#FFF9F2',
+    backgroundColor: '#F7F6F1',
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#F5EBE0',
+    borderColor: '#F7F6F1',
     marginTop: 14,
   },
   insightBannerText: {
     flex: 1,
     fontSize: 11,
     fontWeight: '500',
-    color: '#8B7355',
+    color: '#68756D',
     lineHeight: 16,
   },
 
@@ -920,7 +920,7 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F3E8DC',
+    borderBottomColor: '#F7F6F1',
   },
   historyIconCircle: {
     width: 38,
@@ -971,7 +971,7 @@ const styles = StyleSheet.create({
 
   bizBanner: {
     marginHorizontal: VendorUI.space.screen,
-    backgroundColor: '#3B2418',
+    backgroundColor: '#1D2420',
     borderRadius: 18,
     padding: 14,
     flexDirection: 'row',
@@ -980,12 +980,12 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     overflow: 'hidden',
   },
-  bizThumb: { width: 52, height: 52, borderRadius: 12, backgroundColor: '#5A3A28' },
+  bizThumb: { width: 52, height: 52, borderRadius: 12, backgroundColor: '#16392B' },
   bizThumbFallback: { alignItems: 'center', justifyContent: 'center' },
   bizNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  bizName: { fontSize: 16, fontWeight: '800', color: '#FFF9F2', flexShrink: 1 },
+  bizName: { fontSize: 16, fontWeight: '800', color: '#F7F6F1', flexShrink: 1 },
   bizLocRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  bizLoc: { fontSize: 12, color: 'rgba(255,249,242,0.75)', flexShrink: 1 },
+  bizLoc: { fontSize: 12, color: 'rgba(247,246,241,0.75)', flexShrink: 1 },
 
   loadingBox: { paddingVertical: 80, alignItems: 'center' },
   loadingText: { marginTop: 12, fontSize: 14, color: C.textMuted },
@@ -1049,7 +1049,7 @@ const styles = StyleSheet.create({
   },
   rangePillActive: { backgroundColor: C.deep },
   rangePillText: { fontSize: 11, fontWeight: '800', color: C.textSecondary },
-  rangePillTextActive: { color: '#FFF9F2' },
+  rangePillTextActive: { color: '#F7F6F1' },
   legendRow: { flexDirection: 'row', gap: 14, marginBottom: 10 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },

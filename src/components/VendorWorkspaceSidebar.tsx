@@ -20,15 +20,15 @@ import { useUserContext } from '../context/UserContext';
 import { runAfterDrawerClose } from '../utils/runAfterDrawerClose';
 
 const C = {
-  bg: '#FDFBF8',
+  bg: '#F7F6F1',
   surface: '#FFFFFF',
-  deep: '#4D3227',
-  bronze: '#A67C52',
-  muted: '#8B7355',
-  border: '#E9D4BE',
+  deep: '#1D2420',
+  bronze: '#1F4D3A',
+  muted: '#68756D',
+  border: '#D9E0DB',
   soft: '#FFFFFF',
-  danger: '#EF4444',
-  primary: '#63300E',
+  danger: '#C94A4A',
+  primary: '#16392B',
 };
 
 type MenuItem = {
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(77, 50, 39, 0.42)',
+    backgroundColor: 'rgba(29, 36, 32, 0.42)',
   },
   panel: {
     position: 'absolute',
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.bg,
     borderTopRightRadius: 28,
     borderBottomRightRadius: 28,
-    shadowColor: '#4D3227',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 6, height: 0 },
     shadowOpacity: 0.18,
     shadowRadius: 20,
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     bottom: -3,
     borderRadius: 31,
     borderWidth: 2,
-    borderColor: 'rgba(166, 124, 82, 0.35)',
+    borderColor: 'rgba(183, 121, 31, 0.35)',
   },
   profileMeta: { flex: 1, minWidth: 0 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
   rowLabelDanger: { color: C.danger },
   rowSub: { fontSize: 11, color: C.muted, marginTop: 2, fontWeight: '500' },
   badge: {
-    backgroundColor: 'rgba(166, 124, 82, 0.14)',
+    backgroundColor: 'rgba(183, 121, 31, 0.14)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,

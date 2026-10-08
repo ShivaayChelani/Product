@@ -25,13 +25,13 @@ export const ProfileHeader = ({
       </View>
       <View style={styles.rightCol}>
         <TouchableOpacity style={styles.iconBtn} onPress={onNotificationPress} activeOpacity={0.8}>
-          <Icon name="notifications-outline" size={22} color="#1D192B" />
+          <Icon name="notifications-outline" size={22} color="#1D2420" />
           {unreadCount > 0 ? (
             <View style={styles.badge} />
           ) : null}
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconBtn} onPress={onSettingsPress} activeOpacity={0.8}>
-          <Icon name="settings-outline" size={22} color="#1D192B" />
+          <Icon name="settings-outline" size={22} color="#1D2420" />
         </TouchableOpacity>
       </View>
     </View>
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontFamily: SANS_BOLD,
     fontWeight: '800',
-    color: '#13111C',
+    color: '#1D2420',
     letterSpacing: -0.5,
   },
   titleUnderline: {
@@ -66,13 +66,13 @@ const styles = StyleSheet.create({
     left: 2,
     width: 32,
     height: 3,
-    backgroundColor: '#C49B74', // Or whichever brand brown color is appropriate
+    backgroundColor: '#B7791F', // Or whichever brand brown color is appropriate
     borderRadius: 2,
   },
   subtitle: {
     fontSize: 13,
     fontFamily: SANS,
-    color: '#6A6158',
+    color: '#68756D',
     lineHeight: 18,
   },
   rightCol: {
@@ -87,10 +87,10 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: '#FFF',
     borderWidth: 1,
-    borderColor: '#F3EBE3',
+    borderColor: '#F7F6F1',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#2B1D15',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 12,
-    backgroundColor: '#DF8B46',
+    backgroundColor: '#1F4D3A',
     width: 8,
     height: 8,
     borderRadius: 4,

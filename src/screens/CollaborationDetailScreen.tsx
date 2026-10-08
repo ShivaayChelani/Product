@@ -29,15 +29,15 @@ import {
 const C = {
   bg: '#FFFFFF',
   white: '#FFFFFF',
-  brown: '#4B3B30',
-  brownLight: '#8C7765',
+  brown: '#1D2420',
+  brownLight: '#68756D',
   text: '#1F1A17',
   textSub: '#5E544C',
   textMuted: '#A0968C',
-  border: '#E3DACD',
-  green: '#2E7D32',
+  border: '#D9E0DB',
+  green: '#2E7D55',
   red: '#D32F2F',
-  pending: '#F59E0B',
+  pending: '#B7791F',
 };
 
 type AndroidPromptState = {
@@ -178,7 +178,7 @@ export default function CollaborationDetailScreen() {
         {item.status === 'REVISION_REQUESTED' && isCreator ? (
           <View style={styles.revisionCard}>
             <View style={styles.revisionHeader}>
-              <Icon name="alert-circle" size={20} color="#B45309" />
+              <Icon name="alert-circle" size={20} color="#16392B" />
               <Text style={styles.revisionTitle}>Vendor requested changes</Text>
             </View>
             <Text style={styles.revisionBody}>
@@ -510,18 +510,18 @@ const styles = StyleSheet.create({
   },
   lockedText: { fontSize: 13, color: C.textMuted, marginLeft: 12, flex: 1 },
   revisionCard: {
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#F8F0E1',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#FDBA74',
+    borderColor: '#DDEBE3',
   },
   revisionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  revisionTitle: { fontSize: 15, fontWeight: '800', color: '#9A3412', flex: 1 },
-  revisionBody: { fontSize: 14, color: '#9A3412', lineHeight: 20 },
+  revisionTitle: { fontSize: 15, fontWeight: '800', color: '#B7791F', flex: 1 },
+  revisionBody: { fontSize: 14, color: '#B7791F', lineHeight: 20 },
   publishCard: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#EAF3ED',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,

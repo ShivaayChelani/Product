@@ -20,12 +20,12 @@ type Props = {
 };
 
 const COLORS = {
-  bg: '#FCF9F4',
+  bg: '#F7F6F1',
   card: '#FFFFFF',
-  gold: '#D9A441',
-  goldLight: '#FDF7EB',
+  gold: '#1F4D3A',
+  goldLight: '#F7F6F1',
   black: '#111111',
-  border: '#ECE3D7',
+  border: '#D9E0DB',
   textPrimary: '#202020',
   textSecondary: '#6F6F6F',
   timeText: '#888888',
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   },
   cardSelected: {
     borderColor: COLORS.gold,
-    backgroundColor: '#FFFDF9',
+    backgroundColor: '#F7F6F1',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 10,
-    color: '#B57C1E',
+    color: '#B7791F',
     fontWeight: '600',
   },
   cardBodyRow: {
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
   },
   statusBlock: {
     width: 140,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F7F6F1',
     borderWidth: 1,
     borderColor: '#F1F1F1',
     borderRadius: 12,
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#FAF7F2',
+    backgroundColor: '#F7F6F1',
   },
   btnSecondaryText: {
     fontSize: 12,
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#FAF7F2',
+    backgroundColor: '#F7F6F1',
   },
   btnPrimaryOutlineText: {
     fontSize: 12,
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.gold,
   },
   actionDelete: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#C94A4A',
   },
   actionText: {
     fontSize: 12,

@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E5E0D8',
+    borderColor: '#DDEBE3',
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: 12,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   pickerContainer: {
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E5E0D8',
+    borderColor: '#DDEBE3',
     borderRadius: borderRadius.md,
     marginBottom: spacing.md,
   },

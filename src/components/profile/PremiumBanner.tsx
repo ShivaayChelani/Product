@@ -21,7 +21,7 @@ export const PremiumBanner = ({ onUpgradePress }: PremiumBannerProps) => {
       <View style={styles.topRow}>
         <View style={styles.headerLeft}>
           <View style={styles.crownCircle}>
-            <Icon name="medal-outline" size={24} color="#7B563D" />
+            <Icon name="medal-outline" size={24} color="#68756D" />
           </View>
           <View style={styles.headerTextCol}>
             <Text style={styles.goPremiumText}>Go Premium</Text>
@@ -71,7 +71,7 @@ const PerkItem = ({
            <Text style={styles.palPointsText}>P</Text>
         </View>
       ) : (
-        <Icon name={icon as any} size={22} color="#A67B48" />
+        <Icon name={icon as any} size={22} color="#B7791F" />
       )}
     </View>
     <Text style={styles.perkLabel}>{label}</Text>
@@ -86,13 +86,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 20,
-    shadowColor: '#2B1D15',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 10,
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#F3EBE3',
+    borderColor: '#F7F6F1',
   },
   topRow: {
     flexDirection: 'row',
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#FDF7F2',
+    backgroundColor: '#F7F6F1',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -119,13 +119,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   goPremiumText: {
-    color: '#13111C',
+    color: '#1D2420',
     fontSize: 16,
     fontFamily: SANS_BOLD,
     marginBottom: 0,
   },
   subtitle: {
-    color: '#6A6158',
+    color: '#68756D',
     fontSize: 10,
     fontFamily: SANS,
     lineHeight: 12,
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   upgradeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#7B563D',
+    backgroundColor: '#68756D',
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 20,
@@ -159,19 +159,19 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FDF7F2',
+    backgroundColor: '#F7F6F1',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
     borderWidth: 1,
-    borderColor: '#E8DDD0',
+    borderColor: '#D9E0DB',
   },
   perkImage: {
     width: 40,
     height: 40,
   },
   perkLabel: {
-    color: '#13111C',
+    color: '#1D2420',
     fontSize: 9,
     fontFamily: SANS,
     textAlign: 'center',
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#F59E0B',
+    backgroundColor: '#B7791F',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,

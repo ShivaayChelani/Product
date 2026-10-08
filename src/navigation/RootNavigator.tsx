@@ -63,7 +63,7 @@ function MonitoredNavigation({ children, linkingConfig }: { children: React.Reac
         ...DefaultTheme,
         colors: {
           ...DefaultTheme.colors,
-          background: '#FEF1E1',
+          background: '#F7F6F1',
         },
       }}
     >
@@ -233,6 +233,26 @@ function EventDetailWrapper({ route }: any) {
   const Screen = useLazyScreen(() => require('../screens/EventDetailScreen'), 'EventDetail');
   const eventIdOrSlug = typeof route?.params?.eventIdOrSlug === 'string' ? route.params.eventIdOrSlug : '';
   return <Screen eventIdOrSlug={eventIdOrSlug} />;
+}
+
+/** Owner-scoped event submission (PENDING on the server). */
+const loadAddEventScreen = () => require('../screens/AddEventScreen');
+
+function AddEventWrapper() {
+  const Screen = useLazyScreen(loadAddEventScreen, 'AddEvent');
+  return <Screen />;
+}
+
+/** Map picker for AddEvent; returns through merged `AddEvent` params. */
+function PickEventLocationWrapper() {
+  const Screen = useLazyScreen(() => require('../screens/PickEventLocationScreen'), 'PickEventLocation');
+  return <Screen />;
+}
+
+/** The caller's own submissions, with moderation status. */
+function MyEventsWrapper() {
+  const Screen = useLazyScreen(() => require('../screens/MyEventsScreen'), 'MyEvents');
+  return <Screen />;
 }
 
 function VendorOffersWrapper({ navigation: _navigation }: any) {
@@ -413,18 +433,18 @@ function WalletWrapper({ navigation, route }: any) {
   const Screen = useLazyScreen(() => require('../screens/WalletScreen'));
   if (!user) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#FCF9F5' }}>
-        <Text style={{ fontSize: 16, color: '#3E2723', textAlign: 'center', marginBottom: 16 }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#F7F6F1' }}>
+        <Text style={{ fontSize: 16, color: '#1D2420', textAlign: 'center', marginBottom: 16 }}>
           Sign in to view PalPoints and earn rewards.
         </Text>
         <TouchableOpacity
           onPress={() => onLogout()}
-          style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: '#3E2723', borderRadius: 8 }}
+          style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: '#1D2420', borderRadius: 8 }}
         >
           <Text style={{ color: '#FFF', fontWeight: '600' }}>Sign In</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 12 }}>
-          <Text style={{ color: '#8D8177' }}>Go back</Text>
+          <Text style={{ color: '#68756D' }}>Go back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -939,7 +959,7 @@ function SearchWrapper({ navigation, route }: any) {
     try {
       const { tripsApi } = await import('../services/api/trips');
       const trip = await tripsApi.getById(resolvedTripId);
-      const ids = (trip.tripDays || []).flatMap(d => (d.stops || []).map(s => s.placeId));
+      const ids = (trip.tripDays || []).flatMap(d => (d.stops || []).map(s => s.placeId).filter((id): id is string => !!id));
       setItineraryPlaceIds(ids);
       setActiveTripId(resolvedTripId);
     } catch {
@@ -1085,7 +1105,7 @@ const sharedStackScreens = (
     <Stack.Screen
       name="GenerateLoading"
       component={GenerateLoadingWrapper}
-      options={{ contentStyle: { backgroundColor: '#F5EFE6' } }}
+      options={{ contentStyle: { backgroundColor: '#F7F6F1' } }}
     />
     <Stack.Screen name="MyTrips" component={MyTripsWrapper} />
     <Stack.Screen name="CreateTrip" component={CreateTripWrapper} />
@@ -1103,6 +1123,9 @@ const sharedStackScreens = (
     <Stack.Screen name="PlaceReels" component={PlaceReelsScreen} />
     <Stack.Screen name="Events" component={EventsWrapper} />
     <Stack.Screen name="EventDetail" component={EventDetailWrapper} />
+    <Stack.Screen name="AddEvent" component={AddEventWrapper} />
+    <Stack.Screen name="PickEventLocation" component={PickEventLocationWrapper} />
+    <Stack.Screen name="MyEvents" component={MyEventsWrapper} />
     <Stack.Screen name="VendorOffers" component={VendorOffersWrapper} />
     <Stack.Screen name="VendorOfferDetail" component={VendorOfferDetailWrapper} />
     <Stack.Screen name="VendorDashboard" component={VendorDashboardWrapper} />
@@ -1204,8 +1227,8 @@ function AuthenticatedStack({ mode }: { mode: string }) {
   if (mode === 'VENDOR' && hasVendorRole && !hasVendorIdentity && !vendorWaitTimedOut) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
-        <ActivityIndicator size="large" color="#B9834B" />
-        <Text style={{ marginTop: 12, color: '#8B7355' }}>Loading vendor workspace...</Text>
+        <ActivityIndicator size="large" color="#1F4D3A" />
+        <Text style={{ marginTop: 12, color: '#68756D' }}>Loading vendor workspace...</Text>
       </View>
     );
   }
@@ -1303,7 +1326,7 @@ export default function RootNavigator() {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: theme.background }]}>
         <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
-        <ActivityIndicator size="large" color="#B9834B" />
+        <ActivityIndicator size="large" color="#1F4D3A" />
       </View>
     );
   }
@@ -1312,7 +1335,7 @@ export default function RootNavigator() {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: theme.background }]}>
         <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
-        <ActivityIndicator size="large" color="#B9834B" />
+        <ActivityIndicator size="large" color="#1F4D3A" />
       </View>
     );
   }

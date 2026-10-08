@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     borderColor: T.border,
     backgroundColor: T.card,
   },
-  reasonChipOn: { borderColor: T.primary, backgroundColor: '#F3EBE0' },
+  reasonChipOn: { borderColor: T.primary, backgroundColor: '#F7F6F1' },
   reasonText: { fontFamily: SANS, fontSize: 13, color: T.textSecondary },
   reasonTextOn: { color: T.primary },
   otpRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },

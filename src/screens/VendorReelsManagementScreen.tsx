@@ -57,15 +57,15 @@ async function persistArchivedIds(vendorId: string, ids: Set<string>) {
 const C = {
   bg: '#FFFFFF',
   surface: '#FFFFFF',
-  soft: '#F7F0E8',
-  peach: '#F8E8D8',
-  deep: '#3B1E12',
-  muted: '#8B7355',
-  mutedLight: '#A89880',
-  border: '#EDE6DC',
-  bronze: '#A67C52',
-  green: '#16A34A',
-  greenBg: '#E8F7EE',
+  soft: '#F7F6F1',
+  peach: '#F7F6F1',
+  deep: '#1D2420',
+  muted: '#68756D',
+  mutedLight: '#B7791F',
+  border: '#DDEBE3',
+  bronze: '#1F4D3A',
+  green: '#2E7D55',
+  greenBg: '#EAF3ED',
 };
 
 type SortKey = 'latest' | 'oldest' | 'views' | 'likes';
@@ -756,7 +756,7 @@ const styles = StyleSheet.create({
   },
   statusPublished: { backgroundColor: C.greenBg },
   statusDraft: { backgroundColor: C.soft },
-  statusArchived: { backgroundColor: '#F3F0EB' },
+  statusArchived: { backgroundColor: '#F7F6F1' },
   statusText: { fontSize: 10, fontWeight: '800' },
   caption: { fontSize: 12, color: C.muted, marginTop: 6, fontWeight: '500' },
 
@@ -850,7 +850,7 @@ const styles = StyleSheet.create({
 
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(44,24,16,.42)',
+    backgroundColor: 'rgba(29,36,32,.42)',
     justifyContent: 'center',
     padding: 24,
   },

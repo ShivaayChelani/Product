@@ -40,8 +40,17 @@ export const eventKeys = {
   lists: () => [...eventKeys.all, 'list'] as const,
   list: (filters: EventListFilters) => [...eventKeys.lists(), eventFilterKey(filters)] as const,
   featured: (limit: number) => [...eventKeys.all, 'featured', limit] as const,
+  /**
+   * Prefix for every Home-strip entry (limit + coordinates are appended by the
+   * hook). Invalidate this to drop a stale "no events near you" answer after a
+   * moderation change, without touching detail/list caches.
+   */
+  homeStrip: () => [...eventKeys.all, 'featured'] as const,
   details: () => [...eventKeys.all, 'detail'] as const,
   detail: (idOrSlug: string) => [...eventKeys.details(), idOrSlug] as const,
+  /** The caller's own submissions (`GET /events?mine=true`) — auth-scoped, so
+   *  it must never share a key with the public list. */
+  mine: () => [...eventKeys.all, 'mine'] as const,
   /**
    * The map layer shares the viewport feed. The bbox is deliberately excluded
    * from the key so panning the map reuses one cache entry and refetches in the

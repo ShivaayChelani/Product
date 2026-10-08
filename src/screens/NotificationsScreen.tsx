@@ -232,7 +232,7 @@ export default function NotificationsScreen({ onBack }: { onBack?: () => void })
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#FCF9F4',
+    backgroundColor: '#F7F6F1',
   },
   list: {
     flex: 1,
@@ -284,6 +284,6 @@ const styles = StyleSheet.create({
     color: T.secondary,
   },
   selectionDanger: {
-    color: '#DC4C4C',
+    color: '#C94A4A',
   },
 });

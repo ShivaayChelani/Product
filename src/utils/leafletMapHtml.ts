@@ -7,7 +7,47 @@ const INDIA_BOUNDS: [[number, number], [number, number]] = [
   [37.5, 98.5],
 ];
 
-export function generateLeafletHtml(): string {
+/**
+ * Optional "pick a point" mode for the Add Event location picker.
+ *
+ * The default (no options) is untouched: the same markers, messages and CSS as
+ * every other map in the app. With `pickMode`, a fixed centre pin is drawn over
+ * the viewport, tapping the map pans the centre pin to that point, and every
+ * camera settle reports `{ type: 'pickCenter', lat, lng, zoom }` back to RN.
+ * Both blocks are interpolated conditionally so a normal map's HTML is
+ * byte-identical to what it was before the option existed.
+ */
+const PICK_CSS = [
+  '#pickPin{position:fixed;left:50%;top:50%;transform:translate(-50%,-100%);',
+  'z-index:1200;pointer-events:none;display:flex;flex-direction:column;align-items:center}',
+  '#pickPin .pick-head{width:34px;height:34px;border-radius:50% 50% 50% 6px;',
+  'background:#1F4D3A;transform:rotate(-45deg);border:2px solid #fff;',
+  'box-shadow:0 4px 12px rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center}',
+  '#pickPin .pick-dot{width:10px;height:10px;border-radius:50%;background:#fff}',
+  '#pickPin .pick-shadow{width:14px;height:5px;border-radius:50%;background:rgba(15,23,42,.35);margin-top:5px}',
+  '#pickHint{position:fixed;left:50%;bottom:56px;transform:translateX(-50%);z-index:1200;',
+  'background:rgba(15,23,42,.84);color:#fff;font-size:11px;font-weight:600;letter-spacing:.01em;',
+  'padding:7px 13px;border-radius:999px;pointer-events:none;white-space:nowrap;',
+  'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}',
+].join('\n');
+
+const PICK_OVERLAY_HTML =
+  '<div id="pickPin"><div class="pick-head"><div class="pick-dot"></div></div><div class="pick-shadow"></div></div>' +
+  '<div id="pickHint">Move the map to place the event pin</div>';
+
+const PICK_JS = [
+  'function emitPickCenter() {',
+  '  var c = map.getCenter();',
+  "  send({ type: 'pickCenter', lat: c.lat, lng: c.lng, zoom: map.getZoom() });",
+  '}',
+  // Tapping anywhere drops the centre pin there instead of opening a popup.
+  "map.on('click', function(e) { map.panTo(e.latlng); });",
+  "map.on('moveend', emitPickCenter);",
+  'emitPickCenter();',
+].join('\n');
+
+export function generateLeafletHtml(options?: { pickMode?: boolean }): string {
+  const pickMode = options?.pickMode === true;
   const safeCss = LEAFLET_VENDOR_CSS.replace(/<\/style/gi, '<\\/style');
   const safeJs = LEAFLET_VENDOR_JS.replace(/<\/script/gi, '<\\/script');
 
@@ -78,11 +118,11 @@ ${safeCss}
   /* Featured events get a small dot so curation is visible without a legend. */
   .pin-featured-dot{
     position:absolute;top:-3px;left:-3px;width:11px;height:11px;border-radius:50%;
-    background:#F59E0B;border:1.5px solid #fff;z-index:2;
+    background:#B7791F;border:1.5px solid #fff;z-index:2;
   }
   .pin-offer-flag{
     position:absolute;top:-6px;right:-14px;z-index:2;
-    background:linear-gradient(135deg,#EF4444 0%,#DC2626 100%);
+    background:linear-gradient(135deg,#C94A4A 0%,#C94A4A 100%);
     color:#fff;font-size:7px;font-weight:800;letter-spacing:.02em;
     padding:3px 5px 3px 4px;border-radius:3px 3px 3px 1px;
     box-shadow:0 2px 5px rgba(220,38,38,.45);
@@ -223,7 +263,7 @@ ${safeCss}
   }
   .user-dot-inner{
     width:14px;height:14px;border-radius:50%;
-    background:radial-gradient(circle at 35% 30%,#5eb0ff 0%,#007AFF 55%,#D4AF37 100%);
+    background:radial-gradient(circle at 35% 30%,#5eb0ff 0%,#007AFF 55%,#DDEBE3 100%);
     box-shadow:0 0 8px rgba(0,122,255,.8),0 0 14px rgba(212,175,55,.45);
   }
   @keyframes userPulse{
@@ -274,9 +314,11 @@ ${safeCss}
     border-radius:0!important;
   }
   .leaflet-control-attribution a{color:rgba(255,255,255,.6)!important}
+${pickMode ? PICK_CSS : ''}
 </style>
 </head>
 <body class="base-streets">
+${pickMode ? PICK_OVERLAY_HTML : ''}
 <div id="map"></div>
 <script>
 ${safeJs}
@@ -330,6 +372,7 @@ var markerBasePositions = {};
 var selectedId = null;
 var userMarker = null;
 var routeLayer = null;
+var routeCasingLayer = null;
 var labelLayout = {};
 var labelLayoutKey = '';
 
@@ -1017,12 +1060,21 @@ window.__palMap = {
   clearRoute: clearRoute,
 };
 
-function drawRoute(coords, color) {
-  if (routeLayer) map.removeLayer(routeLayer);
+function drawRoute(coords, color, casingColor) {
+  clearRoute();
+  var lineColor = /^#[0-9a-fA-F]{6}$/.test(color || '') ? color : __PAL_ROUTE_COLOR__;
+  var haloColor = /^#[0-9a-fA-F]{6}$/.test(casingColor || '') ? casingColor : '#FFFFFF';
+  routeCasingLayer = L.polyline(coords, {
+    color: haloColor,
+    weight: 11,
+    opacity: 0.95,
+    lineCap: 'round',
+    lineJoin: 'round',
+  }).addTo(map);
   routeLayer = L.polyline(coords, {
     // Injected by the RN side (INTERNAL_ROUTE_COLOR for internal directions) so
     // the route colour is a token decision, not a literal buried in the WebView.
-    color: color || __PAL_ROUTE_COLOR__,
+    color: lineColor,
     weight: 6,
     opacity: 0.95,
     lineCap: 'round',
@@ -1035,6 +1087,10 @@ function clearRoute() {
   if (routeLayer) {
     map.removeLayer(routeLayer);
     routeLayer = null;
+  }
+  if (routeCasingLayer) {
+    map.removeLayer(routeCasingLayer);
+    routeCasingLayer = null;
   }
 }
 
@@ -1076,7 +1132,7 @@ function handleMessage(event) {
       fitBounds(data.bounds, data.maxZoom);
       break;
     case 'drawRoute':
-      if (data.coords && data.coords.length) drawRoute(data.coords, data.color);
+      if (data.coords && data.coords.length) drawRoute(data.coords, data.color, data.casingColor);
       break;
     case 'clearRoute':
       clearRoute();
@@ -1120,6 +1176,7 @@ map.on('moveend', function() {
   scheduleLabelLayout();
   emitBoundsDebounced();
 });
+${pickMode ? PICK_JS : ''}
 })();
 </script>
 </body>

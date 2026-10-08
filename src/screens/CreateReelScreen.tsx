@@ -58,17 +58,17 @@ interface CreateReelScreenProps {
 }
 
 const C = {
-  bg: '#FCF9F5',
+  bg: '#F7F6F1',
   white: '#FFFFFF',
-  brown: '#4B3B30',
-  brownLight: '#8C7765',
+  brown: '#1D2420',
+  brownLight: '#68756D',
   text: '#1F1A17',
   textSub: '#5E544C',
   textMuted: '#A0968C',
-  border: '#E3DACD',
-  chipBg: '#F3EFE9',
-  chipActiveBg: '#EFE7DB',
-  green: '#2E7D32',
+  border: '#D9E0DB',
+  chipBg: '#F7F6F1',
+  chipActiveBg: '#D9E0DB',
+  green: '#2E7D55',
 };
 
 export default function CreateReelScreen({
@@ -523,7 +523,7 @@ export default function CreateReelScreen({
 
           {revisionNote ? (
             <View style={styles.revisionBanner}>
-              <Icon name="alert-circle" size={20} color="#B45309" />
+              <Icon name="alert-circle" size={20} color="#16392B" />
               <View style={{ flex: 1 }}>
                 <Text style={styles.revisionBannerTitle}>Vendor requested changes</Text>
                 <Text style={styles.revisionBannerBody}>{revisionNote}</Text>
@@ -788,15 +788,15 @@ const styles = StyleSheet.create({
   revisionBanner: {
     flexDirection: 'row',
     gap: 10,
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#F8F0E1',
     borderWidth: 1,
-    borderColor: '#FDBA74',
+    borderColor: '#DDEBE3',
     borderRadius: 14,
     padding: 14,
     marginBottom: 16,
   },
-  revisionBannerTitle: { fontSize: 13, fontWeight: '800', color: '#9A3412', marginBottom: 4 },
-  revisionBannerBody: { fontSize: 13, color: '#9A3412', lineHeight: 18 },
+  revisionBannerTitle: { fontSize: 13, fontWeight: '800', color: '#B7791F', marginBottom: 4 },
+  revisionBannerBody: { fontSize: 13, color: '#B7791F', lineHeight: 18 },
   
   headerPostBtn: {
     backgroundColor: C.brown,
@@ -821,7 +821,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     borderColor: C.border,
     borderRadius: 16,
-    backgroundColor: '#FCFAF8',
+    backgroundColor: '#F7F6F1',
     height: 200,
     overflow: 'hidden',
   },
@@ -985,7 +985,7 @@ const styles = StyleSheet.create({
   },
   tagActive: {
     backgroundColor: C.chipActiveBg,
-    borderColor: '#D4C4B1',
+    borderColor: '#DDEBE3',
     borderWidth: 1,
   },
   tagText: { fontSize: 13, fontWeight: '600', color: C.text },
@@ -1078,7 +1078,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#8C7765',
+    backgroundColor: '#68756D',
     paddingVertical: 14,
     borderRadius: 14,
     marginBottom: 20,

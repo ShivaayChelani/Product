@@ -5,6 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../../navigation/types';
+import { palette } from '../../config/theme';
 
 export type BottomNavTab = 'home' | 'reels' | 'map' | 'trips' | 'profile';
 
@@ -17,6 +18,8 @@ const IS_SMALL = width < 380;
 
 export const BOTTOM_NAV_HEIGHT = 70;
 export const BOTTOM_NAV_BOTTOM_GAP = 16;
+export const BOTTOM_NAV_FAB_OVERHANG = 24;
+export const BOTTOM_NAV_CONTENT_GAP = 28;
 export const BOTTOM_NAV_CLEARANCE = BOTTOM_NAV_HEIGHT + BOTTOM_NAV_BOTTOM_GAP + 20;
 
 export const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab }) => {
@@ -50,7 +53,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab })
 
   const renderTab = (tab: BottomNavTab, label: string, activeIcon: string, inactiveIcon: string) => {
     const isActive = activeTab === tab;
-    const color = isActive ? '#D4A373' : '#EAE0D5';
+    const color = isActive ? palette.primary : palette.textSecondary;
     const iconName = isActive ? activeIcon : inactiveIcon;
     const iconSize = IS_SMALL ? 22 : 24;
 
@@ -83,10 +86,10 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab })
             activeOpacity={0.9}
           >
             <View style={styles.mapInner}>
-              <Icon name="map" size={30} color="#2A2623" />
+              <Icon name="map" size={30} color={palette.primary} />
             </View>
           </TouchableOpacity>
-          <Text style={[styles.tabLabel, { color: activeTab === 'map' ? '#D4A373' : '#EAE0D5', marginTop: 44 }, activeTab === 'map' && styles.activeTabLabel]}>
+          <Text style={[styles.tabLabel, { color: activeTab === 'map' ? palette.primary : palette.textSecondary, marginTop: 44 }, activeTab === 'map' && styles.activeTabLabel]}>
             Map
           </Text>
         </View>
@@ -111,13 +114,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#2A2623',
+    backgroundColor: palette.surface,
     height: BOTTOM_NAV_HEIGHT,
     borderRadius: 35,
     paddingHorizontal: IS_SMALL ? 12 : 20,
     width: '92%',
     maxWidth: 600,
-    shadowColor: '#000',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -145,11 +148,11 @@ const styles = StyleSheet.create({
   },
   mapButton: {
     position: 'absolute',
-    top: -24,
+    top: -BOTTOM_NAV_FAB_OVERHANG,
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: '#D4A373', // border color
+    backgroundColor: palette.primary,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -162,7 +165,7 @@ const styles = StyleSheet.create({
     width: 62,
     height: 62,
     borderRadius: 31,
-    backgroundColor: '#F8F3ED',
+    backgroundColor: palette.background,
     alignItems: 'center',
     justifyContent: 'center',
   },

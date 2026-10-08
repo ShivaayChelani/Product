@@ -21,14 +21,14 @@ import {
 } from '../features/subscriptions/planUi';
 
 const C = {
-  bg: '#FDF9F2',
+  bg: CreatorUI.colors.bg,
   navy: CreatorUI.colors.deep,
-  gold: '#AD762E',
+  gold: CreatorUI.colors.primary,
   bronze: CreatorUI.colors.bronze,
   white: CreatorUI.colors.white,
   text: CreatorUI.colors.text,
-  muted: '#7A7068',
-  border: '#EAE1D5',
+  muted: CreatorUI.colors.textSecondary,
+  border: CreatorUI.colors.border,
   success: CreatorUI.colors.success,
   successBg: CreatorUI.colors.successBg,
 };
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
     justifyContent: 'center',
   },
-  btnDisabled: { backgroundColor: '#D4C4B0' },
+  btnDisabled: { backgroundColor: '#DDEBE3' },
   btnText: { color: C.white, fontWeight: '800', fontSize: 15 },
   usageRow: { flexDirection: 'row', gap: 8 },
   usage: {

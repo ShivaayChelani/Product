@@ -39,19 +39,19 @@ const PERIOD_OPTIONS: { days: PeriodDays; label: string }[] = [
 ];
 
 const C = {
-  bg: '#F7F5F2',
+  bg: '#F7F6F1',
   white: '#FFFFFF',
-  soft: '#F7F0E8',
-  text: '#3B1E12',
-  muted: '#8B7355',
-  textMuted: '#B8A88A',
-  primary: '#A67C52',
-  deep: '#3B1E12',
-  border: '#EDE6DC',
-  success: '#16A34A',
-  orange: '#E8A04A',
+  soft: '#F7F6F1',
+  text: '#1D2420',
+  muted: '#68756D',
+  textMuted: '#68756D',
+  primary: '#1F4D3A',
+  deep: '#1D2420',
+  border: '#DDEBE3',
+  success: '#2E7D55',
+  orange: '#1F4D3A',
   pink: '#E07A9A',
-  purple: '#8B6BB5',
+  purple: '#68756D',
   green: '#3D9B6E',
 };
 
@@ -291,16 +291,16 @@ export default function VendorStudioProfileScreen() {
                 <View style={styles.nameRow}>
                   <Text style={styles.heroName} numberOfLines={1}>{displayName}</Text>
                   {approved ? (
-                    <MaterialCommunityIcons name="check-decagram" size={16} color="#F5C542" />
+                    <MaterialCommunityIcons name="check-decagram" size={16} color="#B7791F" />
                   ) : null}
                 </View>
                 <View style={styles.locRow}>
-                  <Icon name="location-sharp" size={12} color="rgba(255,249,242,0.85)" />
+                  <Icon name="location-sharp" size={12} color="rgba(247,246,241,0.85)" />
                   <Text style={styles.locText} numberOfLines={1}>{addressShort}</Text>
                 </View>
                 {(rating > 0 || reviewCount > 0) ? (
                   <View style={styles.ratingRow}>
-                    <Icon name="star" size={12} color="#F5C542" />
+                    <Icon name="star" size={12} color="#B7791F" />
                     <Text style={styles.ratingText}>
                       {rating > 0 ? rating.toFixed(1) : '—'}
                       {reviewCount > 0 ? ` (${reviewCount.toLocaleString('en-IN')} Reviews)` : ''}
@@ -314,7 +314,7 @@ export default function VendorStudioProfileScreen() {
               onPress={() => navigation.navigate('VendorSettings')}
               activeOpacity={0.85}
             >
-              <Icon name="pencil" size={13} color="#FFF9F2" />
+              <Icon name="pencil" size={13} color="#F7F6F1" />
               <Text style={styles.editBizText}>Edit Business</Text>
             </TouchableOpacity>
           </View>
@@ -333,7 +333,7 @@ export default function VendorStudioProfileScreen() {
               value: String(activeOffers),
               link: 'View All →',
               color: C.orange,
-              bg: '#FFF3E4',
+              bg: '#F7F6F1',
               icon: 'gift-outline' as const,
               onPress: () => navigation.navigate('VendorTabs', { screen: 'Offers' }),
             },
@@ -353,7 +353,7 @@ export default function VendorStudioProfileScreen() {
               value: compact(pointsReceived),
               link: 'View Details →',
               color: C.purple,
-              bg: '#F3EEF8',
+              bg: '#F7F6F1',
               palPoints: true,
               onPress: () =>
                 navigation.navigate('VendorAnalytics', {
@@ -429,7 +429,7 @@ export default function VendorStudioProfileScreen() {
           onPress={() => navigation.navigate('VendorSubscription')}
         >
           <View style={styles.crownWrap}>
-            <MaterialCommunityIcons name="crown" size={18} color="#F5C542" />
+            <MaterialCommunityIcons name="crown" size={18} color="#B7791F" />
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <View style={styles.premiumTitleRow}>
@@ -466,7 +466,7 @@ export default function VendorStudioProfileScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
-          <Icon name="log-out-outline" size={18} color="#DC2626" />
+          <Icon name="log-out-outline" size={18} color="#C94A4A" />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
     minWidth: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#EF4444',
+    backgroundColor: '#C94A4A',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
@@ -536,13 +536,13 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
     marginBottom: 14,
-    backgroundColor: '#3B2418',
+    backgroundColor: '#1D2420',
   },
   heroBg: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
-  heroBgFallback: { backgroundColor: '#3B2418' },
+  heroBgFallback: { backgroundColor: '#1D2420' },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(30, 14, 8, 0.55)',
+    backgroundColor: 'rgba(29, 36, 32, 0.55)',
   },
   heroContent: {
     flex: 1,
@@ -555,30 +555,30 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     borderWidth: 2,
-    borderColor: 'rgba(255,249,242,0.35)',
-    backgroundColor: '#5A3A28',
+    borderColor: 'rgba(247,246,241,0.35)',
+    backgroundColor: '#16392B',
   },
   logoFallback: { alignItems: 'center', justifyContent: 'center' },
-  logoLetter: { fontSize: 22, fontWeight: '800', color: '#FFF9F2' },
+  logoLetter: { fontSize: 22, fontWeight: '800', color: '#F7F6F1' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  heroName: { fontSize: 18, fontWeight: '800', color: '#FFF9F2', flexShrink: 1 },
+  heroName: { fontSize: 18, fontWeight: '800', color: '#F7F6F1', flexShrink: 1 },
   locRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  locText: { fontSize: 12, color: 'rgba(255,249,242,0.85)', flexShrink: 1 },
+  locText: { fontSize: 12, color: 'rgba(247,246,241,0.85)', flexShrink: 1 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 5 },
-  ratingText: { fontSize: 12, fontWeight: '600', color: 'rgba(255,249,242,0.9)' },
+  ratingText: { fontSize: 12, fontWeight: '600', color: 'rgba(247,246,241,0.9)' },
   editBizBtn: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255,249,242,0.18)',
+    backgroundColor: 'rgba(247,246,241,0.18)',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,249,242,0.25)',
+    borderColor: 'rgba(247,246,241,0.25)',
   },
-  editBizText: { fontSize: 12, fontWeight: '700', color: '#FFF9F2' },
+  editBizText: { fontSize: 12, fontWeight: '700', color: '#F7F6F1' },
 
   statsRow: { gap: 10, paddingBottom: 4, marginBottom: 10 },
   statCard: {
@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#3B2418',
+    backgroundColor: '#1D2420',
     borderRadius: 16,
     padding: 14,
     marginBottom: 12,
@@ -666,12 +666,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(245,197,66,0.18)',
+    backgroundColor: 'rgba(183,121,31,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   premiumTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  premiumTitle: { fontSize: 14, fontWeight: '800', color: '#FFF9F2' },
+  premiumTitle: { fontSize: 14, fontWeight: '800', color: '#F7F6F1' },
   activePill: {
     backgroundColor: 'rgba(22,163,74,0.2)',
     borderRadius: 8,
@@ -679,14 +679,14 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   activePillText: { fontSize: 10, fontWeight: '800', color: '#4ADE80' },
-  premiumSub: { fontSize: 11, color: 'rgba(255,249,242,0.75)', marginTop: 3 },
+  premiumSub: { fontSize: 11, color: 'rgba(247,246,241,0.75)', marginTop: 3 },
   manageBtn: {
-    backgroundColor: 'rgba(255,249,242,0.12)',
+    backgroundColor: 'rgba(247,246,241,0.12)',
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
-  manageBtnText: { fontSize: 11, fontWeight: '800', color: '#FFF9F2' },
+  manageBtnText: { fontSize: 11, fontWeight: '800', color: '#F7F6F1' },
 
   payRow: {
     flexDirection: 'row',
@@ -757,10 +757,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1.5,
     borderColor: '#FECACA',
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#FBEAEA',
     paddingVertical: 14,
     marginTop: 8,
     marginBottom: 16,
   },
-  logoutText: { fontSize: 15, fontWeight: '800', color: '#DC2626' },
+  logoutText: { fontSize: 15, fontWeight: '800', color: '#C94A4A' },
 });

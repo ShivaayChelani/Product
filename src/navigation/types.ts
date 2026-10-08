@@ -89,6 +89,22 @@ export type CreatorTabParamList = {
   Profile: undefined;
 };
 
+/**
+ * A location chosen on the Add Event map picker.
+ *
+ * Handed back through `AddEvent` params (merged) rather than a callback in the
+ * params object, because React Navigation params must stay serialisable.
+ */
+export type PickedEventLocation = {
+  latitude: number;
+  longitude: number;
+  address: string;
+  city: string;
+  state: string;
+  /** Monotonic so re-picking the same coordinate still re-applies the result. */
+  pickedAt: number;
+};
+
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList> | undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
@@ -144,6 +160,19 @@ export type RootStackParamList = {
   Events: { initialType?: EventType } | undefined;
   /** Single Community Event. `eventIdOrSlug` accepts the cuid or the slug. */
   EventDetail: { eventIdOrSlug: string };
+  /**
+   * Create a Community Event (owner-scoped, lands in PENDING review).
+   * `pickedLocation` is merged back in by the map picker when it returns.
+   */
+  AddEvent:
+    | { pickedLocation?: PickedEventLocation; pickedNonce?: number }
+    | undefined;
+  /** Map-based location picker for AddEvent; returns through `AddEvent` params. */
+  PickEventLocation:
+    | { latitude?: number; longitude?: number; address?: string; city?: string; state?: string }
+    | undefined;
+  /** The caller's own submissions with moderation status (PENDING/REJECTED). */
+  MyEvents: undefined;
   VendorOffers: undefined;
   VendorOfferDetail: { offerId: string };
   VendorDashboard: undefined;

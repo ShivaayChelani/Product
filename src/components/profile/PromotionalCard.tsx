@@ -101,9 +101,9 @@ export const PromotionalCardsRow = ({
           headingAccent="Creator"
           subText="Share, inspire & earn rewards"
           buttonText="Apply Now"
-          buttonColor="#7B563D"
+          buttonColor="#68756D"
           buttonTextColor="#FFF"
-          solidBg="#FCF7EE"
+          solidBg="#F7F6F1"
           imageSource={require('../../assets/creator_icon.png')}
           imageScale={0.8}
           onPress={onApplyCreator}
@@ -116,8 +116,8 @@ export const PromotionalCardsRow = ({
           headingAccent="Vendor"
           subText="Grow your business with PalSafar"
           buttonText="Apply Now"
-          buttonColor="#7B563D"
-          buttonTextColor="#7B563D"
+          buttonColor="#68756D"
+          buttonTextColor="#68756D"
           buttonOutlined={true}
           solidBg="#F2FAEE"
           imageSource={require('../../assets/buisness_icon.png')}
@@ -139,8 +139,8 @@ const styles = StyleSheet.create({
     height: 140,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#F3EBE3',
-    shadowColor: '#2B1D15',
+    borderColor: '#F7F6F1',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
@@ -163,16 +163,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
     fontFamily: SANS_BOLD,
-    color: '#13111C',
+    color: '#1D2420',
   },
   headingAccent: {
-    color: '#944424',
+    color: '#16392B',
     fontFamily: SANS_BOLD,
   },
   subText: {
     fontSize: 9,
     fontFamily: SANS,
-    color: '#6A6158',
+    color: '#68756D',
     marginTop: 2,
     maxWidth: '65%',
     lineHeight: 12,

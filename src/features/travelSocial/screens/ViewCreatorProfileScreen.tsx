@@ -533,8 +533,8 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
                 style={styles.optionCard}
                 onPress={handleCopyProfileLink}
               >
-                <View style={[styles.optionIconWrap, { backgroundColor: '#EEF4FF' }]}>
-                  <Icon name="link" size={22} color="#2563EB" />
+                <View style={[styles.optionIconWrap, { backgroundColor: '#F7F6F1' }]}>
+                  <Icon name="link" size={22} color="#1F4D3A" />
                 </View>
                 <View style={styles.optionTextWrap}>
                   <Text style={styles.optionTitle}>Copy profile link</Text>
@@ -550,8 +550,8 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
                   handleShareProfile();
                 }}
               >
-                <View style={[styles.optionIconWrap, { backgroundColor: '#E8F5E9' }]}>
-                  <Icon name="share-social-outline" size={22} color="#059669" />
+                <View style={[styles.optionIconWrap, { backgroundColor: '#EAF3ED' }]}>
+                  <Icon name="share-social-outline" size={22} color="#2E7D55" />
                 </View>
                 <View style={styles.optionTextWrap}>
                   <Text style={styles.optionTitle}>Share profile</Text>
@@ -567,8 +567,8 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
                   Alert.alert('Reported', 'Thanks. Our team will review this profile.');
                 }}
               >
-                <View style={[styles.optionIconWrap, { backgroundColor: '#FFF0ED' }]}>
-                  <Icon name="flag-outline" size={22} color="#DC2626" />
+                <View style={[styles.optionIconWrap, { backgroundColor: '#F7F6F1' }]}>
+                  <Icon name="flag-outline" size={22} color="#C94A4A" />
                 </View>
                 <View style={styles.optionTextWrap}>
                   <Text style={styles.optionTitle}>Report profile</Text>
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
   heroImage: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(45,36,29,0.25)',
+    backgroundColor: 'rgba(32,36,29,0.25)',
   },
   heroNav: {
     flexDirection: 'row',
@@ -617,7 +617,7 @@ const styles = StyleSheet.create({
     borderColor: T.border,
   },
   profileCardShadow: {
-    shadowColor: '#2D241D',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.06,
     shadowRadius: 16,
@@ -678,7 +678,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: T.radiusPill,
-    backgroundColor: '#F3EBE0',
+    backgroundColor: '#F7F6F1',
   },
   creatorPillText: { fontSize: 12, fontWeight: '600', color: T.primary },
   actionRow: {
@@ -718,16 +718,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   collaborateBtn: {
-    backgroundColor: '#FAF5EE',
+    backgroundColor: '#F7F6F1',
     borderWidth: 1,
-    borderColor: '#E6D3B8',
+    borderColor: '#DDEBE3',
     paddingVertical: 14,
     borderRadius: T.radiusButton,
     alignItems: 'center',
     marginTop: -8, // Slightly pull up to reduce gap from actionRow
   },
   collaborateBtnText: {
-    color: '#8B5A2B',
+    color: '#B7791F',
     fontWeight: '700',
     fontSize: 15,
   },
@@ -735,9 +735,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: T.radiusPill,
-    backgroundColor: '#E8F5EE',
+    backgroundColor: '#EAF3ED',
   },
-  selfBadgeText: { color: '#2E7D4F', fontWeight: '600' },
+  selfBadgeText: { color: '#2E7D55', fontWeight: '600' },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

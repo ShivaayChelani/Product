@@ -12,13 +12,13 @@ import type { ReelUploadJob } from '../../../services/creator/creatorUploadManag
 
 const C = {
   card: '#FFFFFF',
-  border: '#ECE3D7',
+  border: '#D9E0DB',
   text: '#202020',
   textSub: '#6F6F6F',
-  gold: '#D9A441',
-  green: '#2E7D32',
+  gold: '#1F4D3A',
+  green: '#2E7D55',
   red: '#C62828',
-  track: '#F1EBE3',
+  track: '#F7F6F1',
 };
 
 interface Props {
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     overflow: 'hidden',
     marginRight: 12,
-    backgroundColor: '#F5F0EA',
+    backgroundColor: '#F7F6F1',
   },
   thumb: { width: '100%', height: '100%' },
   thumbPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 8,
-    backgroundColor: '#FBF6EE',
+    backgroundColor: '#F7F6F1',
   },
   retryText: { marginLeft: 4, color: C.gold, fontWeight: '700', fontSize: 13 },
   linkBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },

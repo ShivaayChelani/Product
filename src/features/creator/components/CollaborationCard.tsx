@@ -7,21 +7,21 @@ const COLORS = {
   card: '#FFFFFF',
   textPrimary: '#1F1A17',
   textSecondary: '#5E544C',
-  border: '#E3DACD',
-  gold: '#A67C52',
+  border: '#D9E0DB',
+  gold: '#1F4D3A',
 };
 
 // Subtle colors mapping
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  PENDING: { bg: '#FEF3C7', text: '#B45309' }, // Muted orange
+  PENDING: { bg: '#F8F0E1', text: '#16392B' }, // Muted orange
   ACCEPTED: { bg: '#E6F4EA', text: '#1E8E3E' }, // Muted green
-  IN_PROGRESS: { bg: '#F5EDE2', text: '#7B5E43' }, // Muted brown/gold
-  REVISION_REQUESTED: { bg: '#F5EDE2', text: '#7B5E43' },
-  REEL_UPLOADED: { bg: '#F5EDE2', text: '#7B5E43' },
+  IN_PROGRESS: { bg: '#F7F6F1', text: '#68756D' }, // Muted brown/gold
+  REVISION_REQUESTED: { bg: '#F7F6F1', text: '#68756D' },
+  REEL_UPLOADED: { bg: '#F7F6F1', text: '#68756D' },
   APPROVED: { bg: '#E6F4EA', text: '#1E8E3E' },
   COMPLETED: { bg: '#E6F4EA', text: '#1E8E3E' }, // Muted green
-  REJECTED: { bg: '#FEE2E2', text: '#DC2626' }, // Muted red
-  CANCELLED: { bg: '#FEE2E2', text: '#DC2626' }, // Muted red
+  REJECTED: { bg: '#FBEAEA', text: '#C94A4A' }, // Muted red
+  CANCELLED: { bg: '#FBEAEA', text: '#C94A4A' }, // Muted red
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     marginRight: 12,
-    backgroundColor: '#F3EFE9',
+    backgroundColor: '#F7F6F1',
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#7B5E43',
+    color: '#68756D',
   },
   infoWrap: {
     flex: 1,

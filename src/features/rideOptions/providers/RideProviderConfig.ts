@@ -5,10 +5,10 @@ export const RIDE_PROVIDER_REGISTRY: Record<
   RideProviderId,
   Pick<RideProviderConfig, 'color' | 'icon'> & { sortOrder: number }
 > = {
-  rapido: { color: '#FFCA00', icon: 'bicycle', sortOrder: 0 },
+  rapido: { color: '#B7791F', icon: 'bicycle', sortOrder: 0 },
   uber: { color: '#000000', icon: 'car-sport', sortOrder: 1 },
   ola: { color: '#1FAF38', icon: 'car', sortOrder: 2 },
-  blusmart: { color: '#0066FF', icon: 'flash', sortOrder: 3 },
+  blusmart: { color: '#1F4D3A', icon: 'flash', sortOrder: 3 },
 };
 
 export const RIDE_ASSISTANT_DISCLAIMER =

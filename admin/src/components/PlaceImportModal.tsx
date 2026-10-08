@@ -7,6 +7,7 @@ import * as XLSX from "xlsx";
 import { importPlaces } from "@/services/places";
 import {
   downloadTemplateCsv,
+  downloadTemplateXlsx,
   rowsFromObjects,
   type ParsePlacesResult,
   type ParsedPlaceRow,
@@ -159,12 +160,14 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
         name: p.name,
         description: p.description,
         shortDescription: p.shortDescription,
+        canonicalName: p.canonicalName,
         latitude: p.latitude,
         longitude: p.longitude,
         category: p.category,
         tags: p.tags,
         images: p.images,
         city: p.city,
+        district: p.district,
         state: p.state,
         country: p.country,
         openingHours: p.openingHours,
@@ -173,6 +176,7 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
         rating: p.rating,
         externalId: p.externalId,
         ticketPrice: p.ticketPrice,
+        imageMetadata: p.imageMetadata,
         editorialPriority: p.editorialPriority,
       }));
       const res = await importPlaces(payload, {
@@ -221,8 +225,16 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
               <Download size={16} />
               Download CSV template
             </button>
+            <button
+              type="button"
+              onClick={downloadTemplateXlsx}
+              className="inline-flex items-center gap-2 rounded-lg border border-input px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+            >
+              <Download size={16} />
+              Download Excel template
+            </button>
             <span className="text-xs text-muted-foreground">
-              Required: <code className="rounded bg-muted px-1">name</code>. Recommended: city, state, latitude, longitude, category.
+              Required columns: place_name, canonical_name, city, district, state, country, category, description, latitude, longitude, tags, priority, close_day.
             </span>
           </div>
 

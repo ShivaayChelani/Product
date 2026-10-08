@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const TEST_DB_HOST = 'dpg-d9usgk37uimc73al1gv0-a.ohio-postgres.render.com';
 const PROD_DB_HOST = 'dpg-d9rqpkf10e5c738lgckg-a.singapore-postgres.render.com';
+const NEON_DB_HOST = 'ep-sweet-morning-az9jhg9t-pooler.c-3.ap-southeast-1.aws.neon.tech';
 
 const TOUCHED_KEYS = [
   'NODE_ENV',
@@ -81,6 +82,31 @@ describe('env database isolation guard', () => {
     process.env.JWT_SECRET = 'x'.repeat(40);
 
     await expect(loadEnvFreshly()).rejects.toThrow(/PRODUCTION database host/);
+  });
+
+  it('refuses development mode pointing at the Neon production-shaped host', async () => {
+    process.env.NODE_ENV = 'development';
+    process.env.DATABASE_URL = dbUrl(NEON_DB_HOST);
+    process.env.JWT_SECRET = 'x'.repeat(40);
+
+    await expect(loadEnvFreshly()).rejects.toThrow(/PRODUCTION database host/);
+  });
+
+  it('refuses test mode pointing at the Neon production-shaped host', async () => {
+    process.env.NODE_ENV = 'test';
+    process.env.DATABASE_URL = dbUrl(NEON_DB_HOST);
+    process.env.JWT_SECRET = 'x'.repeat(40);
+
+    await expect(loadEnvFreshly()).rejects.toThrow(/PRODUCTION database host/);
+  });
+
+  it('allows production mode with the Neon production host', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.DATABASE_URL = dbUrl(NEON_DB_HOST);
+    process.env.JWT_SECRET = 'x'.repeat(40);
+    setProductionExtras();
+
+    await expect(loadEnvFreshly()).resolves.toBeUndefined();
   });
 
   it('allows production mode with the known PRODUCTION database host', async () => {

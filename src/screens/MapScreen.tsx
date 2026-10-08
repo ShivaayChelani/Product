@@ -12,6 +12,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import Pal from '../design/DesignSystem';
 import { getMainTabBarClearance, MAIN_TAB_CONTENT_GAP } from '../design/tabBarLayout';
 import { useResponsive } from '../design/responsive';
+import { palette } from '../config/theme';
 
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useLocationContext } from '../context/LocationContext';
@@ -95,7 +96,10 @@ import { useTravelTime } from '../services/location/useTravelTime';
 import { getOSRMRoute, formatRouteDistance, formatRouteDuration } from '../services/routing/osrmService';
 import { formatDistance, formatDuration } from '../services/location/distance';
 import { getRoutedDistanceFields } from '../services/location/routedDistance';
-import { INTERNAL_ROUTE_COLOR } from '../design/directionsTheme';
+import {
+  INTERNAL_ROUTE_CASING_COLOR,
+  INTERNAL_ROUTE_COLOR,
+} from '../design/directionsTheme';
 import { openInternalDirections, resolveInternalDirectionsDestination } from '../features/mapExplore/utils/internalDirections';
 import { mergeMarkersPreservingSelection } from '../features/mapExplore/utils/mapSelectionLifecycle';
 import {
@@ -216,9 +220,9 @@ function getPlacePillTag(item: MarkerData) {
     return { label: 'Family Friendly', icon: 'people', color: '#C2410C' };
   }
   if (item.rating && item.rating >= 4.5) {
-    return { label: 'Must Visit', icon: 'star', color: '#D97706' };
+    return { label: 'Must Visit', icon: 'star', color: '#B7791F' };
   }
-  return { label: 'Popular', icon: 'flame', color: '#EA580C' };
+  return { label: 'Popular', icon: 'flame', color: palette.primary };
 }
 
 function parsePlaceEntryFee(raw: unknown): number | null {
@@ -398,8 +402,11 @@ export default function MapScreen({
       const colorJson = /^#[0-9a-fA-F]{6}$/.test(String(data.color ?? ''))
         ? JSON.stringify(data.color)
         : JSON.stringify(INTERNAL_ROUTE_COLOR);
+      const casingColorJson = /^#[0-9a-fA-F]{6}$/.test(String(data.casingColor ?? ''))
+        ? JSON.stringify(data.casingColor)
+        : JSON.stringify(INTERNAL_ROUTE_CASING_COLOR);
       webViewRef.current?.injectJavaScript(
-        `(function(){try{if(window.__palMap&&window.__palMap.drawRoute)window.__palMap.drawRoute(${coordsJson},${colorJson});}catch(e){}true;})();`,
+        `(function(){try{if(window.__palMap&&window.__palMap.drawRoute)window.__palMap.drawRoute(${coordsJson},${colorJson},${casingColorJson});}catch(e){}true;})();`,
       );
     } else if (data?.type === 'clearRoute') {
       webViewRef.current?.injectJavaScript(
@@ -432,11 +439,19 @@ export default function MapScreen({
     const originPos = effectivePositionRef.current ?? effectivePosition;
     const routeDestinationLabel = routeDestinationLabelRef.current;
 
+    console.info('[PalSafarRoute] attempt', {
+      origin: originPos
+        ? { latitude: originPos.latitude, longitude: originPos.longitude }
+        : null,
+      destination: { latitude: destLat, longitude: destLng },
+    });
+
     if (
       originPos &&
       Math.abs(originPos.latitude - destLat) < 1e-5 &&
       Math.abs(originPos.longitude - destLng) < 1e-5
     ) {
+      console.info('[PalSafarRoute] skipped', { reason: 'already_at_destination' });
       Alert.alert('Already here', 'You are already at this place.');
       return;
     }
@@ -469,6 +484,12 @@ export default function MapScreen({
       const destLatNum = Number(destLat);
       const destLngNum = Number(destLng);
 
+      console.info('[PalSafarRoute] request', {
+        origin: { latitude: originLat, longitude: originLng },
+        destination: { latitude: destLatNum, longitude: destLngNum },
+        context: directions?.context ?? 'map',
+      });
+
       const result = await getOSRMRoute(
         originLat,
         originLng,
@@ -480,10 +501,9 @@ export default function MapScreen({
       if (routeRequestIdRef.current !== requestId) return;
 
       if (result && result.source === 'routing') {
-        const leafletGeometry: [number, number][] =
-          Array.isArray(result.geometry) && result.geometry.length > 0
-            ? result.geometry.map((point: [number, number]) => [point[1], point[0]])
-            : [[originLat, originLng], [destLatNum, destLngNum]];
+        const leafletGeometry: [number, number][] = result.geometry.map(
+          (point: [number, number]) => [point[1], point[0]],
+        );
 
         setRoute({
           distanceMeters: result.distanceMeters,
@@ -495,7 +515,12 @@ export default function MapScreen({
         setRouteStatus('success');
         setIsNavigating(true);
 
-        postToWebView({ type: 'drawRoute', coords: leafletGeometry, color: routeColor });
+        postToWebView({
+          type: 'drawRoute',
+          coords: leafletGeometry,
+          color: routeColor,
+          casingColor: INTERNAL_ROUTE_CASING_COLOR,
+        });
         postToWebView({
           type: 'fitBounds',
           bounds: [
@@ -521,7 +546,7 @@ export default function MapScreen({
       postToWebView({ type: 'clearRoute' });
       Alert.alert('Routing error', 'Could not fetch route data. Please check your connection and try again.');
     }
-  }, [effectivePosition, hasPermission, postToWebView]);
+  }, [directions?.context, effectivePosition, hasPermission, postToWebView]);
 
   const lockMapView = useCallback(() => {
     allowAutoRecenterRef.current = false;
@@ -1406,7 +1431,7 @@ export default function MapScreen({
           type: 'place' as const,
           city: g.city,
           state: g.state,
-          color: '#63300E',
+          color: '#16392B',
           emoji: '🏙️',
           sublabel: 'City',
           isCityGroup: true,
@@ -1894,7 +1919,7 @@ export default function MapScreen({
 
   const handleNavigate = useCallback(async () => {
     const marker = selectedMarkerRef.current ?? selectedMarker;
-    let plan = planMapPlaceNavigate({
+    const plan = planMapPlaceNavigate({
       hasPlace: Boolean(marker),
       destLat: marker?.lat,
       destLng: marker?.lng,
@@ -2218,8 +2243,8 @@ export default function MapScreen({
   const bgColor = MapExploreTheme.background;
   const cardBg = '#FFFFFF';
   const borderClr = 'rgba(200, 155, 60, 0.15)';
-  const headerText = '#2C1810';
-  const mutedText = '#8B7355';
+  const headerText = '#1D2420';
+  const mutedText = '#68756D';
 
   return (
     <View style={styles.container}>
@@ -2339,7 +2364,26 @@ export default function MapScreen({
 
         {showFilters && (
           <View style={styles.filterSection}>
-            <MapSegmentControl active={activeTab} onChange={handleMapTabChange} />
+            {activeTab === 'events' ? (
+              <View style={styles.eventsToolbar}>
+                <View style={styles.segmentWrap}>
+                  <MapSegmentControl active={activeTab} onChange={handleMapTabChange} />
+                </View>
+                <TouchableOpacity
+                  style={styles.addEventBtn}
+                  onPress={() => navigation.navigate('AddEvent')}
+                  activeOpacity={0.9}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add event"
+                  accessibilityHint="Opens the event submission form"
+                >
+                  <Icon name="add" size={18} color="#FFFFFF" />
+                  <Text style={styles.addEventBtnText}>Add Event</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <MapSegmentControl active={activeTab} onChange={handleMapTabChange} />
+            )}
 
             {activeTab === 'places' && (
               <MapCategoryChips
@@ -2351,7 +2395,7 @@ export default function MapScreen({
 
             {reviewMode && activeTab === 'vendors' ? (
               <View style={styles.reviewModeBanner}>
-                <Icon name="create-outline" size={16} color="#6D5948" />
+                <Icon name="create-outline" size={16} color="#68756D" />
                 <Text style={styles.reviewModeBannerText}>Choose a business to review.</Text>
               </View>
             ) : null}
@@ -2363,7 +2407,7 @@ export default function MapScreen({
             {/* Subhead Header Row */}
             <View style={styles.resultsHeaderRow}>
               <View style={styles.resultsHeaderLeft}>
-                <Icon name="location-outline" size={14} color="#6D5948" />
+                <Icon name="location-outline" size={14} color="#68756D" />
                 <Text style={styles.resultsHeaderCityText} numberOfLines={1}>
                   {searchQuery.trim()
                     ? `Search results for "${searchQuery.trim()}"`
@@ -2424,18 +2468,18 @@ export default function MapScreen({
                       </Text>
 
                       <View style={styles.cardLocationRow}>
-                        <Icon name="location-outline" size={13} color="#6D5948" />
+                        <Icon name="location-outline" size={13} color="#68756D" />
                         <Text style={styles.cardLocationText} numberOfLines={1}>
                           {[item.city, item.state].filter(Boolean).join(', ')}
                         </Text>
                         {distStr ? <Text style={styles.cardDistText}>{distStr}</Text> : null}
-                        <Icon name="chevron-forward" size={14} color="#6D5948" style={{ marginLeft: 2 }} />
+                        <Icon name="chevron-forward" size={14} color="#68756D" style={{ marginLeft: 2 }} />
                       </View>
 
                       {/* Metadata Pills Row */}
                       <View style={styles.cardPillRow}>
                         <View style={styles.cardPill}>
-                          <Icon name="time-outline" size={11} color="#6D5948" />
+                          <Icon name="time-outline" size={11} color="#68756D" />
                           <Text style={styles.cardPillText}>
                             {item.estimatedDuration ? `${item.estimatedDuration} mins` : (item.isCityGroup ? 'City' : '1–2 hrs')}
                           </Text>
@@ -2457,7 +2501,7 @@ export default function MapScreen({
               <View style={styles.addMissingPlaceBanner}>
                 <View style={styles.addMissingLeft}>
                   <View style={styles.addMissingPlusDisc}>
-                    <Icon name="add" size={20} color="#6D5948" />
+                    <Icon name="add" size={20} color="#68756D" />
                   </View>
                   <View style={{ marginLeft: 10, flex: 1 }}>
                     <Text style={styles.addMissingTitle}>Can't find what you're looking for?</Text>
@@ -2473,7 +2517,7 @@ export default function MapScreen({
                   }}
                   activeOpacity={0.85}
                 >
-                  <Icon name="create-outline" size={13} color="#6D5948" style={{ marginRight: 4 }} />
+                  <Icon name="create-outline" size={13} color="#68756D" style={{ marginRight: 4 }} />
                   <Text style={styles.addMissingBtnText}>Add a Place</Text>
                 </TouchableOpacity>
               </View>
@@ -2685,6 +2729,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingVertical: 0,
   },
+  eventsToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 12,
+  },
+  segmentWrap: {
+    flex: 1,
+  },
+  addEventBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#111111',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderWidth: 1,
+    borderColor: '#111111',
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  addEventBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   reviewModeBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2695,13 +2770,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#EDE4D8',
+    borderColor: '#D9E0DB',
   },
   reviewModeBannerText: {
     flex: 1,
     fontSize: 13,
     fontFamily: 'Inter-SemiBold',
-    color: '#4E2A10',
+    color: '#16392B',
   },
   tabRow: {
     flexDirection: 'row', borderRadius: 14, padding: 4, borderWidth: 1,
@@ -2719,7 +2794,7 @@ const styles = StyleSheet.create({
   searchRow: { flexDirection: 'row', alignItems: 'center', width: '100%' },
   clearSearchBtn: { paddingHorizontal: 4, marginRight: 4 },
   searchActionBtn: {
-    backgroundColor: '#63300E',
+    backgroundColor: '#16392B',
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 10,
@@ -2774,7 +2849,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: '#FFD70018', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10,
   },
-  detailRatingText: { fontSize: 13, fontFamily: 'Inter-Bold', color: '#B8860B' },
+  detailRatingText: { fontSize: 13, fontFamily: 'Inter-Bold', color: '#1F4D3A' },
   detailMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   detailMetaChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -2792,7 +2867,7 @@ const styles = StyleSheet.create({
   },
   rideBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    backgroundColor: '#B9834B', paddingVertical: 12, borderRadius: 12,
+    backgroundColor: '#1F4D3A', paddingVertical: 12, borderRadius: 12,
   },
   rideBtnText: { color: '#FFFFFF', fontSize: 14, fontFamily: 'Inter-Bold' },
   detailActionsRow: { flexDirection: 'row', gap: 10 },
@@ -2800,7 +2875,7 @@ const styles = StyleSheet.create({
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     paddingVertical: 12, borderRadius: 12, gap: 6,
   },
-  detailActionPrimary: { backgroundColor: '#63300E' },
+  detailActionPrimary: { backgroundColor: '#16392B' },
   detailActionPrimaryText: { color: '#FFFFFF', fontSize: 13, fontFamily: 'Inter-SemiBold' },
   detailActionOutline: { backgroundColor: 'transparent', borderWidth: 1.5 },
   detailActionOutlineText: { fontSize: 13, fontFamily: 'Inter-SemiBold' },
@@ -2822,7 +2897,7 @@ const styles = StyleSheet.create({
   filterSheetTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#8B7355',
+    color: '#68756D',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     paddingHorizontal: 16,
@@ -2842,10 +2917,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: '#2C1810',
+    color: '#1D2420',
   },
   filterSheetRowTextActive: {
-    color: '#63300E',
+    color: '#16392B',
     fontWeight: '800',
   },
   backdrop: {
@@ -2915,9 +2990,9 @@ const styles = StyleSheet.create({
     alignItems: 'center', zIndex: 50,
   },
   endNavBtn: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#E53935',
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#C94A4A',
     paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24, gap: 6,
-    shadowColor: '#E53935', shadowOffset: { width: 0, height: 4 },
+    shadowColor: '#C94A4A', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
   },
   endNavText: { color: '#FFF', fontSize: 14, fontFamily: 'Inter-Bold' },
@@ -2938,7 +3013,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   routeSummaryLabel: {
-    color: '#2C1810',
+    color: '#1D2420',
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 3,
@@ -2949,7 +3024,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   routeSummaryText: {
-    color: '#4A3427',
+    color: '#1D2420',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -2967,7 +3042,7 @@ const styles = StyleSheet.create({
     paddingRight: 8,
     height: 50,
     borderWidth: 1,
-    shadowColor: '#63300E',
+    shadowColor: '#16392B',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 10,
@@ -3001,7 +3076,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: '#F2EDE6',
-    shadowColor: '#2C1810',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.14,
     shadowRadius: 18,
@@ -3023,7 +3098,7 @@ const styles = StyleSheet.create({
   resultsHeaderCityText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6D5948',
+    color: '#68756D',
   },
   resultsHeaderCountText: {
     fontSize: 12,
@@ -3103,7 +3178,7 @@ const styles = StyleSheet.create({
   },
   cardLocationText: {
     fontSize: 12,
-    color: '#6D5948',
+    color: '#68756D',
     flex: 1,
     marginLeft: 3,
   },
@@ -3132,7 +3207,7 @@ const styles = StyleSheet.create({
   cardPillText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#6D5948',
+    color: '#68756D',
   },
   addMissingPlaceBanner: {
     backgroundColor: '#FFFBF5',
@@ -3163,7 +3238,7 @@ const styles = StyleSheet.create({
   addMissingTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#2C1810',
+    color: '#1D2420',
   },
   addMissingSub: {
     fontSize: 11,
@@ -3175,7 +3250,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#8C7765',
+    borderColor: '#68756D',
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 18,
@@ -3183,7 +3258,7 @@ const styles = StyleSheet.create({
   addMissingBtnText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6D5948',
+    color: '#68756D',
   },
   suggestionItem: {
     flexDirection: 'row',

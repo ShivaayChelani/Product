@@ -11,15 +11,15 @@ import { getAuditLogs } from "@/services/audit";
 
 export default function SecurityPage() {
   const [role, setRole] = useState("");
-  const [recentLogins, setRecentLogins] = useState(0);
+  const [auditEventCount, setAuditEventCount] = useState(0);
 
   useEffect(() => {
     const r = getAdminRoleFromStorage();
     if (r) setRole(getRoleLabel(r));
 
-    getAuditLogs({ limit: 50, action: "LOGIN", sortOrder: "desc" })
-      .then((res) => setRecentLogins(res.data?.length ?? 0))
-      .catch(() => setRecentLogins(0));
+    getAuditLogs({ limit: 1, sortOrder: "desc" })
+      .then((res) => setAuditEventCount(res.pagination?.total ?? res.data?.length ?? 0))
+      .catch(() => setAuditEventCount(0));
   }, []);
 
   const sections = [
@@ -63,8 +63,8 @@ export default function SecurityPage() {
           <p className="mt-2 text-lg font-semibold">{role || "Admin"}</p>
         </div>
         <div className="admin-card p-5">
-          <p className="text-sm text-muted-foreground">Recent login events (last 50)</p>
-          <p className="mt-2 text-lg font-semibold tabular-nums">{recentLogins}</p>
+          <p className="text-sm text-muted-foreground">Audit events on record</p>
+          <p className="mt-2 text-lg font-semibold tabular-nums">{auditEventCount}</p>
         </div>
         <div className="admin-card p-5">
           <p className="text-sm text-muted-foreground">Auth method</p>

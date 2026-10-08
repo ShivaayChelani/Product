@@ -37,14 +37,14 @@ const C = {
   bg: '#FFFFFF',
   surface: '#FFFFFF',
   card: '#FFFFFF',
-  ink: '#63300E',
-  gold: '#B9834B',
-  text: '#2C1810',
-  textSub: '#8B7355',
-  textMuted: '#B8A88A',
-  border: 'rgba(200, 155, 60, 0.18)',
-  navy: '#1F3354',
-  orange: '#E8923B',
+  ink: '#16392B',
+  gold: '#1F4D3A',
+  text: '#1D2420',
+  textSub: '#68756D',
+  textMuted: '#68756D',
+  border: 'rgba(183, 121, 31, 0.18)',
+  navy: '#1D2420',
+  orange: '#B7791F',
 };
 
 const TIER_LABELS = [
@@ -69,9 +69,9 @@ function eligibilityLabel(campaign: Campaign): string {
 }
 
 function rankRibbonStyle(index: number) {
-  if (index === 0) return { bg: '#FEF3C7', text: '#B45309', border: '#F59E0B' };
-  if (index === 1) return { bg: '#F1F5F9', text: '#64748B', border: '#94A3B8' };
-  return { bg: '#FFEDD5', text: '#C2410C', border: '#FB923C' };
+  if (index === 0) return { bg: '#F8F0E1', text: '#16392B', border: '#B7791F' };
+  if (index === 1) return { bg: '#F7F6F1', text: '#68756D', border: '#68756D' };
+  return { bg: '#F7F6F1', text: '#16392B', border: '#1F4D3A' };
 }
 
 export default function LeaderboardScreen() {
@@ -387,7 +387,7 @@ export default function LeaderboardScreen() {
                 <Text style={styles.statsValue}>{myRank ?? '—'}</Text>
                 {pointsToNextRank > 0 && myRank && myRank > 1 ? (
                   <View style={styles.rankUpBadge}>
-                    <Icon name="trending-up" size={12} color="#059669" />
+                    <Icon name="trending-up" size={12} color="#2E7D55" />
                   </View>
                 ) : null}
               </View>
@@ -520,7 +520,7 @@ export default function LeaderboardScreen() {
               <Text style={styles.claimFormLabel}>Delivery / Shipping Details</Text>
               <Text style={styles.claimFormSub}>These details will be shared with our admin to dispatch your reward.</Text>
 
-              <Text style={styles.claimFieldLabel}>Full Name <Text style={{ color: '#EF4444' }}>*</Text></Text>
+              <Text style={styles.claimFieldLabel}>Full Name <Text style={{ color: '#C94A4A' }}>*</Text></Text>
               <TextInput
                 style={styles.claimInput}
                 placeholder="Your full name"
@@ -529,7 +529,7 @@ export default function LeaderboardScreen() {
                 onChangeText={setClaimName}
               />
 
-              <Text style={styles.claimFieldLabel}>Phone Number <Text style={{ color: '#EF4444' }}>*</Text></Text>
+              <Text style={styles.claimFieldLabel}>Phone Number <Text style={{ color: '#C94A4A' }}>*</Text></Text>
               <TextInput
                 style={styles.claimInput}
                 placeholder="10-digit mobile number"
@@ -540,7 +540,7 @@ export default function LeaderboardScreen() {
                 maxLength={15}
               />
 
-              <Text style={styles.claimFieldLabel}>Street Address <Text style={{ color: '#EF4444' }}>*</Text></Text>
+              <Text style={styles.claimFieldLabel}>Street Address <Text style={{ color: '#C94A4A' }}>*</Text></Text>
               <TextInput
                 style={[styles.claimInput, { minHeight: 64, textAlignVertical: 'top' }]}
                 placeholder="House no., street, locality"
@@ -552,7 +552,7 @@ export default function LeaderboardScreen() {
 
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.claimFieldLabel}>City <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                  <Text style={styles.claimFieldLabel}>City <Text style={{ color: '#C94A4A' }}>*</Text></Text>
                   <TextInput
                     style={styles.claimInput}
                     placeholder="City"
@@ -562,7 +562,7 @@ export default function LeaderboardScreen() {
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.claimFieldLabel}>Pincode <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                  <Text style={styles.claimFieldLabel}>Pincode <Text style={{ color: '#C94A4A' }}>*</Text></Text>
                   <TextInput
                     style={styles.claimInput}
                     placeholder="Pincode"
@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(248,244,236,0.72)',
+    backgroundColor: 'rgba(247,246,241,0.72)',
   },
   heroContent: {
     position: 'relative',
@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#2B1D15',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 14,
@@ -724,7 +724,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#F8F0E1',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
@@ -756,7 +756,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: '#DDEBE3',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -811,7 +811,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#F8F0E1',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -835,7 +835,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#F8F0E1',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -864,7 +864,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
     overflow: 'hidden',
-    shadowColor: '#2B1D15',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 10,
@@ -872,7 +872,7 @@ const styles = StyleSheet.create({
   },
   rewardImageWrap: {
     height: 132,
-    backgroundColor: '#F5EDE3',
+    backgroundColor: '#F7F6F1',
     position: 'relative',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -921,7 +921,7 @@ const styles = StyleSheet.create({
   },
   tierPill: {
     alignSelf: 'flex-start',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#F8F0E1',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -929,7 +929,7 @@ const styles = StyleSheet.create({
   tierPillText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#B45309',
+    color: '#16392B',
   },
   eligibilityRow: {
     flexDirection: 'row',
@@ -1075,8 +1075,8 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   tableRowYou: {
-    backgroundColor: '#FFF7ED',
-    borderColor: '#E8C99A',
+    backgroundColor: '#F8F0E1',
+    borderColor: '#DDEBE3',
   },
   tableRankCol: {
     width: 44,
@@ -1100,7 +1100,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#E8DDD0',
+    backgroundColor: '#D9E0DB',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1166,7 +1166,7 @@ const styles = StyleSheet.create({
   claimModalHandle: {
     width: 40,
     height: 4,
-    backgroundColor: 'rgba(99,48,14,0.18)',
+    backgroundColor: 'rgba(29,36,32,0.18)',
     borderRadius: 2,
     alignSelf: 'center',
     marginTop: 12,

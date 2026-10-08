@@ -92,7 +92,7 @@ export default function VendorReelsScreen({
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Icon name="arrow-back" size={22} color="#2C1810" />
+          <Icon name="arrow-back" size={22} color="#1D2420" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{vendorName}</Text>
         <View style={{ width: 40 }} />
@@ -100,7 +100,7 @@ export default function VendorReelsScreen({
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#B9834B" />
+          <ActivityIndicator size="large" color="#1F4D3A" />
         </View>
       ) : error ? (
         <View style={styles.centered}>
@@ -122,12 +122,12 @@ export default function VendorReelsScreen({
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => { setRefreshing(true); load(); }}
-              tintColor="#B9834B"
+              tintColor="#1F4D3A"
             />
           }
           ListEmptyComponent={
             <View style={styles.centered}>
-              <Icon name="videocam-outline" size={48} color="#B8A88A" />
+              <Icon name="videocam-outline" size={48} color="#68756D" />
               <Text style={styles.emptyTitle}>No reels yet</Text>
               <Text style={styles.emptyText}>Published business reels and allowed creator reels will show up here.</Text>
             </View>
@@ -142,7 +142,7 @@ export default function VendorReelsScreen({
                 <Image source={{ uri: item.thumbnail }} style={styles.thumb} />
               ) : (
                 <View style={[styles.thumb, styles.thumbPlaceholder]}>
-                  <Icon name="play-circle" size={36} color="#B9834B" />
+                  <Icon name="play-circle" size={36} color="#1F4D3A" />
                 </View>
               )}
               <View style={styles.cardBody}>
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(200,155,60,0.15)',
+    borderBottomColor: 'rgba(183,121,31,0.15)',
     backgroundColor: '#FFFFFF',
   },
   backBtn: {
@@ -186,20 +186,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 17,
     fontWeight: '800',
-    color: '#2C1810',
+    color: '#1D2420',
   },
   centered: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   list: { padding: 16 },
-  errorText: { color: '#FF5A5F', marginBottom: 12, textAlign: 'center' },
+  errorText: { color: '#C94A4A', marginBottom: 12, textAlign: 'center' },
   retryBtn: {
-    backgroundColor: '#B9834B',
+    backgroundColor: '#1F4D3A',
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 16,
   },
   retryText: { color: '#FFFFFF', fontWeight: '700' },
-  emptyTitle: { color: '#2C1810', fontSize: 18, fontWeight: '800', marginTop: 12 },
-  emptyText: { color: '#8B7355', textAlign: 'center', marginTop: 6 },
+  emptyTitle: { color: '#1D2420', fontSize: 18, fontWeight: '800', marginTop: 12 },
+  emptyText: { color: '#68756D', textAlign: 'center', marginTop: 6 },
   card: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
@@ -207,15 +207,15 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(185,131,75,0.12)',
+    borderColor: 'rgba(183,121,31,0.12)',
   },
   thumb: { width: 96, height: 96 },
   thumbPlaceholder: {
-    backgroundColor: '#F9F9F9',
+    backgroundColor: '#F7F6F1',
     justifyContent: 'center',
     alignItems: 'center',
   },
   cardBody: { flex: 1, padding: 12, justifyContent: 'center' },
-  cardTitle: { fontSize: 14, fontWeight: '700', color: '#2C1810' },
-  cardMeta: { fontSize: 12, color: '#8B7355', marginTop: 6 },
+  cardTitle: { fontSize: 14, fontWeight: '700', color: '#1D2420' },
+  cardMeta: { fontSize: 12, color: '#68756D', marginTop: 6 },
 });

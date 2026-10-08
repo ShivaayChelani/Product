@@ -7,11 +7,12 @@
  * with an empty id (see `linking.ts`) and renders the not-found state rather
  * than silently dropping the user on Home.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,6 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useQuery } from '@tanstack/react-query';
 import { useEventDetail } from '../features/events/hooks';
 import { EVENT_COLORS } from '../features/events/EventCard';
 import {
@@ -39,17 +41,165 @@ import {
 import { shareEvent } from '../services/sharing/shareEvent';
 import type { RootStackParamList } from '../navigation/types';
 import { openInternalDirections } from '../features/mapExplore/utils/internalDirections';
+import { placesApi } from '../services/api/places';
+import { formatDistance, haversineDistance } from '../services/location/distance';
+import {
+  loadItineraryEventIdSet,
+  loadItineraryPlaceIdSet,
+  quickAddEventToTrip,
+  quickAddPlaceToTrip,
+} from '../utils/quickAddPlace';
 
 type Props = { eventIdOrSlug: string };
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const MAX_GALLERY = 6;
+/** Nearby radius shown under the event card. */
+const NEARBY_RADIUS_M = 25000;
+const NEARBY_LIMIT = 4;
+
+function formatEntryFee(fee: number | null | undefined): string | null {
+  if (fee === null || fee === undefined) return null;
+  if (fee <= 0) return 'Free entry';
+  return `₹${fee}`;
+}
 
 export default function EventDetailScreen({ eventIdOrSlug }: Props) {
   const navigation = useNavigation<Nav>();
   const { event, isLoading, isError, refetch } = useEventDetail(eventIdOrSlug);
   const [imageError, setImageError] = useState(false);
+  const [itineraryEventIds, setItineraryEventIds] = useState<Set<string> | null>(null);
+  const [itineraryPlaceIds, setItineraryPlaceIds] = useState<Set<string> | null>(null);
+  const [addingToTrip, setAddingToTrip] = useState(false);
+
+  // Whether this event (and each nearby place) already sits in the draft trip.
+  // Runs for every mount; failures leave the buttons usable (state stays null).
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const [eventIds, placeIds] = await Promise.all([
+          loadItineraryEventIdSet(),
+          loadItineraryPlaceIdSet(),
+        ]);
+        if (!alive) return;
+        setItineraryEventIds(eventIds);
+        setItineraryPlaceIds(placeIds);
+      } catch {
+        if (alive) {
+          setItineraryEventIds(new Set());
+          setItineraryPlaceIds(new Set());
+        }
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const eventId = event?.id;
+  const nearbyQuery = useQuery({
+    queryKey: ['events', 'nearby', eventId ?? eventIdOrSlug],
+    queryFn: async () => {
+      if (!event) return [];
+      const lat = Number(event.latitude);
+      const lng = Number(event.longitude);
+      if (!eventHasCoordinates(event) || !Number.isFinite(lat) || !Number.isFinite(lng)) return [];
+      const res = await placesApi.nearby({
+        lat,
+        lng,
+        radius: NEARBY_RADIUS_M,
+        limit: 20,
+      });
+      return (res.data || []).filter(p => p.id !== event.placeId);
+    },
+    enabled: !!event && eventHasCoordinates(event),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const nearby = (nearbyQuery.data || [])
+    .map(p => ({
+      place: p,
+      distanceM: haversineDistance(
+        event?.latitude ?? 0,
+        event?.longitude ?? 0,
+        p.latitude,
+        p.longitude,
+      ),
+    }))
+    .sort((a, b) => a.distanceM - b.distanceM)
+    .slice(0, NEARBY_LIMIT);
+
+  const markEventInItinerary = useCallback(() => {
+    setItineraryEventIds(prev => {
+      const next = new Set(prev || []);
+      if (eventId) next.add(eventId);
+      return next;
+    });
+  }, [eventId]);
+
+  const markPlaceInItinerary = useCallback((placeId: string) => {
+    setItineraryPlaceIds(prev => {
+      const next = new Set(prev || []);
+      next.add(placeId);
+      return next;
+    });
+  }, []);
+
+  const addEventToItinerary = useCallback(async () => {
+    if (!event || addingToTrip) return;
+    setAddingToTrip(true);
+    try {
+      await quickAddEventToTrip(event.id, { city: event.city || undefined });
+      markEventInItinerary();
+      Alert.alert(
+        'Added to itinerary',
+        `${event.title} is now a stop in your trip plan.`,
+        [{ text: 'View trip', onPress: () => navigation.navigate('MyTrips', { initialTab: 'DRAFT' }) }],
+        { cancelable: true },
+      );
+    } catch (err: any) {
+      Alert.alert(
+        'Could not add event',
+        typeof err?.message === 'string' && err.message ? err.message : 'Please try again.',
+      );
+    } finally {
+      setAddingToTrip(false);
+    }
+  }, [addingToTrip, event, markEventInItinerary, navigation]);
+
+  const addPlaceToItinerary = useCallback(
+    async (place: { id: string; name: string; city?: string | null }) => {
+      try {
+        await quickAddPlaceToTrip(place.id, {
+          name: place.name,
+          city: place.city || undefined,
+        });
+        markPlaceInItinerary(place.id);
+      } catch (err: any) {
+        Alert.alert(
+          'Could not add place',
+          typeof err?.message === 'string' && err.message ? err.message : 'Please try again.',
+        );
+      }
+    },
+    [markPlaceInItinerary],
+  );
+
+  const openWebsite = useCallback((url: string) => {
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Unavailable', 'This link could not be opened.');
+    });
+  }, []);
+
+  const callOrganizer = useCallback((phone: string) => {
+    const cleaned = phone.replace(/[^\d+]/g, '');
+    if (!cleaned) return;
+    Linking.openURL(`tel:${cleaned}`).catch(() => {
+      Alert.alert('Unavailable', 'Dialling is not supported on this device.');
+    });
+  }, []);
 
   const openOnMap = useCallback(() => {
     if (!event || !eventHasCoordinates(event)) return;
@@ -91,7 +241,6 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
     if (!event) return;
     const result = await shareEvent({
       id: event.id,
-      slug: event.slug,
       status: event.status,
       title: event.title,
     });
@@ -146,6 +295,12 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
   const description = (event.description || '').trim();
   const linkedPlace = event.placeId && event.placeName ? { id: event.placeId, name: event.placeName } : null;
   const linkedVendor = event.vendorId && event.vendorName ? { id: event.vendorId, name: event.vendorName } : null;
+  const inItinerary = !!itineraryEventIds?.has(event.id);
+  const entryFee = formatEntryFee(event.entryFee);
+  const shortDescription = (event.shortDescription || '').trim();
+  const organizerName = (event.organizerName || '').trim();
+  const organizerContact = (event.organizerContact || '').trim();
+  const websiteUrl = (event.websiteUrl || '').trim();
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -174,7 +329,7 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
               accessibilityRole="button"
               accessibilityLabel="Go back"
             >
-              <Icon name="chevron-back" size={20} color="#0F172A" />
+              <Icon name="chevron-back" size={20} color="#1D2420" />
             </Pressable>
             <Pressable
               style={styles.circleBtn}
@@ -182,7 +337,7 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
               accessibilityRole="button"
               accessibilityLabel="Share event"
             >
-              <Icon name="share-outline" size={19} color="#0F172A" />
+              <Icon name="share-outline" size={19} color="#1D2420" />
             </Pressable>
           </View>
 
@@ -203,7 +358,7 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
             </View>
             {event.isFeatured ? (
               <View style={styles.badgeGlass}>
-                <Icon name="star" size={11} color="#FCD34D" />
+                <Icon name="star" size={11} color="#B7791F" />
                 <Text style={styles.badgeTextGlass}>Featured</Text>
               </View>
             ) : null}
@@ -212,6 +367,10 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
 
         <View style={styles.body}>
           <Text style={styles.title}>{event.title}</Text>
+
+          {shortDescription && shortDescription !== description ? (
+            <Text style={styles.shortDescription}>{shortDescription}</Text>
+          ) : null}
 
           <View style={styles.scheduleCard}>
             <Icon name="calendar-outline" size={18} color={EVENT_COLORS.accent} />
@@ -252,6 +411,104 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>About this event</Text>
               <Text style={styles.description}>{description}</Text>
+            </View>
+          ) : null}
+
+          {organizerName || organizerContact || websiteUrl || entryFee ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Organiser & entry</Text>
+
+              {organizerName ? (
+                <View style={styles.detailRow}>
+                  <Icon name="person-outline" size={16} color={EVENT_COLORS.accent} />
+                  <Text style={styles.detailRowText}>{organizerName}</Text>
+                </View>
+              ) : null}
+
+              {entryFee ? (
+                <View style={styles.detailRow}>
+                  <Icon name="pricetag-outline" size={16} color={EVENT_COLORS.accent} />
+                  <Text style={styles.detailRowText}>{entryFee}</Text>
+                </View>
+              ) : null}
+
+              {organizerContact ? (
+                <Pressable
+                  style={styles.detailRow}
+                  onPress={() => callOrganizer(organizerContact)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Call ${organizerName || 'organiser'}`}
+                >
+                  <Icon name="call-outline" size={16} color={EVENT_COLORS.accent} />
+                  <Text style={[styles.detailRowText, styles.detailRowLink]} numberOfLines={1}>
+                    {organizerContact}
+                  </Text>
+                  <Icon name="call" size={13} color={EVENT_COLORS.textSecondary} />
+                </Pressable>
+              ) : null}
+
+              {websiteUrl ? (
+                <Pressable
+                  style={styles.detailRow}
+                  onPress={() => openWebsite(websiteUrl)}
+                  accessibilityRole="link"
+                  accessibilityLabel="Open event website"
+                >
+                  <Icon name="globe-outline" size={16} color={EVENT_COLORS.accent} />
+                  <Text style={[styles.detailRowText, styles.detailRowLink]} numberOfLines={1}>
+                    {websiteUrl.replace(/^https?:\/\//, '')}
+                  </Text>
+                  <Icon name="open-outline" size={13} color={EVENT_COLORS.textSecondary} />
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
+
+          {nearby.length > 0 ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Nearby places</Text>
+              {nearby.map(({ place, distanceM }) => {
+                const added = itineraryPlaceIds?.has(place.id);
+                return (
+                  <View key={place.id} style={styles.nearbyCard}>
+                    <Pressable
+                      style={styles.nearbyMain}
+                      onPress={() => navigation.navigate('SpotDetail', { spotId: place.id })}
+                      accessibilityRole="button"
+                    >
+                      <View style={styles.nearbyAvatar}>
+                        <Icon name="location" size={16} color={EVENT_COLORS.accent} />
+                      </View>
+                      <View style={styles.nearbyText}>
+                        <Text style={styles.nearbyName} numberOfLines={1}>
+                          {place.name}
+                        </Text>
+                        <Text style={styles.nearbySub} numberOfLines={1}>
+                          {formatDistance(distanceM)}
+                          {place.category ? ` · ${place.category}` : ''}
+                        </Text>
+                      </View>
+                      <Icon name="chevron-forward" size={15} color={EVENT_COLORS.textSecondary} />
+                    </Pressable>
+                    <Pressable
+                      onPress={() => (!added ? void addPlaceToItinerary(place) : navigation.navigate('MyTrips', { initialTab: 'DRAFT' }))}
+                      disabled={false}
+                      style={[styles.nearbyAddBtn, added && styles.nearbyAddBtnDone]}
+                      accessibilityRole="button"
+                      accessibilityLabel={added ? 'Open trip builder' : `Add ${place.name} to itinerary`}
+                    >
+                      <Icon
+                        name={added ? 'checkmark-circle' : 'add-circle-outline'}
+                        size={15}
+                        color={added ? '#15803D' : EVENT_COLORS.accent}
+                      />
+                      <Text style={[styles.nearbyAddText, added && styles.nearbyAddTextDone]}>
+                        {added ? 'In itinerary' : 'Add'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                );
+              })}
             </View>
           ) : null}
 
@@ -299,6 +556,31 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
             </View>
           ) : null}
 
+          <Pressable
+            onPress={() => {
+              if (inItinerary) {
+                navigation.navigate('MyTrips', { initialTab: 'DRAFT' });
+              } else {
+                void addEventToItinerary();
+              }
+            }}
+            disabled={addingToTrip}
+            style={[styles.itineraryBtn, inItinerary && styles.itineraryBtnDone]}
+            accessibilityRole="button"
+            accessibilityLabel={inItinerary ? 'Open trip builder' : 'Add this event to my itinerary'}
+            accessibilityState={{ disabled: addingToTrip }}
+            testID="event-add-to-itinerary"
+          >
+            <Icon
+              name={inItinerary ? 'checkmark-circle' : addingToTrip ? 'sync' : 'add-circle-outline'}
+              size={18}
+              color={inItinerary ? '#15803D' : '#FFFFFF'}
+            />
+            <Text style={[styles.itineraryBtnText, inItinerary && styles.itineraryBtnTextDone]}>
+              {inItinerary ? 'In your itinerary' : addingToTrip ? 'Adding…' : 'Add to itinerary'}
+            </Text>
+          </Pressable>
+
           <View style={styles.actions}>
             {canLocate ? (
               <>
@@ -339,7 +621,7 @@ function DetailHeader({ onBack }: { onBack: () => void }) {
         accessibilityRole="button"
         accessibilityLabel="Go back"
       >
-        <Icon name="chevron-back" size={20} color="#0F172A" />
+        <Icon name="chevron-back" size={20} color="#1D2420" />
       </Pressable>
     </View>
   );
@@ -393,11 +675,73 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: 'rgba(15,23,42,0.62)',
+    backgroundColor: 'rgba(29,36,32,0.62)',
   },
   badgeTextGlass: { fontSize: 10.5, fontWeight: '700', color: '#FFFFFF' },
   body: { padding: 20, gap: 14 },
   title: { fontSize: 22, fontWeight: '800', color: EVENT_COLORS.text, lineHeight: 28 },
+  shortDescription: { fontSize: 14, color: EVENT_COLORS.textBody, lineHeight: 20, marginTop: -4 },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: EVENT_COLORS.border,
+  },
+  detailRowText: { flex: 1, fontSize: 13.5, fontWeight: '600', color: EVENT_COLORS.text },
+  detailRowLink: { color: EVENT_COLORS.accent },
+  nearbyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingLeft: 10,
+    paddingRight: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: EVENT_COLORS.border,
+  },
+  nearbyMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  nearbyAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: EVENT_COLORS.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nearbyText: { flex: 1 },
+  nearbyName: { fontSize: 14, fontWeight: '700', color: EVENT_COLORS.text },
+  nearbySub: { fontSize: 12, color: EVENT_COLORS.textSecondary, marginTop: 1, textTransform: 'capitalize' },
+  nearbyAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: EVENT_COLORS.accentBorder,
+    backgroundColor: EVENT_COLORS.accentSoft,
+  },
+  nearbyAddBtnDone: { backgroundColor: '#EFFAF3', borderColor: '#BFE6CE' },
+  nearbyAddText: { fontSize: 12, fontWeight: '700', color: EVENT_COLORS.accent },
+  nearbyAddTextDone: { color: '#15803D' },
+  itineraryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: EVENT_COLORS.accent,
+  },
+  itineraryBtnDone: { backgroundColor: '#EFFAF3', borderWidth: 1, borderColor: '#BFE6CE' },
+  itineraryBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+  itineraryBtnTextDone: { color: '#15803D' },
   scheduleCard: {
     flexDirection: 'row',
     alignItems: 'center',

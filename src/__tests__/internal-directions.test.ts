@@ -11,6 +11,8 @@
  *    the ones that previously launched Google Maps / `geo:` / `maps://`, must go
  *    through the Map screen.
  */
+import fs from 'fs';
+import path from 'path';
 import {
   INTERNAL_DIRECTIONS_CONTEXTS,
   INTERNAL_DIRECTIONS_UNAVAILABLE,
@@ -21,6 +23,27 @@ import {
 } from '../features/mapExplore/utils/internalDirections';
 
 const makeNav = () => ({ navigate: jest.fn() });
+const read = (relativePath: string) =>
+  fs.readFileSync(path.join(__dirname, '..', relativePath), 'utf8');
+
+describe('Map tab directions handoff', () => {
+  it('forwards the nested route destination and key into MapScreen', () => {
+    const tabs = read('navigation/MainTabs.tsx');
+    expect(tabs).toMatch(/directions,\s*directionsKey,/);
+    expect(tabs).toMatch(/directions=\{directions\}/);
+    expect(tabs).toMatch(/directionsKey=\{directionsKey\}/);
+  });
+
+  it('draws a blue road line over a white contrast casing', () => {
+    const map = read('screens/MapScreen.tsx');
+    const leaflet = read('utils/leafletMapHtml.ts');
+    expect(map).toMatch(/casingColor:\s*INTERNAL_ROUTE_CASING_COLOR/);
+    expect(leaflet).toMatch(/routeCasingLayer = L\.polyline/);
+    expect(leaflet).toMatch(/weight:\s*11/);
+    expect(leaflet).toMatch(/routeLayer = L\.polyline/);
+    expect(leaflet).toMatch(/weight:\s*6/);
+  });
+});
 
 describe('resolveInternalDirectionsDestination', () => {
   it('accepts a normal coordinate pair', () => {

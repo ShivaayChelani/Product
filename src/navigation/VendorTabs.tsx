@@ -16,6 +16,7 @@ import {
   VENDOR_TAB_BAR_HEIGHT,
 } from '../design/vendorLayout';
 import { MIN_TOUCH } from '../design/responsive';
+import { palette } from '../config/theme';
 
 const Tab = createBottomTabNavigator<VendorTabParamList>();
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
@@ -146,10 +147,10 @@ function VendorTabBar({ state, navigation }: BottomTabBarProps) {
                   activeOpacity={0.9}
                 >
                   <View style={styles.centerInner}>
-                    <Icon name={isFocused ? 'videocam' : 'videocam-outline'} size={30} color="#2A2623" />
+                    <Icon name={isFocused ? 'videocam' : 'videocam-outline'} size={30} color={palette.text} />
                   </View>
                 </TouchableOpacity>
-                <Text style={[styles.tabLabel, { color: isFocused ? '#D4A373' : '#EAE0D5', marginTop: 44 }, isFocused && styles.activeTabLabel]}>
+                <Text style={[styles.tabLabel, { color: isFocused ? palette.primaryLight : palette.textSecondary, marginTop: 44 }, isFocused && styles.activeTabLabel]}>
                   {config.label}
                 </Text>
               </View>
@@ -161,10 +162,10 @@ function VendorTabBar({ state, navigation }: BottomTabBarProps) {
               <Icon
                 name={isFocused ? config.active : config.inactive}
                 size={24}
-                color={isFocused ? '#D4A373' : '#EAE0D5'}
+                color={isFocused ? palette.primaryLight : palette.textSecondary}
                 style={{ opacity: isFocused ? 1 : 0.8 }}
               />
-              <Text style={[styles.tabLabel, { color: isFocused ? '#D4A373' : '#EAE0D5', opacity: isFocused ? 1 : 0.8 }, isFocused && styles.activeTabLabel]} numberOfLines={1}>
+              <Text style={[styles.tabLabel, { color: isFocused ? palette.primaryLight : palette.textSecondary, opacity: isFocused ? 1 : 0.8 }, isFocused && styles.activeTabLabel]} numberOfLines={1}>
                 {config.label}
               </Text>
             </TouchableOpacity>
@@ -203,7 +204,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#2A2623',
+    backgroundColor: '#1D2420',
     height: 70,
     borderRadius: 35,
     paddingHorizontal: 16,
@@ -241,7 +242,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: '#D4A373',
+    backgroundColor: palette.primary,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -254,7 +255,7 @@ const styles = StyleSheet.create({
     width: 62,
     height: 62,
     borderRadius: 31,
-    backgroundColor: '#F8F3ED',
+    backgroundColor: palette.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },

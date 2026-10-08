@@ -6,8 +6,8 @@ const LOGO = require('../../assets/logo.png');
 const COLORS = {
   title: '#202020',
   subtitle: '#6F6F6F',
-  gold: '#D9A441',
-  border: '#ECE3D7',
+  gold: '#1F4D3A',
+  border: '#D9E0DB',
 };
 
 interface AuthHeaderProps {

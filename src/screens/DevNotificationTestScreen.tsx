@@ -173,7 +173,7 @@ function Row({ children }: { children: React.ReactNode }) {
 
 function Btn({ label, onPress, theme }: { label: string; onPress: () => void; theme: { primary: string; glass?: string } }) {
   return (
-    <TouchableOpacity onPress={onPress} style={[styles.btn, { backgroundColor: theme.glass || 'rgba(185,131,75,0.15)' }]}>
+    <TouchableOpacity onPress={onPress} style={[styles.btn, { backgroundColor: theme.glass || 'rgba(183,121,31,0.15)' }]}>
       <Text style={{ color: theme.primary, fontFamily: 'Inter-SemiBold', fontSize: 13 }}>{label}</Text>
     </TouchableOpacity>
   );

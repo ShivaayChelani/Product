@@ -45,6 +45,21 @@ export function flattenTripPlaceIds(trip: TripPlan | null | undefined): string[]
   return ids;
 }
 
+export function flattenTripEventIds(trip: TripPlan | null | undefined): string[] {
+  if (!trip?.tripDays?.length) return [];
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const day of trip.tripDays) {
+    for (const stop of day.stops || []) {
+      const eventId = stop.eventId || stop.event?.id;
+      if (!eventId || seen.has(eventId)) continue;
+      seen.add(eventId);
+      ids.push(eventId);
+    }
+  }
+  return ids;
+}
+
 export function previewTripStopNames(trip: TripPlan | null | undefined, limit = 3): string[] {
   if (!trip?.tripDays?.length) return [];
   const names: string[] = [];
@@ -135,6 +150,20 @@ export async function getActiveItineraryPlaceIds(): Promise<string[]> {
     for (const status of ['ACTIVE', 'UPCOMING', 'DRAFT'] as const) {
       const trip = await fetchFirstTrip(status);
       const ids = flattenTripPlaceIds(trip);
+      if (ids.length) return ids;
+    }
+  } catch (err) {
+  }
+  return [];
+}
+
+/** Same as `getActiveItineraryPlaceIds`, but for event-anchored stops. */
+export async function getActiveItineraryEventIds(): Promise<string[]> {
+  if (!DEV_FLAGS.USE_SERVER_API) return [];
+  try {
+    for (const status of ['ACTIVE', 'UPCOMING', 'DRAFT'] as const) {
+      const trip = await fetchFirstTrip(status);
+      const ids = flattenTripEventIds(trip);
       if (ids.length) return ids;
     }
   } catch (err) {

@@ -33,7 +33,7 @@ export type EventMarker = {
   eventIdOrSlug: string;
 };
 
-const EVENT_MARKER_COLOR = '#1E5FD9';
+const EVENT_MARKER_COLOR = '#1F4D3A';
 
 /** Drops events with no usable position; never fabricates a 0,0 pin. */
 export function toEventMarkers(events: CommunityEventMapItem[]): EventMarker[] {

@@ -90,7 +90,7 @@ function HeroAITripPlannerCardComponent({ height, bannerSource, state, onPlanTri
         <>
           <Image source={bannerSource} style={styles.bannerImage} resizeMode="cover" />
           <LinearGradient
-            colors={['rgba(248, 244, 236, 0.98)', 'rgba(248, 244, 236, 0.75)', 'rgba(248, 244, 236, 0)']}
+            colors={['rgba(247, 246, 241, 0.98)', 'rgba(247, 246, 241, 0.75)', 'rgba(247, 246, 241, 0)']}
             start={{ x: 0, y: 0.5 }}
             end={{ x: 1, y: 0.5 }}
             style={StyleSheet.absoluteFillObject}
@@ -121,7 +121,7 @@ function HeroAITripPlannerCardComponent({ height, bannerSource, state, onPlanTri
         <>
           <Image source={bannerSource} style={styles.bannerImage} resizeMode="cover" />
           <LinearGradient
-            colors={['rgba(248, 244, 236, 0.98)', 'rgba(248, 244, 236, 0.8)', 'rgba(248, 244, 236, 0)']}
+            colors={['rgba(247, 246, 241, 0.98)', 'rgba(247, 246, 241, 0.8)', 'rgba(247, 246, 241, 0)']}
             start={{ x: 0, y: 0.5 }}
             end={{ x: 1, y: 0.5 }}
             style={StyleSheet.absoluteFillObject}
@@ -156,7 +156,7 @@ function HeroAITripPlannerCardComponent({ height, bannerSource, state, onPlanTri
       <>
         <Image source={bannerSource} style={styles.bannerImage} resizeMode="cover" />
         <LinearGradient
-          colors={['rgba(248, 244, 236, 0.97)', 'rgba(248, 244, 236, 0.82)', 'rgba(248, 244, 236, 0.15)']}
+          colors={['rgba(247, 246, 241, 0.97)', 'rgba(247, 246, 241, 0.82)', 'rgba(247, 246, 241, 0.15)']}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 0.85, y: 0.5 }}
           style={StyleSheet.absoluteFillObject}
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#ECE3D8',
+    borderColor: '#D9E0DB',
   },
   bannerImage: {
     ...StyleSheet.absoluteFillObject,
@@ -225,14 +225,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: '#FBF7F0',
+    backgroundColor: '#F7F6F1',
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: '#FBF7F0',
+    backgroundColor: '#F7F6F1',
   },
   progressTrack: {
     width: '78%',

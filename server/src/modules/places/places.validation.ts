@@ -63,6 +63,20 @@ export const openingHoursWriteSchema = z
 const DURATION_FIELD = z.coerce.number().int().min(5, 'Minimum 5 minutes').max(600, 'Maximum 10 hours').nullable().optional();
 
 /**
+ * Canonical image metadata (CSV/Excel columns image_page_url / image_source /
+ * image_author / image_license). Persisted verbatim on the nullable places.image_metadata
+ * JSONB column. Values are preserved as-is; nulls/blanks are allowed.
+ */
+export const imageMetadataSchema = z
+  .object({
+    image_page_url: z.string().max(1000).nullable().optional(),
+    image_source: z.string().max(500).nullable().optional(),
+    image_author: z.string().max(500).nullable().optional(),
+    image_license: z.string().max(500).nullable().optional(),
+  })
+  .optional();
+
+/**
  * Ticket cost basis. Persisted inside ticketPrice JSON as `basis` so no
  * migration is needed and legacy rows simply lack it (treated as UNKNOWN
  * unless adult/child/foreigner amounts imply PER_PERSON).
@@ -80,17 +94,20 @@ export const createPlaceSchema = z.object({
   name: z.string().min(1, 'Name is required').max(200),
   description: z.string().min(1, 'Description is required').max(5000),
   shortDescription: z.string().max(500).optional(),
+  canonicalName: z.string().max(200).nullable().optional(),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   category: z.string().min(1, 'Category is required').max(100),
   images: z.array(z.string().url()).default([]),
   tags: z.array(z.string()).default([]),
   city: z.string().max(100).optional(),
+  district: z.string().max(100).optional(),
   state: z.string().max(100).optional(),
   country: z.string().max(100).optional(),
   openingHours: openingHoursWriteSchema,
   estimatedDurationMinutes: DURATION_FIELD,
   ticketPrice: z.object(ticketPriceShape).optional(),
+  imageMetadata: imageMetadataSchema,
   history: z.string().max(10000).optional(),
   recommendedDuration: z.string().max(100).optional(),
   hasParking: z.boolean().optional(),
@@ -110,6 +127,7 @@ export const updatePlaceSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().min(1).max(5000).optional(),
   shortDescription: z.string().max(500).optional(),
+  canonicalName: z.string().max(200).nullable().optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   category: z.string().min(1).max(100).optional(),
@@ -117,11 +135,13 @@ export const updatePlaceSchema = z.object({
   thumbnail: z.string().url().optional().nullable(),
   tags: z.array(z.string()).optional(),
   city: z.string().max(100).optional(),
+  district: z.string().max(100).optional(),
   state: z.string().max(100).optional(),
   country: z.string().max(100).optional(),
   openingHours: openingHoursWriteSchema,
   estimatedDurationMinutes: DURATION_FIELD,
   ticketPrice: z.object(ticketPriceShape).optional(),
+  imageMetadata: imageMetadataSchema,
   history: z.string().max(10000).optional(),
   recommendedDuration: z.string().max(100).optional(),
   hasParking: z.boolean().optional(),

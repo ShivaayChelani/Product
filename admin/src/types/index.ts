@@ -109,6 +109,14 @@ export interface Place {
   city: string;
   state: string;
   country: string;
+  district?: string;
+  canonicalName?: string | null;
+  imageMetadata?: {
+    image_page_url?: string | null;
+    image_source?: string | null;
+    image_author?: string | null;
+    image_license?: string | null;
+  } | null;
   isHiddenGem: boolean;
   hiddenGemScore?: number;
   popularityScore?: number;
@@ -158,6 +166,18 @@ export interface PlaceFormData {
   city: string;
   state: string;
   country: string;
+  district?: string;
+  canonicalName?: string;
+  imageMetadata?: {
+    image_page_url?: string;
+    image_source?: string;
+    image_author?: string;
+    image_license?: string;
+  };
+  imagePageUrl?: string;
+  imageSource?: string;
+  imageAuthor?: string;
+  imageLicense?: string;
   images: string[];
   tags: string[];
   editorialPriority: number;

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { palette } from '../../config/theme';
 
 export type BannerAction = {
   label: string;
@@ -63,21 +64,21 @@ export default function InAppNotificationBanner({
         style={[
           styles.card,
           {
-            backgroundColor: isDark ? '#1E2A3A' : '#FFFBF6',
-            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(185,131,75,0.25)',
+            backgroundColor: isDark ? '#1D2420' : palette.background,
+            borderColor: isDark ? 'rgba(255,255,255,0.08)' : palette.border,
           },
         ]}
       >
         <View style={styles.row}>
           <View style={styles.iconWrap}>
-            <Icon name="notifications" size={18} color="#B9834B" />
+            <Icon name="notifications" size={18} color={palette.primary} />
           </View>
           <View style={styles.textCol}>
-            <Text style={[styles.title, { color: isDark ? '#fff' : '#2C1810' }]} numberOfLines={1}>
+            <Text style={[styles.title, { color: isDark ? '#fff' : '#1D2420' }]} numberOfLines={1}>
               {title}
             </Text>
             {body ? (
-              <Text style={[styles.body, { color: isDark ? '#C5D0E0' : '#6B5A48' }]} numberOfLines={2}>
+              <Text style={[styles.body, { color: isDark ? palette.primaryLight : palette.textSecondary }]} numberOfLines={2}>
                 {body}
               </Text>
             ) : null}
@@ -88,7 +89,7 @@ export default function InAppNotificationBanner({
             accessibilityLabel="Dismiss notification"
             style={styles.dismiss}
           >
-            <Icon name="close" size={18} color={isDark ? '#9AA8BC' : '#8B7355'} />
+            <Icon name="close" size={18} color={isDark ? palette.primaryLight : palette.textSecondary} />
           </Pressable>
         </View>
         {actions && actions.length > 0 ? (
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(185,131,75,0.15)',
+    backgroundColor: 'rgba(183,121,31,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: 'rgba(185,131,75,0.15)',
+    backgroundColor: 'rgba(183,121,31,0.15)',
   },
-  actionText: { fontSize: 12, fontWeight: '700', color: '#B9834B' },
+  actionText: { fontSize: 12, fontWeight: '700', color: '#1F4D3A' },
 });

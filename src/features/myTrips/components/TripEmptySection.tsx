@@ -14,7 +14,7 @@ function TripEmptySectionComponent({ variant, onAction }: Props) {
   const isDraft = variant === 'draft';
   const isUpcoming = variant === 'upcoming';
 
-  const bgColor = '#F1F5F9';
+  const bgColor = '#F7F6F1';
 
   return (
     <View style={[styles.card, { backgroundColor: bgColor }]}>
@@ -80,21 +80,21 @@ const styles = StyleSheet.create({
     fontFamily: SANS,
     fontWeight: '800',
     fontSize: 16,
-    color: '#0B2545',
+    color: '#1D2420',
     lineHeight: 20,
     marginBottom: 4,
   },
   titleUnderline: {
     width: 20,
     height: 2,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#1F4D3A',
     marginBottom: 8,
   },
   body: {
     fontFamily: SANS,
     fontSize: 10,
     lineHeight: 14,
-    color: '#475569',
+    color: '#68756D',
     marginBottom: 12,
     maxWidth: 160,
   },
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: '#0B2545',
+    backgroundColor: '#1D2420',
     alignSelf: 'flex-start',
   },
   btnText: {

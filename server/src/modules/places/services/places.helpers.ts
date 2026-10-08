@@ -34,6 +34,9 @@ export const placeListSelect = {
   city: true,
   state: true,
   country: true,
+  district: true,
+  canonicalName: true,
+  imageMetadata: true,
   rating: true,
   reviewCount: true,
   hiddenGemScore: true,
@@ -70,6 +73,24 @@ export const placeDetailSelect = {
 } satisfies Prisma.PlaceSelect;
 
 export const placeApproved = Prisma.sql`'APPROVED'`;
+
+/** Strip null/blank entries from canonical image metadata; return undefined when empty. */
+export function sanitizeImageMetadata(
+  meta?: {
+    image_page_url?: string | null;
+    image_source?: string | null;
+    image_author?: string | null;
+    image_license?: string | null;
+  } | null,
+): Record<string, string> | undefined {
+  if (!meta || typeof meta !== 'object') return undefined;
+  const out: Record<string, string> = {};
+  for (const key of ['image_page_url', 'image_source', 'image_author', 'image_license'] as const) {
+    const v = meta[key];
+    if (typeof v === 'string' && v.trim()) out[key] = v;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
 
 export async function generateSlug(name: string, existingId?: string): Promise<string> {
   let slug = name

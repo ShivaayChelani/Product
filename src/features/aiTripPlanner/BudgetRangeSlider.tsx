@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   track: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#F0E6D8',
+    backgroundColor: '#DDEBE3',
     position: 'relative',
   },
   fill: {
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: '#B9834B',
+    backgroundColor: '#1F4D3A',
     borderRadius: 2,
   },
   thumb: {
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: '#B9834B',
+    backgroundColor: '#1F4D3A',
     borderWidth: 2,
     borderColor: '#FFF',
     marginLeft: -7,

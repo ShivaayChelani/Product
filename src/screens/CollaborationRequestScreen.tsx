@@ -23,13 +23,13 @@ import { useBottomSafePadding } from '../design/responsive';
 const C = {
   bg: '#FFFFFF',
   white: '#FFFFFF',
-  brown: '#4B3B30',
-  brownLight: '#8C7765',
+  brown: '#1D2420',
+  brownLight: '#68756D',
   text: '#1F1A17',
   textSub: '#5E544C',
   textMuted: '#A0968C',
-  border: '#E3DACD',
-  green: '#2E7D32',
+  border: '#D9E0DB',
+  green: '#2E7D55',
 };
 
 const SERVICES = [
@@ -634,7 +634,7 @@ const styles = StyleSheet.create({
   successCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: C.green, alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
   successTitle: { fontSize: 24, fontWeight: '800', color: C.text, marginBottom: 8, textAlign: 'center' },
   successSub: { fontSize: 15, color: C.textSub, textAlign: 'center', lineHeight: 22, marginBottom: 32 },
-  statusCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3ECE4', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 20, marginBottom: 24 },
+  statusCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F7F6F1', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 20, marginBottom: 24 },
   statusText: { fontSize: 15, fontWeight: '700', color: C.brown, marginLeft: 8 },
   successNote: { fontSize: 13, color: C.textMuted, textAlign: 'center' },
   successFooter: { padding: 24, backgroundColor: C.white, borderTopWidth: 1, borderTopColor: C.border },

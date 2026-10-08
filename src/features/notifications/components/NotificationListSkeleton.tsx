@@ -39,18 +39,18 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#EDE4D8',
+    backgroundColor: '#D9E0DB',
   },
   lines: { flex: 1, gap: 8 },
   line: {
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#EDE4D8',
+    backgroundColor: '#D9E0DB',
   },
   thumb: {
     width: 52,
     height: 52,
     borderRadius: 14,
-    backgroundColor: '#EDE4D8',
+    backgroundColor: '#D9E0DB',
   },
 });

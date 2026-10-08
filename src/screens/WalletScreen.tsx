@@ -135,24 +135,24 @@ export default function WalletScreen({
   const mapTxIcon = (tx: WalletTransaction) => {
     const reason = (tx.reason || "").toLowerCase();
     if (tx.type === "SPEND" || reason.includes("redeem") || reason.includes("claim")) {
-      return { icon: "gift" as const, color: "#E53935", bg: "#FFEBEE", type: "redeemed" as const };
+      return { icon: "gift" as const, color: "#C94A4A", bg: "#FFEBEE", type: "redeemed" as const };
     }
     if (reason.includes("hidden")) {
-      return { icon: "diamond" as const, color: "#4CAF50", bg: "#E8F5E9", type: "earned" as const };
+      return { icon: "diamond" as const, color: "#2E7D55", bg: "#EAF3ED", type: "earned" as const };
     }
     if (reason.includes("review")) {
-      return { icon: "pencil" as const, color: "#4CAF50", bg: "#E8F5E9", type: "earned" as const };
+      return { icon: "pencil" as const, color: "#2E7D55", bg: "#EAF3ED", type: "earned" as const };
     }
     if (reason.includes("login") || reason.includes("daily")) {
-      return { icon: "calendar-check" as const, color: "#4CAF50", bg: "#E8F5E9", type: "earned" as const };
+      return { icon: "calendar-check" as const, color: "#2E7D55", bg: "#EAF3ED", type: "earned" as const };
     }
     if (reason.includes("photo") || reason.includes("image")) {
-      return { icon: "camera" as const, color: "#4CAF50", bg: "#E8F5E9", type: "earned" as const };
+      return { icon: "camera" as const, color: "#2E7D55", bg: "#EAF3ED", type: "earned" as const };
     }
     if (tx.type === "EARN" || tx.amount > 0) {
-      return { icon: "star" as const, color: "#4CAF50", bg: "#E8F5E9", type: "earned" as const };
+      return { icon: "star" as const, color: "#2E7D55", bg: "#EAF3ED", type: "earned" as const };
     }
-    return { icon: "cash" as const, color: "#E53935", bg: "#FFEBEE", type: "redeemed" as const };
+    return { icon: "cash" as const, color: "#C94A4A", bg: "#FFEBEE", type: "redeemed" as const };
   };
 
   const displayTransactions = transactions.map((tx) => {
@@ -427,7 +427,7 @@ export default function WalletScreen({
             <Text
               style={[
                 styles.subTabText,
-                historySubTab === "earned" && { color: "#4CAF50" },
+                historySubTab === "earned" && { color: "#2E7D55" },
               ]}
             >
               Earned
@@ -443,7 +443,7 @@ export default function WalletScreen({
             <Text
               style={[
                 styles.subTabText,
-                historySubTab === "redeemed" && { color: "#E53935" },
+                historySubTab === "redeemed" && { color: "#C94A4A" },
               ]}
             >
               Redeemed
@@ -457,14 +457,14 @@ export default function WalletScreen({
             <Ionicons
               name="calendar-outline"
               size={16}
-              color="#3E2723"
+              color="#1D2420"
               style={{ marginRight: 4 }}
             />
             <Text style={styles.filterBtnText}>Filter</Text>
             <Ionicons
               name="chevron-down"
               size={16}
-              color="#3E2723"
+              color="#1D2420"
               style={{ marginLeft: 4 }}
             />
           </TouchableOpacity>
@@ -495,7 +495,7 @@ export default function WalletScreen({
                 <Ionicons
                   name="calendar-outline"
                   size={12}
-                  color="#8D8177"
+                  color="#68756D"
                   style={{ marginRight: 4 }}
                 />
                 <Text style={styles.txDate}>{tx.date}</Text>
@@ -505,7 +505,7 @@ export default function WalletScreen({
               <Text
                 style={[
                   styles.txAmount,
-                  { color: tx.type === "earned" ? "#4CAF50" : "#E53935" },
+                  { color: tx.type === "earned" ? "#2E7D55" : "#C94A4A" },
                 ]}
               >
                 {tx.type === "earned" ? "+" : "-"}
@@ -518,7 +518,7 @@ export default function WalletScreen({
             <Ionicons
               name="chevron-forward"
               size={20}
-              color="#8D8177"
+              color="#68756D"
               style={{ marginLeft: 8 }}
             />
           </View>
@@ -535,7 +535,7 @@ export default function WalletScreen({
           <View style={styles.earnHeaderContent}>
             <Text style={styles.earnHeaderTitle}>
               Ways to Earn PalPoints{" "}
-              <Ionicons name="sparkles" size={18} color="#D4A87A" />
+              <Ionicons name="sparkles" size={18} color="#DDEBE3" />
             </Text>
             <Text style={styles.earnHeaderSubtitle}>
               Complete actions and earn exciting rewards!
@@ -544,96 +544,96 @@ export default function WalletScreen({
           <MaterialCommunityIcons
             name="gift-outline"
             size={48}
-            color="#388E3C"
+            color="#2E7D55"
             style={{ position: "absolute", right: 20, top: 10, opacity: 0.2 }}
           />
         </View>
 
         {renderEarnTask(
           "videocam-outline",
-          "#388E3C",
-          "#E8F5E9",
+          "#2E7D55",
+          "#EAF3ED",
           "First creator reel of the day",
           "Upload your first reel today. Extra reels the same day don't add more.",
           `+${rewardPoints.reel}`,
           "PalPoints",
           "Upload now",
-          "#388E3C",
+          "#2E7D55",
           undefined,
           () => navigation.navigate("CreateReel"),
         )}
         {renderEarnTask(
           "diamond-outline",
-          "#388E3C",
-          "#E8F5E9",
+          "#2E7D55",
+          "#EAF3ED",
           "Earn by submitting hidden gem",
           "Share hidden gems and get rewarded",
           `+${rewardPoints.hiddenGemMerge} to +${rewardPoints.hiddenGem}`,
           "PalPoints",
           "Submit now",
-          "#388E3C",
+          "#2E7D55",
           undefined,
           () => navigation.navigate("AddHiddenGem"),
         )}
         {renderEarnTask(
           "pencil-outline",
-          "#388E3C",
-          "#E8F5E9",
+          "#2E7D55",
+          "#EAF3ED",
           "Earn by Submitting Business Review",
           "Write reviews and help others",
           `+${rewardPoints.review}`,
           "PalPoints",
           "Write now",
-          "#388E3C",
+          "#2E7D55",
           undefined,
           () => navigateToVendorReviewMap(navigation),
         )}
         {renderEarnTask(
           "play-circle-outline",
-          "#1976D2",
-          "#E3F2FD",
+          "#1F4D3A",
+          "#F7F6F1",
           "Earn by watching Ads",
           "Watch ads and earn PalPoints",
           `+${rewardPoints.ad}`,
           "PalPoints",
           actionBusy === "ad" ? "Loading ad…" : "Watch now",
-          "#1976D2",
+          "#1F4D3A",
           undefined,
           () => { void handleWatchAd(); },
         )}
         {renderEarnTask(
           "camera-outline",
-          "#7B1FA2",
-          "#F3E5F5",
+          "#16392B",
+          "#F7F6F1",
           "Earn by uploading place photo",
           "Upload photos of places you visit",
           `+${rewardPoints.photo}`,
           "PalPoints",
           "Upload now",
-          "#7B1FA2",
+          "#16392B",
           undefined,
           () => navigation.navigate("UploadPlacePhoto")
         )}
 
         {renderEarnTask(
           "source-branch",
-          "#E64A19",
+          "#1F4D3A",
           "#FBE9E7",
           "Earn by completing Itinerary",
           "Visit places in your itinerary",
           <View style={styles.itineraryPoints}>
             <Text style={styles.itineraryPointsText}>
-              <Text style={{ color: "#388E3C" }}>+{rewardPoints.checkpoint}</Text> / place
+              <Text style={{ color: "#2E7D55" }}>+{rewardPoints.checkpoint}</Text> / place
             </Text>
             <Text style={styles.itineraryPointsText}>
-              <Text style={{ color: "#388E3C" }}>+{rewardPoints.completion}</Text> bonus
+              <Text style={{ color: "#2E7D55" }}>+{rewardPoints.completion}</Text> bonus
             </Text>
           </View>,
           "PalPoints",
           "Explore now",
-          "#E64A19",
+          "#1F4D3A",
           <View style={styles.itineraryExtra}>
-            <Ionicons name="star" size={12} color="#F57C00" />
+            <Ionicons name="star" size={12} color="#B7791F" />
             <Text style={styles.itineraryExtraText}>
               +{rewardPoints.checkpoint} per place • +{rewardPoints.completion} bonus on completion
             </Text>
@@ -643,8 +643,8 @@ export default function WalletScreen({
 
         {renderEarnTask(
           "calendar-check-outline",
-          "#F57C00",
-          "#FFF3E0",
+          "#B7791F",
+          "#F7F6F1",
           "Earn by daily login",
           "Login daily and build your streak",
           `+${dailyStatus?.points ?? rewardPoints.daily}`,
@@ -654,7 +654,7 @@ export default function WalletScreen({
             : actionBusy === "daily"
               ? "Claiming…"
               : "Claim now",
-          "#F57C00",
+          "#B7791F",
           <View style={styles.dailyLoginExtra}>
             <Text style={styles.dailyStreakText}>
               Day streak: {dailyStatus?.streak ?? 0}
@@ -677,7 +677,7 @@ export default function WalletScreen({
           <Ionicons
             name="sparkles"
             size={16}
-            color="#D4A87A"
+            color="#DDEBE3"
             style={{ marginLeft: "auto" }}
           />
         </View>
@@ -709,7 +709,7 @@ export default function WalletScreen({
       valid: "31 May 2025",
       points: 500,
       save: "₹120",
-      bg: "#4E342E",
+      bg: "#16392B",
     },
     {
       id: "2",
@@ -721,7 +721,7 @@ export default function WalletScreen({
       valid: "25 May 2025",
       points: 800,
       save: "₹200",
-      bg: "#E65100",
+      bg: "#B7791F",
     },
     {
       id: "3",
@@ -733,7 +733,7 @@ export default function WalletScreen({
       valid: "30 Jun 2025",
       points: 2500,
       save: "₹1000",
-      bg: "#3E2723",
+      bg: "#1D2420",
     },
     {
       id: "4",
@@ -756,13 +756,13 @@ export default function WalletScreen({
           <Ionicons
             name="search-outline"
             size={20}
-            color="#8D8177"
+            color="#68756D"
             style={{ marginRight: 8 }}
           />
           <TextInput
             style={styles.searchInput}
             placeholder="Search for offers, cafes, hotels..."
-            placeholderTextColor="#8D8177"
+            placeholderTextColor="#68756D"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -786,14 +786,14 @@ export default function WalletScreen({
                   <Ionicons
                     name={cat.icon as any}
                     size={14}
-                    color={isActive ? "#FFF" : "#3E2723"}
+                    color={isActive ? "#FFF" : "#1D2420"}
                     style={{ marginRight: 6 }}
                   />
                 ) : (
                   <MaterialCommunityIcons
                     name={cat.icon as any}
                     size={14}
-                    color={isActive ? "#FFF" : "#3E2723"}
+                    color={isActive ? "#FFF" : "#1D2420"}
                     style={{ marginRight: 6 }}
                   />
                 )}
@@ -813,7 +813,7 @@ export default function WalletScreen({
         <View style={styles.topDealsBanner}>
           <View style={styles.topDealsLeft}>
             <View style={styles.crownWrap}>
-              <MaterialCommunityIcons name="crown" size={28} color="#F57C00" />
+              <MaterialCommunityIcons name="crown" size={28} color="#B7791F" />
             </View>
             <View style={styles.topDealsContent}>
               <Text style={styles.topDealsTitle}>Top Deals Just for You!</Text>
@@ -842,7 +842,7 @@ export default function WalletScreen({
 
         <View style={styles.offersList}>
           {offersLoading ? (
-            <ActivityIndicator color="#E64A19" style={{ marginVertical: 24 }} />
+            <ActivityIndicator color="#1F4D3A" style={{ marginVertical: 24 }} />
           ) : null}
           {(vendorOffers.length
             ? vendorOffers.map((o: any) => ({
@@ -855,7 +855,7 @@ export default function WalletScreen({
                 valid: o.validUntil ? new Date(o.validUntil).toLocaleDateString() : "Limited time",
                 points: o.pointsCost ?? o.palPointsCost ?? 0,
                 save: o.savingsLabel || "",
-                bg: "#4E342E",
+                bg: "#16392B",
               }))
             : vendorOffersData
           ).map((offer: any) => (
@@ -884,7 +884,7 @@ export default function WalletScreen({
                   <Ionicons
                     name="star"
                     size={12}
-                    color="#F57C00"
+                    color="#B7791F"
                     style={{ marginLeft: 6, marginRight: 2 }}
                   />
                   <Text style={styles.offerRating}>{offer.rating}</Text>
@@ -894,7 +894,7 @@ export default function WalletScreen({
                   <Ionicons
                     name="location-outline"
                     size={10}
-                    color="#8D8177"
+                    color="#68756D"
                     style={{ marginRight: 4 }}
                   />
                   <Text style={styles.offerLocText}>{offer.location}</Text>
@@ -931,7 +931,7 @@ export default function WalletScreen({
                 </TouchableOpacity>
               </View>
               <View style={styles.offerChevronWrap}>
-                <Ionicons name="chevron-forward" size={16} color="#8D8177" />
+                <Ionicons name="chevron-forward" size={16} color="#68756D" />
               </View>
             </View>
           ))}
@@ -941,7 +941,7 @@ export default function WalletScreen({
           <Ionicons
             name="information-circle-outline"
             size={16}
-            color="#8D8177"
+            color="#68756D"
             style={{ marginRight: 6 }}
           />
           <Text style={styles.vendorFooterText}>
@@ -960,16 +960,16 @@ export default function WalletScreen({
 
   if (loading && !refreshing) {
     return (
-      <View style={[styles.container, { backgroundColor: "#FDF9F1" }]}>
+      <View style={[styles.container, { backgroundColor: "#F7F6F1" }]}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3A1F13" />
+          <ActivityIndicator size="large" color="#1D2420" />
         </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: "#FDF9F1" }]}>
+    <View style={[styles.container, { backgroundColor: "#F7F6F1" }]}>
       {/* Header Section */}
       <View style={[styles.header, { paddingTop: headerPadTop }]}>
         <View style={styles.headerLeftRow}>
@@ -979,9 +979,9 @@ export default function WalletScreen({
           <Text style={styles.headerTitle}>PalPoints</Text>
         </View>
         <TouchableOpacity style={styles.earnMoreBtn} onPress={() => navigation.navigate("HowItWorks")}>
-          <MaterialCommunityIcons name="gift-outline" size={16} color="#4E3316" style={{ marginRight: 6 }} />
+          <MaterialCommunityIcons name="gift-outline" size={16} color="#1D2420" style={{ marginRight: 6 }} />
           <Text style={styles.earnMoreText}>Earn More</Text>
-          <Ionicons name="chevron-forward" size={16} color="#4E3316" />
+          <Ionicons name="chevron-forward" size={16} color="#1D2420" />
         </TouchableOpacity>
       </View>
 
@@ -993,7 +993,7 @@ export default function WalletScreen({
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#3A1F13"
+            tintColor="#1D2420"
           />
         }
       >
@@ -1006,10 +1006,10 @@ export default function WalletScreen({
             <View style={styles.balanceCardLeft}>
               <View style={styles.coinGraphicWrap}>
                 <Image source={require('../assets/palpoint icon.png')} style={styles.coinGraphic} />
-                <Ionicons name="sparkles" size={14} color="#FFE082" style={styles.sparkle1} />
-                <Ionicons name="sparkles" size={10} color="#FFE082" style={styles.sparkle2} />
-                <Ionicons name="sparkles" size={18} color="#FFE082" style={styles.sparkle3} />
-                <Ionicons name="sparkles" size={12} color="#FFE082" style={styles.sparkle4} />
+                <Ionicons name="sparkles" size={14} color="#DDEBE3" style={styles.sparkle1} />
+                <Ionicons name="sparkles" size={10} color="#DDEBE3" style={styles.sparkle2} />
+                <Ionicons name="sparkles" size={18} color="#DDEBE3" style={styles.sparkle3} />
+                <Ionicons name="sparkles" size={12} color="#DDEBE3" style={styles.sparkle4} />
               </View>
               <View style={styles.balanceTextWrap}>
                 <Text style={styles.balanceTitle}>Total PalPoint{'\n'}Balance</Text>
@@ -1039,7 +1039,7 @@ export default function WalletScreen({
 
               <View style={styles.statRow}>
                 <View style={[styles.statIconWrap, { backgroundColor: 'rgba(229, 57, 53, 0.2)' }]}>
-                  <Ionicons name="arrow-down" size={16} color="#E57373" />
+                  <Ionicons name="arrow-down" size={16} color="#C94A4A" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.statTitle}>This Month Redeemed</Text>
@@ -1061,7 +1061,7 @@ export default function WalletScreen({
             <MaterialCommunityIcons 
               name="clock-outline" 
               size={20} 
-              color={activeTab === "history" ? "#FFF" : "#3E2723"} 
+              color={activeTab === "history" ? "#FFF" : "#1D2420"} 
               style={{ marginRight: 8 }} 
             />
             <Text style={activeTab === "history" ? styles.actionBtnDarkText : styles.actionBtnLightText}>
@@ -1071,7 +1071,7 @@ export default function WalletScreen({
             <Ionicons 
               name="chevron-forward" 
               size={18} 
-              color={activeTab === "history" ? "#FFF" : "#3E2723"} 
+              color={activeTab === "history" ? "#FFF" : "#1D2420"} 
             />
           </TouchableOpacity>
           
@@ -1082,7 +1082,7 @@ export default function WalletScreen({
             <MaterialCommunityIcons 
               name="gift-outline" 
               size={20} 
-              color={activeTab === "earn" ? "#FFF" : "#3E2723"} 
+              color={activeTab === "earn" ? "#FFF" : "#1D2420"} 
               style={{ marginRight: 8 }} 
             />
             <Text style={activeTab === "earn" ? styles.actionBtnDarkText : styles.actionBtnLightText}>
@@ -1092,7 +1092,7 @@ export default function WalletScreen({
             <Ionicons 
               name="chevron-forward" 
               size={18} 
-              color={activeTab === "earn" ? "#FFF" : "#3E2723"} 
+              color={activeTab === "earn" ? "#FFF" : "#1D2420"} 
             />
           </TouchableOpacity>
         </View>
@@ -1104,26 +1104,26 @@ export default function WalletScreen({
         
         <View style={styles.summaryCard}>
           <View style={styles.summaryCol}>
-            <View style={[styles.summaryIcon, { backgroundColor: '#E8F5E9' }]}>
-              <Ionicons name="arrow-up" size={20} color="#4CAF50" />
+            <View style={[styles.summaryIcon, { backgroundColor: '#EAF3ED' }]}>
+              <Ionicons name="arrow-up" size={20} color="#2E7D55" />
             </View>
             <Text style={styles.summaryTitle}>Total Earned</Text>
-            <Text style={[styles.summaryVal, { color: '#4CAF50' }]}>{lifetimeEarned.toLocaleString()}</Text>
+            <Text style={[styles.summaryVal, { color: '#2E7D55' }]}>{lifetimeEarned.toLocaleString()}</Text>
           </View>
           <View style={styles.summaryDiv} />
           
           <View style={styles.summaryCol}>
             <View style={[styles.summaryIcon, { backgroundColor: '#FFEBEE' }]}>
-              <Ionicons name="arrow-down" size={20} color="#E53935" />
+              <Ionicons name="arrow-down" size={20} color="#C94A4A" />
             </View>
             <Text style={styles.summaryTitle}>Total Redeemed</Text>
-            <Text style={[styles.summaryVal, { color: '#E53935' }]}>{lifetimeSpent.toLocaleString()}</Text>
+            <Text style={[styles.summaryVal, { color: '#C94A4A' }]}>{lifetimeSpent.toLocaleString()}</Text>
           </View>
           <View style={styles.summaryDiv} />
 
           <View style={styles.summaryCol}>
-            <View style={[styles.summaryIcon, { backgroundColor: '#FFF3E0' }]}>
-              <Ionicons name="wallet-outline" size={20} color="#FF9800" />
+            <View style={[styles.summaryIcon, { backgroundColor: '#F7F6F1' }]}>
+              <Ionicons name="wallet-outline" size={20} color="#B7791F" />
             </View>
             <Text style={styles.summaryTitle}>Available{'\n'}Balance</Text>
             <Text style={styles.summaryVal}>{palPoints.toLocaleString()}</Text>
@@ -1131,11 +1131,11 @@ export default function WalletScreen({
           <View style={styles.summaryDiv} />
 
           <View style={styles.summaryCol}>
-            <View style={[styles.summaryIcon, { backgroundColor: '#E3F2FD' }]}>
-              <Ionicons name="calendar-outline" size={20} color="#2196F3" />
+            <View style={[styles.summaryIcon, { backgroundColor: '#F7F6F1' }]}>
+              <Ionicons name="calendar-outline" size={20} color="#1F4D3A" />
             </View>
             <Text style={styles.summaryTitle}>This Month{'\n'}Earned</Text>
-            <Text style={[styles.summaryVal, { color: '#2196F3' }]}>{thisMonthEarned.toLocaleString()}</Text>
+            <Text style={[styles.summaryVal, { color: '#1F4D3A' }]}>{thisMonthEarned.toLocaleString()}</Text>
           </View>
         </View>
 
@@ -1164,7 +1164,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingBottom: 16,
-    backgroundColor: "#FDF9F1",
+    backgroundColor: "#F7F6F1",
   },
   headerLeft: {
     flex: 1,
@@ -1173,29 +1173,29 @@ const styles = StyleSheet.create({
     fontFamily: SERIF,
     fontSize: 28,
     fontWeight: "800",
-    color: "#2C1810",
+    color: "#1D2420",
   },
   headerSubtitle: {
     fontFamily: SANS,
     fontSize: 12,
-    color: "#70685D",
+    color: "#68756D",
     marginTop: 2,
   },
   howItWorksBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFDF9",
+    backgroundColor: "#F7F6F1",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#E8D2BB",
+    borderColor: "#DDEBE3",
     marginTop: 4,
   },
   howItWorksText: {
     fontFamily: SANS_SEMI,
     fontSize: 10,
-    color: "#2C1810",
+    color: "#1D2420",
     marginLeft: 4,
   },
   content: {
@@ -1207,7 +1207,7 @@ const styles = StyleSheet.create({
   },
   balanceCard: {
     flexDirection: "row",
-    backgroundColor: "#2B2118",
+    backgroundColor: "#1D2420",
     borderRadius: 16,
     padding: 24,
     position: "relative",
@@ -1221,7 +1221,7 @@ const styles = StyleSheet.create({
     width: 250,
     height: 250,
     borderRadius: 125,
-    backgroundColor: "rgba(180, 130, 80, 0.4)",
+    backgroundColor: "rgba(183, 121, 31, 0.4)",
     opacity: 0.5,
   },
   balanceCardLeft: {
@@ -1294,12 +1294,12 @@ const styles = StyleSheet.create({
   statValueNegative: {
     fontFamily: SANS_BOLD,
     fontSize: 18,
-    color: "#E57373",
+    color: "#C94A4A",
   },
   statLabel: {
     fontFamily: SANS,
     fontSize: 9,
-    color: "#70685D",
+    color: "#68756D",
   },
   walletGraphic: {
     position: "absolute",
@@ -1313,11 +1313,11 @@ const styles = StyleSheet.create({
   mainTabsContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FDF7EB",
+    backgroundColor: "#F7F6F1",
     marginHorizontal: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E8D2BB",
+    borderColor: "#DDEBE3",
     padding: 4,
     marginBottom: 24,
   },
@@ -1331,12 +1331,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   mainTabActive: {
-    backgroundColor: "#3E2723",
+    backgroundColor: "#1D2420",
   },
   mainTabText: {
     fontFamily: SANS_SEMI,
     fontSize: 10,
-    color: "#3E2723",
+    color: "#1D2420",
   },
   mainTabTextActive: {
     color: "#FFF",
@@ -1344,7 +1344,7 @@ const styles = StyleSheet.create({
   tabSeparator: {
     width: 1,
     height: 20,
-    backgroundColor: "#E8D2BB",
+    backgroundColor: "#DDEBE3",
   },
   // History Tab Styles
   historyTabContainer: {
@@ -1354,7 +1354,7 @@ const styles = StyleSheet.create({
     fontFamily: SERIF,
     fontSize: 16,
     fontWeight: "800",
-    color: "#3E2723",
+    color: "#1D2420",
     marginBottom: 12,
   },
   summaryGrid: {
@@ -1365,7 +1365,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#F3E9DD",
+    borderColor: "#F7F6F1",
     marginBottom: 16,
   },
   summaryItem: {
@@ -1383,7 +1383,7 @@ const styles = StyleSheet.create({
   summaryLabel: {
     fontFamily: SANS,
     fontSize: 9,
-    color: "#70685D",
+    color: "#68756D",
     textAlign: "center",
     lineHeight: 12,
     marginBottom: 4,
@@ -1395,7 +1395,7 @@ const styles = StyleSheet.create({
   },
   subTabRow: {
     flexDirection: "row",
-    backgroundColor: "#FDF5E6",
+    backgroundColor: "#F7F6F1",
     borderRadius: 8,
     padding: 4,
     marginHorizontal: 20,
@@ -1408,12 +1408,12 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   subTabActive: {
-    backgroundColor: "#3E2723",
+    backgroundColor: "#1D2420",
   },
   subTabText: {
     fontFamily: SANS_SEMI,
     fontSize: 12,
-    color: "#70685D",
+    color: "#68756D",
   },
   subTabTextActive: {
     color: "#FFF",
@@ -1433,12 +1433,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#EAD6C3",
+    borderColor: "#DDEBE3",
   },
   filterBtnText: {
     fontFamily: SANS_SEMI,
     fontSize: 11,
-    color: "#3E2723",
+    color: "#1D2420",
   },
   txItem: {
     flexDirection: "row",
@@ -1470,7 +1470,7 @@ const styles = StyleSheet.create({
   txDesc: {
     fontFamily: SANS,
     fontSize: 11,
-    color: "#70685D",
+    color: "#68756D",
     marginBottom: 4,
   },
   txDateRow: {
@@ -1480,7 +1480,7 @@ const styles = StyleSheet.create({
   txDate: {
     fontFamily: SANS,
     fontSize: 10,
-    color: "#8D8177",
+    color: "#68756D",
   },
   txRight: {
     alignItems: "flex-end",
@@ -1492,19 +1492,19 @@ const styles = StyleSheet.create({
   txLabel: {
     fontFamily: SANS,
     fontSize: 10,
-    color: "#70685D",
+    color: "#68756D",
   },
   // Earn Tab Styles
   earnTabContainer: {
     paddingHorizontal: 16,
   },
   earnHeaderBanner: {
-    backgroundColor: "#FFF9F0",
+    backgroundColor: "#F7F6F1",
     borderRadius: 16,
     padding: 16,
     flexDirection: "row",
     borderWidth: 1,
-    borderColor: "#F3E9DD",
+    borderColor: "#F7F6F1",
     marginBottom: 16,
     position: "relative",
     overflow: "hidden",
@@ -1516,13 +1516,13 @@ const styles = StyleSheet.create({
     fontFamily: SERIF,
     fontSize: 18,
     fontWeight: "800",
-    color: "#3E2723",
+    color: "#1D2420",
     marginBottom: 4,
   },
   earnHeaderSubtitle: {
     fontFamily: SANS,
     fontSize: 12,
-    color: "#70685D",
+    color: "#68756D",
   },
   earnCard: {
     flexDirection: "row",
@@ -1532,7 +1532,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#F3E9DD",
+    borderColor: "#F7F6F1",
   },
   earnCardLeft: {
     flex: 1,
@@ -1560,7 +1560,7 @@ const styles = StyleSheet.create({
   earnSubtitle: {
     fontFamily: SANS,
     fontSize: 11,
-    color: "#70685D",
+    color: "#68756D",
   },
   earnCardRight: {
     alignItems: "center",
@@ -1574,12 +1574,12 @@ const styles = StyleSheet.create({
   earnPointsValue: {
     fontFamily: SANS_BOLD,
     fontSize: 14,
-    color: "#388E3C",
+    color: "#2E7D55",
   },
   earnPointsLabel: {
     fontFamily: SANS,
     fontSize: 10,
-    color: "#70685D",
+    color: "#68756D",
   },
   earnBtn: {
     paddingHorizontal: 12,
@@ -1596,7 +1596,7 @@ const styles = StyleSheet.create({
   itineraryExtra: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFF3E0",
+    backgroundColor: "#F7F6F1",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -1606,7 +1606,7 @@ const styles = StyleSheet.create({
   itineraryExtraText: {
     fontFamily: SANS_SEMI,
     fontSize: 9,
-    color: "#F57C00",
+    color: "#B7791F",
     marginLeft: 4,
   },
   itineraryPoints: {
@@ -1615,7 +1615,7 @@ const styles = StyleSheet.create({
   itineraryPointsText: {
     fontFamily: SANS_BOLD,
     fontSize: 11,
-    color: "#70685D",
+    color: "#68756D",
   },
   dailyLoginExtra: {
     flexDirection: "row",
@@ -1625,7 +1625,7 @@ const styles = StyleSheet.create({
   dailyStreakText: {
     fontFamily: SANS_SEMI,
     fontSize: 10,
-    color: "#E64A19",
+    color: "#1F4D3A",
     backgroundColor: "#FBE9E7",
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -1635,12 +1635,12 @@ const styles = StyleSheet.create({
   dailyRewardText: {
     fontFamily: SANS_SEMI,
     fontSize: 10,
-    color: "#F57C00",
+    color: "#B7791F",
   },
   infoBanner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FDF7EB",
+    backgroundColor: "#F7F6F1",
     padding: 12,
     borderRadius: 8,
     marginTop: 4,
@@ -1648,7 +1648,7 @@ const styles = StyleSheet.create({
   infoBannerText: {
     fontFamily: SANS,
     fontSize: 10,
-    color: "#70685D",
+    color: "#68756D",
     marginLeft: 6,
     flex: 1,
   },
@@ -1665,14 +1665,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: "#E8D2BB",
+    borderColor: "#DDEBE3",
     marginBottom: 16,
   },
   searchInput: {
     flex: 1,
     fontFamily: SANS,
     fontSize: 14,
-    color: "#3E2723",
+    color: "#1D2420",
     padding: 0,
   },
   categoryScroll: {
@@ -1690,16 +1690,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: "#E8D2BB",
+    borderColor: "#DDEBE3",
   },
   catBadgeActive: {
-    backgroundColor: "#3E2723",
-    borderColor: "#3E2723",
+    backgroundColor: "#1D2420",
+    borderColor: "#1D2420",
   },
   catBadgeText: {
     fontFamily: SANS_SEMI,
     fontSize: 12,
-    color: "#3E2723",
+    color: "#1D2420",
   },
   catBadgeTextActive: {
     color: "#FFF",
@@ -1708,11 +1708,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#FDF7EB",
+    backgroundColor: "#F7F6F1",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#F3E9DD",
+    borderColor: "#F7F6F1",
     marginBottom: 16,
   },
   topDealsLeft: {
@@ -1723,7 +1723,7 @@ const styles = StyleSheet.create({
   crownWrap: {
     width: 48,
     height: 48,
-    backgroundColor: "#FFF3E0",
+    backgroundColor: "#F7F6F1",
     borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
@@ -1736,18 +1736,18 @@ const styles = StyleSheet.create({
     fontFamily: SERIF,
     fontSize: 15,
     fontWeight: "800",
-    color: "#3E2723",
+    color: "#1D2420",
     marginBottom: 4,
   },
   topDealsDesc: {
     fontFamily: SANS,
     fontSize: 11,
-    color: "#70685D",
+    color: "#68756D",
   },
   topDealsBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#3E2723",
+    backgroundColor: "#1D2420",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -1767,7 +1767,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#F3E9DD",
+    borderColor: "#F7F6F1",
   },
   offerImagePlaceholder: {
     width: 80,
@@ -1787,7 +1787,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   offerTypeBadge: {
-    backgroundColor: "#5D4037",
+    backgroundColor: "#16392B",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -1808,12 +1808,12 @@ const styles = StyleSheet.create({
   offerRating: {
     fontFamily: SANS_BOLD,
     fontSize: 10,
-    color: "#F57C00",
+    color: "#B7791F",
   },
   offerDesc: {
     fontFamily: SANS_BOLD,
     fontSize: 11,
-    color: "#3E2723",
+    color: "#1D2420",
     marginBottom: 6,
   },
   offerLocRow: {
@@ -1824,10 +1824,10 @@ const styles = StyleSheet.create({
   offerLocText: {
     fontFamily: SANS,
     fontSize: 10,
-    color: "#8D8177",
+    color: "#68756D",
   },
   offerValidBadge: {
-    backgroundColor: "#E8F5E9",
+    backgroundColor: "#EAF3ED",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -1836,7 +1836,7 @@ const styles = StyleSheet.create({
   offerValidText: {
     fontFamily: SANS_SEMI,
     fontSize: 9,
-    color: "#388E3C",
+    color: "#2E7D55",
   },
   offerRight: {
     width: 75,
@@ -1855,21 +1855,21 @@ const styles = StyleSheet.create({
   offerPointsVal: {
     fontFamily: SANS_BOLD,
     fontSize: 16,
-    color: "#3E2723",
+    color: "#1D2420",
   },
   offerPointsLabel: {
     fontFamily: SANS_SEMI,
     fontSize: 10,
-    color: "#70685D",
+    color: "#68756D",
   },
   offerSaveText: {
     fontFamily: SANS_SEMI,
     fontSize: 9,
-    color: "#388E3C",
+    color: "#2E7D55",
     marginBottom: 8,
   },
   redeemBtn: {
-    backgroundColor: "#388E3C",
+    backgroundColor: "#2E7D55",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
@@ -1884,7 +1884,7 @@ const styles = StyleSheet.create({
   vendorFooter: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FDF7EB",
+    backgroundColor: "#F7F6F1",
     padding: 12,
     borderRadius: 8,
   },
@@ -1892,12 +1892,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: SANS,
     fontSize: 10,
-    color: "#70685D",
+    color: "#68756D",
   },
   vendorFooterLink: {
     fontFamily: SANS_BOLD,
     fontSize: 10,
-    color: "#3E2723",
+    color: "#1D2420",
   },
   headerLeftRow: {
     flexDirection: "row",
@@ -1906,17 +1906,17 @@ const styles = StyleSheet.create({
   earnMoreBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FDF5E6",
+    backgroundColor: "#F7F6F1",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#EAD6C3",
+    borderColor: "#DDEBE3",
   },
   earnMoreText: {
     fontFamily: SANS_SEMI,
     fontSize: 12,
-    color: "#4E3316",
+    color: "#1D2420",
     marginRight: 4,
   },
   statIconWrap: {
@@ -1948,7 +1948,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#3E2723",
+    backgroundColor: "#1D2420",
     padding: 16,
     borderRadius: 12,
     ...shadows.sm,
@@ -1966,13 +1966,13 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#F0EAE1",
+    borderColor: "#F7F6F1",
     ...shadows.sm,
   },
   actionBtnLightText: {
     fontFamily: SANS_SEMI,
     fontSize: 13,
-    color: "#3E2723",
+    color: "#1D2420",
   },
   sectionHeaderWrap: {
     paddingHorizontal: 20,
@@ -2008,7 +2008,7 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontFamily: SANS,
     fontSize: 10,
-    color: "#70685D",
+    color: "#68756D",
     textAlign: "center",
     marginBottom: 8,
   },
@@ -2020,6 +2020,6 @@ const styles = StyleSheet.create({
   summaryDiv: {
     width: 1,
     height: "100%",
-    backgroundColor: "#F0EAE1",
+    backgroundColor: "#F7F6F1",
   },
 });

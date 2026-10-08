@@ -198,7 +198,7 @@ export default function SignupScreen({
 
   return (
     <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFBF6" />
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F6F1" />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -282,7 +282,7 @@ export default function SignupScreen({
             <View style={styles.legalSection}>
               {legalVersionsLoading ? (
                 <View style={styles.legalLoadingRow}>
-                  <ActivityIndicator size="small" color="#B9834B" />
+                  <ActivityIndicator size="small" color="#1F4D3A" />
                   <Text style={styles.legalLoadingText}>Loading agreement…</Text>
                 </View>
               ) : legalVersionsError ? (
@@ -362,7 +362,7 @@ export default function SignupScreen({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#FFFBF6',
+    backgroundColor: '#F7F6F1',
   },
   flex: {
     flex: 1,
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   legalRetryLink: {
-    color: '#B9834B',
+    color: '#1F4D3A',
     fontSize: 13,
     fontWeight: '700',
     textDecorationLine: 'underline',
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#ECE3D7',
+    backgroundColor: '#D9E0DB',
   },
   dividerText: {
     marginHorizontal: 16,

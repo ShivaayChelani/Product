@@ -5,6 +5,7 @@ import { spacing } from '../config/theme';
 import { ScheduledItineraryItem, groupSpotsByTimeSlot } from '../utils/itinerary';
 import { TouristSpot } from '../types';
 import ItineraryCard from './ItineraryCard';
+import { palette } from '../config/theme';
 
 interface ItineraryTimelineProps {
   scheduledSpots: ScheduledItineraryItem[];
@@ -16,13 +17,13 @@ interface ItineraryTimelineProps {
 }
 
 const SLOT_COLORS: Record<string, { icon: string; label: string; primary: string; bg: string; gradient: string[] }> = {
-  sunrise: { icon: '\uD83C\uDF04', label: 'Sunrise', primary: '#F97316', bg: '#FFF7ED', gradient: ['#F97316', '#FB923C'] },
-  morning: { icon: '\u2600\uFE0F', label: 'Morning', primary: '#EAB308', bg: '#FEFCE8', gradient: ['#EAB308', '#FACC15'] },
-  afternoon: { icon: '\uD83C\uDF1E', label: 'Afternoon', primary: '#F97316', bg: '#FFF7ED', gradient: ['#F97316', '#FBBF24'] },
-  evening: { icon: '\uD83C\uDF06', label: 'Evening', primary: '#6366F1', bg: '#EEF2FF', gradient: ['#6366F1', '#818CF8'] },
-  sunset: { icon: '\uD83C\uDF05', label: 'Sunset', primary: '#EC4899', bg: '#FDF2F8', gradient: ['#EC4899', '#F472B6'] },
-  night: { icon: '\uD83C\uDF19', label: 'Night', primary: '#3B82F6', bg: '#EFF6FF', gradient: ['#3B82F6', '#60A5FA'] },
-  any: { icon: '\uD83D\uDD50', label: 'Anytime', primary: '#94A3B8', bg: '#F8FAFC', gradient: ['#94A3B8', '#CBD5E1'] },
+  sunrise: { icon: '\uD83C\uDF04', label: 'Sunrise', primary: palette.primary, bg: palette.primaryLight, gradient: [palette.primary, palette.primaryDark] },
+  morning: { icon: '\u2600\uFE0F', label: 'Morning', primary: palette.primary, bg: palette.background, gradient: [palette.primary, palette.primaryDark] },
+  afternoon: { icon: '\uD83C\uDF1E', label: 'Afternoon', primary: palette.primary, bg: palette.primaryLight, gradient: [palette.primary, palette.primaryDark] },
+  evening: { icon: '\uD83C\uDF06', label: 'Evening', primary: palette.primary, bg: palette.background, gradient: [palette.primary, palette.primaryLight] },
+  sunset: { icon: '\uD83C\uDF05', label: 'Sunset', primary: palette.primary, bg: palette.primaryLight, gradient: [palette.primary, palette.primaryDark] },
+  night: { icon: '\uD83C\uDF19', label: 'Night', primary: palette.primary, bg: palette.primaryLight, gradient: [palette.primary, palette.primaryDark] },
+  any: { icon: '\uD83D\uDD50', label: 'Anytime', primary: palette.textSecondary, bg: palette.background, gradient: [palette.textSecondary, palette.border] },
 };
 
 export default function ItineraryTimeline({
@@ -41,7 +42,7 @@ export default function ItineraryTimeline({
   return (
     <View style={styles.container}>
       {timeSlotKeys.map((slot, idx) => {
-        const meta = SLOT_COLORS[slot] || { icon: '\uD83D\uDCCD', label: slot, primary: '#94A3B8', bg: '#F8FAFC', gradient: ['#94A3B8', '#CBD5E1'] };
+        const meta = SLOT_COLORS[slot] || { icon: '\uD83D\uDCCD', label: slot, primary: palette.textSecondary, bg: palette.background, gradient: [palette.textSecondary, palette.border] };
         const items = grouped[slot];
 
         return (

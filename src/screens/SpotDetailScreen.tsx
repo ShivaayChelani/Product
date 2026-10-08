@@ -468,7 +468,7 @@ export default function SpotDetailScreen({
         paddingTop: insets.top + 8,
         backgroundColor: scrollY.interpolate({
           inputRange: [0, 200],
-          outputRange: ['rgba(0,0,0,0)', 'rgba(21, 25, 37, 0.9)']
+          outputRange: ['rgba(0,0,0,0)', 'rgba(29, 36, 32, 0.9)']
         })
       }]}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
@@ -479,7 +479,7 @@ export default function SpotDetailScreen({
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={handleSave} style={styles.headerActionBtn}>
             <View style={styles.glassButton}>
-              <Icon name={isSaved ? 'bookmark' : 'bookmark-outline'} size={22} color={isSaved ? '#D4C4A8' : '#FFF'} />
+              <Icon name={isSaved ? 'bookmark' : 'bookmark-outline'} size={22} color={isSaved ? '#DDEBE3' : '#FFF'} />
             </View>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleShare} style={styles.headerActionBtn}>
@@ -563,7 +563,7 @@ export default function SpotDetailScreen({
               })}
             >
               <View style={[styles.actionIconBg, { backgroundColor: '#A86C2020' }]}>
-                <Icon name="play-circle" size={22} color="#A86C20" />
+                <Icon name="play-circle" size={22} color="#B7791F" />
               </View>
               <Text style={styles.actionStripText}>
                 {spotReels?.filter((r: any) => r.status === 'APPROVED').length > 0 ? `Reels · ${spotReels.filter((r: any) => r.status === 'APPROVED').length}` : 'Reels'}
@@ -583,7 +583,7 @@ export default function SpotDetailScreen({
 
             <TouchableOpacity style={styles.actionStripBtn} onPress={handleSave}>
               <View style={[styles.actionIconBg, { backgroundColor: isSaved ? '#FFC10720' : colors.surface }]}>
-                <Icon name={isSaved ? "bookmark" : "bookmark-outline"} size={22} color={isSaved ? '#FFC107' : colors.text} />
+                <Icon name={isSaved ? "bookmark" : "bookmark-outline"} size={22} color={isSaved ? '#B7791F' : colors.text} />
               </View>
               <Text style={styles.actionStripText}>{isSaved ? 'Saved' : 'Save'}</Text>
             </TouchableOpacity>
@@ -610,7 +610,7 @@ export default function SpotDetailScreen({
             </View>
 
             <View style={styles.infoGridItem}>
-              <Icon name="wallet-outline" size={20} color="#FFC107" />
+              <Icon name="wallet-outline" size={20} color="#B7791F" />
               <View style={styles.infoGridTextCol}>
                 <Text style={styles.infoGridLabel}>Entry Fee</Text>
                 <Text style={styles.infoGridValue}>{renderTicketPrice()}</Text>
@@ -634,7 +634,7 @@ export default function SpotDetailScreen({
             </View>
 
             <View style={styles.infoGridItem}>
-              <Icon name="fitness-outline" size={20} color={displaySpot.difficulty === 'easy' ? '#4CAF50' : displaySpot.difficulty === 'medium' ? '#FF9800' : displaySpot.difficulty === 'hard' ? '#F44336' : colors.textMuted} />
+              <Icon name="fitness-outline" size={20} color={displaySpot.difficulty === 'easy' ? '#2E7D55' : displaySpot.difficulty === 'medium' ? '#B7791F' : displaySpot.difficulty === 'hard' ? '#F44336' : colors.textMuted} />
               <View style={styles.infoGridTextCol}>
                 <Text style={styles.infoGridLabel}>Difficulty</Text>
                 <Text style={styles.infoGridValue}>{displaySpot.difficulty?.toUpperCase() || (displaySpot.source === 'HIDDEN_GEM' || displaySpot.tags?.includes('hidden-gem') ? 'Unknown' : 'N/A')}</Text>
@@ -797,15 +797,15 @@ export default function SpotDetailScreen({
 
               <View style={styles.quizOptions}>
                 {quizQuestions[quizCurrentIdx].options.map((opt: string, idx: number) => {
-                  let btnBg = colors.surface;
-                  let border = colors.border;
-                  let txtColor = colors.text;
+                  let btnBg: string = colors.surface;
+                  let border: string = colors.border;
+                  let txtColor: string = colors.text;
 
                   if (quizAnswered) {
                     if (idx === quizQuestions[quizCurrentIdx].correctIndex) {
                       btnBg = 'rgba(76, 175, 80, 0.15)';
-                      border = '#4CAF50';
-                      txtColor = '#4CAF50';
+                      border = '#2E7D55';
+                      txtColor = '#2E7D55';
                     } else if (idx === quizSelectedOption) {
                       btnBg = 'rgba(244, 67, 54, 0.15)';
                       border = '#F44336';
@@ -913,11 +913,11 @@ export default function SpotDetailScreen({
 
             {puzzleSolved && (
               <View style={{ alignItems: 'center', marginTop: 16 }}>
-                <Text style={{ fontSize: 18, fontWeight: '700', color: '#4CAF50', marginBottom: 8 }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#2E7D55', marginBottom: 8 }}>
                   🎉 Solved! +50 Points
                 </Text>
                 <TouchableOpacity
-                  style={[styles.submitButton, { backgroundColor: '#4CAF50', marginTop: 0 }]}
+                  style={[styles.submitButton, { backgroundColor: '#2E7D55', marginTop: 0 }]}
                   onPress={() => setPuzzleVisible(false)}
                 >
                   <Text style={styles.submitButtonText}>Claim reward</Text>
@@ -1130,7 +1130,7 @@ function createStyles(
       marginTop: 4,
     },
     gamePtsText: {
-      color: '#FFB300',
+      color: '#B7791F',
       fontSize: 11,
       fontWeight: '800',
       marginTop: 2,
@@ -1614,9 +1614,9 @@ function createStyles(
       height: puzzleSize,
       flexWrap: 'wrap',
       flexDirection: 'row',
-      backgroundColor: '#E2E8F0',
+      backgroundColor: '#D9E0DB',
       borderWidth: 1,
-      borderColor: '#CBD5E1',
+      borderColor: '#D9E0DB',
       alignSelf: 'center',
     },
     puzzleTile: {

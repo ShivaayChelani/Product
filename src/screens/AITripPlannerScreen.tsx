@@ -50,14 +50,14 @@ import { PalPointsIcon } from '../components/PalPointsIcon';
 const COLORS = {
   bg: '#FFFFFF',
   card: '#FFFFFF',
-  gold: '#B9834B',
-  goldLight: '#FFF9F0',
-  border: '#E8DFD0',
-  textPrimary: '#2D1B0B',
-  textSecondary: '#8B7355',
-  textMuted: '#A89478',
+  gold: '#1F4D3A',
+  goldLight: '#F7F6F1',
+  border: '#D9E0DB',
+  textPrimary: '#1D2420',
+  textSecondary: '#68756D',
+  textMuted: '#68756D',
   black: '#1A1A1A',
-  green: '#3D6B4F',
+  green: '#2E7D55',
 };
 
 type CompanionUiKey = Travelers | 'GROUP';
@@ -813,14 +813,14 @@ const styles = StyleSheet.create({
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(253, 251, 247, 0.55)',
+    backgroundColor: 'rgba(241, 246, 247, 0.55)',
   },
   handleBar: {
     alignSelf: 'center',
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#D9CFC0',
+    backgroundColor: '#D9E0DB',
     marginBottom: 10,
     zIndex: 2,
   },
@@ -842,12 +842,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#FDECBF',
+    backgroundColor: '#DDEBE3',
     borderRadius: 20,
     paddingHorizontal: 11,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: '#E8D4A0',
+    borderColor: '#DDEBE3',
   },
   palPointsText: {
     fontSize: 11,
@@ -889,7 +889,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     paddingHorizontal: 14,
     paddingVertical: 14,
-    shadowColor: '#2D1B0B',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
@@ -1195,7 +1195,7 @@ const styles = StyleSheet.create({
   sliderTrack: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#F0E6D8',
+    backgroundColor: '#DDEBE3',
     position: 'relative',
     marginBottom: 4,
   },
@@ -1265,7 +1265,7 @@ const styles = StyleSheet.create({
   },
   quickChipActive: {
     borderColor: COLORS.gold,
-    backgroundColor: 'rgba(185,131,75,0.10)',
+    backgroundColor: 'rgba(183,121,31,0.10)',
   },
   quickChipTextActive: {
     color: COLORS.gold,

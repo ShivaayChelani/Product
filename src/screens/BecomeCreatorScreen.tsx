@@ -45,15 +45,15 @@ function isRemoteUrl(uri: string): boolean {
 
 // Using local theme tokens modeled after the mockup
 const CF = {
-  bg: '#F9F9F9',
+  bg: '#F7F6F1',
   card: '#FFFFFF',
   text: '#111111',
   textSecondary: '#555555',
   textMuted: '#999999',
   border: '#EAEAEA',
-  primary: '#B67A3D', // Brown button color
-  primaryDark: '#936130',
-  accent: '#EAB256', // Gold star
+  primary: '#B7791F', // Brown button color
+  primaryDark: '#B7791F',
+  accent: '#B7791F', // Gold star
 };
 
 const SANS = 'Inter-Regular';
@@ -713,13 +713,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 8,
     borderRadius: 20, borderWidth: 1, borderColor: CF.border, backgroundColor: '#FFF',
   },
-  chipActive: { borderColor: CF.primary, backgroundColor: '#FDF7F2' },
+  chipActive: { borderColor: CF.primary, backgroundColor: '#F7F6F1' },
   chipTxt: { fontFamily: SANS, fontSize: 12, color: CF.textSecondary },
   chipTxtActive: { color: CF.primary, fontFamily: SANS_SEMI },
 
   uploadBox: {
     borderWidth: 1.5, borderColor: CF.border, borderStyle: 'dashed',
-    borderRadius: 12, padding: 24, alignItems: 'center', backgroundColor: '#FAFAFA',
+    borderRadius: 12, padding: 24, alignItems: 'center', backgroundColor: '#F7F6F1',
   },
   uploadBold: { fontFamily: SANS_BOLD, fontSize: 12, color: CF.text, marginBottom: 4 },
   uploadSub: { fontFamily: SANS, fontSize: 10, color: CF.textMuted },

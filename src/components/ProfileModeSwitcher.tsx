@@ -74,7 +74,7 @@ export default function ProfileModeSwitcher({
       <View style={[styles.wrap, withTopInset && { paddingTop: Math.max(insets.top, 12) + 8 }]}>
         <View style={styles.row}>
           <Text style={styles.label}>Switch workspace</Text>
-          {busy ? <ActivityIndicator size="small" color="#B9834B" /> : null}
+          {busy ? <ActivityIndicator size="small" color="#1F4D3A" /> : null}
         </View>
         <View style={styles.choices}>
           {switchable.map((mode) => {
@@ -115,7 +115,7 @@ export default function ProfileModeSwitcher({
               : `${LABELS[String(activeMode)] || String(activeMode)} ▼`}
           </Text>
         </View>
-        {busy ? <ActivityIndicator size="small" color="#B9834B" /> : null}
+        {busy ? <ActivityIndicator size="small" color="#1F4D3A" /> : null}
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
@@ -166,14 +166,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(185,131,75,0.28)',
+    borderColor: 'rgba(183,121,31,0.28)',
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
   activeLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#A08970',
+    color: '#B7791F',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 16,
     fontWeight: '800',
-    color: '#63300E',
+    color: '#16392B',
   },
   backdrop: {
     flex: 1,
@@ -199,18 +199,18 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#E5E0D8',
+    backgroundColor: '#DDEBE3',
     marginBottom: 12,
   },
   sheetTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#2C1810',
+    color: '#1D2420',
     marginBottom: 4,
   },
   sheetHint: {
     fontSize: 12,
-    color: '#A08970',
+    color: '#B7791F',
     marginBottom: 14,
   },
   sheetRow: {
@@ -221,21 +221,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: '#FAF7F2',
+    backgroundColor: '#F7F6F1',
   },
   sheetRowActive: {
-    backgroundColor: '#B9834B',
+    backgroundColor: '#1F4D3A',
   },
   sheetRowText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#63300E',
+    color: '#16392B',
   },
   sheetRowSub: {
     marginTop: 2,
     fontSize: 11,
     fontWeight: '600',
-    color: '#A08970',
+    color: '#B7791F',
   },
   sheetRowTextActive: {
     color: '#FFFFFF',
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(200,155,60,0.18)',
+    borderBottomColor: 'rgba(183,121,31,0.18)',
   },
   row: {
     flexDirection: 'row',
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   label: {
-    color: '#8B7355',
+    color: '#68756D',
     fontSize: 12,
     fontWeight: '800',
     textTransform: 'uppercase',
@@ -276,14 +276,14 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(185,131,75,0.28)',
+    borderColor: 'rgba(183,121,31,0.28)',
   },
   choiceActive: {
-    backgroundColor: '#B9834B',
-    borderColor: '#B9834B',
+    backgroundColor: '#1F4D3A',
+    borderColor: '#1F4D3A',
   },
   choiceText: {
-    color: '#63300E',
+    color: '#16392B',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -293,6 +293,6 @@ const styles = StyleSheet.create({
   hint: {
     marginTop: 8,
     fontSize: 11,
-    color: '#A08970',
+    color: '#B7791F',
   },
 });

@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: 'rgba(185,131,75,0.15)',
+    borderColor: 'rgba(183,121,31,0.15)',
   },
   helperText: {
     fontSize: 13,
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(185,131,75,0.18)',
+    borderColor: 'rgba(183,121,31,0.18)',
   },
   input: {
     flex: 1,
@@ -269,14 +269,14 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(185,131,75,0.15)',
+    borderColor: 'rgba(183,121,31,0.15)',
   },
   receiptTitle: { fontSize: 22, fontWeight: '800', color: colors.primaryDark, marginTop: 12 },
   receiptSubtitle: { fontSize: 15, color: colors.textSecondary, marginTop: 4 },
   receiptDivider: {
     height: 1,
     alignSelf: 'stretch',
-    backgroundColor: 'rgba(185,131,75,0.15)',
+    backgroundColor: 'rgba(183,121,31,0.15)',
     marginVertical: spacing.lg,
   },
   receiptRow: {

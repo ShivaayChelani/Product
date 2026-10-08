@@ -3,8 +3,8 @@ import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle } from 'react-
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const COLORS = {
-  text: '#2C1810',
-  border: '#E8DFD8',
+  text: '#1D2420',
+  border: '#DDEBE3',
   white: '#FFFFFF',
 };
 

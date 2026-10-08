@@ -28,7 +28,7 @@ export const LogoutModal = ({ visible, onConfirm, onCancel }: LogoutModalProps) 
       <View style={styles.backdrop}>
         <Animated.View style={[styles.dialog, { transform: [{ scale }] }]}>
           <View style={styles.iconContainer}>
-            <Icon name="log-out-outline" size={32} color="#63300E" style={styles.iconNudge} />
+            <Icon name="log-out-outline" size={32} color="#16392B" style={styles.iconNudge} />
           </View>
           <Text style={styles.title}>Logout</Text>
           <Text style={styles.description}>Are you sure you want to sign out?</Text>
@@ -52,7 +52,7 @@ export const LogoutModal = ({ visible, onConfirm, onCancel }: LogoutModalProps) 
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(20, 16, 12, 0.5)',
+    backgroundColor: 'rgba(29, 36, 32, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     paddingHorizontal: 24,
     alignItems: 'center',
-    shadowColor: '#2D241D',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.08,
     shadowRadius: 24,
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FDF7F2',
+    backgroundColor: '#F7F6F1',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -87,12 +87,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#2D241D',
+    color: '#1D2420',
     marginBottom: 8,
   },
   description: {
     fontSize: 15,
-    color: '#5C534C',
+    color: '#68756D',
     textAlign: 'center',
     marginBottom: 28,
     lineHeight: 22,
@@ -108,20 +108,20 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#ECE3D8',
+    borderColor: '#D9E0DB',
     justifyContent: 'center',
     alignItems: 'center',
   },
   cancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#63300E',
+    color: '#16392B',
   },
   logoutBtn: {
     flex: 1,
     height: 52,
     borderRadius: 16,
-    backgroundColor: '#63300E',
+    backgroundColor: '#16392B',
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',

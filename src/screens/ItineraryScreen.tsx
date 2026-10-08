@@ -17,26 +17,33 @@ import { LinearGradient } from '../utils/LinearGradient';
 import { useBottomSafePadding } from '../design/responsive';
 
 function stopToTouristSpot(stop: TripPlanStop, dayNumber: number): TouristSpot {
-  const place = stop.place;
+  // A stop is anchored to a Place OR a Community Event. The event row carries
+  // the same display fields, so treat either as the "spot" and let the event
+  // fall back where the shapes differ.
+  const place = stop.place ?? stop.event;
+  const anyPlace = place as any;
+  const eventId = stop.eventId ? { eventId: stop.eventId } : {};
   return {
-    id: stop.id || `${place.slug}-${dayNumber}-${stop.order}`,
-    name: place.name,
-    city: place.city || '',
-    state: place.state || '',
-    latitude: place.latitude || 0,
-    longitude: place.longitude || 0,
-    category: (place.category || 'monument') as TouristSpot['category'],
+    id: stop.id || `${anyPlace?.slug ?? 'stop'}-${dayNumber}-${stop.order}`,
+    name: anyPlace?.name ?? anyPlace?.title ?? 'Stop',
+    city: anyPlace?.city || '',
+    state: anyPlace?.state || '',
+    latitude: anyPlace?.latitude || 0,
+    longitude: anyPlace?.longitude || 0,
+    category: (anyPlace?.category || 'monument') as TouristSpot['category'],
     difficulty: 'medium',
-    imageUrl: place.thumbnail || place.images?.[0],
-    description: place.description,
-    tags: place.tags || [],
-    rating: place.rating || 0,
-    reviewCount: place.reviewCount || 0,
+    imageUrl: anyPlace?.thumbnail || anyPlace?.coverImage || anyPlace?.images?.[0],
+    description: anyPlace?.description || anyPlace?.shortDescription || '',
+    tags: anyPlace?.tags || [],
+    rating: anyPlace?.rating || 0,
+    reviewCount: anyPlace?.reviewCount || 0,
     estimatedDuration: stop.duration || 60,
     entryFee: stop.entryFee ?? undefined,
-    bestTimeToVisit: (place.bestTimeToVisit as any)?.label?.toLowerCase?.() || 'any',
+    bestTimeToVisit: anyPlace?.bestTimeToVisit?.label?.toLowerCase?.() || 'any',
     points: 10,
     dayNumber,
+    // Keep the stop's identity for progression callbacks; ignored by TouristSpot.
+    ...(eventId as any),
   } as TouristSpot;
 }
 
@@ -97,7 +104,7 @@ export default function ItineraryScreen(props: ItineraryScreenProps) {
     if (draftTrip) {
       for (const day of draftTrip.tripDays) {
         for (const stop of day.stops) {
-          const spotId = stop.id || `${stop.place.slug}-${day.dayNumber}-${stop.order}`;
+          const spotId = stop.id || `${stop.place?.slug ?? stop.event?.slug ?? 'stop'}-${day.dayNumber}-${stop.order}`;
           map.set(spotId, stop.id);
         }
       }
@@ -231,7 +238,7 @@ export default function ItineraryScreen(props: ItineraryScreenProps) {
       <View style={styles.vpHeader}>
         <ImageBackground source={require('../assets/generate_plan_bg.jpg')} style={StyleSheet.absoluteFill} resizeMode="cover">
           <LinearGradient
-            colors={['rgba(10,37,64,0.3)', 'rgba(10,37,64,0.85)']}
+            colors={['rgba(29,36,32,0.3)', 'rgba(29,36,32,0.85)']}
             locations={[0.2, 1]}
             style={StyleSheet.absoluteFill}
           />
@@ -344,7 +351,7 @@ const styles = StyleSheet.create({
   
   emptyTitle: { fontSize: 24, fontFamily: 'Inter-Black', marginBottom: 8 },
   emptySub: { fontSize: 14, fontFamily: 'Inter-Medium', textAlign: 'center', marginBottom: 32, paddingHorizontal: 40 },
-  exploreBtn: { backgroundColor: '#63300E', paddingHorizontal: 32, paddingVertical: 16, borderRadius: 24 },
+  exploreBtn: { backgroundColor: '#16392B', paddingHorizontal: 32, paddingVertical: 16, borderRadius: 24 },
   exploreBtnText: { color: '#FFFFFF', fontSize: 16, fontFamily: 'Inter-Bold' },
 
   vpHeader: { height: 260, width: '100%', position: 'relative' },
@@ -365,7 +372,7 @@ const styles = StyleSheet.create({
   scheduleBadge: { borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, flexDirection: 'row', alignItems: 'center' },
   scheduleBadgeText: { fontSize: 12, fontFamily: 'Inter-SemiBold' },
 
-  startTripBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#FFFFFF', padding: 20, paddingTop: 16, paddingBottom: 0, borderTopWidth: 1, borderColor: 'rgba(200, 155, 60, 0.15)', elevation: 20, shadowColor: 'rgba(185,131,75,0.25)', shadowOffset: {width: 0, height: -10}, shadowOpacity: 0.2, shadowRadius: 20 },
-  startTripBtn: { backgroundColor: '#63300E', height: 56, borderRadius: 28, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, shadowColor: '#63300E', shadowOffset: {width: 0, height: 8}, shadowOpacity: 0.25, shadowRadius: 16, elevation: 6 },
+  startTripBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#FFFFFF', padding: 20, paddingTop: 16, paddingBottom: 0, borderTopWidth: 1, borderColor: 'rgba(183, 121, 31, 0.15)', elevation: 20, shadowColor: 'rgba(183,121,31,0.25)', shadowOffset: {width: 0, height: -10}, shadowOpacity: 0.2, shadowRadius: 20 },
+  startTripBtn: { backgroundColor: '#16392B', height: 56, borderRadius: 28, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, shadowColor: '#16392B', shadowOffset: {width: 0, height: 8}, shadowOpacity: 0.25, shadowRadius: 16, elevation: 6 },
   startTripText: { color: '#FFFFFF', fontSize: 16, fontFamily: 'Inter-Bold' },
 });

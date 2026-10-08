@@ -35,12 +35,12 @@ export const TripDeleteConfirmModal = ({ visible, trip, onConfirm, onCancel, loa
         <Animated.View style={[styles.dialog, { transform: [{ scale }] }]}>
           {/* Top Icon Circle */}
           <View style={styles.iconContainer}>
-            <Icon name="trash" size={32} color="#EF4444" />
+            <Icon name="trash" size={32} color="#C94A4A" />
             
             {/* Sparkles around the icon */}
-            <Icon name="sparkles" size={10} color="#EF4444" style={[styles.sparkle, { top: 10, left: 14 }]} />
-            <Icon name="sparkles" size={6} color="#EF4444" style={[styles.sparkle, { top: 18, right: 12 }]} />
-            <Icon name="sparkles" size={8} color="#EF4444" style={[styles.sparkle, { bottom: 12, left: 20 }]} />
+            <Icon name="sparkles" size={10} color="#C94A4A" style={[styles.sparkle, { top: 10, left: 14 }]} />
+            <Icon name="sparkles" size={6} color="#C94A4A" style={[styles.sparkle, { top: 18, right: 12 }]} />
+            <Icon name="sparkles" size={8} color="#C94A4A" style={[styles.sparkle, { bottom: 12, left: 20 }]} />
             <Icon name="sparkles" size={12} color="#FCA5A5" style={[styles.sparkle, { bottom: 20, right: -4 }]} />
             <Icon name="ellipse" size={4} color="#FCA5A5" style={[styles.sparkle, { top: -4, left: 30 }]} />
           </View>
@@ -52,7 +52,7 @@ export const TripDeleteConfirmModal = ({ visible, trip, onConfirm, onCancel, loa
 
           {/* Warning Box */}
           <View style={styles.warningBox}>
-            <Icon name="shield-outline" size={20} color="#D86641" style={styles.warningIcon} />
+            <Icon name="shield-outline" size={20} color="#1F4D3A" style={styles.warningIcon} />
             <View style={styles.warningTextContainer}>
               <Text style={styles.warningTitle}>This action cannot be undone.</Text>
               <Text style={styles.warningDesc}>All trip details, places and plans will be permanently removed.</Text>
@@ -77,7 +77,7 @@ export const TripDeleteConfirmModal = ({ visible, trip, onConfirm, onCancel, loa
               style={styles.deleteBtnWrapper}
             >
               <LinearGradient 
-                colors={['#DF5B40', '#D0452C']} 
+                colors={['#1F4D3A', '#1F4D3A']} 
                 start={{ x: 0, y: 0 }} 
                 end={{ x: 1, y: 0 }} 
                 style={styles.deleteBtn}
@@ -96,7 +96,7 @@ export const TripDeleteConfirmModal = ({ visible, trip, onConfirm, onCancel, loa
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(20, 16, 12, 0.5)',
+    backgroundColor: 'rgba(29, 36, 32, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     paddingHorizontal: 20,
     alignItems: 'center',
-    shadowColor: '#2D241D',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.08,
     shadowRadius: 24,
@@ -131,17 +131,17 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F1510',
+    color: '#1D2420',
     marginBottom: 6,
   },
   subtitle: {
     fontSize: 16,
-    color: '#1F1510',
+    color: '#1D2420',
     marginBottom: 20,
     fontWeight: '400',
   },
   highlightText: {
-    color: '#D86641',
+    color: '#1F4D3A',
   },
   warningBox: {
     flexDirection: 'row',
@@ -161,12 +161,12 @@ const styles = StyleSheet.create({
   warningTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#2D241D',
+    color: '#1D2420',
     marginBottom: 4,
   },
   warningDesc: {
     fontSize: 13,
-    color: '#5C534C',
+    color: '#68756D',
     lineHeight: 18,
   },
   buttonContainer: {
@@ -180,14 +180,14 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#C49B74',
+    borderColor: '#B7791F',
     justifyContent: 'center',
     alignItems: 'center',
   },
   cancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#63300E',
+    color: '#16392B',
   },
   deleteBtnWrapper: {
     flex: 1.2,

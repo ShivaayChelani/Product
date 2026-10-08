@@ -6,9 +6,9 @@ const COLORS = {
   card: '#FFFFFF',
   textPrimary: '#1F1A17',
   textSecondary: '#5E544C',
-  border: '#E3DACD',
-  primary: '#7B5E43',
-  iconBg: '#F3EFE9',
+  border: '#D9E0DB',
+  primary: '#68756D',
+  iconBg: '#F7F6F1',
 };
 
 type CollaborationSummaryProps = {

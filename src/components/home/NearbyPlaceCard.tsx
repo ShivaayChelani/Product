@@ -72,7 +72,7 @@ function NearbyPlaceCardComponent({
             <Icon
               name={isWishlisted ? 'heart' : 'heart-outline'}
               size={18}
-              color={isWishlisted ? '#D4843A' : '#FFFFFF'}
+              color={isWishlisted ? '#1F4D3A' : '#FFFFFF'}
             />
           </TouchableOpacity>
         </View>
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     borderRadius: LuxuryRadii.card,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#ECE3D8',
+    borderColor: '#D9E0DB',
     overflow: 'hidden',
   },
   imageWrap: {
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(45, 36, 29, 0.35)',
+    backgroundColor: 'rgba(32, 36, 29, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },

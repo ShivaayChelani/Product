@@ -42,7 +42,7 @@ export function CreatorReelMenuModal({
 
               <View style={styles.header}>
                 <View style={styles.headerIconWrap}>
-                  <Icon name="grid-outline" size={20} color="#B5894B" />
+                  <Icon name="grid-outline" size={20} color="#B7791F" />
                 </View>
                 <View style={styles.headerText}>
                   <Text style={styles.title} numberOfLines={1}>{displayTitle}</Text>
@@ -55,40 +55,40 @@ export function CreatorReelMenuModal({
 
               {(isPublished || isDraft) && (
                 <TouchableOpacity style={[styles.row, styles.rowGreen]} activeOpacity={0.7} onPress={onEdit}>
-                  <View style={[styles.iconBox, { backgroundColor: '#E8F5E9' }]}>
-                    <Icon name="pencil-outline" size={20} color="#2E7D32" />
+                  <View style={[styles.iconBox, { backgroundColor: '#EAF3ED' }]}>
+                    <Icon name="pencil-outline" size={20} color="#2E7D55" />
                   </View>
                   <View style={styles.rowTextWrap}>
-                    <Text style={[styles.rowTitle, { color: '#2E7D32' }]}>{isDraft ? 'Continue Editing' : 'Edit Reel'}</Text>
+                    <Text style={[styles.rowTitle, { color: '#2E7D55' }]}>{isDraft ? 'Continue Editing' : 'Edit Reel'}</Text>
                     <Text style={styles.rowSub}>{isDraft ? 'Finish your draft' : 'Update your reel details'}</Text>
                   </View>
-                  <Icon name="chevron-forward" size={20} color="#2E7D32" />
+                  <Icon name="chevron-forward" size={20} color="#2E7D55" />
                 </TouchableOpacity>
               )}
 
               {isPublished && (
                 <TouchableOpacity style={[styles.row, styles.rowPurple]} activeOpacity={0.7} onPress={onAnalytics}>
-                  <View style={[styles.iconBox, { backgroundColor: '#F3E5F5' }]}>
-                    <Icon name="stats-chart-outline" size={20} color="#6A1B9A" />
+                  <View style={[styles.iconBox, { backgroundColor: '#F7F6F1' }]}>
+                    <Icon name="stats-chart-outline" size={20} color="#16392B" />
                   </View>
                   <View style={styles.rowTextWrap}>
-                    <Text style={[styles.rowTitle, { color: '#6A1B9A' }]}>View Analytics</Text>
+                    <Text style={[styles.rowTitle, { color: '#16392B' }]}>View Analytics</Text>
                     <Text style={styles.rowSub}>See performance and insights</Text>
                   </View>
-                  <Icon name="chevron-forward" size={20} color="#6A1B9A" />
+                  <Icon name="chevron-forward" size={20} color="#16392B" />
                 </TouchableOpacity>
               )}
 
               {(isPublished || isArchived) && (
                 <TouchableOpacity style={[styles.row, styles.rowOrange]} activeOpacity={0.7} onPress={onArchiveToggle}>
-                  <View style={[styles.iconBox, { backgroundColor: '#FFF3E0' }]}>
-                    <Icon name="archive-outline" size={20} color="#E65100" />
+                  <View style={[styles.iconBox, { backgroundColor: '#F7F6F1' }]}>
+                    <Icon name="archive-outline" size={20} color="#B7791F" />
                   </View>
                   <View style={styles.rowTextWrap}>
-                    <Text style={[styles.rowTitle, { color: '#E65100' }]}>{isArchived ? 'Restore Reel' : 'Archive Reel'}</Text>
+                    <Text style={[styles.rowTitle, { color: '#B7791F' }]}>{isArchived ? 'Restore Reel' : 'Archive Reel'}</Text>
                     <Text style={styles.rowSub}>{isArchived ? 'Restore reel to public view' : 'Hide reel from public view'}</Text>
                   </View>
-                  <Icon name="chevron-forward" size={20} color="#E65100" />
+                  <Icon name="chevron-forward" size={20} color="#B7791F" />
                 </TouchableOpacity>
               )}
 
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#FFFCF8',
+    backgroundColor: '#F7F6F1',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 4,
-    backgroundColor: '#E0D4C3',
+    backgroundColor: '#DDEBE3',
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: 20,
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F7EDDE',
+    backgroundColor: '#F7F6F1',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E8DFD1',
+    borderColor: '#DDEBE3',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 16,
@@ -179,15 +179,15 @@ const styles = StyleSheet.create({
   },
   rowGreen: {
     backgroundColor: '#FAFCFA',
-    borderColor: '#E8F5E9',
+    borderColor: '#EAF3ED',
   },
   rowPurple: {
-    backgroundColor: '#FCFAFD',
-    borderColor: '#F3E5F5',
+    backgroundColor: '#F7F6F1',
+    borderColor: '#F7F6F1',
   },
   rowOrange: {
-    backgroundColor: '#FDFBFA',
-    borderColor: '#FFF3E0',
+    backgroundColor: '#F7F6F1',
+    borderColor: '#F7F6F1',
   },
   rowRed: {
     backgroundColor: '#FCFAFA',

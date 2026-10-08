@@ -5,8 +5,8 @@ const COLORS = {
   background: '#FFFFFF',
   white: '#FFFFFF',
   text: '#202020',
-  textMuted: '#6D6D6D',
-  border: '#E7DFD2',
+  textMuted: '#68756D',
+  border: '#DDEBE3',
 };
 
 const CATEGORIES = [

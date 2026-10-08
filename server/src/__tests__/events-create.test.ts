@@ -330,6 +330,25 @@ describe('Community Events creation API', () => {
       expect(dedupe.status).toBe(200);
       expect(dedupe.body.data.alreadyExists).toBe(true);
       expect(dedupe.body.data.stopId).toBe(quickStopId);
+
+      const trip = await request(app)
+        .get(`/api/v1/trips/${quickTripId}`)
+        .set('Authorization', `Bearer ${userToken}`);
+      expect(trip.status).toBe(200);
+      const eventStops = trip.body.data.tripDays
+        .flatMap((day: { stops: Array<{ eventId: string | null }> }) => day.stops)
+        .filter((stop: { eventId: string | null }) => stop.eventId === eventId);
+      expect(eventStops).toHaveLength(1);
+      expect(eventStops[0]).toMatchObject({
+        eventId,
+        placeId: null,
+        event: { id: eventId, title: created.body.data.title },
+      });
+
+      const persistedCount = await prisma.tripPlanStop.count({
+        where: { eventId, tripPlanDay: { tripPlanId: quickTripId } },
+      });
+      expect(persistedCount).toBe(1);
     });
   });
 });

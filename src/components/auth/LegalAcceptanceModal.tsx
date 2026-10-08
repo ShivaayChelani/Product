@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { LegalConsentRow } from './LegalConsentRow';
+import { palette } from '../../config/theme';
 
 export interface LegalVersions {
   termsVersion: number;
@@ -186,14 +187,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   continueBtn: {
-    backgroundColor: '#B9834B',
+    backgroundColor: '#1F4D3A',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
     marginBottom: 12,
   },
   continueBtnDisabled: {
-    backgroundColor: '#D4B896',
+    backgroundColor: palette.primary,
   },
   continueBtnText: {
     color: '#FFFFFF',

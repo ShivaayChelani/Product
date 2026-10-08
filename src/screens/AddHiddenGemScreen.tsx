@@ -7,6 +7,7 @@ import Geolocation from 'react-native-geolocation-service';
 import { hiddenGemsApi } from '../services/api';
 import { uploadApi } from '../services/api/upload';
 import { apiClient } from '../services/api/client';
+import { matchIndianState } from '../services/location/reverseGeocodeAddress';
 import { useUserContext } from '../context/UserContext';
 import * as ImagePicker from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,78 +35,6 @@ const CATEGORIES: { value: HiddenGemCategory; label: string; emoji: string }[] =
   { value: 'heritage', label: 'Heritage', emoji: '🏛️' },
   { value: 'other', label: 'Other', emoji: '📍' },
 ];
-
-const INDIAN_STATES = [
-  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
-  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
-  'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
-  'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
-  'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
-  'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'Puducherry',
-];
-
-const STATE_ALIASES: Record<string, string> = {
-  'nct of delhi': 'Delhi',
-  'national capital territory of delhi': 'Delhi',
-  delhi: 'Delhi',
-  pondicherry: 'Puducherry',
-  orissa: 'Odisha',
-  uttaranchal: 'Uttarakhand',
-  // ISO 3166-2 codes from Nominatim
-  'in-ap': 'Andhra Pradesh',
-  'in-ar': 'Arunachal Pradesh',
-  'in-as': 'Assam',
-  'in-br': 'Bihar',
-  'in-ct': 'Chhattisgarh',
-  'in-ga': 'Goa',
-  'in-gj': 'Gujarat',
-  'in-hr': 'Haryana',
-  'in-hp': 'Himachal Pradesh',
-  'in-jh': 'Jharkhand',
-  'in-ka': 'Karnataka',
-  'in-kl': 'Kerala',
-  'in-mp': 'Madhya Pradesh',
-  'in-mh': 'Maharashtra',
-  'in-mn': 'Manipur',
-  'in-ml': 'Meghalaya',
-  'in-mz': 'Mizoram',
-  'in-nl': 'Nagaland',
-  'in-or': 'Odisha',
-  'in-pb': 'Punjab',
-  'in-rj': 'Rajasthan',
-  'in-sk': 'Sikkim',
-  'in-tn': 'Tamil Nadu',
-  'in-tg': 'Telangana',
-  'in-tr': 'Tripura',
-  'in-up': 'Uttar Pradesh',
-  'in-ut': 'Uttarakhand',
-  'in-wb': 'West Bengal',
-  'in-dl': 'Delhi',
-  'in-py': 'Puducherry',
-};
-
-function normalizeStateKey(raw: string): string {
-  return raw
-    .trim()
-    .toLowerCase()
-    .replace(/^state of\s+/i, '')
-    .replace(/\s+/g, ' ');
-}
-
-function matchIndianState(...candidates: Array<string | undefined>): string {
-  for (const raw of candidates) {
-    if (!raw?.trim()) continue;
-    const n = normalizeStateKey(raw);
-    if (STATE_ALIASES[n]) return STATE_ALIASES[n];
-    const exact = INDIAN_STATES.find(s => s.toLowerCase() === n);
-    if (exact) return exact;
-    const partial = INDIAN_STATES.find(
-      s => n.includes(s.toLowerCase()) || s.toLowerCase().includes(n),
-    );
-    if (partial) return partial;
-  }
-  return '';
-}
 
 async function reverseGeocodeCityState(lat: number, lng: number): Promise<{ city: string; state: string }> {
   const res = await fetch(
@@ -338,7 +267,7 @@ export default function AddHiddenGemScreen({ onBack, onSubmit, userId, userName 
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
         <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-          <MaterialIcons name="arrow-back" size={24} color="#311A0B" />
+          <MaterialIcons name="arrow-back" size={24} color="#1D2420" />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <View style={styles.diamondBadge}>
@@ -354,7 +283,7 @@ export default function AddHiddenGemScreen({ onBack, onSubmit, userId, userName 
 
 
         <View style={styles.sectionHeader}>
-          <View style={styles.sectionDiamond}><MaterialIcons name="diamond" size={14} color="#D4AF37" /></View>
+          <View style={styles.sectionDiamond}><MaterialIcons name="diamond" size={14} color="#DDEBE3" /></View>
           <Text style={styles.sectionTitle}>Basic Information</Text>
           <View style={styles.sectionLine} />
         </View>
@@ -362,13 +291,13 @@ export default function AddHiddenGemScreen({ onBack, onSubmit, userId, userName 
         <View style={styles.formGroup}>
           <Text style={styles.label}>Place Name <Text style={styles.asterisk}>*</Text></Text>
           <View style={styles.inputWrapper}>
-            <MaterialIcons name="place" size={20} color="#D4AF37" style={styles.inputIcon} />
+            <MaterialIcons name="place" size={20} color="#DDEBE3" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               value={placeName}
               onChangeText={setPlaceName}
               placeholder="Enter place name"
-              placeholderTextColor="#96816E"
+              placeholderTextColor="#68756D"
             />
           </View>
         </View>
@@ -377,11 +306,11 @@ export default function AddHiddenGemScreen({ onBack, onSubmit, userId, userName 
           <View style={[styles.formGroup, { flex: 1 }]}>
             <Text style={styles.label}>Category <Text style={styles.asterisk}>*</Text></Text>
             <TouchableOpacity style={styles.inputWrapper} onPress={() => setCategoryModalVisible(true)}>
-              <MaterialIcons name="diamond" size={20} color="#D4AF37" style={styles.inputIcon} />
+              <MaterialIcons name="diamond" size={20} color="#DDEBE3" style={styles.inputIcon} />
               <Text style={[styles.inputText, !category && styles.placeholderText]}>
                 {selectedCategoryObj ? selectedCategoryObj.label : 'Select category'}
               </Text>
-              <MaterialIcons name="keyboard-arrow-down" size={20} color="#311A0B" />
+              <MaterialIcons name="keyboard-arrow-down" size={20} color="#1D2420" />
             </TouchableOpacity>
           </View>
 
@@ -390,20 +319,20 @@ export default function AddHiddenGemScreen({ onBack, onSubmit, userId, userName 
           <View style={[styles.formGroup, { flex: 1 }]}>
             <Text style={styles.label}>Location <Text style={styles.asterisk}>*</Text></Text>
             <View style={[styles.inputWrapper, { paddingHorizontal: 4 }]}>
-              <MaterialIcons name="place" size={20} color="#D4AF37" style={styles.inputIcon} />
+              <MaterialIcons name="place" size={20} color="#DDEBE3" style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, { flex: 1 }]}
                 value={city}
                 onChangeText={setCity}
                 placeholder="Search location"
-                placeholderTextColor="#96816E"
+                placeholderTextColor="#68756D"
               />
               <TouchableOpacity style={styles.useLocationBtn} onPress={useCurrentLocation} disabled={loadingLocation}>
                 {loadingLocation ? (
-                  <ActivityIndicator size="small" color="#D4AF37" />
+                  <ActivityIndicator size="small" color="#DDEBE3" />
                 ) : (
                   <>
-                    <MaterialIcons name="my-location" size={14} color="#D4AF37" />
+                    <MaterialIcons name="my-location" size={14} color="#DDEBE3" />
                     <Text style={styles.useLocationText}>Use My Location</Text>
                   </>
                 )}
@@ -417,7 +346,7 @@ export default function AddHiddenGemScreen({ onBack, onSubmit, userId, userName 
             Place coordinates: {latitude}, {longitude} ({locationMethod === 'gps' ? 'confirmed at this place' : locationMethod})
           </Text>
         ) : (
-          <Text style={{ color: '#B45309', fontSize: 12, marginBottom: 12, marginTop: -4 }}>
+          <Text style={{ color: '#16392B', fontSize: 12, marginBottom: 12, marginTop: -4 }}>
             Location is not set. Use My Location only if you are standing at the Hidden Gem.
           </Text>
         )}
@@ -425,13 +354,13 @@ export default function AddHiddenGemScreen({ onBack, onSubmit, userId, userName 
         <View style={styles.formGroup}>
           <Text style={styles.label}>Address <Text style={styles.asterisk}>*</Text></Text>
           <View style={styles.inputWrapper}>
-            <MaterialIcons name="map" size={20} color="#D4AF37" style={styles.inputIcon} />
+            <MaterialIcons name="map" size={20} color="#DDEBE3" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               value={address}
               onChangeText={setAddress}
               placeholder="Enter exact address"
-              placeholderTextColor="#96816E"
+              placeholderTextColor="#68756D"
             />
           </View>
         </View>
@@ -439,13 +368,13 @@ export default function AddHiddenGemScreen({ onBack, onSubmit, userId, userName 
         <View style={styles.formGroup}>
           <Text style={styles.label}>Short Description <Text style={styles.asterisk}>*</Text></Text>
           <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
-            <MaterialIcons name="edit" size={20} color="#D4AF37" style={styles.inputIconTop} />
+            <MaterialIcons name="edit" size={20} color="#DDEBE3" style={styles.inputIconTop} />
             <TextInput
               style={styles.textArea}
               value={description}
               onChangeText={setDescription}
               placeholder="Tell us something about this place"
-              placeholderTextColor="#96816E"
+              placeholderTextColor="#68756D"
               multiline
               maxLength={200}
             />
@@ -465,21 +394,21 @@ export default function AddHiddenGemScreen({ onBack, onSubmit, userId, userName 
             ))}
             {images.length < 4 && (
               <TouchableOpacity style={[styles.photoBox, styles.photoBoxEmpty]} onPress={handlePickImage}>
-                <MaterialIcons name={images.length === 0 ? "add-a-photo" : "add"} size={24} color="#C4A485" />
+                <MaterialIcons name={images.length === 0 ? "add-a-photo" : "add"} size={24} color="#B7791F" />
                 <Text style={styles.photoBoxText}>{images.length === 0 ? "Add Photo" : "Add More"}</Text>
               </TouchableOpacity>
             )}
           </View>
           
           <View style={styles.tipBox}>
-            <MaterialIcons name="lightbulb-outline" size={16} color="#B58D3D" />
+            <MaterialIcons name="lightbulb-outline" size={16} color="#B7791F" />
             <Text style={styles.tipText}>Clear and real photos help your hidden gem get approved faster.</Text>
           </View>
         </View>
 
 
         <View style={[styles.sectionHeader, { marginTop: 24 }]}>
-          <View style={styles.sectionDiamond}><MaterialIcons name="diamond" size={14} color="#D4AF37" /></View>
+          <View style={styles.sectionDiamond}><MaterialIcons name="diamond" size={14} color="#DDEBE3" /></View>
           <Text style={styles.sectionTitle}>Additional Details <Text style={styles.optionalText}>(Optional)</Text></Text>
           <View style={styles.sectionLine} />
         </View>
@@ -488,11 +417,11 @@ export default function AddHiddenGemScreen({ onBack, onSubmit, userId, userName 
           <View style={[styles.formGroup, { flex: 1 }]}>
             <Text style={styles.label}>Best Time to Visit</Text>
             <TouchableOpacity style={styles.inputWrapper} onPress={() => setTimeModalVisible(true)}>
-              <MaterialIcons name="event" size={20} color="#D4AF37" style={styles.inputIcon} />
+              <MaterialIcons name="event" size={20} color="#DDEBE3" style={styles.inputIcon} />
               <Text style={[styles.inputText, !bestTimeLabel && styles.placeholderText]}>
                 {bestTimeLabel || 'Select time'}
               </Text>
-              <MaterialIcons name="keyboard-arrow-down" size={20} color="#311A0B" />
+              <MaterialIcons name="keyboard-arrow-down" size={20} color="#1D2420" />
             </TouchableOpacity>
           </View>
 
@@ -501,13 +430,13 @@ export default function AddHiddenGemScreen({ onBack, onSubmit, userId, userName 
           <View style={[styles.formGroup, { flex: 1 }]}>
             <Text style={styles.label}>Entry Fee <Text style={styles.optionalText}>(Optional)</Text></Text>
             <View style={styles.inputWrapper}>
-              <MaterialIcons name="currency-rupee" size={20} color="#D4AF37" style={styles.inputIcon} />
+              <MaterialIcons name="currency-rupee" size={20} color="#DDEBE3" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 value={estimatedCost}
                 onChangeText={setEstimatedCost}
                 placeholder="Ex: ₹0 / Free"
-                placeholderTextColor="#96816E"
+                placeholderTextColor="#68756D"
               />
             </View>
           </View>
@@ -516,13 +445,13 @@ export default function AddHiddenGemScreen({ onBack, onSubmit, userId, userName 
         <View style={styles.formGroup}>
           <Text style={styles.label}>Tips for Travelers <Text style={styles.optionalText}>(Optional)</Text></Text>
           <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
-            <MaterialIcons name="lightbulb-outline" size={20} color="#D4AF37" style={styles.inputIconTop} />
+            <MaterialIcons name="lightbulb-outline" size={20} color="#DDEBE3" style={styles.inputIconTop} />
             <TextInput
               style={styles.textArea}
               value={tips}
               onChangeText={setTips}
               placeholder="Share useful tips for travelers"
-              placeholderTextColor="#96816E"
+              placeholderTextColor="#68756D"
               multiline
               maxLength={150}
             />
@@ -532,7 +461,7 @@ export default function AddHiddenGemScreen({ onBack, onSubmit, userId, userName 
 
         <ImageBackground source={require('../assets/hiddengem_note_banner.jpg')} style={styles.noteBanner} imageStyle={{ borderRadius: 12 }}>
           <View style={styles.noteOverlay}>
-            <MaterialIcons name="security" size={24} color="#D4AF37" />
+            <MaterialIcons name="security" size={24} color="#DDEBE3" />
             <View style={styles.noteTextCol}>
               <Text style={styles.noteTitle}>Important Note</Text>
               <Text style={styles.noteDesc}>All hidden gem submissions are reviewed by our team.{'\n'}Fake or misleading submissions may lead to rejection.</Text>
@@ -556,7 +485,7 @@ export default function AddHiddenGemScreen({ onBack, onSubmit, userId, userName 
           )}
         </TouchableOpacity>
         <View style={styles.bottomDisclaimer}>
-          <MaterialIcons name="lock" size={12} color="#96816E" />
+          <MaterialIcons name="lock" size={12} color="#68756D" />
           <Text style={styles.bottomDisclaimerText}>Your submission will be reviewed and you will be notified after approval.</Text>
         </View>
       </View>
@@ -568,7 +497,7 @@ export default function AddHiddenGemScreen({ onBack, onSubmit, userId, userName 
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Category</Text>
               <TouchableOpacity onPress={() => setCategoryModalVisible(false)}>
-                <MaterialIcons name="close" size={24} color="#311A0B" />
+                <MaterialIcons name="close" size={24} color="#1D2420" />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalScroll}>
@@ -590,7 +519,7 @@ export default function AddHiddenGemScreen({ onBack, onSubmit, userId, userName 
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Best Time to Visit</Text>
               <TouchableOpacity onPress={() => setTimeModalVisible(false)}>
-                <MaterialIcons name="close" size={24} color="#311A0B" />
+                <MaterialIcons name="close" size={24} color="#1D2420" />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalScroll}>
@@ -629,7 +558,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E8D5C4',
+    borderColor: '#DDEBE3',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -643,7 +572,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#D4AF37',
+    backgroundColor: '#DDEBE3',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
@@ -651,12 +580,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#311A0B',
+    color: '#1D2420',
     fontFamily: 'serif',
   },
   headerSubtitle: {
     fontSize: 13,
-    color: '#6B4C33',
+    color: '#68756D',
     marginTop: 4,
   },
   contentPad: {
@@ -675,19 +604,19 @@ const styles = StyleSheet.create({
   heroOverlay: {
     flex: 1,
     padding: 16,
-    backgroundColor: 'rgba(253,251,247,0.4)',
+    backgroundColor: 'rgba(241,246,247,0.4)',
     justifyContent: 'center',
   },
   heroTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#311A0B',
+    color: '#1D2420',
     fontFamily: 'serif',
     marginBottom: 4,
   },
   heroSub: {
     fontSize: 12,
-    color: '#311A0B',
+    color: '#1D2420',
     marginBottom: 12,
     fontWeight: '500',
   },
@@ -703,7 +632,7 @@ const styles = StyleSheet.create({
   pointsBadgeText: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#825936',
+    color: '#16392B',
     marginLeft: 4,
   },
   sectionHeader: {
@@ -715,7 +644,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#F3E8C4',
+    backgroundColor: '#DDEBE3',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
@@ -723,14 +652,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#311A0B',
+    color: '#1D2420',
   },
   sectionLine: {
     flex: 1,
     height: 1,
     borderStyle: 'dashed',
     borderWidth: 1,
-    borderColor: '#D4AF37',
+    borderColor: '#DDEBE3',
     marginLeft: 12,
   },
   formGroup: {
@@ -742,20 +671,20 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: 'bold',
-    color: '#311A0B',
+    color: '#1D2420',
     marginBottom: 6,
   },
   asterisk: {
-    color: '#EF4444',
+    color: '#C94A4A',
   },
   optionalText: {
     fontWeight: 'normal',
-    color: '#96816E',
+    color: '#68756D',
     fontSize: 12,
   },
   subLabel: {
     fontSize: 12,
-    color: '#96816E',
+    color: '#68756D',
     marginBottom: 8,
   },
   inputWrapper: {
@@ -763,7 +692,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E8DED1',
+    borderColor: '#D9E0DB',
     borderRadius: 8,
     minHeight: 48,
     paddingHorizontal: 12,
@@ -783,21 +712,21 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 14,
-    color: '#311A0B',
+    color: '#1D2420',
     padding: 0,
   },
   inputText: {
     flex: 1,
     fontSize: 14,
-    color: '#311A0B',
+    color: '#1D2420',
   },
   placeholderText: {
-    color: '#96816E',
+    color: '#68756D',
   },
   textArea: {
     flex: 1,
     fontSize: 14,
-    color: '#311A0B',
+    color: '#1D2420',
     textAlignVertical: 'top',
     padding: 0,
     minHeight: 80,
@@ -807,14 +736,14 @@ const styles = StyleSheet.create({
     bottom: 8,
     right: 12,
     fontSize: 11,
-    color: '#96816E',
+    color: '#68756D',
   },
   useLocationBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#D4AF37',
+    borderColor: '#DDEBE3',
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -823,7 +752,7 @@ const styles = StyleSheet.create({
   useLocationText: {
     fontSize: 11,
     fontWeight: 'bold',
-    color: '#D4AF37',
+    color: '#DDEBE3',
     marginLeft: 4,
   },
   photoGrid: {
@@ -845,7 +774,7 @@ const styles = StyleSheet.create({
   },
   photoBoxEmpty: {
     borderWidth: 1,
-    borderColor: '#C4A485',
+    borderColor: '#B7791F',
     borderStyle: 'dashed',
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
@@ -853,20 +782,20 @@ const styles = StyleSheet.create({
   },
   photoBoxText: {
     fontSize: 10,
-    color: '#6B4C33',
+    color: '#68756D',
     marginTop: 4,
     fontWeight: '500',
   },
   tipBox: {
     flexDirection: 'row',
-    backgroundColor: '#FDF6ED',
+    backgroundColor: '#F7F6F1',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
   tipText: {
     fontSize: 12,
-    color: '#825936',
+    color: '#16392B',
     marginLeft: 8,
     flex: 1,
   },
@@ -882,7 +811,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(253,246,237,0.7)',
+    backgroundColor: 'rgba(247,246,241,0.7)',
   },
   noteTextCol: {
     marginLeft: 12,
@@ -891,11 +820,11 @@ const styles = StyleSheet.create({
   noteTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#311A0B',
+    color: '#1D2420',
   },
   noteDesc: {
     fontSize: 11,
-    color: '#4A3320',
+    color: '#1D2420',
     marginTop: 2,
     fontWeight: '500',
   },
@@ -907,13 +836,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     padding: 16,
     borderTopWidth: 1,
-    borderColor: '#E8DED1',
+    borderColor: '#D9E0DB',
     alignItems: 'center',
   },
   submitBtn: {
     width: '100%',
     height: 48,
-    backgroundColor: '#311A0B',
+    backgroundColor: '#1D2420',
     borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
@@ -931,7 +860,7 @@ const styles = StyleSheet.create({
   },
   bottomDisclaimerText: {
     fontSize: 11,
-    color: '#96816E',
+    color: '#68756D',
     marginLeft: 4,
   },
   modalBg: {
@@ -951,12 +880,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderColor: '#E8DED1',
+    borderColor: '#D9E0DB',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#311A0B',
+    color: '#1D2420',
   },
   modalScroll: {
     padding: 16,
@@ -966,7 +895,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderColor: '#F3E8C4',
+    borderColor: '#DDEBE3',
   },
   modalItemIcon: {
     fontSize: 20,
@@ -974,6 +903,6 @@ const styles = StyleSheet.create({
   },
   modalItemText: {
     fontSize: 16,
-    color: '#311A0B',
+    color: '#1D2420',
   },
 });

@@ -24,8 +24,8 @@ const COLORS = {
   background: '#FFFFFF',
   white: '#FFFFFF',
   text: '#202020',
-  textMuted: '#6D6D6D',
-  gold: '#D9A441',
+  textMuted: '#68756D',
+  gold: '#1F4D3A',
 };
 
 interface RewardsScreenProps {

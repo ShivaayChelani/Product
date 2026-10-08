@@ -20,10 +20,10 @@ function PasswordStrengthMeterComponent({ strength }: Props) {
       {keys.map((key, idx) => {
         const on = idx < active;
         const color =
-          key === 'weak' ? '#E8A598' : key === 'medium' ? T.secondary : T.primary;
+          key === 'weak' ? '#DDEBE3' : key === 'medium' ? T.secondary : T.primary;
         return (
           <View key={key} style={styles.col}>
-            <View style={[styles.bar, { backgroundColor: on ? color : '#EDE4D8' }]} />
+            <View style={[styles.bar, { backgroundColor: on ? color : '#D9E0DB' }]} />
             <Text style={[styles.label, on && styles.labelOn]}>{LABELS[key]}</Text>
           </View>
         );

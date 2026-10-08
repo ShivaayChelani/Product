@@ -36,7 +36,7 @@ export function buildMapCategoryChips(
 }
 
 export const MAP_CATEGORY_CHIPS: MapCategoryChip[] = [
-  { key: 'all', label: MAP_VISIBLE_CATEGORY_LABELS[0], color: '#6E4424', ionIcon: 'grid-outline' },
+  { key: 'all', label: MAP_VISIBLE_CATEGORY_LABELS[0], color: '#1F4D3A', ionIcon: 'grid-outline' },
   { key: 'heritage', label: MAP_VISIBLE_CATEGORY_LABELS[1], color: getMapMarkerConfig('heritage').color, ionIcon: 'flag-outline' },
   { key: 'temple', label: MAP_VISIBLE_CATEGORY_LABELS[2], color: getMapMarkerConfig('temple').color, ionIcon: 'business-outline' },
   { key: 'ghat', label: MAP_VISIBLE_CATEGORY_LABELS[3], color: getMapMarkerConfig('ghat').color, ionIcon: 'boat-outline' },

@@ -54,7 +54,7 @@ export default function RazorpayCheckoutScreen({
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head><body style="font-family:sans-serif;background:#FFFFFF;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
-<p id="status" style="color:#63300E;font-weight:700">Opening secure checkout…</p>
+<p id="status" style="color:#16392B;font-weight:700">Opening secure checkout…</p>
 <script>
 var options = {
   key: ${JSON.stringify(keyId)},
@@ -64,7 +64,7 @@ var options = {
   description: ${JSON.stringify(name)},
   order_id: ${JSON.stringify(orderId)},
   prefill: { email: ${JSON.stringify(email)}, name: ${JSON.stringify(displayName)} },
-  theme: { color: '#B9834B' },
+  theme: { color: '#1F4D3A' },
   handler: function (response) {
     window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'success', response: response }));
   },
@@ -137,14 +137,14 @@ rzp.open();
     <View style={[styles.safe, { paddingBottom: contentPadBottom }]}>
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
         <TouchableOpacity onPress={onBack} style={styles.back}>
-          <Icon name="close" size={22} color="#63300E" />
+          <Icon name="close" size={22} color="#16392B" />
         </TouchableOpacity>
         <Text style={styles.title}>Secure checkout</Text>
         <View style={{ width: 40 }} />
       </View>
       {phase === 'verifying' || busy ? (
         <View style={styles.center}>
-          <ActivityIndicator color="#B9834B" />
+          <ActivityIndicator color="#1F4D3A" />
           <Text style={styles.hint}>Verifying payment with PalSafar…</Text>
         </View>
       ) : phase === 'success' ? (
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10 },
   back: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  title: { flex: 1, textAlign: 'center', fontWeight: '800', color: '#63300E', fontSize: 16 },
+  title: { flex: 1, textAlign: 'center', fontWeight: '800', color: '#16392B', fontSize: 16 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  hint: { color: '#8B7355', fontWeight: '600' },
+  hint: { color: '#68756D', fontWeight: '600' },
 });

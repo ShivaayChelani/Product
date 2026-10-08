@@ -36,20 +36,20 @@ const COLORS = {
   textMain: '#1F1A17',
   textSub: '#5E544C',
   textMuted: '#A0968C',
-  border: '#F0EBE1',
-  primary: '#7B5E43',
-  primarySoft: '#F5EDE2',
-  accent: '#E5A041',
+  border: '#F7F6F1',
+  primary: '#68756D',
+  primarySoft: '#F7F6F1',
+  accent: '#B7791F',
   success: '#10B981',
-  successSoft: '#E8F5EE',
-  pending: '#F59E0B',
-  pendingSoft: '#FFF4E5',
-  progress: '#3B82F6',
+  successSoft: '#EAF3ED',
+  pending: '#B7791F',
+  pendingSoft: '#F8F0E1',
+  progress: '#1F4D3A',
   progressSoft: '#E8F4E9', // Using soft green for progress in screenshot
-  purple: '#8B5CF6',
-  purpleSoft: '#F3E8FF',
-  danger: '#EF4444',
-  dangerSoft: '#FEE2E2',
+  purple: '#1F4D3A',
+  purpleSoft: '#F7F6F1',
+  danger: '#C94A4A',
+  dangerSoft: '#FBEAEA',
 };
 
 function unwrapCollabs(payload: unknown): CollaborationItem[] {
@@ -137,15 +137,15 @@ export default function CollaborationsDashboardScreen() {
 
   const getStatusDisplay = (status: string) => {
     switch(status) {
-      case 'PENDING': return { text: 'New Request', color: '#D97706', bg: '#FEF3C7' }; // Amber
-      case 'ACCEPTED': return { text: 'Accepted', color: '#2563EB', bg: '#DBEAFE' }; // Blue
+      case 'PENDING': return { text: 'New Request', color: '#B7791F', bg: '#F8F0E1' }; // Amber
+      case 'ACCEPTED': return { text: 'Accepted', color: '#1F4D3A', bg: '#F7F6F1' }; // Blue
       case 'IN_PROGRESS':
-      case 'REVISION_REQUESTED': return { text: 'Changes requested', color: '#B45309', bg: '#FFEDD5' };
-      case 'REEL_UPLOADED': return { text: 'Pending', color: '#D97706', bg: '#FEF3C7' };
-      case 'APPROVED': return { text: 'Ready to publish', color: '#047857', bg: '#D1FAE5' };
-      case 'COMPLETED': return { text: 'Completed', color: '#7C3AED', bg: '#EDE9FE' }; // Purple
+      case 'REVISION_REQUESTED': return { text: 'Changes requested', color: '#16392B', bg: '#F7F6F1' };
+      case 'REEL_UPLOADED': return { text: 'Pending', color: '#B7791F', bg: '#F8F0E1' };
+      case 'APPROVED': return { text: 'Ready to publish', color: '#047857', bg: '#DDEBE3' };
+      case 'COMPLETED': return { text: 'Completed', color: '#1F4D3A', bg: '#F7F6F1' }; // Purple
       case 'REJECTED': 
-      case 'CANCELLED': return { text: 'Cancelled', color: '#DC2626', bg: '#FEE2E2' }; // Red
+      case 'CANCELLED': return { text: 'Cancelled', color: '#C94A4A', bg: '#FBEAEA' }; // Red
       default: return { text: status, color: COLORS.textSub, bg: COLORS.border };
     }
   };

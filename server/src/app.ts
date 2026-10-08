@@ -67,6 +67,7 @@ app.set('trust proxy', 1);
 initSentry();
 
 const adminOrigins = [
+  'https://admin.palsafar.in',
   'https://productadmin-two.vercel.app',
 ];
 

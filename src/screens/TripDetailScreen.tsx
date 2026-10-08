@@ -6,7 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Pal from '../design/DesignSystem';
 import { GradientButton } from '../components/ui/GradientButton';
-import { tripsApi, TripPlan, TripPlanStop, TripProgressResponse, TravelPace, BudgetTier, AvoidOption, customBudgetAmountForRequest } from '../services/api/trips';
+import { tripsApi, TripPlan, TripPlanStop, TripProgressResponse, TravelPace, BudgetTier, AvoidOption, customBudgetAmountForRequest, stopCoordinates, stopDisplayName } from '../services/api/trips';
 import { buildTripExportText } from '../utils/tripExport';
 import { buildSharedTripUrl } from '../services/sharing/shareLinks';
 import { useToast } from '../context/ToastContext';
@@ -310,27 +310,35 @@ export default function TripDetailScreen({
       mode: 'replace',
       stopId: stop.id,
       destination: trip?.destination,
-      excludePlaceIds: trip?.tripDays?.flatMap(d => d.stops.map(s => s.placeId)) || [],
+      excludePlaceIds: trip?.tripDays?.flatMap(d => d.stops.map(s => s.placeId).filter((id): id is string => !!id)) || [],
     });
   };
 
   const handleOpenPlace = (stop: TripPlanStop) => {
-    onNavigate?.('SpotDetail', { spotId: stop.place?.slug || stop.placeId });
+    if (!stop.place && stop.eventId) {
+      // Event-anchored stop → the Community Event detail, not a Place.
+      onNavigate?.('EventDetail', {
+        eventIdOrSlug: stop.event?.slug || stop.event?.id || stop.eventId,
+      });
+      return;
+    }
+    onNavigate?.('SpotDetail', { spotId: stop.place?.slug || stop.placeId || '' });
   };
 
   // Trip stop "Navigate" → PalSafar's own map, not an external maps app.
   // `onNavigate` already speaks `navigate('MainTabs', { screen })`, so it can back
   // the shared helper directly instead of this screen needing its own map stack.
   const handleNavigateStop = (stop: TripPlanStop) => {
+    const coords = stopCoordinates(stop);
     const opened = openInternalDirections({
       navigation: { navigate: (screen, params) => onNavigate?.(screen as string, params) },
       destination: {
-        latitude: stop.place?.latitude,
-        longitude: stop.place?.longitude,
-        label: stop.place?.name || null,
+        latitude: coords?.latitude ?? null,
+        longitude: coords?.longitude ?? null,
+        label: stopDisplayName(stop) || null,
       },
       context: 'trip_stop',
-      initialMapTab: 'places',
+      initialMapTab: stop.eventId ? 'events' : 'places',
       onUnavailable: showError,
     });
     if (!opened) return;
@@ -363,7 +371,8 @@ export default function TripDetailScreen({
         (trip.tripDays || [])
           .flatMap(d => d.stops || [])
           .filter(s => s.isPinned)
-          .map(s => s.placeId),
+          .map(s => s.placeId)
+          .filter((id): id is string => !!id),
       ));
       const result = await tripsApi.aiGenerate({
         tripId: trip.id,
@@ -422,7 +431,8 @@ export default function TripDetailScreen({
           (trip.tripDays || [])
             .flatMap(d => d.stops || [])
             .filter(s => s.isPinned)
-            .map(s => s.placeId),
+            .map(s => s.placeId)
+            .filter((id): id is string => !!id),
         )),
         avoid,
         prompt,
@@ -536,18 +546,18 @@ export default function TripDetailScreen({
             source={require('../assets/logo.png')} 
             style={{ width: 140, height: 140, resizeMode: 'contain' }} 
           />
-          <Text style={{ fontSize: 13, color: '#8B7355', marginTop: 8, letterSpacing: 0.3, fontWeight: '500' }}>
+          <Text style={{ fontSize: 13, color: '#68756D', marginTop: 8, letterSpacing: 0.3, fontWeight: '500' }}>
             Explore • Experience • Memories
           </Text>
         </View>
 
         {/* Loading Indicator */}
         <View style={{ alignItems: 'center', marginBottom: 40 }}>
-          <ActivityIndicator size="large" color="#B9834B" style={{ transform: [{ scale: 1.2 }], marginBottom: 20 }} />
-          <Text style={{ color: '#2D1B0B', fontSize: 18, fontWeight: '600', marginBottom: 8 }}>
+          <ActivityIndicator size="large" color="#1F4D3A" style={{ transform: [{ scale: 1.2 }], marginBottom: 20 }} />
+          <Text style={{ color: '#1D2420', fontSize: 18, fontWeight: '600', marginBottom: 8 }}>
             Loading itinerary...
           </Text>
-          <Text style={{ color: '#8B7355', fontSize: 14 }}>
+          <Text style={{ color: '#68756D', fontSize: 14 }}>
             Crafting your perfect journey
           </Text>
         </View>
@@ -561,7 +571,7 @@ export default function TripDetailScreen({
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'flex-start',
-          shadowColor: '#2D1B0B',
+          shadowColor: '#1D2420',
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.05,
           shadowRadius: 12,
@@ -570,57 +580,57 @@ export default function TripDetailScreen({
         }}>
           {/* Step 1 */}
           <View style={{ alignItems: 'center', flex: 1 }}>
-            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F5EFE6', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-              <Icon name="search-outline" size={20} color="#4B3621" />
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+              <Icon name="search-outline" size={20} color="#1D2420" />
             </View>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: '#4B3621', textAlign: 'center' }}>Discovering</Text>
-            <Text style={{ fontSize: 11, color: '#8B7355', textAlign: 'center' }}>places</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: '#1D2420', textAlign: 'center' }}>Discovering</Text>
+            <Text style={{ fontSize: 11, color: '#68756D', textAlign: 'center' }}>places</Text>
           </View>
           
           <View style={{ flex: 0.5, height: 44, justifyContent: 'center' }}>
-            <Text style={{ color: '#DDD2C4', textAlign: 'center', letterSpacing: 2 }}>......</Text>
+            <Text style={{ color: '#DDEBE3', textAlign: 'center', letterSpacing: 2 }}>......</Text>
           </View>
 
           {/* Step 2 */}
           <View style={{ alignItems: 'center', flex: 1 }}>
-            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F5EFE6', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-              <Icon name="map-outline" size={20} color="#4B3621" />
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+              <Icon name="map-outline" size={20} color="#1D2420" />
             </View>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: '#4B3621', textAlign: 'center' }}>Planning</Text>
-            <Text style={{ fontSize: 11, color: '#8B7355', textAlign: 'center' }}>route</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: '#1D2420', textAlign: 'center' }}>Planning</Text>
+            <Text style={{ fontSize: 11, color: '#68756D', textAlign: 'center' }}>route</Text>
           </View>
 
           <View style={{ flex: 0.5, height: 44, justifyContent: 'center' }}>
-            <Text style={{ color: '#DDD2C4', textAlign: 'center', letterSpacing: 2 }}>......</Text>
+            <Text style={{ color: '#DDEBE3', textAlign: 'center', letterSpacing: 2 }}>......</Text>
           </View>
 
           {/* Step 3 */}
           <View style={{ alignItems: 'center', flex: 1 }}>
-            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F5EFE6', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-              <Icon name="calendar-outline" size={20} color="#4B3621" />
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+              <Icon name="calendar-outline" size={20} color="#1D2420" />
             </View>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: '#4B3621', textAlign: 'center' }}>Organizing</Text>
-            <Text style={{ fontSize: 11, color: '#8B7355', textAlign: 'center' }}>itinerary</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: '#1D2420', textAlign: 'center' }}>Organizing</Text>
+            <Text style={{ fontSize: 11, color: '#68756D', textAlign: 'center' }}>itinerary</Text>
           </View>
 
           <View style={{ flex: 0.5, height: 44, justifyContent: 'center' }}>
-            <Text style={{ color: '#DDD2C4', textAlign: 'center', letterSpacing: 2 }}>......</Text>
+            <Text style={{ color: '#DDEBE3', textAlign: 'center', letterSpacing: 2 }}>......</Text>
           </View>
 
           {/* Step 4 */}
           <View style={{ alignItems: 'center', flex: 1 }}>
-            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F5EFE6', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-              <Icon name="checkmark-circle-outline" size={22} color="#4B3621" />
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+              <Icon name="checkmark-circle-outline" size={22} color="#1D2420" />
             </View>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: '#4B3621', textAlign: 'center' }}>Almost</Text>
-            <Text style={{ fontSize: 11, color: '#8B7355', textAlign: 'center' }}>ready</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: '#1D2420', textAlign: 'center' }}>Almost</Text>
+            <Text style={{ fontSize: 11, color: '#68756D', textAlign: 'center' }}>ready</Text>
           </View>
         </View>
 
         {/* Footer Message */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center' }}>
-          <Text style={{ color: '#C5A059', fontSize: 14, marginRight: 6, marginTop: 2 }}>✨</Text>
-          <Text style={{ color: '#8B7355', fontSize: 13, textAlign: 'center', lineHeight: 20 }}>
+          <Text style={{ color: '#B7791F', fontSize: 14, marginRight: 6, marginTop: 2 }}>✨</Text>
+          <Text style={{ color: '#68756D', fontSize: 13, textAlign: 'center', lineHeight: 20 }}>
             Sit back and relax, we're building{'\n'}an amazing trip for you!
           </Text>
         </View>
@@ -669,7 +679,7 @@ export default function TripDetailScreen({
             <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: Pal.colors.light.primary, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ color: '#fff', fontSize: 10, fontFamily: Pal.typography.fontFamily.bold }}>{i + 1}</Text>
             </View>
-            <Text style={{ marginLeft: 8, fontSize: 12, color: Pal.colors.light.text, flex: 1 }} numberOfLines={1}>{stop.place.name}</Text>
+            <Text style={{ marginLeft: 8, fontSize: 12, color: Pal.colors.light.text, flex: 1 }} numberOfLines={1}>{stopDisplayName(stop)}</Text>
           </View>
         ))}
       </View>
@@ -708,7 +718,7 @@ export default function TripDetailScreen({
           <View style={{ backgroundColor: Pal.colors.light.surface, borderTopLeftRadius: Pal.borderRadius['2xl'], borderTopRightRadius: Pal.borderRadius['2xl'], padding: Pal.spacing[5], paddingBottom: Pal.spacing[10], gap: Pal.spacing[4] }}>
             <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: Pal.colors.light.border, alignSelf: 'center', marginBottom: 4 }} />
             <Text style={{ fontFamily: Pal.typography.fontFamily.semibold, fontSize: 17, color: Pal.colors.light.text }}>
-              Notes — {noteModal?.stop.place.name}
+              Notes — {noteModal ? stopDisplayName(noteModal.stop) : ''}
             </Text>
             <TextInput
               style={{

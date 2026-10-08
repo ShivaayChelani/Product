@@ -11,6 +11,7 @@ import {
   Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { palette } from '../config/theme';
 import { useLocationContext } from '../context/LocationContext';
 import { useTravelTime } from '../services/location/useTravelTime';
 import { isReliableUserPosition } from '../services/location/distance';
@@ -58,16 +59,16 @@ type Props = {
 };
 
 const COLORS = {
-  card: '#FFFFFF',
-  textPrimary: '#1A1412',
-  textSecondary: '#70645C',
-  textBody: '#524842',
-  gold: '#A06828',
-  iconDiscBg: '#F7EFE5',
-  cardBg: '#FAF8F5',
-  cardBorder: '#F2EDE6',
-  btnBg: '#FAF8F5',
-  btnBorder: '#F2EDE6',
+  card: palette.surface,
+  textPrimary: palette.text,
+  textSecondary: palette.textSecondary,
+  textBody: palette.text,
+  gold: palette.primary,
+  iconDiscBg: palette.background,
+  cardBg: palette.background,
+  cardBorder: palette.border,
+  btnBg: palette.primaryLight,
+  btnBorder: palette.border,
 };
 
 const serif = Platform.OS === 'ios' ? 'Georgia' : 'serif';
@@ -186,7 +187,7 @@ export default function MapPlaceDetailCard({
             />
           ) : (
             <TouchableOpacity style={styles.noImageThumbnail} onPress={onAddImage} activeOpacity={0.8}>
-              <Icon name="image-outline" size={32} color="#D0BFA5" />
+              <Icon name="image-outline" size={32} color="#DDEBE3" />
               <View style={styles.placeholderPlus}>
                 <Icon name="add" size={12} color="#FFF" />
               </View>
@@ -207,7 +208,7 @@ export default function MapPlaceDetailCard({
               accessibilityRole="button"
               accessibilityLabel="Close"
             >
-              <Icon name="close" size={18} color="#2C1810" />
+              <Icon name="close" size={18} color="#1D2420" />
             </TouchableOpacity>
           </View>
 
@@ -242,10 +243,10 @@ export default function MapPlaceDetailCard({
           <TouchableOpacity style={s.reelsBanner} onPress={onReelsPress} activeOpacity={0.85}>
             <View style={s.reelsThumbWrap}>
               <View style={[s.reelsThumbImg, s.reelsThumbFallback]}>
-                <Icon name="film-outline" size={18} color="#C4A484" />
+                <Icon name="film-outline" size={18} color="#68756D" />
               </View>
               <View style={s.reelsPlayDisc}>
-                <Icon name="play" size={10} color="#1A1412" style={{ marginLeft: 1 }} />
+                <Icon name="play" size={10} color="#1D2420" style={{ marginLeft: 1 }} />
               </View>
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -371,9 +372,9 @@ export default function MapPlaceDetailCard({
 
 const s = StyleSheet.create({
   reelsBanner: {
-    backgroundColor: '#FAF7F2',
+    backgroundColor: '#F7F6F1',
     borderWidth: 1,
-    borderColor: '#EFEBE4',
+    borderColor: '#F7F6F1',
     borderRadius: 14,
     padding: 8,
     marginTop: 4,
@@ -387,7 +388,7 @@ const s = StyleSheet.create({
     borderRadius: 22,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#E8DDD0',
+    backgroundColor: '#D9E0DB',
   },
   reelsThumbImg: {
     width: '100%',
@@ -418,7 +419,7 @@ const s = StyleSheet.create({
   reelsTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1A1412',
+    color: '#1D2420',
   },
   reelsSub: {
     fontSize: 11,
@@ -437,7 +438,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     padding: 16,
-    shadowColor: '#2D1B0B',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.12,
     shadowRadius: 16,
@@ -460,17 +461,17 @@ const styles = StyleSheet.create({
     width: 130,
     height: 190,
     borderRadius: 16,
-    backgroundColor: '#E8DDD0',
+    backgroundColor: '#D9E0DB',
   },
   noImageThumbnail: {
     width: 130,
     height: 190,
     borderRadius: 16,
-    backgroundColor: '#FAF8F5',
+    backgroundColor: '#F7F6F1',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E8DDD0',
+    borderColor: '#D9E0DB',
   },
   placeholderPlus: {
     position: 'absolute',
@@ -505,7 +506,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#F5F2EE',
+    backgroundColor: '#F7F6F1',
     alignItems: 'center',
     justifyContent: 'center',
   },

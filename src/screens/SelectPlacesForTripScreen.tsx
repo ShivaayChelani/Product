@@ -42,15 +42,15 @@ export type SelectPlacesParams = {
 const C = {
   bg: '#FFFFFF',
   surface: '#FFFFFF',
-  navy: '#1E2A3A',
-  ink: '#63300E',
-  text: '#2C1810',
-  textSub: '#8B7355',
-  textMuted: '#B8A88A',
-  border: 'rgba(200, 155, 60, 0.18)',
-  banner: '#FBF0D9',
-  bannerBorder: 'rgba(200, 155, 60, 0.25)',
-  green: '#059669',
+  navy: '#1D2420',
+  ink: '#16392B',
+  text: '#1D2420',
+  textSub: '#68756D',
+  textMuted: '#68756D',
+  border: 'rgba(183, 121, 31, 0.18)',
+  banner: '#F7F6F1',
+  bannerBorder: 'rgba(183, 121, 31, 0.25)',
+  green: '#2E7D55',
   chipBg: '#F3F4F6',
 };
 
@@ -353,7 +353,7 @@ export default function SelectPlacesForTripScreen() {
             'Select places you want to visit. AI will order them for less travel, estimate times and costs, and split them across your trip days.',
           )}
         >
-          <Icon name="information-circle-outline" size={16} color="#B9834B" />
+          <Icon name="information-circle-outline" size={16} color="#1F4D3A" />
           <Text style={styles.learnMore}>Learn more</Text>
         </TouchableOpacity>
       </View>
@@ -461,7 +461,7 @@ export default function SelectPlacesForTripScreen() {
                   </View>
                   {place.rating ? (
                     <View style={styles.ratingRow}>
-                      <Icon name="star" size={12} color="#FBBF24" />
+                      <Icon name="star" size={12} color="#B7791F" />
                       <Text style={styles.ratingText}>
                         {place.rating.toFixed(1)} {formatReviews(place.reviewCount)}
                       </Text>
@@ -550,7 +550,7 @@ const styles = StyleSheet.create({
   },
   aiBannerText: { flex: 1, fontSize: 11, fontFamily: 'Inter-Medium', color: C.ink, lineHeight: 16 },
   learnMoreBtn: { alignItems: 'center' },
-  learnMore: { fontSize: 10, fontFamily: 'Inter-Bold', color: '#B9834B', marginTop: 2 },
+  learnMore: { fontSize: 10, fontFamily: 'Inter-Bold', color: '#1F4D3A', marginTop: 2 },
 
   searchRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -603,15 +603,15 @@ const styles = StyleSheet.create({
   chipTextActive: { color: '#FFF' },
 
   list: { flex: 1 },
-  errorBox: { backgroundColor: '#FEF3C7', borderRadius: 12, padding: 12, marginBottom: 8 },
-  errorText: { fontSize: 12, fontFamily: 'Inter-Medium', color: '#92400E' },
+  errorBox: { backgroundColor: '#F8F0E1', borderRadius: 12, padding: 12, marginBottom: 8 },
+  errorText: { fontSize: 12, fontFamily: 'Inter-Medium', color: '#16392B' },
 
   placeCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
     backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border,
     padding: 10, marginBottom: 10,
   },
-  placeCardSelected: { borderColor: 'rgba(30, 42, 58, 0.35)', backgroundColor: '#FAFBFC' },
+  placeCardSelected: { borderColor: 'rgba(29, 36, 32, 0.35)', backgroundColor: '#F7F6F1' },
   checkBox: {
     width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: C.border,
     alignItems: 'center', justifyContent: 'center', marginTop: 4,

@@ -15,15 +15,15 @@ import {
 } from '../../utils/normalizeTripPlan';
 
 const C = {
-  text: '#2C1810',
-  textSub: '#8B7355',
-  textMuted: '#B8A88A',
-  border: 'rgba(200, 155, 60, 0.18)',
+  text: '#1D2420',
+  textSub: '#68756D',
+  textMuted: '#68756D',
+  border: 'rgba(183, 121, 31, 0.18)',
   surface: '#FFFFFF',
   card: '#FFFFFF',
-  ink: '#63300E',
-  green: '#059669',
-  greenBg: '#D1FAE5',
+  ink: '#16392B',
+  green: '#2E7D55',
+  greenBg: '#DDEBE3',
 };
 
 const H_PAD = 16;
@@ -66,11 +66,11 @@ export default function TripBudgetPanel({ trip }: Props) {
       </View>
 
       <View style={styles.breakdownRow}>
-        <BreakdownChip icon="ticket-outline" label="Entry fees" value={formatInr(budget.entryTotal)} color="#7C3AED" bg="#EDE9FE" />
+        <BreakdownChip icon="ticket-outline" label="Entry fees" value={formatInr(budget.entryTotal)} color="#1F4D3A" bg="#F7F6F1" />
         {budget.includesTravel ? (
-          <BreakdownChip icon="car-outline" label="Transport" value={formatInr(budget.transportTotal)} color="#B9834B" bg="rgba(185,131,75,0.12)" />
+          <BreakdownChip icon="car-outline" label="Transport" value={formatInr(budget.transportTotal)} color="#1F4D3A" bg="rgba(183,121,31,0.12)" />
         ) : null}
-        <BreakdownChip icon="restaurant-outline" label="Food est.*" value={formatInr(budget.foodTotal)} color="#EA580C" bg="#FFEDD5" />
+        <BreakdownChip icon="restaurant-outline" label="Food est.*" value={formatInr(budget.foodTotal)} color="#1F4D3A" bg="#F7F6F1" />
       </View>
 
       <Text style={styles.sectionTitle}>Cost by day</Text>
@@ -150,9 +150,9 @@ const styles = StyleSheet.create({
     padding: 18,
     alignItems: 'center',
   },
-  totalLabel: { fontSize: 12, fontFamily: 'Inter-Medium', color: 'rgba(255,249,242,0.75)' },
+  totalLabel: { fontSize: 12, fontFamily: 'Inter-Medium', color: 'rgba(247,246,241,0.75)' },
   totalValue: { fontSize: 28, fontFamily: 'Inter-Black', color: '#FFFFFF', marginTop: 4 },
-  totalSub: { fontSize: 11, fontFamily: 'Inter-Medium', color: 'rgba(255,249,242,0.65)', marginTop: 6 },
+  totalSub: { fontSize: 11, fontFamily: 'Inter-Medium', color: 'rgba(247,246,241,0.65)', marginTop: 6 },
 
   breakdownRow: { flexDirection: 'row', gap: 8 },
   chip: { flex: 1, borderRadius: 12, padding: 10, alignItems: 'center', gap: 4 },

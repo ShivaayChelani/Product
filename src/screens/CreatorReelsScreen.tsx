@@ -413,7 +413,7 @@ export default function CreatorReelsScreen() {
                 {(user as any)?.name || (user as any)?.username || 'Creator'}
               </Text>
               {(user as any)?.verified && (
-                <Icon name="checkmark-circle" size={14} color="#F5B041" style={{ marginLeft: 4 }} />
+                <Icon name="checkmark-circle" size={14} color="#B7791F" style={{ marginLeft: 4 }} />
               )}
             </View>
             <TouchableOpacity style={styles.cardMenuBtn} hitSlop={12} onPress={(e) => {
@@ -743,11 +743,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginRight: 12,
     overflow: 'hidden',
-    backgroundColor: '#F5EFE6',
+    backgroundColor: '#F7F6F1',
     position: 'relative',
   },
   reelThumb: { width: '100%', height: '100%' },
-  thumbFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5EFE6' },
+  thumbFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F6F1' },
   durationBadge: {
     position: 'absolute',
     bottom: 8,
@@ -778,14 +778,14 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     marginRight: 8,
-    backgroundColor: '#E8DDD0',
+    backgroundColor: '#D9E0DB',
   },
   creatorAvatarPlaceholder: {
     width: 24,
     height: 24,
     borderRadius: 12,
     marginRight: 8,
-    backgroundColor: '#63300E',
+    backgroundColor: '#16392B',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -907,7 +907,7 @@ const styles = StyleSheet.create({
     aspectRatio: 9 / 14,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#F5EFE6',
+    backgroundColor: '#F7F6F1',
   },
   gridThumb: { width: '100%', height: '100%' },
   gridMenuBtn: {
@@ -937,7 +937,7 @@ const styles = StyleSheet.create({
   errorText: { color: '#A84032', textAlign: 'center', fontSize: 12, marginBottom: 10 },
   retryBtn: { backgroundColor: C.primary, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10 },
   retryText: { color: '#fff', fontWeight: '800' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(44,24,16,.42)', justifyContent: 'center', padding: 24 },
+  backdrop: { flex: 1, backgroundColor: 'rgba(29,36,32,.42)', justifyContent: 'center', padding: 24 },
   modal: { backgroundColor: C.bg, borderRadius: 18, padding: 20 },
   modalTitle: { color: C.deep, fontSize: 20, fontWeight: '800', marginBottom: 14 },
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: C.border, borderRadius: 10, padding: 12, color: C.deep, marginBottom: 10 },

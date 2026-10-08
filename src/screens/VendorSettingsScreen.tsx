@@ -247,7 +247,7 @@ export default function VendorSettingsScreen() {
                   </View>
                 )}
                 <View style={styles.coverPhotoOverlay}>
-                  <Icon name="camera" size={16} color="#473323" />
+                  <Icon name="camera" size={16} color="#1D2420" />
                   <Text style={styles.coverPhotoText}>{uploading ? 'Uploading...' : 'Change cover'}</Text>
                 </View>
               </TouchableOpacity>
@@ -354,7 +354,7 @@ export default function VendorSettingsScreen() {
               {/* Promo Info Card */}
               <View style={styles.promoWebsiteCard}>
                 <View style={styles.promoWebsiteIcon}>
-                  <Icon name="globe-outline" size={24} color="#876241" />
+                  <Icon name="globe-outline" size={24} color="#16392B" />
                 </View>
                 <View style={styles.promoWebsiteContent}>
                   <Text style={styles.promoWebsiteTitle}>Need a website for your business?</Text>
@@ -392,12 +392,12 @@ export default function VendorSettingsScreen() {
                   <View key={row.label} style={styles.gridCard}>
                     <View style={styles.gridCardTop}>
                       <View style={styles.iconBox}>
-                        <Icon name={row.icon} size={18} color="#876241" />
+                        <Icon name={row.icon} size={18} color="#16392B" />
                       </View>
                       <Switch
                         value={row.value}
                         onValueChange={row.set}
-                        trackColor={{ false: VendorUI.colors.border, true: '#574130' }}
+                        trackColor={{ false: VendorUI.colors.border, true: '#16392B' }}
                         thumbColor="#fff"
                         style={{ transform: [{ scale: 0.8 }] }}
                       />
@@ -430,9 +430,9 @@ export default function VendorSettingsScreen() {
                   >
                     <View style={styles.gridCardTop}>
                       <View style={[styles.iconBox, row.danger && styles.dangerIconBox]}>
-                        <Icon name={row.icon} size={18} color={row.danger ? '#DC2626' : '#876241'} />
+                        <Icon name={row.icon} size={18} color={row.danger ? '#C94A4A' : '#16392B'} />
                       </View>
-                      <Icon name="chevron-forward" size={18} color={row.danger ? '#DC2626' : VendorUI.colors.textMuted} />
+                      <Icon name="chevron-forward" size={18} color={row.danger ? '#C94A4A' : VendorUI.colors.textMuted} />
                     </View>
                     <Text style={[styles.gridLabel, row.danger && styles.dangerText]}>{row.label}</Text>
                     <Text style={styles.gridDesc}>{row.desc}</Text>
@@ -456,7 +456,7 @@ export default function VendorSettingsScreen() {
                   ].map((feat) => (
                     <View key={feat.title} style={styles.supportFeature}>
                       <View style={styles.supportFeatIcon}>
-                        <Icon name={feat.icon} size={16} color="#876241" />
+                        <Icon name={feat.icon} size={16} color="#16392B" />
                       </View>
                       <Text style={styles.supportFeatText}>{feat.title}</Text>
                     </View>
@@ -500,7 +500,7 @@ export default function VendorSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F6F0', // Soft creamy background
+    backgroundColor: '#F7F6F1', // Soft creamy background
   },
   header: {
     flexDirection: 'row',
@@ -526,17 +526,17 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.2,
-    color: '#876241',
+    color: '#16392B',
   },
   title: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#2D1E12',
+    color: '#1D2420',
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 13,
-    color: '#654C37',
+    color: '#68756D',
     marginTop: 2,
   },
   content: {
@@ -565,14 +565,14 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#2D1E12',
+    color: '#1D2420',
     letterSpacing: -0.3,
   },
   coverPhotoContainer: {
     width: '100%',
     height: 160,
     borderRadius: 16,
-    backgroundColor: '#F3E4D6',
+    backgroundColor: '#DDEBE3',
     overflow: 'hidden',
     marginBottom: 20,
     borderWidth: 1,
@@ -606,7 +606,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   coverPhotoText: {
-    color: '#473323',
+    color: '#1D2420',
     fontSize: 10,
     fontWeight: '800',
     marginTop: 4,
@@ -620,18 +620,18 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#654C37',
+    color: '#68756D',
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F7F6F1',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: Platform.OS === 'ios' ? 14 : 10,
     fontSize: 14,
-    color: '#2D1E12',
+    color: '#1D2420',
     fontWeight: '600',
   },
   multiline: {
@@ -645,26 +645,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F7F6F1',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
   },
   chipActive: {
-    backgroundColor: '#F6EEDB',
-    borderColor: '#D4B895',
+    backgroundColor: '#F7F6F1',
+    borderColor: '#B7791F',
   },
   chipText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#654C37',
+    color: '#68756D',
   },
   chipTextActive: {
-    color: '#574130',
+    color: '#16392B',
   },
   vendorCodeBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F7F6F1',
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
@@ -673,26 +673,26 @@ const styles = StyleSheet.create({
   codeValue: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#2D1E12',
+    color: '#1D2420',
     letterSpacing: 0.5,
   },
   copyCodeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3E4D6',
+    backgroundColor: '#DDEBE3',
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 10,
     gap: 6,
   },
   copyCodeText: {
-    color: '#574130',
+    color: '#16392B',
     fontSize: 12,
     fontWeight: '800',
   },
   gpsText: {
     fontSize: 14,
-    color: '#2D1E12',
+    color: '#1D2420',
     fontWeight: '600',
     marginBottom: 8,
   },
@@ -700,7 +700,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#B9834B',
+    backgroundColor: '#1F4D3A',
     paddingVertical: 14,
     borderRadius: 14,
     gap: 8,
@@ -712,9 +712,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   promoWebsiteCard: {
-    backgroundColor: '#FDF8F3',
+    backgroundColor: '#F7F6F1',
     borderWidth: 1,
-    borderColor: '#E8D5C4',
+    borderColor: '#DDEBE3',
     borderRadius: 16,
     padding: 16,
     flexDirection: 'row',
@@ -725,7 +725,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F3E4D6',
+    backgroundColor: '#DDEBE3',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -735,19 +735,19 @@ const styles = StyleSheet.create({
   promoWebsiteTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#2D1E12',
+    color: '#1D2420',
     marginBottom: 4,
   },
   promoWebsiteDesc: {
     fontSize: 12,
-    color: '#654C37',
+    color: '#68756D',
     lineHeight: 18,
     marginBottom: 12,
   },
   promoWebsiteBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#574130',
+    backgroundColor: '#16392B',
     alignSelf: 'flex-start',
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -766,7 +766,7 @@ const styles = StyleSheet.create({
   },
   gridCard: {
     width: '48%',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F7F6F1',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
     borderRadius: 16,
@@ -792,27 +792,27 @@ const styles = StyleSheet.create({
   gridLabel: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#2D1E12',
+    color: '#1D2420',
     marginBottom: 4,
   },
   gridDesc: {
     fontSize: 11,
-    color: '#8B735F',
+    color: '#1F4D3A',
     lineHeight: 16,
   },
   dangerCard: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#FBEAEA',
     borderColor: '#FCA5A5',
   },
   dangerIconBox: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#FBEAEA',
     borderColor: '#FCA5A5',
   },
   dangerText: {
-    color: '#DC2626',
+    color: '#C94A4A',
   },
   supportCard: {
-    backgroundColor: '#F6EEDB',
+    backgroundColor: '#F7F6F1',
     borderRadius: 20,
     padding: 24,
   },
@@ -822,12 +822,12 @@ const styles = StyleSheet.create({
   supportTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#473323',
+    color: '#1D2420',
     marginBottom: 6,
   },
   supportDesc: {
     fontSize: 14,
-    color: '#654C37',
+    color: '#68756D',
     marginBottom: 20,
   },
   supportFeatures: {
@@ -848,14 +848,14 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F3E4D6',
+    backgroundColor: '#DDEBE3',
     alignItems: 'center',
     justifyContent: 'center',
   },
   supportFeatText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#473323',
+    color: '#1D2420',
     textAlign: 'center',
   },
   supportActionRow: {
@@ -868,7 +868,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#574130',
+    backgroundColor: '#16392B',
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
@@ -880,7 +880,7 @@ const styles = StyleSheet.create({
   },
   supportContactText: {
     fontSize: 11,
-    color: '#654C37',
+    color: '#68756D',
     fontWeight: '600',
   },
   stickyFooter: {
@@ -888,7 +888,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#F8F6F0',
+    backgroundColor: '#F7F6F1',
     paddingHorizontal: 20,
     paddingTop: 16,
     borderTopWidth: 1,
@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#473323',
+    backgroundColor: '#1D2420',
     borderRadius: 16,
     paddingVertical: 16,
     gap: 8,

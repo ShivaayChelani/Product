@@ -39,7 +39,7 @@ export function LegalConsentRow({
         <Icon
           name={accepted ? 'checkbox' : 'square-outline'}
           size={22}
-          color={accepted ? '#B9834B' : '#AAAAAA'}
+          color={accepted ? '#1F4D3A' : '#AAAAAA'}
         />
       </TouchableOpacity>
 
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   link: {
-    color: '#B9834B',
+    color: '#1F4D3A',
     fontSize: 13,
     fontWeight: '700',
     lineHeight: 18,

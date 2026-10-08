@@ -57,9 +57,9 @@ const COLORS = {
   background: TP.bg,
   text: TP.text,
   textSecondary: TP.textSecondary,
-  textMuted: '#B8A88A',
+  textMuted: '#68756D',
   border: TP.border,
-  danger: '#EF4444',
+  danger: '#C94A4A',
 };
 
 function buildPersonalForm(u: UserProfile): PersonalInfoForm {
@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E9D4BE',
+    borderColor: '#D9E0DB',
     padding: 14,
   },
   workspaceSubIcon: {
@@ -719,11 +719,11 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   roleChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  roleChoice: { borderWidth: 1, borderColor: '#D9B88C', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: '#FFFFFF' },
-  roleChoiceActive: { backgroundColor: '#B9834B', borderColor: '#B9834B' },
-  roleChoiceText: { color: '#63300E', fontSize: 12, fontWeight: '700' },
+  roleChoice: { borderWidth: 1, borderColor: '#B7791F', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: '#FFFFFF' },
+  roleChoiceActive: { backgroundColor: '#1F4D3A', borderColor: '#1F4D3A' },
+  roleChoiceText: { color: '#16392B', fontSize: 12, fontWeight: '700' },
   roleChoiceTextActive: { color: '#fff' },
-  applicationUnavailable: { color: '#8B7355', fontSize: 12, fontWeight: '600', marginTop: 8 },
+  applicationUnavailable: { color: '#68756D', fontSize: 12, fontWeight: '600', marginTop: 8 },
   content: { flex: 1 },
 
   // Hero Section
@@ -774,7 +774,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#D4AF37',
+    backgroundColor: '#DDEBE3',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -816,7 +816,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 17, fontWeight: '700' },
   sectionCount: { fontSize: 13, fontWeight: '600' },
   sectionLink: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  sectionLinkText: { fontSize: 13, fontWeight: '600', color: '#D4AF37' },
+  sectionLinkText: { fontSize: 13, fontWeight: '600', color: '#DDEBE3' },
 
   // Progress Cards
   progressCard: {

@@ -72,7 +72,7 @@ export const challengesService = {
         take: limit,
         include: {
           creator: {
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true },
           },
         },
       }),
@@ -94,17 +94,31 @@ export const challengesService = {
     };
   },
 
-  async getById(id: string) {
+  /**
+   * Public detail read. Creator emails are never part of the projection, and
+   * challenges that are not yet APPROVED are hidden (404) from everyone except
+   * their own creator or a platform admin — anonymous callers must not be able
+   * to read unmoderated content or use the endpoint as an existence oracle.
+   */
+  async getById(
+    id: string,
+    viewer?: { id: string; isAdmin: boolean } | null,
+  ) {
     const challenge = await prisma.challenge.findUnique({
       where: { id },
       include: {
         creator: {
-          select: { id: true, name: true, email: true, badges: true },
+          select: { id: true, name: true, badges: true },
         },
       },
     });
 
     if (!challenge) {
+      throw new ApiError(404, 'Challenge not found');
+    }
+
+    const isOwner = Boolean(viewer?.id && viewer.id === challenge.creatorId);
+    if (challenge.status !== ChallengeStatus.APPROVED && !isOwner && !viewer?.isAdmin) {
       throw new ApiError(404, 'Challenge not found');
     }
 

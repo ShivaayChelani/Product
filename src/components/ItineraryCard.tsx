@@ -180,19 +180,19 @@ export default function ItineraryCard({
         <View style={styles.badgeRow}>
           {spot.verificationStatus === 'verified' && (
             <View style={[styles.badge, styles.badgeVerified]}>
-              <Ionicons name="checkmark-circle" size={10} color="#059669" />
+              <Ionicons name="checkmark-circle" size={10} color="#2E7D55" />
               <Text style={styles.badgeText}>Verified</Text>
             </View>
           )}
           {spot.mustVisit && (
             <View style={[styles.badge, styles.badgeMustVisit]}>
-              <Ionicons name="star" size={10} color="#DC2626" />
+              <Ionicons name="star" size={10} color="#C94A4A" />
               <Text style={styles.badgeText}>Must Visit</Text>
             </View>
           )}
           {spot.isHiddenGem && (
             <View style={[styles.badge, styles.badgeHiddenGem]}>
-              <Ionicons name="diamond" size={10} color="#D97706" />
+              <Ionicons name="diamond" size={10} color={C.primary} />
               <Text style={styles.badgeText}>Hidden Gem</Text>
             </View>
           )}
@@ -268,13 +268,13 @@ const styles = StyleSheet.create({
     marginLeft: 16,
     marginRight: 16,
     overflow: 'visible',
-    shadowColor: '#0A2540',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
     elevation: 8,
     borderWidth: 1,
-    borderColor: 'rgba(79, 140, 255, 0.08)',
+    borderColor: 'rgba(31, 77, 58, 0.08)',
     position: 'relative',
   },
   cardCompleted: {
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 3,
-    backgroundColor: '#4F8CFF',
+    backgroundColor: '#1F4D3A',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     opacity: 0.6,
@@ -308,10 +308,10 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#CBD5E1',
+    borderColor: '#D9E0DB',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F7F6F1',
   },
   checkCircleDone: {
     borderColor: C.success,
@@ -326,12 +326,12 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#CBD5E1',
+    backgroundColor: '#D9E0DB',
   },
   timelineDot: {
     width: 2,
     flex: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#D9E0DB',
     marginTop: 4,
     minHeight: 20,
   },
@@ -354,12 +354,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#DDEBE3',
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(79, 140, 255, 0.15)',
+    borderColor: 'rgba(31, 77, 58, 0.15)',
   },
   timeBadgeDone: {
     backgroundColor: '#F0FDF4',
@@ -375,24 +375,24 @@ const styles = StyleSheet.create({
     color: C.success,
   },
   durationBadge: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F7F6F1',
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#F7F6F1',
   },
   durationBadgeDone: {
-    backgroundColor: '#F1F5F9',
-    borderColor: '#E2E8F0',
+    backgroundColor: '#F7F6F1',
+    borderColor: '#D9E0DB',
   },
   duration: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#68756D',
     fontWeight: '600',
   },
   durationDone: {
-    color: '#CBD5E1',
+    color: '#D9E0DB',
   },
   heroImageWrap: {
     height: 140,
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 12,
     position: 'relative',
-    shadowColor: '#0A2540',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 10,
@@ -503,21 +503,21 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 14,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F7F6F1',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#0A2540',
+    borderColor: '#F7F6F1',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 2,
   },
   emojiContainerDone: {
-    backgroundColor: '#F1F5F9',
-    borderColor: '#E2E8F0',
+    backgroundColor: '#F7F6F1',
+    borderColor: '#D9E0DB',
   },
   emoji: {
     fontSize: 20,
@@ -528,7 +528,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginRight: 12,
     overflow: 'hidden',
-    shadowColor: '#0A2540',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
   },
   imageOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(79, 140, 255, 0.08)',
+    backgroundColor: 'rgba(31, 77, 58, 0.08)',
   },
   spotInfo: {
     flex: 1,
@@ -549,12 +549,12 @@ const styles = StyleSheet.create({
   spotName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#1D2420',
     letterSpacing: -0.3,
   },
   spotNameCompleted: {
     textDecorationLine: 'line-through',
-    color: '#94A3B8',
+    color: '#68756D',
   },
   categoryRow: {
     flexDirection: 'row',
@@ -569,11 +569,11 @@ const styles = StyleSheet.create({
   },
   category: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#68756D',
     fontWeight: '500',
   },
   categoryDone: {
-    color: '#94A3B8',
+    color: '#68756D',
   },
   badgeRow: {
     flexDirection: 'row',
@@ -590,17 +590,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   badgeVerified: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#EAF3ED',
   },
   badgeMustVisit: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#FBEAEA',
   },
   badgeHiddenGem: {
-    backgroundColor: '#FFFBEB',
+    backgroundColor: C.primaryLight,
   },
   badgeText: {
     fontSize: 10,
-    color: '#1E293B',
+    color: '#1D2420',
     fontWeight: '700',
   },
   tipRow: {
@@ -608,25 +608,25 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 8,
     marginBottom: 10,
-    backgroundColor: '#FFFBEB',
+    backgroundColor: C.primaryLight,
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(244, 180, 0, 0.15)',
+    borderColor: 'rgba(183, 121, 31, 0.15)',
   },
   tipIconWrap: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: C.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 1,
   },
   tipText: {
     fontSize: 12,
-    color: '#92400E',
+    color: '#16392B',
     flex: 1,
     lineHeight: 16,
     fontWeight: '500',
@@ -644,11 +644,11 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#68756D',
     fontWeight: '500',
   },
   freeBadge: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#EAF3ED',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
@@ -679,13 +679,13 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   actionNavigate: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#DDEBE3',
   },
   actionDetails: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#F7F6F1',
   },
   actionRemove: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#FBEAEA',
   },
   actionText: {
     fontSize: 12,

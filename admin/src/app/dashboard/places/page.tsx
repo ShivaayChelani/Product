@@ -12,7 +12,7 @@ import {
   fetchAllPlaces, bulkPlaceStatus,
 } from "@/services/places";
 import { useNotification } from "@/components/Notification";
-import DataTable, { exportTableCsv } from "@/components/DataTable";
+import DataTable from "@/components/DataTable";
 import type { Column } from "@/components/DataTable";
 import StatusBadge from "@/components/StatusBadge";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -31,6 +31,7 @@ import {
   effectivePlaceSearch, SEARCH_MIN_LENGTH, pageAfterSearchChange,
   type PlacesFilters,
 } from "./utils";
+import { downloadPlacesCanonicalCsv } from "@/lib/placeImport";
 import type { Place } from "@/types";
 
 type CityOption = { city: string; state: string; placeCount: number };
@@ -492,7 +493,7 @@ function PlacesWorkspaceContent() {
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={refreshAll} className="admin-btn-secondary admin-btn-icon" aria-label="Refresh" title="Refresh"><RefreshCw size={16} /></button>
             <button type="button" onClick={() => setImportOpen(true)} className="admin-btn-secondary"><Upload size={16} /> Import</button>
-            <button type="button" disabled={places.length === 0} onClick={() => exportTableCsv(allColumns, dataRows, "places")} className="admin-btn-secondary"><Download size={16} /> Export</button>
+            <button type="button" disabled={places.length === 0} onClick={() => downloadPlacesCanonicalCsv(dataRows)} className="admin-btn-secondary"><Download size={16} /> Export</button>
             <button type="button" onClick={() => setPlaceForm({ open: true, place: null })} className="admin-btn-primary"><Plus size={16} /> Add Place</button>
           </div>
         }

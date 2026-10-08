@@ -86,7 +86,7 @@ export default function VendorCustomersScreen({ onBack }: { onBack?: () => void 
       <View style={s.headerTop}>
         {onBack ? (
           <TouchableOpacity onPress={onBack} style={s.backBtn}>
-            <Icon name="arrow-back" size={24} color="#6B4E38" />
+            <Icon name="arrow-back" size={24} color="#16392B" />
           </TouchableOpacity>
         ) : <View style={{ width: 44 }} />}
         
@@ -97,7 +97,7 @@ export default function VendorCustomersScreen({ onBack }: { onBack?: () => void 
         </View>
 
         <TouchableOpacity onPress={exportCsv} style={s.exportBtn}>
-          <Icon name="download-outline" size={20} color="#6B4E38" />
+          <Icon name="download-outline" size={20} color="#16392B" />
           <Text style={s.exportText}>Export</Text>
         </TouchableOpacity>
       </View>
@@ -115,8 +115,8 @@ export default function VendorCustomersScreen({ onBack }: { onBack?: () => void 
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.statsScroll}>
         <View style={s.statCard}>
-          <View style={[s.statIconWrap, { backgroundColor: '#FFF4E8' }]}>
-            <Icon name="people-outline" size={20} color="#E79133" />
+          <View style={[s.statIconWrap, { backgroundColor: '#F7F6F1' }]}>
+            <Icon name="people-outline" size={20} color="#B7791F" />
           </View>
           <View style={s.statValWrap}>
             <Text style={s.statValue}>{formatNumber(summary?.totalCustomers || 0)}</Text>
@@ -137,8 +137,8 @@ export default function VendorCustomersScreen({ onBack }: { onBack?: () => void 
         </View>
 
         <View style={s.statCard}>
-          <View style={[s.statIconWrap, { backgroundColor: '#F2EFFF' }]}>
-            <Icon name="star-outline" size={20} color="#8A6DD7" />
+          <View style={[s.statIconWrap, { backgroundColor: '#F7F6F1' }]}>
+            <Icon name="star-outline" size={20} color="#1F4D3A" />
           </View>
           <View style={s.statValWrap}>
             <Text style={s.statValue}>{formatNumber(summary?.totalPalPoints || 0)}</Text>
@@ -148,8 +148,8 @@ export default function VendorCustomersScreen({ onBack }: { onBack?: () => void 
         </View>
 
         <View style={s.statCard}>
-          <View style={[s.statIconWrap, { backgroundColor: '#EEF6FF' }]}>
-            <Icon name="calendar-outline" size={20} color="#4A90E2" />
+          <View style={[s.statIconWrap, { backgroundColor: '#F7F6F1' }]}>
+            <Icon name="calendar-outline" size={20} color="#1F4D3A" />
           </View>
           <View style={s.statValWrap}>
             <Text style={s.statValue}>{formatNumber(summary?.thisMonthCustomers ?? 0)}</Text>
@@ -169,7 +169,7 @@ export default function VendorCustomersScreen({ onBack }: { onBack?: () => void 
   const renderFooter = () => (
     <View style={s.bottomBanner}>
       <View style={s.bannerIconCircle}>
-        <Icon name="gift" size={24} color="#A87C51" />
+        <Icon name="gift" size={24} color="#1F4D3A" />
       </View>
       <View style={s.bannerTextWrap}>
         <Text style={s.bannerTitle}>How it works?</Text>
@@ -178,15 +178,15 @@ export default function VendorCustomersScreen({ onBack }: { onBack?: () => void 
         </Text>
       </View>
       <View style={s.bannerGraphicMock}>
-        <Icon name="phone-portrait-outline" size={32} color="#A87C51" style={{ opacity: 0.3 }} />
-        <Icon name="person" size={24} color="#A87C51" style={{ position: 'absolute', bottom: 5, left: -10, opacity: 0.4 }} />
+        <Icon name="phone-portrait-outline" size={32} color="#1F4D3A" style={{ opacity: 0.3 }} />
+        <Icon name="person" size={24} color="#1F4D3A" style={{ position: 'absolute', bottom: 5, left: -10, opacity: 0.4 }} />
       </View>
     </View>
   );
 
   return (
     <View style={[s.safe, { paddingTop: Math.max(insets.top, 16) }]}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FAFAFA" />
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F6F1" />
       
       {loading && !customers.length ? (
         <View style={[s.center, { flex: 1 }]}>
@@ -260,22 +260,22 @@ export default function VendorCustomersScreen({ onBack }: { onBack?: () => void 
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FAFAFA' },
-  headerWrap: { backgroundColor: '#FAFAFA', paddingBottom: 16 },
+  safe: { flex: 1, backgroundColor: '#F7F6F1' },
+  headerWrap: { backgroundColor: '#F7F6F1', paddingBottom: 16 },
   headerTop: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 10 },
   backBtn: {
     width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#FAFAFA', borderWidth: 1, borderColor: '#E5D6C5', marginTop: 2,
+    backgroundColor: '#F7F6F1', borderWidth: 1, borderColor: '#D9E0DB', marginTop: 2,
   },
   headerTitleWrap: { flex: 1, minWidth: 0, paddingHorizontal: 16 },
-  headerEyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 1.4, color: '#A87C51', textTransform: 'uppercase' },
-  headerTitle: { fontSize: 26, fontWeight: '800', color: '#4A2A18', marginTop: 4, letterSpacing: -0.5 },
+  headerEyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 1.4, color: '#1F4D3A', textTransform: 'uppercase' },
+  headerTitle: { fontSize: 26, fontWeight: '800', color: '#1D2420', marginTop: 4, letterSpacing: -0.5 },
   headerSub: { fontSize: 14, color: '#7E7067', marginTop: 4, fontWeight: '500' },
   exportBtn: {
     width: 50, height: 50, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#FAFAFA', borderWidth: 1, borderColor: '#E5D6C5', marginTop: 2,
+    backgroundColor: '#F7F6F1', borderWidth: 1, borderColor: '#D9E0DB', marginTop: 2,
   },
-  exportText: { fontSize: 10, color: '#4A2A18', fontWeight: '600', marginTop: 2 },
+  exportText: { fontSize: 10, color: '#1D2420', fontWeight: '600', marginTop: 2 },
   
   searchWrap: {
     flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 16, marginBottom: 16,
@@ -289,7 +289,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: '#EBEBEB', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
     marginRight: 8, gap: 4
   },
-  filterText: { fontSize: 13, color: '#4A2A18', fontWeight: '500' },
+  filterText: { fontSize: 13, color: '#1D2420', fontWeight: '500' },
   
   statsScroll: { paddingHorizontal: 16, gap: 12, paddingBottom: 16 },
   statCard: {
@@ -302,7 +302,7 @@ const s = StyleSheet.create({
   },
   statValWrap: { gap: 2 },
   statValue: { fontSize: 22, fontWeight: '800', color: '#1C1C1E' },
-  statLabel: { fontSize: 13, color: '#4A2A18', fontWeight: '600' },
+  statLabel: { fontSize: 13, color: '#1D2420', fontWeight: '600' },
   statPeriod: { fontSize: 11, color: '#8E8E93', marginTop: 4 },
   
   listHeaderRow: {
@@ -310,18 +310,18 @@ const s = StyleSheet.create({
     paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8,
     borderBottomWidth: 1, borderBottomColor: '#F2F2F2',
   },
-  listHeaderLeft: { fontSize: 14, fontWeight: '700', color: '#4A2A18' },
+  listHeaderLeft: { fontSize: 14, fontWeight: '700', color: '#1D2420' },
   listHeaderRight: { fontSize: 12, fontWeight: '500', color: '#8E8E93' },
   
   rowCard: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16,
-    backgroundColor: '#FAFAFA'
+    backgroundColor: '#F7F6F1'
   },
   separator: { height: 1, backgroundColor: '#F2F2F2', marginLeft: 16 },
   col1: { flex: 2, flexDirection: 'row', alignItems: 'center', paddingRight: 8 },
   avatar: { width: 44, height: 44, borderRadius: 22 },
-  avatarFallback: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#E5D6C5', alignItems: 'center', justifyContent: 'center' },
-  avatarFallbackText: { fontSize: 18, fontWeight: 'bold', color: '#4A2A18' },
+  avatarFallback: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#D9E0DB', alignItems: 'center', justifyContent: 'center' },
+  avatarFallbackText: { fontSize: 18, fontWeight: 'bold', color: '#1D2420' },
   col1Text: { marginLeft: 10, flex: 1 },
   name: { fontSize: 14, fontWeight: '700', color: '#1C1C1E', marginBottom: 2 },
   email: { fontSize: 12, color: '#8E8E93', marginBottom: 4 },
@@ -330,32 +330,32 @@ const s = StyleSheet.create({
   
   col2: { flex: 1.5, paddingHorizontal: 8, alignItems: 'flex-start' },
   offerTitle: { fontSize: 13, fontWeight: '600', color: '#1C1C1E', marginBottom: 6 },
-  offerTag: { backgroundColor: '#F4EFE6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  offerTagText: { fontSize: 10, fontWeight: '600', color: '#8C7355' },
+  offerTag: { backgroundColor: '#F7F6F1', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  offerTagText: { fontSize: 10, fontWeight: '600', color: '#B7791F' },
   
   col3: { flex: 1, alignItems: 'flex-end', paddingLeft: 8 },
   pointsRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 },
   pointsVal: { fontSize: 15, fontWeight: '800', color: '#1C1C1E' },
-  pointsIconWrap: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#DCA236', alignItems: 'center', justifyContent: 'center' },
+  pointsIconWrap: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#B7791F', alignItems: 'center', justifyContent: 'center' },
   pointsIconText: { fontSize: 9, fontWeight: 'bold', color: '#FFFFFF' },
   pointsLabel: { fontSize: 10, color: '#8E8E93', marginBottom: 6 },
   dateText: { fontSize: 10, color: '#8E8E93', fontWeight: '500' },
   
   center: { padding: 40, alignItems: 'center' },
   error: { color: '#8E8E93', textAlign: 'center', marginBottom: 12 },
-  retry: { backgroundColor: '#A87C51', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
+  retry: { backgroundColor: '#1F4D3A', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
   retryText: { color: '#FFFFFF', fontWeight: '700' },
   emptyTitle: { fontWeight: '800', color: '#1C1C1E', fontSize: 16 },
   emptySub: { color: '#8E8E93', textAlign: 'center', marginTop: 6 },
   
   bottomBanner: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFAF5',
-    margin: 16, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#F4E9DF',
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#F7F6F1',
+    margin: 16, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#F7F6F1',
     marginTop: 24,
   },
-  bannerIconCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F8E7D5', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
+  bannerIconCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
   bannerTextWrap: { flex: 1, paddingRight: 10 },
-  bannerTitle: { fontSize: 14, fontWeight: '700', color: '#4A2A18', marginBottom: 4 },
+  bannerTitle: { fontSize: 14, fontWeight: '700', color: '#1D2420', marginBottom: 4 },
   bannerDesc: { fontSize: 12, color: '#7E7067', lineHeight: 18 },
   bannerGraphicMock: { width: 50, height: 50, alignItems: 'center', justifyContent: 'center', marginLeft: 10 },
 });

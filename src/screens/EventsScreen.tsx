@@ -105,7 +105,7 @@ export default function EventsScreen() {
               value={searchText}
               onChangeText={setSearchText}
               placeholder="Search festivals, concerts, fairs…"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor="#68756D"
               style={styles.searchInput}
               returnKeyType="search"
               autoCorrect={false}
@@ -118,7 +118,7 @@ export default function EventsScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Clear search"
               >
-                <Icon name="close-circle" size={17} color="#94A3B8" />
+                <Icon name="close-circle" size={17} color="#68756D" />
               </Pressable>
             ) : null}
           </View>
@@ -215,10 +215,34 @@ export default function EventsScreen() {
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Events</Text>
-        <Text style={styles.headerSubtitle}>
-          Festivals, fairs and gatherings near you
-        </Text>
+        <View style={styles.headerText}>
+          <Text style={styles.headerTitle}>Events</Text>
+          <Text style={styles.headerSubtitle}>
+            Festivals, fairs and gatherings near you
+          </Text>
+        </View>
+        <View style={styles.headerActions}>
+          <Pressable
+            onPress={() => navigation.navigate('MyEvents')}
+            style={styles.headerBtn}
+            accessibilityRole="button"
+            accessibilityLabel="My event submissions"
+            testID="events-my-events"
+          >
+            <Icon name="albums-outline" size={19} color={EVENT_COLORS.accent} />
+          </Pressable>
+          <Pressable
+            onPress={() => navigation.navigate('AddEvent')}
+            style={[styles.headerBtn, styles.headerBtnPrimary]}
+            accessibilityRole="button"
+            accessibilityLabel="Add an event"
+            accessibilityHint="Opens the event submission form"
+            testID="events-add-event"
+          >
+            <Icon name="add" size={20} color="#FFFFFF" />
+            <Text style={styles.headerBtnPrimaryText}>Add Event</Text>
+          </Pressable>
+        </View>
       </View>
 
       <FlatList
@@ -261,8 +285,32 @@ export default function EventsScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F7F9FC' },
-  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
+  root: { flex: 1, backgroundColor: '#F7F6F1' },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerText: { flex: 1 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerBtn: {
+    minWidth: 42,
+    height: 44,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: EVENT_COLORS.accentBorder,
+    backgroundColor: EVENT_COLORS.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 5,
+    paddingHorizontal: 12,
+  },
+  headerBtnPrimary: { backgroundColor: EVENT_COLORS.accent, borderColor: EVENT_COLORS.accent },
+  headerBtnPrimaryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   headerTitle: { fontSize: 26, fontWeight: '800', color: EVENT_COLORS.text },
   headerSubtitle: { fontSize: 13, color: EVENT_COLORS.textSecondary, marginTop: 2 },
   listContent: { paddingHorizontal: 20, paddingBottom: 40, flexGrow: 1 },

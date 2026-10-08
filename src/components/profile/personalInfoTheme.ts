@@ -1,21 +1,22 @@
 import { SERIF, SERIF_REG, SANS, SANS_BOLD, SANS_SEMI } from './profileTheme';
+import { palette } from '../../config/theme';
 
 export const PI = {
-  bg: '#FEF0E3',
-  card: '#FFFFFF',
-  inputBg: '#FFFBF7',
-  border: '#E8DDD0',
-  text: '#2C1810',
-  textSecondary: '#8B7355',
-  textMuted: '#A39990',
-  dark: '#2D241D',
-  darkBtnText: '#E5D5C5',
-  accent: '#63300E',
-  chipSelected: '#F9F9F9',
-  chipSelectedBorder: '#D9C4A8',
-  verified: '#2E7D32',
-  verifiedBg: '#E8F5E9',
-  divider: '#E5D5C5',
+  bg: palette.background,
+  card: palette.surface,
+  inputBg: palette.background,
+  border: palette.border,
+  text: palette.text,
+  textSecondary: palette.textSecondary,
+  textMuted: palette.textSecondary,
+  dark: palette.text,
+  darkBtnText: palette.border,
+  accent: palette.primaryDark,
+  chipSelected: palette.background,
+  chipSelectedBorder: palette.border,
+  verified: palette.success,
+  verifiedBg: '#EAF3ED',
+  divider: palette.border,
 } as const;
 
 export { SERIF, SERIF_REG, SANS, SANS_BOLD, SANS_SEMI };

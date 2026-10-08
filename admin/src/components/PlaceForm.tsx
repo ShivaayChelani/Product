@@ -254,11 +254,13 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
     name: "",
     description: "",
     shortDescription: "",
+    canonicalName: "",
     category: "temple",
     customCategory: "",
     latitude: 20.5937,
     longitude: 78.9629,
     city: "",
+    district: "",
     state: "",
     country: "India",
     images: [],
@@ -276,6 +278,10 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
     ticketForeigner: "",
     ticketBasis: "",
     isFreeEntry: false,
+    imagePageUrl: "",
+    imageSource: "",
+    imageAuthor: "",
+    imageLicense: "",
   });
   const [tagInput, setTagInput] = useState("");
   const [latInput, setLatInput] = useState("20.5937");
@@ -299,11 +305,13 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
       name: place?.name || "",
       description: place?.description || "",
       shortDescription: place?.shortDescription || "",
+      canonicalName: place?.canonicalName || "",
       category: isPreset ? existingCategory : "other",
       customCategory: isPreset ? "" : existingCategory,
       latitude: place?.latitude ?? 20.5937,
       longitude: place?.longitude ?? 78.9629,
       city: place?.city || "",
+      district: place?.district || "",
       state: place?.state || "",
       country: place?.country || "India",
       images: place?.images ? [...place.images] : [],
@@ -324,6 +332,10 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
       ticketForeigner: fees.foreigner,
       ticketBasis: fees.basis,
       isFreeEntry: fees.isFree,
+      imagePageUrl: place?.imageMetadata?.image_page_url || "",
+      imageSource: place?.imageMetadata?.image_source || "",
+      imageAuthor: place?.imageMetadata?.image_author || "",
+      imageLicense: place?.imageMetadata?.image_license || "",
     });
     setError("");
     setTagInput("");
@@ -507,10 +519,12 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
         name: form.name,
         description: form.description,
         shortDescription: form.shortDescription || form.description.substring(0, 200),
+        canonicalName: form.canonicalName?.trim() || undefined,
         category: finalCategory,
         latitude: coordResult.latitude,
         longitude: coordResult.longitude,
         city: form.city,
+        district: form.district?.trim() || undefined,
         state: form.state,
         country: form.country,
         images: form.images,
@@ -521,6 +535,15 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
         openingHours,
         estimatedDurationMinutes,
         ticketPrice,
+        imageMetadata:
+          form.imagePageUrl?.trim() || form.imageSource?.trim() || form.imageAuthor?.trim() || form.imageLicense?.trim()
+            ? {
+                image_page_url: form.imagePageUrl?.trim() || undefined,
+                image_source: form.imageSource?.trim() || undefined,
+                image_author: form.imageAuthor?.trim() || undefined,
+                image_license: form.imageLicense?.trim() || undefined,
+              }
+            : undefined,
       };
       if (isEdit && place) {
         await updatePlace(place.id, payload as Partial<PlaceFormData>);
@@ -560,6 +583,20 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
                   value={form.name}
                   onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                   required
+                  className="w-full rounded-lg border border-input bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  Canonical Name
+                </label>
+                <input
+                  value={form.canonicalName || ""}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, canonicalName: e.target.value }))
+                  }
+                  placeholder="Official/registered name (used in canonical Places feeds)"
                   className="w-full rounded-lg border border-input bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </div>
@@ -709,6 +746,20 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  District
+                </label>
+                <input
+                  value={form.district || ""}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, district: e.target.value }))
+                  }
+                  placeholder="e.g. Agra"
+                  className="w-full rounded-lg border border-input bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
                   Country
                 </label>
                 <input
@@ -809,6 +860,60 @@ export default function PlaceForm({ open, place, onClose, onSaved }: Props) {
               >
                 {uploading ? "Uploading..." : "Upload Image"}
               </label>
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Image page URL
+                </label>
+                <input
+                  value={form.imagePageUrl || ""}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, imagePageUrl: e.target.value }))
+                  }
+                  placeholder="https://commons.wikimedia.org/..."
+                  className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Image source
+                </label>
+                <input
+                  value={form.imageSource || ""}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, imageSource: e.target.value }))
+                  }
+                  placeholder="e.g. Wikimedia Commons"
+                  className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Image author
+                </label>
+                <input
+                  value={form.imageAuthor || ""}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, imageAuthor: e.target.value }))
+                  }
+                  placeholder="Photographer credit"
+                  className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Image license
+                </label>
+                <input
+                  value={form.imageLicense || ""}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, imageLicense: e.target.value }))
+                  }
+                  placeholder="e.g. CC BY-SA 4.0"
+                  className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
             </div>
           </div>
 

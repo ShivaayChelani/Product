@@ -3,11 +3,11 @@ import { View, TextInput, StyleSheet, TouchableOpacity, Text, TextInputProps } f
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const COLORS = {
-  border: '#ECE3D7',
+  border: '#D9E0DB',
   text: '#202020',
   placeholder: '#6F6F6F',
   white: '#FFFFFF',
-  gold: '#D9A441',
+  gold: '#1F4D3A',
 };
 
 interface InputFieldProps extends TextInputProps {
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.gold,
   },
   inputError: {
-    borderColor: '#EF4444',
+    borderColor: '#C94A4A',
   },
   icon: {
     marginRight: 12,
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   errorText: {
-    color: '#EF4444',
+    color: '#C94A4A',
     fontSize: 12,
     marginTop: 4,
     marginLeft: 4,

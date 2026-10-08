@@ -19,7 +19,10 @@ if (!process.env.DATABASE_URL) {
  * are decommissioned but deliberately retained: a stale DATABASE_URL or
  * .env.test still pointing at an old host (whose credentials are no longer
  * valid) must be refused instead of silently retried. The current production
- * database (Neon) is not listed here and is unaffected.
+ * database (Neon) is additionally denied for any non-production runtime via
+ * the `.neon.tech` hostname suffix, so a bare local `npm run dev` that picks up
+ * the production-shaped DATABASE_URL fails closed at boot instead of silently
+ * targeting production.
  */
 const KNOWN_TEST_DB_HOSTS = new Set([
   'dpg-d9usgk37uimc73al1gv0-a.ohio-postgres.render.com',
@@ -27,6 +30,7 @@ const KNOWN_TEST_DB_HOSTS = new Set([
 const KNOWN_PROD_DB_HOSTS = new Set([
   'dpg-d9rqpkf10e5c738lgckg-a.singapore-postgres.render.com',
 ]);
+const PROD_DB_HOSTNAME_SUFFIXES = new Set(['.neon.tech']);
 
 function dbHostname(dbUrl: string): string | null {
   try {
@@ -34,6 +38,14 @@ function dbHostname(dbUrl: string): string | null {
   } catch {
     return null;
   }
+}
+
+function isProductionShapedHost(hostname: string): boolean {
+  if (KNOWN_PROD_DB_HOSTS.has(hostname)) return true;
+  for (const suffix of PROD_DB_HOSTNAME_SUFFIXES) {
+    if (hostname.endsWith(suffix)) return true;
+  }
+  return false;
 }
 
 {
@@ -44,10 +56,10 @@ function dbHostname(dbUrl: string): string | null {
       'Set DATABASE_URL to the production PostgreSQL host.',
     );
   }
-  if (hostname && KNOWN_PROD_DB_HOSTS.has(hostname) && process.env.NODE_ENV !== 'production') {
+  if (hostname && isProductionShapedHost(hostname) && process.env.NODE_ENV !== 'production') {
     throw new Error(
-      'Refusing to start in non-production mode: DATABASE_URL points at the known PRODUCTION database host. ' +
-      'Use the isolated TEST_DATABASE_URL for tests and development.',
+      'Refusing to start in non-production mode: DATABASE_URL points at the PRODUCTION database host ' +
+      '(Render/Neon). Use an explicit isolated TEST_DATABASE_URL for tests and development.',
     );
   }
 }

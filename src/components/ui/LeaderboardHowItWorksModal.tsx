@@ -30,7 +30,7 @@ export const LeaderboardHowItWorksModal = ({ visible, onClose }: Props) => {
           <View style={styles.contentRow}>
             <View style={styles.iconWrapper}>
               <View style={styles.iconInner}>
-                <Icon name="trophy-outline" size={42} color="#7B4E2E" />
+                <Icon name="trophy-outline" size={42} color="#16392B" />
               </View>
             </View>
 
@@ -59,7 +59,7 @@ export const LeaderboardHowItWorksModal = ({ visible, onClose }: Props) => {
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(20, 16, 12, 0.55)',
+    backgroundColor: 'rgba(29, 36, 32, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     height: 96,
     borderRadius: 48,
     borderWidth: 1.5,
-    borderColor: '#FAF0E3',
+    borderColor: '#F7F6F1',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 20,
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     width: 82,
     height: 82,
     borderRadius: 41,
-    backgroundColor: '#FCF6EE',
+    backgroundColor: '#F7F6F1',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -106,14 +106,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#32251D',
+    color: '#1D2420',
     marginBottom: 8,
     letterSpacing: -0.2,
   },
   titleDivider: {
     width: 32,
     height: 2,
-    backgroundColor: '#DEAC7B',
+    backgroundColor: '#B7791F',
     marginBottom: 12,
   },
   description: {
@@ -124,13 +124,13 @@ const styles = StyleSheet.create({
   divider: {
     width: '100%',
     height: 1,
-    backgroundColor: '#F0EBE6',
+    backgroundColor: '#F7F6F1',
     marginTop: 24,
     marginBottom: 16,
   },
   button: {
     alignSelf: 'flex-end',
-    backgroundColor: '#8C5734',
+    backgroundColor: '#16392B',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 10,

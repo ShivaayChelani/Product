@@ -15,7 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NestableScrollContainer } from 'react-native-draggable-flatlist';
 import { useToast } from '../../../context/ToastContext';
-import { tripsApi, TripPlan, TripPlanDay, TripPlanStop } from '../../../services/api/trips';
+import { tripsApi, TripPlan, TripPlanDay, TripPlanStop, stopDisplayName } from '../../../services/api/trips';
 import { countTripStops, seedDraftTripCache } from '../../../utils/quickAddPlace';
 import { normalizeTripDays, normalizeTripPlan } from '../../../utils/normalizeTripPlan';
 import { PressableScale } from '../../../components/home/PressableScale';
@@ -250,7 +250,7 @@ export function TripBuilderLoadedView({ trip, onTripChange }: Props) {
             .map(({ text, onPress }) => ({ text, onPress }))
         : [];
 
-    Alert.alert(stop.place?.name || 'Stop', undefined, [
+    Alert.alert(stopDisplayName(stop), undefined, [
       {
         text: 'Edit duration',
         onPress: () =>
@@ -262,12 +262,20 @@ export function TripBuilderLoadedView({ trip, onTripChange }: Props) {
       ...dayOptions,
       { text: 'Duplicate', onPress: () => void duplicateStop(stop) },
       {
-        text: 'Place details',
-        onPress: () => navigation.navigate('SpotDetail', { spotId: stop.placeId }),
+        text: stop.eventId && !stop.place ? 'Event details' : 'Place details',
+        onPress: () => {
+          if (stop.eventId && !stop.place) {
+            navigation.navigate('EventDetail', {
+              eventIdOrSlug: stop.event?.slug || stop.event?.id || stop.eventId,
+            });
+            return;
+          }
+          navigation.navigate('SpotDetail', { spotId: stop.placeId || '' });
+        },
       },
       {
         text: 'Share',
-        onPress: () => void Share.share({ message: `${stop.place?.name} Â via PalSafar` }),
+        onPress: () => void Share.share({ message: `${stopDisplayName(stop)} via PalSafar` }),
       },
       { text: 'Delete', style: 'destructive', onPress: () => void deleteStop(stop.id) },
       { text: 'Cancel', style: 'cancel' },
@@ -284,6 +292,7 @@ export function TripBuilderLoadedView({ trip, onTripChange }: Props) {
   };
 
   const duplicateStop = async (stop: TripPlanStop) => {
+    if (!stop.placeId) return;
     const day = days.find(d => d.id === stop.tripPlanDayId);
     if (!day?.id) return;
     try {
@@ -296,6 +305,7 @@ export function TripBuilderLoadedView({ trip, onTripChange }: Props) {
   };
 
   const moveStopToDay = async (stop: TripPlanStop, targetDayIndex: number) => {
+    if (!stop.placeId) return;
     const targetDay = days[targetDayIndex];
     if (!targetDay?.id || targetDay.id === stop.tripPlanDayId) return;
     try {
@@ -594,7 +604,7 @@ const styles = StyleSheet.create({
   },
   modalBg: {
     flex: 1,
-    backgroundColor: 'rgba(45,36,29,0.45)',
+    backgroundColor: 'rgba(32,36,29,0.45)',
     justifyContent: 'center',
     padding: 24,
   },

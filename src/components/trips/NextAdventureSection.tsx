@@ -75,9 +75,9 @@ export const NextAdventureSection = ({ onPlanWithAI, onBuildManually }: NextAdve
           image={require('../../assets/itinerary_ai_card.png')}
           buttonLabel="Plan with AI"
           buttonIcon="sparkles"
-          buttonColor="#17344D"
-          bgColor="#EAF0F6"
-          textColor="#284357"
+          buttonColor="#1D2420"
+          bgColor="#F7F6F1"
+          textColor="#16392B"
           onPress={onPlanWithAI}
         />
         <AdventureCard
@@ -86,9 +86,9 @@ export const NextAdventureSection = ({ onPlanWithAI, onBuildManually }: NextAdve
           image={require('../../assets/itinerary_manual_card.png')}
           buttonLabel="Build Trip"
           buttonIcon="map-outline"
-          buttonColor="#8E5820"
-          bgColor="#F5EDDE"
-          textColor="#332517"
+          buttonColor="#B7791F"
+          bgColor="#F7F6F1"
+          textColor="#1D2420"
           onPress={onBuildManually}
         />
       </View>

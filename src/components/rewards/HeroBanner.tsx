@@ -5,7 +5,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 const COLORS = {
   text: '#202020',
   white: '#FFFFFF',
-  gold: '#D9A441',
+  gold: '#1F4D3A',
 };
 
 export const HeroBanner = () => {

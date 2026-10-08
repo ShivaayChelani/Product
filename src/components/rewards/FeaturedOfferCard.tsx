@@ -6,9 +6,9 @@ import type { NearbyReward } from '../../services/api';
 const COLORS = {
   white: '#FFFFFF',
   text: '#202020',
-  textMuted: '#6D6D6D',
-  gold: '#D9A441',
-  border: '#E7DFD2',
+  textMuted: '#68756D',
+  gold: '#1F4D3A',
+  border: '#DDEBE3',
   background: '#FFFFFF',
 };
 

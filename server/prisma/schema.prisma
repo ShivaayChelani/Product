@@ -556,6 +556,8 @@ model Place {
   ticketPrice              Json?                     @map("ticket_price")
   bestTimeToVisit          Json?                     @map("best_time_to_visit")
   bestTimeReason           String?                   @map("best_time_reason")
+  canonicalName            String?                   @map("canonical_name")
+  imageMetadata            Json?                     @map("image_metadata")
   hiddenGemScore           Float?                    @map("hidden_gem_score")
   popularityScore          Float?                    @map("popularity_score")
   verificationLevel        Int                       @default(0) @map("verification_level")

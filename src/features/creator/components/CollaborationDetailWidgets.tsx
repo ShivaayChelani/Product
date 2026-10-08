@@ -5,12 +5,12 @@ import { useBottomSafePadding } from '../../../design/responsive';
 
 const COLORS = {
   bg: '#FFFFFF',
-  primary: '#7B5E43',
-  danger: '#DC2626',
+  primary: '#68756D',
+  danger: '#C94A4A',
   textPrimary: '#1F1A17',
   textSecondary: '#5E544C',
-  border: '#E3DACD',
-  gold: '#A67C52',
+  border: '#D9E0DB',
+  gold: '#1F4D3A',
 };
 
 // ==========================================

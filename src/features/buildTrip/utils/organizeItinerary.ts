@@ -66,6 +66,10 @@ export function buildOrganizePayload(trip: TripPlan | null | undefined): PlanIti
   const fixedTimePlaces: PlanItineraryInput['fixedTimePlaces'] = [];
 
   for (const stop of stops) {
+    // Event-anchored stops have no placeId; the /plan endpoint organises
+    // places, so they stay out of pin/fixed-time lists (the server skips them
+    // the same way on every planner pass).
+    if (!stop.placeId) continue;
     if (stop.isPinned && !pinnedSeen.has(stop.placeId)) {
       pinnedSeen.add(stop.placeId);
       pinnedPlaceIds.push(stop.placeId);

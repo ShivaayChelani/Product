@@ -17,20 +17,20 @@ import {
 } from '../features/subscriptions/planUi';
 
 const C = {
-  bg: '#F4F9FC',
-  navy: '#0B1F3A',
-  deep: '#0E3A5F',
-  lagoon: '#0E7490',
-  sky: '#0284C7',
-  ice: '#E0F2FE',
+  bg: '#F7F6F1',
+  navy: '#1D2420',
+  deep: '#1D2420',
+  lagoon: '#16392B',
+  sky: '#16392B',
+  ice: '#F7F6F1',
   white: '#FFFFFF',
-  text: '#0F2744',
-  muted: '#5B7A92',
-  border: '#C5DCE8',
+  text: '#1D2420',
+  muted: '#1F4D3A',
+  border: '#DDEBE3',
   success: '#047857',
-  successBg: '#ECFDF5',
-  warn: '#B45309',
-  warnBg: '#FFFBEB',
+  successBg: '#EAF3ED',
+  warn: '#16392B',
+  warnBg: '#F8F0E1',
 };
 
 function monthlyPrice(plan: SubscriptionPlanClient) {
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   usageValue: { fontSize: 15, fontWeight: '800', color: C.navy },
   planCard: { backgroundColor: C.white, borderRadius: 18, borderWidth: 1, borderColor: C.border, padding: 18, gap: 8, position: 'relative' },
   planCardFeatured: { borderColor: C.sky, borderWidth: 2 },
-  planCardCurrent: { borderColor: C.navy, borderWidth: 2, backgroundColor: '#F8FBFE' },
+  planCardCurrent: { borderColor: C.navy, borderWidth: 2, backgroundColor: '#F7F6F1' },
   popularBadge: { position: 'absolute', top: -10, right: 16, backgroundColor: C.sky, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3 },
   popularBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
   currentBadge: { position: 'absolute', top: -10, right: 16, backgroundColor: C.navy, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3 },
@@ -322,6 +322,6 @@ const styles = StyleSheet.create({
   confirmCard: { backgroundColor: C.white, borderRadius: 18, borderWidth: 1, borderColor: C.border, padding: 20, gap: 10 },
   confirmPrice: { fontSize: 32, fontWeight: '800', color: C.navy },
   cta: { backgroundColor: C.sky, borderRadius: 16, paddingVertical: 14, alignItems: 'center', marginTop: 10, minHeight: 48, justifyContent: 'center' },
-  ctaDisabled: { backgroundColor: '#94A3B8' },
+  ctaDisabled: { backgroundColor: '#68756D' },
   ctaText: { color: C.white, fontWeight: '800', fontSize: 15 },
 });

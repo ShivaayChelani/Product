@@ -37,10 +37,10 @@ describe('Creator Studio sidebar wiring', () => {
     expect(sub).toContain("listPlans('CREATOR')");
   });
 
-  it('uses PalSafar cream-bronze studio colors instead of purple', () => {
-    expect(sub).toContain('#FDF9F2');
-    expect(sub).toContain('#AD762E');
+  it('uses the shared forest-green studio palette', () => {
     expect(sub).toContain('CreatorUI');
-    expect(sub).not.toMatch(/#7C3AED|#4C1D95|#F5F3FF|#8B5CF6/);
+    expect(sub).toContain('bg: CreatorUI.colors.bg');
+    expect(sub).toContain('gold: CreatorUI.colors.primary');
+    expect(sub).not.toContain('#B7791F');
   });
 });

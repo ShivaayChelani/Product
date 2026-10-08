@@ -4,10 +4,10 @@ import Icon from 'react-native-vector-icons/Ionicons';
 
 const COLORS = {
   bg: '#FFFFFF',
-  border: '#E3DACD',
+  border: '#D9E0DB',
   text: '#1F1A17',
   placeholder: '#A0968C',
-  icon: '#7B5E43',
+  icon: '#68756D',
 };
 
 export type SortOption = 'recent' | 'oldest' | 'earnings_high' | 'earnings_low';

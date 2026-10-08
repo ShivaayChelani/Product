@@ -54,7 +54,7 @@ describe('Section 17 — OSRM coordinate convention', () => {
   it('builds the URL from the configured base URL and profile', async () => {
     setRoutingBaseUrl('https://router.project-osrm.org');
     ((global as any).fetch as FetchMock).mockResolvedValue(jsonOk({
-      routes: [{ distance: 1000, duration: 120, geometry: { coordinates: [] } }],
+      routes: [{ distance: 1000, duration: 120, geometry: { coordinates: [[73.82, 15.49], [73.83, 15.5]] } }],
     }));
 
     const route = await getOSRMRoute(15.49, 73.82, 15.50, 73.83, 'cycling');
@@ -77,13 +77,13 @@ describe('Section 18 — route parsing (meters / seconds)', () => {
 
   it('parses distance → meters and duration → seconds without swapping units', async () => {
     ((global as any).fetch as FetchMock).mockResolvedValue(jsonOk({
-      routes: [{ distance: 12345, duration: 720, geometry: { coordinates: [] } }],
+      routes: [{ distance: 12345, duration: 720, geometry: { coordinates: [[10, 10], [20, 20]] } }],
     }));
     const route = await getOSRMRoute(10, 10, 20, 20);
     expect(route?.distanceMeters).toBe(12345);
     expect(route?.durationSeconds).toBe(720);
     expect(route?.source).toBe('routing');
-    expect(route?.geometry).toEqual([]);
+    expect(route?.geometry).toEqual([[10, 10], [20, 20]]);
   });
 
   it('formatRouteDistance shows meters under 1 km and km above', () => {
@@ -99,12 +99,19 @@ describe('Section 18 — route parsing (meters / seconds)', () => {
     expect(formatRouteDuration(r(59))).toBe('1 min');         // rounds up to at least 1
   });
 
-  it('unpainted routes (missing/malformed geometry array) still parse distance+duration', async () => {
+  it('rejects a route without road geometry instead of allowing a straight-line fallback', async () => {
     ((global as any).fetch as FetchMock).mockResolvedValue(jsonOk({
       routes: [{ distance: 5000, duration: 600 }],
     }));
     const route = await getOSRMRoute(10, 10, 20, 20);
-    expect(route?.geometry).toEqual([]);
+    expect(route).toBeNull();
+  });
+
+  it('rejects malformed coordinates instead of passing unsafe geometry to Leaflet', async () => {
+    ((global as any).fetch as FetchMock).mockResolvedValue(jsonOk({
+      routes: [{ distance: 5000, duration: 600, geometry: { coordinates: [[181, 20], [20, 30]] } }],
+    }));
+    await expect(getOSRMRoute(10, 10, 20, 20)).resolves.toBeNull();
   });
 
   it('segment steps are parsed from the geometry (multi-coordinate polyline)', async () => {
@@ -182,7 +189,7 @@ describe('10-minute TTL cache: rounded-fixed key, deduped requests', () => {
 
   it('a second identical request hits the cache (single fetch)', async () => {
     ((global as any).fetch as FetchMock).mockResolvedValue(jsonOk({
-      routes: [{ distance: 5000, duration: 600, geometry: { coordinates: [] } }],
+      routes: [{ distance: 5000, duration: 600, geometry: { coordinates: [[77.2, 28.6], [77.3, 28.7]] } }],
     }));
 
     const first = await getOSRMRoute(28.61391, 77.20902, 28.70412, 77.10249);
@@ -198,7 +205,7 @@ describe('10-minute TTL cache: rounded-fixed key, deduped requests', () => {
 
   it('minor GPS jitter within rounding precision still reuses the cached route', async () => {
     ((global as any).fetch as FetchMock).mockResolvedValue(jsonOk({
-      routes: [{ distance: 5000, duration: 600, geometry: { coordinates: [] } }],
+      routes: [{ distance: 5000, duration: 600, geometry: { coordinates: [[77.2, 28.6], [77.3, 28.7]] } }],
     }));
 
     await getOSRMRoute(28.61391, 77.20902, 28.70412, 77.10249);
@@ -208,7 +215,7 @@ describe('10-minute TTL cache: rounded-fixed key, deduped requests', () => {
 
   it('different destination (different key) refetches', async () => {
     ((global as any).fetch as FetchMock).mockResolvedValue(jsonOk({
-      routes: [{ distance: 5000, duration: 600, geometry: { coordinates: [] } }],
+      routes: [{ distance: 5000, duration: 600, geometry: { coordinates: [[77.2, 28.6], [77.3, 28.7]] } }],
     }));
 
     await getOSRMRoute(28.61391, 77.20902, 28.70412, 77.10249);
@@ -218,7 +225,7 @@ describe('10-minute TTL cache: rounded-fixed key, deduped requests', () => {
 
   it('cache is keyed by profile too', async () => {
     ((global as any).fetch as FetchMock).mockResolvedValue(jsonOk({
-      routes: [{ distance: 5000, duration: 600, geometry: { coordinates: [] } }],
+      routes: [{ distance: 5000, duration: 600, geometry: { coordinates: [[10, 10], [20, 20]] } }],
     }));
     await getOSRMRoute(10, 10, 20, 20, 'driving');
     await getOSRMRoute(10, 10, 20, 20, 'cycling');

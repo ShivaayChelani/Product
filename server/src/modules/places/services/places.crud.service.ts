@@ -11,7 +11,7 @@ import {
 import {
   placeListSelect, placeDetailSelect, generateSlug,
   verifyVendorAccess, verifyAccess, resolvePlace,
-  dedupeImageUrls, excludeCommercialPlacesWhere,
+  dedupeImageUrls, excludeCommercialPlacesWhere, sanitizeImageMetadata,
 } from './places.helpers';
 import { syncPlaceImageRecords, deleteCloudinaryImageIfOrphan } from './place-images.sync';
 import { dedupePlacesByLocation } from '../../../shared/utils/placeDedupe';
@@ -76,6 +76,9 @@ export const placesCrudService = {
         city: input.city ?? '',
         state: input.state ?? '',
         country: input.country ?? 'India',
+        district: input.district ?? '',
+        canonicalName: input.canonicalName || null,
+        imageMetadata: sanitizeImageMetadata(input.imageMetadata),
         openingHours: safeJson(input.openingHours),
         ticketPrice: safeJson(input.ticketPrice),
         history: input.history,
@@ -458,6 +461,9 @@ export const placesCrudService = {
     if (input.bestTimeToVisit) {
       data.bestTimeToVisit = JSON.parse(JSON.stringify(input.bestTimeToVisit));
     }
+    if (input.imageMetadata !== undefined) {
+      data.imageMetadata = sanitizeImageMetadata(input.imageMetadata);
+    }
     if (input.images) {
       data.images = dedupeImageUrls(input.images);
       if (!input.thumbnail) data.thumbnail = data.images[0] || null;
@@ -498,6 +504,9 @@ export const placesCrudService = {
     }
     if (input.bestTimeToVisit) {
       data.bestTimeToVisit = JSON.parse(JSON.stringify(input.bestTimeToVisit));
+    }
+    if (input.imageMetadata !== undefined) {
+      data.imageMetadata = sanitizeImageMetadata(input.imageMetadata);
     }
     if (input.images) {
       data.images = dedupeImageUrls(input.images);
@@ -1044,7 +1053,7 @@ export const placesCrudService = {
             mergedIntoId: null,
           },
           include: {
-            submittedBy: { select: { id: true, name: true, email: true } },
+            submittedBy: { select: { id: true, name: true } },
           },
         })
       : [];

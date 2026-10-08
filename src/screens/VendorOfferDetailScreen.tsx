@@ -34,9 +34,9 @@ const COLORS = {
   background: '#FFFFFF',
   white: '#FFFFFF',
   text: '#202020',
-  textMuted: '#6D6D6D',
-  gold: '#D9A441',
-  border: '#E7DFD2',
+  textMuted: '#68756D',
+  gold: '#1F4D3A',
+  border: '#DDEBE3',
 };
 
 type Route = RouteProp<RootStackParamList, 'VendorOfferDetail'>;
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   coverPlaceholder: {
-    backgroundColor: '#EAE0D5',
+    backgroundColor: '#DDEBE3',
     justifyContent: 'center',
     alignItems: 'center',
   },

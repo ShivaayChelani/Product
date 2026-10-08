@@ -15,18 +15,18 @@ const { width } = Dimensions.get('window');
 
 // Colors
 const C = {
-  bg: '#FAFAFA',
+  bg: '#F7F6F1',
   white: '#FFFFFF',
-  textDark: '#111827',
+  textDark: '#1D2420',
   textGray: '#4B5563',
   textLightGray: '#9CA3AF',
-  orange: '#F59E0B',
-  blue: '#63300E', // Now a brown color
-  blueLight: '#F5EDE3', // Light cream/brown
-  blueBorder: '#E8D2BB', // Brown border
-  purple: '#8B5CF6',
+  orange: '#B7791F',
+  blue: '#16392B', // Now a brown color
+  blueLight: '#F7F6F1', // Light cream/brown
+  blueBorder: '#DDEBE3', // Brown border
+  purple: '#1F4D3A',
   green: '#10B981',
-  red: '#EF4444',
+  red: '#C94A4A',
   shadow: 'rgba(0,0,0,0.06)',
 };
 
@@ -35,28 +35,28 @@ export default function HowItWorksScreen({ navigation, onBack }: HowItWorksScree
   const headerPadTop = useHeaderSafePadding(12);
 
   const earnActivities = [
-    { id: 'checkin', icon: 'location-sharp', iconColor: '#3B82F6', iconBg: '#EFF6FF', title: 'Check-in\nat Places', points: '+10 to +50 P', pointsColor: '#3B82F6' },
-    { id: 'gem', icon: 'diamond', iconColor: '#8B5CF6', iconBg: '#F5F3FF', title: 'Submit\nHidden Gem', points: '+20 to +200 P', pointsColor: '#8B5CF6' },
-    { id: 'review', icon: 'star', iconColor: '#F59E0B', iconBg: '#FFFBEB', title: 'Write\na Review', points: '+5 to +50 P', pointsColor: '#F59E0B' },
+    { id: 'checkin', icon: 'location-sharp', iconColor: '#1F4D3A', iconBg: '#DDEBE3', title: 'Check-in\nat Places', points: '+10 to +50 P', pointsColor: '#1F4D3A' },
+    { id: 'gem', icon: 'diamond', iconColor: '#1F4D3A', iconBg: '#F7F6F1', title: 'Submit\nHidden Gem', points: '+20 to +200 P', pointsColor: '#1F4D3A' },
+    { id: 'review', icon: 'star', iconColor: '#B7791F', iconBg: '#F8F0E1', title: 'Write\na Review', points: '+5 to +50 P', pointsColor: '#B7791F' },
   ];
 
   const redeemSteps = [
-    { id: '1', icon: 'storefront', iconBg: '#3B82F6', title: 'Find a\nPartner Vendor', desc: 'Browse vendors\nnear you' },
-    { id: '2', icon: 'cellphone', iconBg: '#1E3A8A', title: 'Show Your\nPal ID', desc: 'Share your Pal ID\nor QR code' },
-    { id: '3', icon: 'wallet', iconBg: '#F59E0B', title: 'Confirm &\nRedeem', desc: 'Pay with PalPoints\nat the vendor' },
+    { id: '1', icon: 'storefront', iconBg: '#1F4D3A', title: 'Find a\nPartner Vendor', desc: 'Browse vendors\nnear you' },
+    { id: '2', icon: 'cellphone', iconBg: '#16392B', title: 'Show Your\nPal ID', desc: 'Share your Pal ID\nor QR code' },
+    { id: '3', icon: 'wallet', iconBg: '#B7791F', title: 'Confirm &\nRedeem', desc: 'Pay with PalPoints\nat the vendor' },
     { id: '4', icon: 'gift', iconBg: '#10B981', title: 'Enjoy Offer\nor Service', desc: 'Get discounts,\ndeals & more' },
-    { id: '5', icon: 'tag', iconBg: '#EF4444', title: 'Earn More\nPalPoints', desc: 'Keep exploring\n& earning' },
+    { id: '5', icon: 'tag', iconBg: '#C94A4A', title: 'Earn More\nPalPoints', desc: 'Keep exploring\n& earning' },
   ];
 
   const renderSectionHeader = (num: string, title: string, subtitle?: string) => (
     <View style={styles.sectionHeader}>
       <View style={styles.sectionTitleRow}>
-        <Ionicons name="leaf-outline" size={16} color="#93C5FD" style={{ transform: [{ scaleX: -1 }] }} />
+        <Ionicons name="leaf-outline" size={16} color="#DDEBE3" style={{ transform: [{ scaleX: -1 }] }} />
         <View style={styles.stepBadge}>
           <Text style={styles.stepBadgeText}>{num}</Text>
         </View>
         <Text style={styles.sectionTitle}>{title}</Text>
-        <Ionicons name="leaf-outline" size={16} color="#93C5FD" />
+        <Ionicons name="leaf-outline" size={16} color="#DDEBE3" />
       </View>
       {subtitle && <Text style={styles.sectionSubtitle}>{subtitle}</Text>}
     </View>
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
   },
   timelineLineDotted: {
     borderBottomWidth: 1.5,
-    borderBottomColor: '#93C5FD',
+    borderBottomColor: '#DDEBE3',
     borderStyle: 'dashed',
     width: 1000,
   },
@@ -519,16 +519,16 @@ const styles = StyleSheet.create({
   benefitsHeaderForYou: {
     alignItems: 'center',
     paddingVertical: 16,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#DDEBE3',
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E7FF',
+    borderBottomColor: '#F7F6F1',
   },
   benefitsHeaderForVendors: {
     alignItems: 'center',
     paddingVertical: 16,
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#F8F0E1',
     borderBottomWidth: 1,
-    borderBottomColor: '#FFEDD5',
+    borderBottomColor: '#F7F6F1',
   },
   benefitsIconYouWrap: {
     width: 48,
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 36,
     marginBottom: 20,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#DDEBE3',
     borderRadius: 16,
     padding: 16,
     flexDirection: 'row',
@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: C.orange,
     borderWidth: 1.5,
-    borderColor: '#FCD34D',
+    borderColor: '#B7791F',
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -218,7 +218,7 @@ function PersonalInformationModalComponent({
               <View style={styles.col}>
                 <Text style={styles.label}>Full Name</Text>
                 <View style={styles.inputWrap}>
-                  <Icon name="person-outline" size={ICON_SIZE} color="#6A6158" style={styles.inputIcon} />
+                  <Icon name="person-outline" size={ICON_SIZE} color="#68756D" style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     value={form.displayName}
@@ -232,7 +232,7 @@ function PersonalInformationModalComponent({
               <View style={styles.col}>
                 <Text style={styles.label}>Username (optional)</Text>
                 <View style={styles.inputWrap}>
-                  <Icon name="at" size={ICON_SIZE} color="#6A6158" style={styles.inputIcon} />
+                  <Icon name="at" size={ICON_SIZE} color="#68756D" style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     value={form.username}
@@ -251,7 +251,7 @@ function PersonalInformationModalComponent({
               <View style={styles.col}>
                 <Text style={styles.label}>Email</Text>
                 <View style={styles.inputWrap}>
-                  <Icon name="mail-outline" size={ICON_SIZE} color="#6A6158" style={styles.inputIcon} />
+                  <Icon name="mail-outline" size={ICON_SIZE} color="#68756D" style={styles.inputIcon} />
                   <Text style={styles.readonlyText} numberOfLines={1}>
                     {email || '—'}
                   </Text>
@@ -265,7 +265,7 @@ function PersonalInformationModalComponent({
               <View style={styles.col}>
                 <Text style={styles.label}>Phone Number</Text>
                 <View style={styles.inputWrap}>
-                  <Icon name="call-outline" size={ICON_SIZE} color="#6A6158" style={styles.inputIcon} />
+                  <Icon name="call-outline" size={ICON_SIZE} color="#68756D" style={styles.inputIcon} />
                   <Text style={styles.readonlyText} numberOfLines={1}>
                     {phoneNumber || '—'}
                   </Text>
@@ -289,11 +289,11 @@ function PersonalInformationModalComponent({
                   }}
                   activeOpacity={0.85}
                 >
-                  <Icon name="location-outline" size={ICON_SIZE} color="#6A6158" style={styles.inputIcon} />
+                  <Icon name="location-outline" size={ICON_SIZE} color="#68756D" style={styles.inputIcon} />
                   <Text style={[styles.selectText, !form.city && styles.placeholder]} numberOfLines={1}>
                     {form.city || 'Select city'}
                   </Text>
-                  <Icon name="chevron-down" size={ICON_SIZE} color="#6A6158" />
+                  <Icon name="chevron-down" size={ICON_SIZE} color="#68756D" />
                 </TouchableOpacity>
               </View>
               <View style={styles.col}>
@@ -303,11 +303,11 @@ function PersonalInformationModalComponent({
                   onPress={() => openSelectModal('State', INDIAN_STATES, form.state, v => onChange({ state: v }))}
                   activeOpacity={0.85}
                 >
-                  <Icon name="business-outline" size={ICON_SIZE} color="#6A6158" style={styles.inputIcon} />
+                  <Icon name="business-outline" size={ICON_SIZE} color="#68756D" style={styles.inputIcon} />
                   <Text style={[styles.selectText, !form.state && styles.placeholder]} numberOfLines={1}>
                     {form.state || 'Select state'}
                   </Text>
-                  <Icon name="chevron-down" size={ICON_SIZE} color="#6A6158" />
+                  <Icon name="chevron-down" size={ICON_SIZE} color="#68756D" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -324,7 +324,7 @@ function PersonalInformationModalComponent({
                       onPress={() => onChange({ gender: opt.key })}
                       activeOpacity={0.85}
                     >
-                      <Icon name={opt.icon} size={14} color={active ? '#7B563D' : '#6A6158'} />
+                      <Icon name={opt.icon} size={14} color={active ? '#68756D' : '#68756D'} />
                       <Text
                         style={[styles.genderLabel, active && styles.genderLabelActive]}
                         numberOfLines={1}
@@ -342,7 +342,7 @@ function PersonalInformationModalComponent({
             <View style={styles.fieldBlock}>
               <Text style={styles.label}>Date of Birth (optional)</Text>
               <View style={styles.inputWrap}>
-                <Icon name="calendar-outline" size={ICON_SIZE} color="#6A6158" style={styles.inputIcon} />
+                <Icon name="calendar-outline" size={ICON_SIZE} color="#68756D" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   value={form.dateOfBirth}
@@ -353,7 +353,7 @@ function PersonalInformationModalComponent({
                   maxLength={14}
                   underlineColorAndroid="transparent"
                 />
-                <Icon name="chevron-down" size={ICON_SIZE} color="#6A6158" />
+                <Icon name="chevron-down" size={ICON_SIZE} color="#68756D" />
               </View>
             </View>
 
@@ -369,7 +369,7 @@ function PersonalInformationModalComponent({
                     onPress={() => toggleInterest(item.key)}
                     activeOpacity={0.85}
                   >
-                    <Icon name={item.icon} size={ICON_SIZE} color={selected ? '#7B563D' : '#6A6158'} />
+                    <Icon name={item.icon} size={ICON_SIZE} color={selected ? '#68756D' : '#68756D'} />
                     <Text style={[styles.chipLabel, selected && styles.chipLabelSelected]} numberOfLines={1} adjustsFontSizeToFit>
                       {item.label}
                     </Text>
@@ -389,9 +389,9 @@ function PersonalInformationModalComponent({
                   }
                   activeOpacity={0.85}
                 >
-                  <Icon name="globe-outline" size={ICON_SIZE} color="#6A6158" style={styles.inputIcon} />
+                  <Icon name="globe-outline" size={ICON_SIZE} color="#68756D" style={styles.inputIcon} />
                   <Text style={styles.selectText} numberOfLines={1}>{form.language || 'English'}</Text>
-                  <Icon name="chevron-down" size={ICON_SIZE} color="#6A6158" />
+                  <Icon name="chevron-down" size={ICON_SIZE} color="#68756D" />
                 </TouchableOpacity>
               </View>
 
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
   sheet: {
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F7F6F1',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     width: '100%',
@@ -481,14 +481,14 @@ const styles = StyleSheet.create({
     fontFamily: SANS_BOLD,
     fontSize: 20,
     lineHeight: 26,
-    color: '#13111C',
+    color: '#1D2420',
     marginBottom: 2,
   },
   subtitle: {
     fontFamily: SANS,
     fontSize: 12,
     lineHeight: 16,
-    color: '#6A6158',
+    color: '#68756D',
   },
   iconBtn: {
     width: 40,
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E8DDD0',
+    borderColor: '#D9E0DB',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -512,8 +512,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: PAGE_PAD,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E8DDD0',
-    backgroundColor: '#FAFAFA',
+    borderTopColor: '#D9E0DB',
+    backgroundColor: '#F7F6F1',
   },
   avatarSection: {
     alignItems: 'center',
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
     height: 104,
     borderRadius: 52,
     borderWidth: 2,
-    borderColor: '#E8DDD0',
+    borderColor: '#D9E0DB',
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: '#FDF7F2',
+    backgroundColor: '#F7F6F1',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#7B563D',
+    backgroundColor: '#68756D',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
     fontFamily: SANS,
     fontSize: 12,
     lineHeight: 16,
-    color: '#6A6158',
+    color: '#68756D',
   },
   row: {
     flexDirection: 'row',
@@ -586,14 +586,14 @@ const styles = StyleSheet.create({
     fontFamily: SANS,
     fontSize: 12,
     lineHeight: 16,
-    color: '#6A6158',
+    color: '#68756D',
     marginBottom: 8,
   },
   sectionLabel: {
     fontFamily: SANS,
     fontSize: 12,
     lineHeight: 16,
-    color: '#6A6158',
+    color: '#68756D',
     marginTop: 6,
     marginBottom: 8,
   },
@@ -602,7 +602,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E8DDD0',
+    borderColor: '#D9E0DB',
     borderRadius: 12,
     paddingHorizontal: 12,
     height: CONTROL_H,
@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
     fontFamily: SANS,
     fontSize: 13,
     lineHeight: 18,
-    color: '#13111C',
+    color: '#1D2420',
     paddingVertical: 0,
     paddingHorizontal: 0,
     textAlignVertical: 'center',
@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
     fontFamily: SANS,
     fontSize: 13,
     lineHeight: 18,
-    color: '#13111C',
+    color: '#1D2420',
     paddingRight: 6,
   },
   selectText: {
@@ -635,7 +635,7 @@ const styles = StyleSheet.create({
     fontFamily: SANS,
     fontSize: 13,
     lineHeight: 18,
-    color: '#13111C',
+    color: '#1D2420',
     paddingRight: 6,
   },
   placeholder: { color: '#9E978F' },
@@ -669,13 +669,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E8DDD0',
+    borderColor: '#D9E0DB',
     backgroundColor: '#FFFFFF',
     gap: 3,
   },
   genderOptionActive: {
-    backgroundColor: '#FDF7F2',
-    borderColor: '#E8DDD0',
+    backgroundColor: '#F7F6F1',
+    borderColor: '#D9E0DB',
   },
   genderLabel: {
     flexShrink: 1,
@@ -683,10 +683,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     textAlign: 'center',
-    color: '#6A6158',
+    color: '#68756D',
   },
   genderLabelActive: {
-    color: '#7B563D',
+    color: '#68756D',
     fontFamily: SANS_SEMI,
   },
   chipGrid: {
@@ -704,28 +704,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E8DDD0',
+    borderColor: '#D9E0DB',
     backgroundColor: '#FFFFFF',
   },
   chipSelected: {
-    backgroundColor: '#FDF7F2',
-    borderColor: '#E8DDD0',
+    backgroundColor: '#F7F6F1',
+    borderColor: '#D9E0DB',
   },
   chipLabel: {
     fontFamily: SANS,
     fontSize: 12,
     lineHeight: 16,
-    color: '#13111C',
+    color: '#1D2420',
     flexShrink: 1,
   },
   chipLabelSelected: {
-    color: '#7B563D',
+    color: '#68756D',
     fontFamily: SANS_SEMI,
   },
   bioWrap: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E8DDD0',
+    borderColor: '#D9E0DB',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingTop: 10,
@@ -736,7 +736,7 @@ const styles = StyleSheet.create({
     fontFamily: SANS,
     fontSize: 13,
     lineHeight: 18,
-    color: '#13111C',
+    color: '#1D2420',
     minHeight: 72,
     paddingVertical: 0,
     paddingHorizontal: 0,
@@ -761,7 +761,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#E8DDD0',
+    borderColor: '#D9E0DB',
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -769,13 +769,13 @@ const styles = StyleSheet.create({
   cancelBtnText: {
     fontFamily: SANS_BOLD,
     fontSize: 14,
-    color: '#4A3427',
+    color: '#1D2420',
   },
   saveBtn: {
     flex: 1,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#4A3427',
+    backgroundColor: '#1D2420',
     alignItems: 'center',
     justifyContent: 'center',
   },

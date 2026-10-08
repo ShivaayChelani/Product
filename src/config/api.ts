@@ -211,6 +211,7 @@ export const API_CONFIG = {
      */
     events: {
       list: '/events',
+      create: '/events',
       featured: '/events/featured',
       map: '/events/map',
       nearby: '/events/nearby',

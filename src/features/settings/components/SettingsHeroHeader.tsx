@@ -26,7 +26,7 @@ function SettingsHeroHeaderComponent({
     <View style={[styles.wrap, { height: heroHeight }]}>
       <ImageBackground source={heroImage} style={StyleSheet.absoluteFill} resizeMode="cover">
         <LinearGradient
-          colors={['rgba(248,244,236,0.35)', 'rgba(248,244,236,0.88)', T.bg]}
+          colors={['rgba(247,246,241,0.35)', 'rgba(247,246,241,0.88)', T.bg]}
           locations={[0, 0.45, 1]}
           style={StyleSheet.absoluteFill}
         />
@@ -80,12 +80,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   titleScrim: {
-    backgroundColor: 'rgba(248,244,236,0.92)',
+    backgroundColor: 'rgba(247,246,241,0.92)',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 14,
     gap: 6,
     borderWidth: 1,
-    borderColor: 'rgba(236,227,216,0.9)',
+    borderColor: 'rgba(221,235,227,0.9)',
   },
 });

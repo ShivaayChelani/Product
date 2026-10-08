@@ -7,9 +7,9 @@
  *   server/src/modules/events/events.helpers.ts    — `mapEventRow` projection
  *   server/src/modules/events/events.geo.service.ts — map / nearby / featured
  *
- * Public reads only. The router exposes `/map`, `/nearby` and `/featured`
- * BEFORE `/:idOrSlug`, so those three paths are reserved and must never be
- * appended to the detail path builder.
+ * Public reads plus the owner-scoped create/update/delete. The router exposes
+ * `/map`, `/nearby` and `/featured` BEFORE `/:idOrSlug`, so those three paths
+ * are reserved and must never be appended to the detail path builder.
  */
 import { apiClient, type StandardApiResponse } from './client';
 import { API_CONFIG } from '../../config/api';
@@ -79,11 +79,38 @@ export type CommunityEvent = {
   vendorName: string | null;
   reelCount: number;
   reportCount: number;
+  /**
+   * Flyer facts. `mapEventRow` ships them to everyone (a listing nobody can
+   * read the organiser/fee/teaser from is a listing nobody can attend), but
+   * they stay optional here so a legacy payload without them still typechecks.
+   */
+  shortDescription?: string | null;
+  organizerName?: string | null;
+  organizerContact?: string | null;
+  websiteUrl?: string | null;
+  /** Rupees. `null` = not supplied; `0` = explicitly free. */
+  entryFee?: number | null;
   createdBy: EventOrganizer;
   createdAt: string;
   updatedAt: string;
   legacyPlaceEventId: string | null;
   parentPlaceVisible: boolean;
+};
+
+/**
+ * What `GET /events?mine=true` returns for rows the caller owns: the public
+ * projection plus the moderation fields `mapEventRow` only reveals to the
+ * owner or an admin. Never assume these exist on a public list row.
+ */
+export type OwnedCommunityEvent = CommunityEvent & {
+  isOwner?: boolean;
+  createdById?: string;
+  approvedAt?: string | null;
+  approvedBy?: { id: string; name: string } | null;
+  rejectionReason?: string | null;
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
+  publishedAt?: string | null;
 };
 
 /** `/events/map` adds the server-side marker grouping. */
@@ -147,6 +174,38 @@ export type NearbyEventsQuery = {
   limit?: number;
 };
 
+/**
+ * Body for `POST /events` / `PATCH /events/:id`. Dates are the `YYYY-MM-DD`
+ * strings the native date pickers produce; `entryFee` is rupees on the wire
+ * (a blank string clears it, `0` means free). Coordinates stay `null` — the
+ * server validates against Null-Island, never the client.
+ */
+export type CreateEventInput = {
+  title: string;
+  description?: string | null;
+  eventType: EventType;
+  startDate: string;
+  endDate?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  coverImage?: string | null;
+  images?: string[];
+  linkedPlaceId?: string | null;
+  linkedVendorId?: string | null;
+  shortDescription?: string | null;
+  organizerName?: string | null;
+  organizerContact?: string | null;
+  websiteUrl?: string | null;
+  entryFee?: number | string | null;
+};
+
+export type UpdateEventInput = Partial<CreateEventInput>;
+
 export type EventsListResponse = StandardApiResponse<CommunityEvent[]>;
 export type EventDetailResponse = StandardApiResponse<CommunityEvent>;
 export type EventMapResponse = StandardApiResponse<CommunityEventMapItem[]> & {
@@ -192,6 +251,18 @@ async function list(query?: EventListQuery): Promise<EventsListResponse> {
     featuredOnly: query?.featuredOnly,
   });
   return apiClient.get<CommunityEvent[]>(`${API_CONFIG.endpoints.events.list}${qs}`);
+}
+
+/**
+ * `GET /events?mine=true` — the caller's own submissions.
+ *
+ * Requires auth (the server 401s without a viewer) and returns moderation
+ * fields for rows the caller owns, so the screen can show PENDING / REJECTED
+ * plus the admin's reason without a second request.
+ */
+async function listMine(limit = 50): Promise<StandardApiResponse<OwnedCommunityEvent[]>> {
+  const qs = queryString({ page: 1, limit, mine: 'true' });
+  return apiClient.get<OwnedCommunityEvent[]>(`${API_CONFIG.endpoints.events.list}${qs}`);
 }
 
 /**
@@ -254,10 +325,32 @@ async function nearby(query: NearbyEventsQuery): Promise<EventNearbyResponse> {
   return { ...res, meta: (res as { meta?: EventNearbyMeta }).meta };
 }
 
+/**
+ * `POST /events` — create a community event (owner-scoped, lands in PENDING).
+ * Coordinates must arrive as a complete pair; omit both to skip the map pin.
+ */
+async function create(data: CreateEventInput): Promise<EventDetailResponse> {
+  return apiClient.post<CommunityEvent>(API_CONFIG.endpoints.events.create, data);
+}
+
+/** `PATCH /events/:id` — edit an event the caller created (owner or admin). */
+async function update(id: string, data: UpdateEventInput): Promise<EventDetailResponse> {
+  return apiClient.patch<CommunityEvent>(API_CONFIG.endpoints.events.byIdOrSlug(id), data);
+}
+
+/** `DELETE /events/:id` — remove a non-public submission the caller created. */
+async function remove(id: string): Promise<EventDetailResponse> {
+  return apiClient.delete<CommunityEvent>(API_CONFIG.endpoints.events.byIdOrSlug(id));
+}
+
 export const eventsApi = {
   list,
+  listMine,
   featured,
   getByIdOrSlug,
   mapFeed,
   nearby,
+  create,
+  update,
+  remove,
 };

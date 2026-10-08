@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
-import type { TripPlan, TripPlanStop } from '../../services/api/trips';
+import { stopDisplayName, type TripPlan, type TripPlanStop } from '../../services/api/trips';
 import { computeTripBudget, formatBudgetApprox } from '../../utils/tripBudget';
 import { computeTripPalPoints, formatDurationOnly, formatTravellerGroup, resolveTravellerCount } from '../../utils/tripSummary';
 import {
@@ -25,21 +25,21 @@ import { hasValidImageUrl } from '../../utils/imageUrl';
 import { useUserContext } from '../../context/UserContext';
 
 const C = {
-  bg: '#FDFCF6', // lighter warm background
+  bg: '#F7F6F1', // lighter warm background
   surface: '#FFFFFF',
   card: '#FFFFFF',
-  ink: '#1A0B02', // dark brown text
-  text: '#2C1810',
-  textSub: '#5C4033',
-  textMuted: '#8B7355',
-  border: '#E8DCC8',
-  green: '#D1FAE5',
+  ink: '#1D2420', // dark brown text
+  text: '#1D2420',
+  textSub: '#16392B',
+  textMuted: '#68756D',
+  border: '#DDEBE3',
+  green: '#DDEBE3',
   greenText: '#065F46',
-  goldPill: 'rgba(185,131,75,0.12)',
-  goldText: '#B9834B',
-  darkBrown: '#331900', // for day 1 tab and active elements
-  lightBrown: '#8B5A2B',
-  lineBrown: '#C19A6B',
+  goldPill: 'rgba(183,121,31,0.12)',
+  goldText: '#1F4D3A',
+  darkBrown: '#1D2420', // for day 1 tab and active elements
+  lightBrown: '#B7791F',
+  lineBrown: '#B7791F',
 };
 
 const serif = Platform.OS === 'ios' ? 'Georgia' : 'serif';
@@ -143,7 +143,7 @@ function resolveDayTheme(
 
   const stops = day?.stops || [];
   const highlights = stops
-    .map((s) => s.place?.name || s.reason)
+    .map((s) => s.place?.name || s.event?.title || s.reason)
     .filter(Boolean)
     .slice(0, 2) as string[];
   if (highlights.length >= 2) {
@@ -197,7 +197,7 @@ export default function TripItineraryView({
   const coverImage = useMemo(() => {
     for (const day of days) {
       for (const stop of day.stops || []) {
-        const img = stop.place?.thumbnail || stop.place?.images?.[0];
+        const img = stop.place?.thumbnail || stop.place?.images?.[0] || stop.event?.coverImage;
         if (hasValidImageUrl(img)) return img;
       }
     }
@@ -222,8 +222,9 @@ export default function TripItineraryView({
         </View>
       ) : (
         stops.map((stop, i) => {
-          const img = stop.place?.thumbnail || stop.place?.images?.[0];
-          const nameLower = (stop.place?.name || '').toLowerCase();
+          const img = stop.place?.thumbnail || stop.place?.images?.[0] || stop.event?.coverImage;
+          const stopName = stopDisplayName(stop);
+          const nameLower = stopName.toLowerCase();
           const isLunch = nameLower.includes('lunch') || nameLower.includes('restaurant');
           const isCheckIn = nameLower.includes('check-in') || nameLower.includes('hotel') || nameLower.includes('rest');
 
@@ -253,14 +254,14 @@ export default function TripItineraryView({
 
                   <View style={styles.stopBody}>
                     <View style={styles.stopTopRow}>
-                      <Text style={styles.stopName} numberOfLines={1}>{stop.place?.name || 'Place'}</Text>
+                      <Text style={styles.stopName} numberOfLines={1}>{stopName}</Text>
                       <View style={styles.stopTopActions}>
                         {customizeMode && onRemoveStop ? (
                           <TouchableOpacity
                             onPress={() => onRemoveStop(stop)}
                             hitSlop={8}
                             accessibilityRole="button"
-                            accessibilityLabel={`Remove ${stop.place?.name || 'place'}`}
+                            accessibilityLabel={`Remove ${stopName}`}
                           >
                             <Icon name="trash-outline" size={18} color="#E05252" />
                           </TouchableOpacity>
@@ -268,7 +269,7 @@ export default function TripItineraryView({
                         {!isManualTrip && !isLunch && !isCheckIn && <Icon name="sparkles" size={14} color={C.goldText} />}
                       </View>
                     </View>
-                    <Text style={styles.stopLocText}>{stop.place?.city || trip.destination || 'Nearby'}</Text>
+                    <Text style={styles.stopLocText}>{stop.place?.city || stop.event?.city || trip.destination || 'Nearby'}</Text>
                     {formatTime12h(stop.startTime) ? (
                       <Text style={styles.stopTimeText}>
                         {formatTime12h(stop.startTime)}
@@ -282,7 +283,7 @@ export default function TripItineraryView({
                       </Text>
                     ) : null}
                     <Text style={styles.stopDescText} numberOfLines={2}>
-                      {stop.reason || stop.place?.description || 'Explore this stop on your itinerary.'}
+                      {stop.reason || stop.place?.description || stop.event?.shortDescription || 'Explore this stop on your itinerary.'}
                     </Text>
 
                     <View style={styles.stopPills}>
@@ -544,7 +545,7 @@ const styles = StyleSheet.create({
   },
   aiBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(51,25,0,0.6)', // dark brown semi transparent
+    backgroundColor: 'rgba(29,36,32,0.6)', // dark brown semi transparent
     paddingHorizontal: 10, paddingVertical: 4,
     borderRadius: 12, alignSelf: 'flex-start',
     marginBottom: 8, borderWidth: 1, borderColor: C.goldText,

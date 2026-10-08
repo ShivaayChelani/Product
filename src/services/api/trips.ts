@@ -84,7 +84,10 @@ export interface TripPlanDay {
 export interface TripPlanStop {
   id: string;
   tripPlanDayId: string;
-  placeId: string;
+  /** null for event-anchored stops (a stop is a place OR an event, never both). */
+  placeId: string | null;
+  /** Set when the stop is anchored to a Community Event instead of a Place. */
+  eventId?: string | null;
   order: number;
   startTime?: string | null;
   endTime?: string | null;
@@ -122,7 +125,44 @@ export interface TripPlanStop {
     ticketPrice?: any;
     bestTimeToVisit?: any;
     estimatedDurationMinutes?: number | null;
-  };
+  } | null;
+  /**
+   * Embedded by the server's `TRIP_INCLUDE` for event-anchored stops. The
+   * selector shadows the `place` selector field-for-field so trip renderers can
+   * fall back to `stop.place ?? stop.event` without branching.
+   */
+  event?: {
+    id: string;
+    slug: string;
+    title: string;
+    eventType: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+    startTime?: string | null;
+    endTime?: string | null;
+    address?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    city?: string | null;
+    state?: string | null;
+    coverImage?: string | null;
+    shortDescription?: string | null;
+    entryFee?: number | null;
+  } | null;
+}
+
+/** A stop's name, for anything that must not say "null". */
+export function stopDisplayName(stop: Pick<TripPlanStop, 'place' | 'event'>): string {
+  return stop.place?.name || stop.event?.title || 'Stop';
+}
+
+/** The leaf that carries a stop's coordinates (place for place stops, event else). */
+export function stopCoordinates(stop: TripPlanStop): { latitude: number; longitude: number } | null {
+  const source = stop.place ?? stop.event;
+  if (!source) return null;
+  if (typeof source.latitude !== 'number' || typeof source.longitude !== 'number') return null;
+  return { latitude: source.latitude, longitude: source.longitude };
 }
 
 export interface TripCollaborator {
@@ -448,6 +488,18 @@ export const tripsApi = {
 
   async quickAdd(placeId: string, tripId?: string) {
     const res = await apiClient.post<QuickAddResult>(API_CONFIG.endpoints.trips.quickAdd, { placeId, tripId });
+    return res.data;
+  },
+
+  /**
+   * `POST /trips/quick-add` carrying an `eventId` anchor instead of a `placeId`.
+   *
+   * The endpoint serves both anchor kinds; the dedicated method reads better at
+   * the call site and keeps `quickAdd`'s signature byte-identical (a jest test
+   * asserts the exact object it posts).
+   */
+  async quickAddEvent(eventId: string, tripId?: string) {
+    const res = await apiClient.post<QuickAddResult>(API_CONFIG.endpoints.trips.quickAdd, { eventId, tripId });
     return res.data;
   },
 

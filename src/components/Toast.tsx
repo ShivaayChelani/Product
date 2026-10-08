@@ -20,8 +20,8 @@ interface ToastItemProps {
 const TOAST_COLORS: Record<ToastType, { bg: string; text: string; icon: string }> = {
   success: { bg: '#1B5E20', text: '#fff', icon: '\u2713' },
   error: { bg: '#B71C1C', text: '#fff', icon: '\u2717' },
-  warning: { bg: '#E65100', text: '#fff', icon: '\u26A0' },
-  info: { bg: '#0D47A1', text: '#fff', icon: '\u2139' },
+  warning: { bg: '#B7791F', text: '#fff', icon: '\u26A0' },
+  info: { bg: '#16392B', text: '#fff', icon: '\u2139' },
 };
 
 function ToastItem({ toast, onHide }: ToastItemProps) {

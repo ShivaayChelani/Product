@@ -8,7 +8,7 @@ export const DrawerDivider = () => {
     <View style={styles.container}>
       <View style={styles.line} />
       <View style={styles.iconContainer}>
-        <Icon name="sparkles" size={14} color="#C49B66" />
+        <Icon name="sparkles" size={14} color="#B7791F" />
       </View>
       <View style={styles.line} />
     </View>
@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
   line: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E8DDD0',
+    backgroundColor: '#D9E0DB',
   },
   iconContainer: {
     paddingHorizontal: 8,

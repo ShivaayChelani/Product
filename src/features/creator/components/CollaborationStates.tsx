@@ -3,13 +3,13 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const COLORS = {
-  bg: '#FCF9F5',
-  card: '#F5EDE2', // Muted brown/gold background
+  bg: '#F7F6F1',
+  card: '#F7F6F1', // Muted brown/gold background
   white: '#FFFFFF',
   textPrimary: '#1F1A17',
   textSecondary: '#5E544C',
-  primary: '#7B5E43',
-  border: '#E3DACD',
+  primary: '#68756D',
+  border: '#D9E0DB',
 };
 
 // ==========================================
@@ -133,7 +133,7 @@ const promoStyles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#A67C52', // Muted gold
+    backgroundColor: '#1F4D3A', // Muted gold
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,

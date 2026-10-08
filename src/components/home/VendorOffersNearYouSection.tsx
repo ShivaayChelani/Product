@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
+import { palette } from '../../config/theme';
 
 export type NearbyVendorOfferItem = {
   id: string;
@@ -64,7 +65,7 @@ function VendorOfferCard({
 
         {item.promoCode ? (
           <LinearGradient
-            colors={['#C9A45C', '#9A6B29']}
+            colors={[palette.primary, palette.primaryDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.promoStrip}
@@ -77,7 +78,7 @@ function VendorOfferCard({
 
         {item.distanceLabel ? (
           <View style={styles.distanceRow}>
-            <Icon name="location-outline" size={12} color="#B9834B" />
+            <Icon name="location-outline" size={12} color="#1F4D3A" />
             <Text style={styles.distanceText}>{item.distanceLabel}</Text>
           </View>
         ) : null}
@@ -90,7 +91,7 @@ function MoreOffersCard({ onPress }: { onPress: () => void }) {
   return (
     <TouchableOpacity activeOpacity={0.92} onPress={onPress}>
       <LinearGradient
-        colors={['#8B5E34', '#C9A45C']}
+        colors={[palette.primary, palette.primaryDark]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={styles.moreCard}
@@ -98,7 +99,7 @@ function MoreOffersCard({ onPress }: { onPress: () => void }) {
         <Icon name="gift-outline" size={34} color="#FFFFFF" />
         <Text style={styles.moreText}>More Offers{'\n'}from local vendors!</Text>
         <View style={styles.moreArrow}>
-          <Icon name="arrow-forward" size={18} color="#6B4823" />
+          <Icon name="arrow-forward" size={18} color={palette.primary} />
         </View>
       </LinearGradient>
     </TouchableOpacity>
@@ -115,7 +116,7 @@ function VendorOffersNearYouSectionComponent({
     <View style={styles.section}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Icon name="pricetag" size={18} color="#9A6B29" />
+          <Icon name="pricetag" size={18} color={palette.primary} />
           <Text style={styles.title}>Vendor Offers Near You</Text>
         </View>
         <TouchableOpacity onPress={onViewAll} hitSlop={8}>
@@ -181,13 +182,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#F9F9F9',
+    borderColor: palette.border,
     overflow: 'hidden',
     minHeight: 132,
   },
   offerLeft: {
     width: 98,
-    backgroundColor: '#E8DDD0',
+    backgroundColor: '#D9E0DB',
   },
   offerImage: {
     ...StyleSheet.absoluteFillObject,
@@ -206,7 +207,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   vendorBadgeText: {
-    color: '#E5C07A',
+    color: palette.primary,
     fontSize: 9,
     fontWeight: '800',
     textAlign: 'center',
@@ -227,7 +228,7 @@ const styles = StyleSheet.create({
   },
   offerSubtitle: {
     fontSize: 12,
-    color: '#4B3B30',
+    color: '#1D2420',
     fontWeight: '500',
     marginTop: 2,
   },

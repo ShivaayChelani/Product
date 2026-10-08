@@ -42,23 +42,23 @@ const _BANNER_RADIUS = 24;
 
 const COLORS = {
   // Creator-aligned cream / bronze workspace chrome
-  sky: '#A67C52',
-  skyDark: '#8B6B3A',
-  skyDeep: '#63300E',
-  skyMedium: '#D4A87A',
-  skyLight: '#D4A87A',
+  sky: '#1F4D3A',
+  skyDark: '#68756D',
+  skyDeep: '#16392B',
+  skyMedium: '#DDEBE3',
+  skyLight: '#DDEBE3',
   skyPale: '#FFFFFF',
   skyVeryPale: '#FFFFFF',
   white: '#FFFFFF',
   bg: '#FFFFFF',
-  textPrimary: '#4D3227',
-  textSecondary: '#8B7355',
-  textMuted: '#B8A88A',
-  border: '#E9D4BE',
-  shadow: 'rgba(99, 48, 14, 0.16)',
-  success: '#059669',
-  warning: '#B9834B',
-  star: '#B9834B',
+  textPrimary: '#1D2420',
+  textSecondary: '#68756D',
+  textMuted: '#68756D',
+  border: '#D9E0DB',
+  shadow: 'rgba(29, 36, 32, 0.16)',
+  success: '#2E7D55',
+  warning: '#1F4D3A',
+  star: '#1F4D3A',
   cardBg: '#FFFFFF',
 };
 
@@ -80,7 +80,7 @@ function ProfileRing({ percent, size = 72 }: { percent: number; size?: number })
           cx={cx}
           cy={cy}
           r={r}
-          stroke="#A67C52"
+          stroke="#1F4D3A"
           strokeWidth={stroke}
           fill="none"
           strokeDasharray={`${circ} ${circ}`}
@@ -123,14 +123,14 @@ function ActivityLineChart({
       <Svg width={chartW} height={height}>
         <Defs>
           <LinearGradient id="vendorArea" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#A67C52" stopOpacity="0.28" />
-            <Stop offset="1" stopColor="#A67C52" stopOpacity="0.02" />
+            <Stop offset="0" stopColor="#1F4D3A" stopOpacity="0.28" />
+            <Stop offset="1" stopColor="#1F4D3A" stopOpacity="0.02" />
           </LinearGradient>
         </Defs>
         <Path d={areaPath} fill="url(#vendorArea)" />
-        <Path d={linePath} stroke="#A67C52" strokeWidth={2.5} fill="none" />
+        <Path d={linePath} stroke="#1F4D3A" strokeWidth={2.5} fill="none" />
         {points.map((p, i) => (
-          <Circle key={`pt-${i}`} cx={p.x} cy={p.y} r={3.5} fill="#A67C52" stroke="#fff" strokeWidth={1.5} />
+          <Circle key={`pt-${i}`} cx={p.x} cy={p.y} r={3.5} fill="#1F4D3A" stroke="#fff" strokeWidth={1.5} />
         ))}
       </Svg>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
@@ -616,11 +616,11 @@ function OffersView({
           <View style={s.OvBizNameRow}>
             <Text style={s.OvBizName} numberOfLines={1}>{displayName}</Text>
             {approved ? (
-              <MaterialCommunityIcons name="check-decagram" size={15} color="#F5C542" />
+              <MaterialCommunityIcons name="check-decagram" size={15} color="#B7791F" />
             ) : null}
           </View>
           <View style={s.OvBizLocRow}>
-            <Ionicons name="location-sharp" size={11} color="rgba(255,249,242,0.75)" />
+            <Ionicons name="location-sharp" size={11} color="rgba(247,246,241,0.75)" />
             <Text style={s.OvBizLoc} numberOfLines={1}>{address}</Text>
           </View>
           <TouchableOpacity style={s.OvCodePill} onPress={handleCopyCode} activeOpacity={0.85}>
@@ -628,7 +628,7 @@ function OffersView({
             <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={12} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-        <MaterialCommunityIcons name="storefront-outline" size={48} color="rgba(255,249,242,0.12)" />
+        <MaterialCommunityIcons name="storefront-outline" size={48} color="rgba(247,246,241,0.12)" />
       </View>
 
       <View style={s.OvHeader}>
@@ -637,24 +637,24 @@ function OffersView({
           <Text style={s.OvSubtitle}>Create and manage offers to attract more tourists.</Text>
         </View>
         <TouchableOpacity style={s.OvCreateBtn} onPress={onCreateOffer} activeOpacity={0.85}>
-          <MaterialIcons name="add" size={18} color="#F4A216" />
+          <MaterialIcons name="add" size={18} color="#B7791F" />
           <Text style={s.OvCreateBtnText}>Create Offer</Text>
         </TouchableOpacity>
       </View>
 
       <View style={s.OvStatsGrid}>
         {[
-          { label: 'Total Offers', sub: 'All time', value: String(totalOffers), icon: 'local-offer' as const, color: '#E8A04A', active: false },
-          { label: 'Active Offers', sub: 'Live now', value: String(activeOffers), icon: 'check-circle' as const, color: '#059669', active: true },
-          { label: 'Offer Views', sub: 'Last 30 days', value: offerViews >= 1000 ? `${(offerViews / 1000).toFixed(1)}K` : String(offerViews), icon: 'visibility' as const, color: '#8B6BB5', active: false },
-          { label: 'Total Redeems', sub: 'Last 30 days', value: String(totalRedemptions), icon: 'card-giftcard' as const, color: '#E07A4A', active: false },
+          { label: 'Total Offers', sub: 'All time', value: String(totalOffers), icon: 'local-offer' as const, color: '#1F4D3A', active: false },
+          { label: 'Active Offers', sub: 'Live now', value: String(activeOffers), icon: 'check-circle' as const, color: '#2E7D55', active: true },
+          { label: 'Offer Views', sub: 'Last 30 days', value: offerViews >= 1000 ? `${(offerViews / 1000).toFixed(1)}K` : String(offerViews), icon: 'visibility' as const, color: '#68756D', active: false },
+          { label: 'Total Redeems', sub: 'Last 30 days', value: String(totalRedemptions), icon: 'card-giftcard' as const, color: '#1F4D3A', active: false },
         ].map((item) => (
           <View key={item.label} style={[s.OvStatCard, item.active && s.OvStatCardActive]}>
             <View style={[s.OvStatIcon, { backgroundColor: item.color + '18' }]}>
               <MaterialIcons name={item.icon} size={16} color={item.color} />
             </View>
-            <Text style={[s.OvStatValue, item.active && { color: '#059669' }]}>{item.value}</Text>
-            <Text style={[s.OvStatLabel, item.active && { color: '#059669' }]}>{item.label}</Text>
+            <Text style={[s.OvStatValue, item.active && { color: '#2E7D55' }]}>{item.value}</Text>
+            <Text style={[s.OvStatLabel, item.active && { color: '#2E7D55' }]}>{item.label}</Text>
             <Text style={s.OvStatSub}>{item.sub}</Text>
           </View>
         ))}
@@ -696,7 +696,7 @@ function OffersView({
           </Text>
           {(activeFilter === 'Active' || activeFilter === 'All' || activeFilter === 'Drafts') ? (
             <TouchableOpacity style={[s.OvCreateBtn, { marginTop: 16 }]} onPress={onCreateOffer}>
-              <MaterialIcons name="add" size={18} color="#F4A216" />
+              <MaterialIcons name="add" size={18} color="#B7791F" />
               <Text style={s.OvCreateBtnText}>Create Offer</Text>
             </TouchableOpacity>
           ) : null}
@@ -705,7 +705,7 @@ function OffersView({
 
       {displayCards.map((offer) => {
         const statusColors: Record<string, string> = {
-          Active: '#059669', Scheduled: '#B9834B', Expired: '#EF4444', Draft: COLORS.textMuted,
+          Active: '#2E7D55', Scheduled: '#1F4D3A', Expired: '#C94A4A', Draft: COLORS.textMuted,
         };
         const sc = statusColors[offer.status] || COLORS.textMuted;
         const isBusy = busyId === offer.id;
@@ -799,7 +799,7 @@ function OffersView({
                 disabled={isBusy}
                 onPress={() => openStats(offer.id, offer.title)}
               >
-                <MaterialIcons name="equalizer" size={14} color="#3B1E12" />
+                <MaterialIcons name="equalizer" size={14} color="#1D2420" />
                 <Text style={s.OvActionText}>Stats</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -808,8 +808,8 @@ function OffersView({
                 disabled={isBusy}
                 onPress={() => handleDelete(offer.id, offer.title)}
               >
-                <MaterialIcons name="delete-outline" size={14} color="#EF4444" />
-                <Text style={[s.OvActionText, { color: '#EF4444' }]}>Delete</Text>
+                <MaterialIcons name="delete-outline" size={14} color="#C94A4A" />
+                <Text style={[s.OvActionText, { color: '#C94A4A' }]}>Delete</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -849,7 +849,7 @@ function OffersView({
             onPress={() => setActionMenuOffer(null)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="close" size={18} color="#21140E" />
+            <Ionicons name="close" size={18} color="#1D2420" />
           </TouchableOpacity>
 
           {/* Offer Info Header */}
@@ -858,7 +858,7 @@ function OffersView({
               <Image source={{ uri: actionMenuOffer.imageUrl }} style={s.actionModalThumb} />
             ) : (
               <View style={[s.actionModalThumb, s.actionModalThumbFallback]}>
-                <MaterialIcons name="local-offer" size={24} color="#B9834B" />
+                <MaterialIcons name="local-offer" size={24} color="#1F4D3A" />
               </View>
             )}
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -870,20 +870,20 @@ function OffersView({
                   <View
                     style={[
                       s.actionModalStatusDot,
-                      { backgroundColor: actionMenuOffer?.isActive ? '#059669' : '#B9834B' },
+                      { backgroundColor: actionMenuOffer?.isActive ? '#2E7D55' : '#1F4D3A' },
                     ]}
                   />
                   <Text
                     style={[
                       s.actionModalStatusText,
-                      { color: actionMenuOffer?.isActive ? '#059669' : '#B9834B' },
+                      { color: actionMenuOffer?.isActive ? '#2E7D55' : '#1F4D3A' },
                     ]}
                   >
                     {actionMenuOffer?.isActive ? 'Active' : 'Paused'}
                   </Text>
                 </View>
                 <Text style={s.actionModalSubSep}>|</Text>
-                <Ionicons name="calendar-outline" size={12} color="#8B7355" />
+                <Ionicons name="calendar-outline" size={12} color="#68756D" />
                 <Text style={s.actionModalSubText}>
                   Valid till: {actionMenuOffer?.validUntil || 'No expiry'}
                 </Text>
@@ -926,13 +926,13 @@ function OffersView({
             }}
           >
             <View style={s.actionIconWrapEdit}>
-              <MaterialCommunityIcons name="square-edit-outline" size={22} color="#4A2B11" />
+              <MaterialCommunityIcons name="square-edit-outline" size={22} color="#1D2420" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.actionCardTitleEdit}>Edit Offer</Text>
               <Text style={s.actionCardSubEdit}>Update offer details, price, validity and more</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#4A2B11" />
+            <Ionicons name="chevron-forward" size={18} color="#1D2420" />
           </TouchableOpacity>
 
           {/* Card 3: Pause / Resume Offer */}
@@ -950,7 +950,7 @@ function OffersView({
                 <Ionicons
                   name={actionMenuOffer?.isActive ? 'pause-outline' : 'play-outline'}
                   size={20}
-                  color="#1E429F"
+                  color="#16392B"
                 />
               </View>
               <View style={{ flex: 1 }}>
@@ -963,7 +963,7 @@ function OffersView({
                     : 'Make this offer active and visible to users'}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#1E429F" />
+              <Ionicons name="chevron-forward" size={18} color="#16392B" />
             </TouchableOpacity>
           ) : null}
 
@@ -1476,7 +1476,7 @@ export default function VendorDashboardScreen({
               <MaterialIcons
                 name={currentVendor.verificationStatus === 'rejected' ? 'cancel' : 'hourglass-top'}
                 size={18}
-                color={currentVendor.verificationStatus === 'rejected' ? '#FF5A5F' : COLORS.sky}
+                color={currentVendor.verificationStatus === 'rejected' ? '#C94A4A' : COLORS.sky}
               />
               <View style={{ flex: 1 }}>
                 <Text style={s.statusBannerTitle}>
@@ -1549,7 +1549,7 @@ export default function VendorDashboardScreen({
                   )}
                   {isApproved ? (
                     <View style={s.logoBadgeOverlay}>
-                      <MaterialCommunityIcons name="check-decagram" size={16} color="#F5C542" />
+                      <MaterialCommunityIcons name="check-decagram" size={16} color="#B7791F" />
                     </View>
                   ) : null}
                 </View>
@@ -1560,7 +1560,7 @@ export default function VendorDashboardScreen({
                       {currentVendor.businessName}
                     </Text>
                     {isApproved ? (
-                      <MaterialCommunityIcons name="check-decagram" size={18} color="#F5C542" />
+                      <MaterialCommunityIcons name="check-decagram" size={18} color="#B7791F" />
                     ) : null}
                   </View>
                   <View style={s.heroCategoryRow}>
@@ -1571,14 +1571,14 @@ export default function VendorDashboardScreen({
                           : 'store-outline'
                       }
                       size={12}
-                      color="rgba(255,249,242,0.85)"
+                      color="rgba(247,246,241,0.85)"
                     />
                     <Text style={s.heroDarkCategory}>
                       {String(category).replace(/_/g, ' ')}
                     </Text>
                   </View>
                   <View style={s.heroDarkAddrRow}>
-                    <Ionicons name="location-sharp" size={13} color="rgba(255,249,242,0.85)" />
+                    <Ionicons name="location-sharp" size={13} color="rgba(247,246,241,0.85)" />
                     <Text style={s.heroDarkAddrText} numberOfLines={2}>{displayAddress}</Text>
                   </View>
                 </View>
@@ -1618,14 +1618,14 @@ export default function VendorDashboardScreen({
                   onPress={() => setShowVendorCode(!showVendorCode)}
                   hitSlop={8}
                 >
-                  <Ionicons name={showVendorCode ? 'eye-off-outline' : 'eye-outline'} size={15} color="rgba(255,249,242,0.85)" />
+                  <Ionicons name={showVendorCode ? 'eye-off-outline' : 'eye-outline'} size={15} color="rgba(247,246,241,0.85)" />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={s.codeActionIconBtn}
                   onPress={handleCopyId}
                   hitSlop={8}
                 >
-                  <MaterialIcons name={copiedId ? 'check' : 'content-copy'} size={15} color={copiedId ? '#34D399' : 'rgba(255,249,242,0.85)'} />
+                  <MaterialIcons name={copiedId ? 'check' : 'content-copy'} size={15} color={copiedId ? '#34D399' : 'rgba(247,246,241,0.85)'} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -1636,7 +1636,7 @@ export default function VendorDashboardScreen({
               activeOpacity={0.85}
             >
               <Text style={s.viewListingGoldText}>View listing</Text>
-              <Feather name="external-link" size={13} color="#3B1E12" />
+              <Feather name="external-link" size={13} color="#1D2420" />
             </TouchableOpacity>
           </View>
 
@@ -1650,12 +1650,12 @@ export default function VendorDashboardScreen({
               }}
               activeOpacity={0.85}
             >
-              <View style={[s.statCardIconCircle, { backgroundColor: '#FFF3E4' }]}>
-                <Ionicons name="pricetag-outline" size={18} color="#E8A04A" />
+              <View style={[s.statCardIconCircle, { backgroundColor: '#F7F6F1' }]}>
+                <Ionicons name="pricetag-outline" size={18} color="#1F4D3A" />
               </View>
               <Text style={s.statCardLabel}>Active Offers</Text>
               <Text style={s.statCardValue}>{activeOffers.length}</Text>
-              <Text style={[s.statCardLinkText, { color: '#E8A04A' }]}>View all offers &gt;</Text>
+              <Text style={[s.statCardLinkText, { color: '#1F4D3A' }]}>View all offers &gt;</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -1684,23 +1684,23 @@ export default function VendorDashboardScreen({
             <View style={s.activityFourColCard}>
               <View style={s.activityColItem}>
                 <View style={[s.activityColIcon, { backgroundColor: 'rgba(5,150,105,0.12)' }]}>
-                  <MaterialCommunityIcons name="gift-outline" size={16} color="#059669" />
+                  <MaterialCommunityIcons name="gift-outline" size={16} color="#2E7D55" />
                 </View>
                 <Text style={s.activityColValue}>{dashStats?.todayRedemptions ?? todayRedemptions}</Text>
                 <Text style={s.activityColLabel}>PalPoints Redemptions</Text>
               </View>
 
               <View style={s.activityColItem}>
-                <View style={[s.activityColIcon, { backgroundColor: 'rgba(139,107,181,0.12)' }]}>
-                  <Ionicons name="pricetag-outline" size={16} color="#8B6BB5" />
+                <View style={[s.activityColIcon, { backgroundColor: 'rgba(31,77,58,0.12)' }]}>
+                  <Ionicons name="pricetag-outline" size={16} color="#68756D" />
                 </View>
                 <Text style={s.activityColValue}>{activeOffers.length}</Text>
                 <Text style={s.activityColLabel}>Active Offers</Text>
               </View>
 
               <View style={s.activityColItem}>
-                <View style={[s.activityColIcon, { backgroundColor: 'rgba(232,160,74,0.12)' }]}>
-                  <Ionicons name="pause-circle-outline" size={16} color="#E8A04A" />
+                <View style={[s.activityColIcon, { backgroundColor: 'rgba(183,121,31,0.12)' }]}>
+                  <Ionicons name="pause-circle-outline" size={16} color="#1F4D3A" />
                 </View>
                 <Text style={s.activityColValue}>{dashStats?.pausedOffers ?? pausedOffersCount}</Text>
                 <Text style={s.activityColLabel}>Paused Offers</Text>
@@ -1708,7 +1708,7 @@ export default function VendorDashboardScreen({
 
               <View style={s.activityColItem}>
                 <View style={[s.activityColIcon, { backgroundColor: 'rgba(220,38,38,0.12)' }]}>
-                  <Ionicons name="time-outline" size={16} color="#DC2626" />
+                  <Ionicons name="time-outline" size={16} color="#C94A4A" />
                 </View>
                 <Text style={s.activityColValue}>{dashStats?.expiredOffers ?? expiredOffersCount}</Text>
                 <Text style={s.activityColLabel}>Expired Offers</Text>
@@ -1725,12 +1725,12 @@ export default function VendorDashboardScreen({
               <MaterialCommunityIcons
                 name="clipboard-check-outline"
                 size={52}
-                color="rgba(185,131,75,0.35)"
+                color="rgba(183,121,31,0.35)"
                 style={s.upgradeBannerArt}
               />
               <View style={s.upgradeBannerHeaderRow}>
                 <View style={s.upgradeBannerIconCircle}>
-                  <MaterialCommunityIcons name="crown" size={20} color="#B9834B" />
+                  <MaterialCommunityIcons name="crown" size={20} color="#1F4D3A" />
                 </View>
                 <Text style={s.upgradeBannerTitle}>Unlock more features and grow your business</Text>
               </View>
@@ -1744,7 +1744,7 @@ export default function VendorDashboardScreen({
                 accessibilityLabel="View subscription plans"
               >
                 <Text style={s.upgradeBannerBtnText}>View Subscription Plans</Text>
-                <Feather name="chevron-right" size={14} color="#FFF9F2" />
+                <Feather name="chevron-right" size={14} color="#F7F6F1" />
               </TouchableOpacity>
             </View>
           </View>
@@ -1769,15 +1769,15 @@ export default function VendorDashboardScreen({
                 {recentActivity.map((item, index) => {
                   const iconWrap =
                     item.kind === 'redemption'
-                      ? { bg: 'rgba(5,150,105,0.12)', color: '#059669', name: 'gift-outline' as const }
+                      ? { bg: 'rgba(5,150,105,0.12)', color: '#2E7D55', name: 'gift-outline' as const }
                       : item.kind === 'offer'
-                        ? { bg: 'rgba(139,107,181,0.12)', color: '#8B6BB5', name: 'pricetag-outline' as const }
+                        ? { bg: 'rgba(31,77,58,0.12)', color: '#68756D', name: 'pricetag-outline' as const }
                         : { bg: 'rgba(224,122,154,0.12)', color: '#E07A9A', name: 'film-outline' as const };
                   const badge =
                     item.badge === 'Paused' || item.badge === 'Cancelled'
-                      ? { bg: '#FEF3C7', color: '#92400E' }
+                      ? { bg: '#F8F0E1', color: '#16392B' }
                       : item.badge === 'Pending'
-                        ? { bg: '#EEF2FF', color: '#4338CA' }
+                        ? { bg: '#F7F6F1', color: '#1F4D3A' }
                         : { bg: '#E6F4EA', color: '#137333' };
                   return (
                     <View
@@ -1932,7 +1932,7 @@ const s = StyleSheet.create({
   },
   // Hero Dark Card styles
   heroDarkCard: {
-    backgroundColor: '#21140E',
+    backgroundColor: '#1D2420',
     borderRadius: 20,
     padding: 16,
     marginHorizontal: 16,
@@ -1983,8 +1983,8 @@ const s = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     borderWidth: 2,
-    borderColor: '#F5C542',
-    backgroundColor: '#3B2418',
+    borderColor: '#B7791F',
+    backgroundColor: '#1D2420',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1997,14 +1997,14 @@ const s = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#5A3A28',
+    backgroundColor: '#16392B',
     alignItems: 'center',
     justifyContent: 'center',
   },
   logoAvatarLetter: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#FFF9F2',
+    color: '#F7F6F1',
   },
   logoBadgeOverlay: {
     position: 'absolute',
@@ -2023,13 +2023,13 @@ const s = StyleSheet.create({
   heroDarkTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#FFF9F2',
+    color: '#F7F6F1',
     flexShrink: 1,
   },
   heroDarkCategory: {
     fontSize: 12,
     fontWeight: '600',
-    color: 'rgba(255,249,242,0.8)',
+    color: 'rgba(247,246,241,0.8)',
   },
   heroCategoryRow: {
     flexDirection: 'row',
@@ -2045,7 +2045,7 @@ const s = StyleSheet.create({
   },
   heroDarkAddrText: {
     fontSize: 11,
-    color: 'rgba(255,249,242,0.75)',
+    color: 'rgba(247,246,241,0.75)',
     flexShrink: 1,
   },
   heroRightCol: {
@@ -2057,7 +2057,7 @@ const s = StyleSheet.create({
     height: 100,
     borderRadius: 14,
     overflow: 'hidden',
-    backgroundColor: '#3B2418',
+    backgroundColor: '#1D2420',
   },
   heroCoverImg: {
     width: '100%',
@@ -2066,11 +2066,11 @@ const s = StyleSheet.create({
   heroCoverFallback: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#3B2418',
+    backgroundColor: '#1D2420',
   },
   heroCoverGradient: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(30, 14, 8, 0.4)',
+    backgroundColor: 'rgba(29, 36, 32, 0.4)',
   },
   editPhotosChipFrosted: {
     position: 'absolute',
@@ -2088,9 +2088,9 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 249, 242, 0.06)',
+    backgroundColor: 'rgba(247, 246, 241, 0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 249, 242, 0.12)',
+    borderColor: 'rgba(247, 246, 241, 0.12)',
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -2099,13 +2099,13 @@ const s = StyleSheet.create({
   codeBoxLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: 'rgba(255,249,242,0.6)',
+    color: 'rgba(247,246,241,0.6)',
     letterSpacing: 0.8,
   },
   codeBoxValue: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#FFF9F2',
+    color: '#F7F6F1',
     marginTop: 2,
     letterSpacing: 0.5,
   },
@@ -2118,7 +2118,7 @@ const s = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: 'rgba(255,249,242,0.1)',
+    backgroundColor: 'rgba(247,246,241,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2127,7 +2127,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#E8C8A0',
+    backgroundColor: '#DDEBE3',
     borderRadius: 12,
     paddingVertical: 10,
     marginTop: 12,
@@ -2135,7 +2135,7 @@ const s = StyleSheet.create({
   viewListingGoldText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#3B1E12',
+    color: '#1D2420',
   },
 
   // 2-Column Hero Stat Cards
@@ -2151,8 +2151,8 @@ const s = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#EDE6DC',
-    shadowColor: 'rgba(30,16,8,0.06)',
+    borderColor: '#DDEBE3',
+    shadowColor: 'rgba(29,36,32,0.06)',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -2169,12 +2169,12 @@ const s = StyleSheet.create({
   statCardLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#8B7355',
+    color: '#68756D',
   },
   statCardValue: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#3B1E12',
+    color: '#1D2420',
     marginTop: 2,
     letterSpacing: -0.4,
   },
@@ -2189,7 +2189,7 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1.2,
-    color: '#8B7355',
+    color: '#68756D',
   },
   activityFourColCard: {
     flexDirection: 'row',
@@ -2198,7 +2198,7 @@ const s = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 8,
     borderWidth: 1,
-    borderColor: '#EDE6DC',
+    borderColor: '#DDEBE3',
     marginTop: 8,
   },
   activityColItem: {
@@ -2217,23 +2217,23 @@ const s = StyleSheet.create({
   activityColValue: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#3B1E12',
+    color: '#1D2420',
   },
   activityColLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#8B7355',
+    color: '#68756D',
     textAlign: 'center',
     marginTop: 2,
     lineHeight: 13,
   },
 
   upgradeBannerCard: {
-    backgroundColor: '#FFF4E8',
+    backgroundColor: '#F7F6F1',
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#F5DFC8',
+    borderColor: '#DDEBE3',
     overflow: 'hidden',
     position: 'relative',
   },
@@ -2241,18 +2241,18 @@ const s = StyleSheet.create({
     position: 'absolute',
     top: 12,
     right: 12,
-    backgroundColor: 'rgba(185,131,75,0.15)',
+    backgroundColor: 'rgba(183,121,31,0.15)',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: 'rgba(185,131,75,0.25)',
+    borderColor: 'rgba(183,121,31,0.25)',
   },
   upgradeBannerBadgeText: {
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.6,
-    color: '#8B5A2B',
+    color: '#B7791F',
   },
   upgradeBannerArt: {
     position: 'absolute',
@@ -2269,23 +2269,23 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#FFF9F2',
+    backgroundColor: '#F7F6F1',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F0D9BC',
+    borderColor: '#DDEBE3',
   },
   upgradeBannerTitle: {
     flex: 1,
     fontSize: 15,
     fontWeight: '800',
-    color: '#3B1E12',
+    color: '#1D2420',
     lineHeight: 20,
   },
   upgradeBannerBody: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#8B7355',
+    color: '#68756D',
     lineHeight: 18,
     marginTop: 10,
     paddingRight: 56,
@@ -2296,7 +2296,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
     alignSelf: 'flex-start',
-    backgroundColor: '#21140E',
+    backgroundColor: '#1D2420',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -2305,7 +2305,7 @@ const s = StyleSheet.create({
   upgradeBannerBtnText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#FFF9F2',
+    color: '#F7F6F1',
   },
 
   // PalPoints Banner
@@ -2313,35 +2313,35 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#FFF9F2',
+    backgroundColor: '#F7F6F1',
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#F5EBE0',
+    borderColor: '#F7F6F1',
   },
   palPointsBannerIconWrap: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F3E8DC',
+    backgroundColor: '#F7F6F1',
     alignItems: 'center',
     justifyContent: 'center',
   },
   palPointsBannerTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#3B1E12',
+    color: '#1D2420',
   },
   palPointsBannerSub: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#8B7355',
+    color: '#68756D',
     marginTop: 3,
     lineHeight: 15,
   },
   palPointsBannerBtn: {
     borderWidth: 1,
-    borderColor: '#D4A87A',
+    borderColor: '#DDEBE3',
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 7,
@@ -2350,7 +2350,7 @@ const s = StyleSheet.create({
   palPointsBannerBtnText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#63300E',
+    color: '#16392B',
   },
   headerCopy: {
     flex: 1,
@@ -2363,7 +2363,7 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#EDE6DC',
+    borderColor: '#DDEBE3',
     paddingHorizontal: 14,
     paddingVertical: 6,
     marginTop: 8,
@@ -2374,7 +2374,7 @@ const s = StyleSheet.create({
     gap: 12,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F3E8DC',
+    borderBottomColor: '#F7F6F1',
   },
   activityItemIcon: {
     width: 36,
@@ -2386,12 +2386,12 @@ const s = StyleSheet.create({
   activityItemTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#3B1E12',
+    color: '#1D2420',
   },
   activityItemSub: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#8B7355',
+    color: '#68756D',
     marginTop: 2,
   },
   activityBadgePill: {
@@ -2406,7 +2406,7 @@ const s = StyleSheet.create({
   activityEmptyText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#8B7355',
+    color: '#68756D',
     lineHeight: 19,
     paddingVertical: 16,
     textAlign: 'center',
@@ -2453,7 +2453,7 @@ const s = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#EF4444',
+    backgroundColor: '#C94A4A',
     borderWidth: 1.5,
     borderColor: COLORS.white,
   },
@@ -2502,7 +2502,7 @@ const s = StyleSheet.create({
     color: COLORS.skyDeep,
   },
   notifBadge: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#C94A4A',
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -2550,7 +2550,7 @@ const s = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#EF4444',
+    backgroundColor: '#C94A4A',
     marginTop: 6,
     marginLeft: 8,
   },
@@ -2617,12 +2617,12 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#B9834B12',
+    backgroundColor: '#1F4D3A12',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#B9834B28',
+    borderColor: '#1F4D3A28',
     alignSelf: 'flex-start',
   },
   verifiedBadgeApproved: {
@@ -2679,7 +2679,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(77, 50, 39, 0.88)',
+    backgroundColor: 'rgba(29, 36, 32, 0.88)',
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 12,
@@ -2918,7 +2918,7 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.skyPale,
   },
   activityTabActive: {
-    backgroundColor: 'rgba(166, 124, 82, 0.18)',
+    backgroundColor: 'rgba(183, 121, 31, 0.18)',
     borderWidth: 1,
     borderColor: COLORS.border,
   },
@@ -3165,7 +3165,7 @@ const s = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
     height: 130,
-    shadowColor: '#B9834B',
+    shadowColor: '#1F4D3A',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 24,
@@ -3212,7 +3212,7 @@ const s = StyleSheet.create({
   coGiftLid: {
     width: 60,
     height: 14,
-    backgroundColor: '#8B6B3A',
+    backgroundColor: '#68756D',
     borderRadius: 4,
     position: 'relative',
     alignItems: 'center',
@@ -3236,7 +3236,7 @@ const s = StyleSheet.create({
   coGiftBody: {
     width: 60,
     height: 46,
-    backgroundColor: '#B9834B',
+    backgroundColor: '#1F4D3A',
     borderBottomLeftRadius: 10,
     borderBottomRightRadius: 10,
     alignItems: 'center',
@@ -3262,14 +3262,14 @@ const s = StyleSheet.create({
   coTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#2C1810',
+    color: '#1D2420',
     letterSpacing: -0.3,
     textAlign: 'center',
   },
   coPlus: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#8B6B3A',
+    color: '#68756D',
     width: 24,
     height: 24,
     borderRadius: 12,
@@ -3281,7 +3281,7 @@ const s = StyleSheet.create({
   },
   coSubtitle: {
     fontSize: 12,
-    color: '#63300E',
+    color: '#16392B',
     lineHeight: 16,
     textAlign: 'center',
   },
@@ -3396,7 +3396,7 @@ const s = StyleSheet.create({
   chartYLabel: {
     fontSize: 10,
     fontWeight: '500',
-    color: '#B8A88A',
+    color: '#68756D',
     textAlign: 'right',
     paddingRight: 8,
   },
@@ -3417,7 +3417,7 @@ const s = StyleSheet.create({
     borderRadius: 50,
     borderWidth: 2,
     borderColor: '#FFFFFF',
-    shadowColor: '#63300E',
+    shadowColor: '#16392B',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -3437,7 +3437,7 @@ const s = StyleSheet.create({
   chartXLabel: {
     fontSize: 9,
     fontWeight: '500',
-    color: '#B8A88A',
+    color: '#68756D',
   },
   chartLegendRow: {
     flexDirection: 'row',
@@ -3627,7 +3627,7 @@ const s = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(197,222,222,0.4)',
+    backgroundColor: 'rgba(221,235,227,0.4)',
   },
   promoDecoCircle3: {
     position: 'absolute',
@@ -3654,11 +3654,11 @@ const s = StyleSheet.create({
     width: 52,
     height: 88,
     borderRadius: 12,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: '#1D2420',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#2D2D44',
+    borderColor: '#1D2420',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -3669,13 +3669,13 @@ const s = StyleSheet.create({
     width: 44,
     height: 76,
     borderRadius: 8,
-    backgroundColor: '#0F0F23',
+    backgroundColor: '#1D2420',
     overflow: 'hidden',
   },
   promoPhoneNotch: {
     width: 20,
     height: 4,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: '#1D2420',
     borderRadius: 3,
     alignSelf: 'center',
     marginTop: 4,
@@ -3690,21 +3690,21 @@ const s = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 3,
-    backgroundColor: '#B9834B',
+    backgroundColor: '#1F4D3A',
     alignSelf: 'center',
     marginBottom: 2,
   },
   promoPhoneReelBar: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#D4A87A',
+    backgroundColor: '#DDEBE3',
     width: '80%',
     alignSelf: 'center',
   },
   promoPhoneReelBar2: {
     height: 3,
     borderRadius: 2,
-    backgroundColor: '#8B6B3A',
+    backgroundColor: '#68756D',
     width: '60%',
     alignSelf: 'center',
   },
@@ -3730,13 +3730,13 @@ const s = StyleSheet.create({
   },
   promoPill: {
     alignSelf: 'center',
-    backgroundColor: 'rgba(200,132,24,0.08)',
+    backgroundColor: 'rgba(183,121,31,0.08)',
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 20,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: 'rgba(200,132,24,0.15)',
+    borderColor: 'rgba(183,121,31,0.15)',
   },
   promoPillText: {
     fontSize: 11,
@@ -3797,7 +3797,7 @@ const s = StyleSheet.create({
   promoGlassTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#B9834B',
+    color: '#1F4D3A',
     textAlign: 'center',
     marginBottom: 10,
     marginTop: 4,
@@ -3823,7 +3823,7 @@ const s = StyleSheet.create({
   promoFooter: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#B8A88A',
+    color: '#68756D',
     textAlign: 'center',
     letterSpacing: 0.3,
     marginTop: 16,
@@ -3871,12 +3871,12 @@ const s = StyleSheet.create({
   OvHeaderLeft: { flex: 1, marginRight: 12 },
   OvTitle: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.3, marginBottom: 2 },
   OvSubtitle: { fontSize: 12, color: COLORS.textSecondary, lineHeight: 16 },
-  usageBar: { marginHorizontal: 16, marginBottom: 10, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#E9D4BE', padding: 12 },
+  usageBar: { marginHorizontal: 16, marginBottom: 10, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#D9E0DB', padding: 12 },
   usageBarInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  usageBarText: { fontSize: 13, fontWeight: '700', color: '#4D3227' },
-  upgradeLink: { fontSize: 12, fontWeight: '800', color: '#B9834B' },
+  usageBarText: { fontSize: 13, fontWeight: '700', color: '#1D2420' },
+  upgradeLink: { fontSize: 12, fontWeight: '800', color: '#1F4D3A' },
   usageTrack: { height: 6, backgroundColor: '#FFFFFF', borderRadius: 3, overflow: 'hidden' },
-  usageFill: { height: '100%', backgroundColor: '#B9834B', borderRadius: 3 },
+  usageFill: { height: '100%', backgroundColor: '#1F4D3A', borderRadius: 3 },
   OvCreateBtn: {
     height: 38, borderRadius: 20, paddingHorizontal: 14,
     flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -3938,7 +3938,7 @@ const s = StyleSheet.create({
     minWidth: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#EF4444',
+    backgroundColor: '#C94A4A',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 3,
@@ -3955,19 +3955,19 @@ const s = StyleSheet.create({
   OvBizCard: {
     marginHorizontal: 16,
     marginBottom: 14,
-    backgroundColor: '#3B2418',
+    backgroundColor: '#1D2420',
     borderRadius: 16,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  OvBizThumb: { width: 48, height: 48, borderRadius: 10, backgroundColor: '#5A3A28' },
+  OvBizThumb: { width: 48, height: 48, borderRadius: 10, backgroundColor: '#16392B' },
   OvBizThumbFallback: { alignItems: 'center', justifyContent: 'center' },
   OvBizNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  OvBizName: { fontSize: 15, fontWeight: '800', color: '#FFF9F2', flexShrink: 1 },
+  OvBizName: { fontSize: 15, fontWeight: '800', color: '#F7F6F1', flexShrink: 1 },
   OvBizLocRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3 },
-  OvBizLoc: { fontSize: 11, color: 'rgba(255,249,242,0.75)', flexShrink: 1 },
+  OvBizLoc: { fontSize: 11, color: 'rgba(247,246,241,0.75)', flexShrink: 1 },
   OvCodePill: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
@@ -4105,7 +4105,7 @@ const s = StyleSheet.create({
   },
   OvBadge: {
     position: 'absolute', top: 6, left: 6,
-    backgroundColor: '#E8A04A',
+    backgroundColor: '#1F4D3A',
     paddingHorizontal: 8, paddingVertical: 3,
     borderRadius: 8,
   },
@@ -4137,18 +4137,18 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FAF7F2',
+    backgroundColor: '#F7F6F1',
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: '#EAE0D5',
+    borderColor: '#DDEBE3',
     marginTop: 4,
   },
   OvRedeemBarText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#8B7355',
+    color: '#68756D',
   },
   OvRedeemBarStrong: {
     fontSize: 12,
@@ -4178,7 +4178,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    backgroundColor: '#FFFDF9',
+    backgroundColor: '#F7F6F1',
   },
   OvActionBtn: {
     flex: 1,
@@ -4190,7 +4190,7 @@ const s = StyleSheet.create({
     borderRightWidth: StyleSheet.hairlineWidth,
     borderRightColor: COLORS.border,
   },
-  OvActionText: { fontSize: 11, fontWeight: '700', color: '#3B1E12' },
+  OvActionText: { fontSize: 11, fontWeight: '700', color: '#1D2420' },
 
   // Home dashboard polish
   statusBanner: {
@@ -4198,8 +4198,8 @@ const s = StyleSheet.create({
     borderRadius: 14, padding: 12, flexDirection: 'row', gap: 10, alignItems: 'flex-start',
     borderWidth: 1,
   },
-  statusBannerPending: { backgroundColor: '#B9834B12', borderColor: '#B9834B40' },
-  statusBannerRejected: { backgroundColor: '#FF5A5F12', borderColor: '#FF5A5F40' },
+  statusBannerPending: { backgroundColor: '#1F4D3A12', borderColor: '#1F4D3A40' },
+  statusBannerRejected: { backgroundColor: '#C94A4A12', borderColor: '#C94A4A40' },
   statusBannerTitle: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 2 },
   statusBannerText: { fontSize: 12, color: COLORS.textSecondary, lineHeight: 17 },
   mapPill: {
@@ -4283,7 +4283,7 @@ const s = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F5F2EE',
+    backgroundColor: '#F7F6F1',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
@@ -4298,7 +4298,7 @@ const s = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 14,
-    backgroundColor: '#F7F0E8',
+    backgroundColor: '#F7F6F1',
   },
   actionModalThumbFallback: {
     alignItems: 'center',
@@ -4307,7 +4307,7 @@ const s = StyleSheet.create({
   actionModalTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#21140E',
+    color: '#1D2420',
     letterSpacing: -0.2,
     lineHeight: 22,
   },
@@ -4332,7 +4332,7 @@ const s = StyleSheet.create({
     fontWeight: '700',
   },
   actionModalSubSep: {
-    color: '#D4C9BD',
+    color: '#DDEBE3',
     fontSize: 12,
   },
   actionModalSubText: {
@@ -4343,7 +4343,7 @@ const s = StyleSheet.create({
   actionModalDashedLine: {
     height: 1,
     borderWidth: 1,
-    borderColor: '#EFEAE3',
+    borderColor: '#F7F6F1',
     borderStyle: 'dashed',
     marginVertical: 16,
   },
@@ -4379,9 +4379,9 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#FDFBF7',
+    backgroundColor: '#F7F6F1',
     borderWidth: 1,
-    borderColor: '#F8EFE0',
+    borderColor: '#F7F6F1',
     borderRadius: 16,
     padding: 14,
     marginBottom: 10,
@@ -4390,20 +4390,20 @@ const s = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#FCEFDB',
+    backgroundColor: '#F7F6F1',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionCardTitleEdit: { fontSize: 14, fontWeight: '800', color: '#4A2B11' },
-  actionCardSubEdit: { fontSize: 11, fontWeight: '500', color: '#735E4E', marginTop: 2 },
+  actionCardTitleEdit: { fontSize: 14, fontWeight: '800', color: '#1D2420' },
+  actionCardSubEdit: { fontSize: 11, fontWeight: '500', color: '#16392B', marginTop: 2 },
 
   actionCardToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#F5F8FE',
+    backgroundColor: '#F7F6F1',
     borderWidth: 1,
-    borderColor: '#E4ECFA',
+    borderColor: '#F7F6F1',
     borderRadius: 16,
     padding: 14,
     marginBottom: 10,
@@ -4412,12 +4412,12 @@ const s = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#E3EEFD',
+    backgroundColor: '#F7F6F1',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionCardTitleToggle: { fontSize: 14, fontWeight: '800', color: '#1E429F' },
-  actionCardSubToggle: { fontSize: 11, fontWeight: '500', color: '#506798', marginTop: 2 },
+  actionCardTitleToggle: { fontSize: 14, fontWeight: '800', color: '#16392B' },
+  actionCardSubToggle: { fontSize: 11, fontWeight: '500', color: '#1F4D3A', marginTop: 2 },
 
   actionCardDelete: {
     flexDirection: 'row',

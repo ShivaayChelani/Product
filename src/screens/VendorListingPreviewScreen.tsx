@@ -9,18 +9,18 @@ import { vendorsApi } from '../services/api/vendors';
 import { useBottomSafePadding } from '../design/responsive';
 
 const C = {
-  bg: '#F4F9FC',
-  navy: '#0B1F3A',
-  lagoon: '#0E7490',
-  sky: '#0284C7',
-  ice: '#E0F2FE',
+  bg: '#F7F6F1',
+  navy: '#1D2420',
+  lagoon: '#16392B',
+  sky: '#16392B',
+  ice: '#F7F6F1',
   white: '#FFFFFF',
-  text: '#0F2744',
-  muted: '#5B7A92',
-  border: '#C5DCE8',
-  warn: '#B45309',
-  warnBg: '#FFFBEB',
-  warnBorder: '#FDE68A',
+  text: '#1D2420',
+  muted: '#1F4D3A',
+  border: '#DDEBE3',
+  warn: '#16392B',
+  warnBg: '#F8F0E1',
+  warnBorder: '#DDEBE3',
 };
 
 export default function VendorListingPreviewScreen({ onBack }: { onBack?: () => void }) {

@@ -501,4 +501,50 @@ describe('Places API', () => {
       expect(count).toBe(1);
     });
   });
+
+  describe('GET /api/v1/places/saved submitter privacy (regression)', () => {
+    let savedPlaceId: string;
+
+    afterAll(async () => {
+      if (savedPlaceId) {
+        await prisma.placeStat.deleteMany({ where: { placeId: savedPlaceId, action: 'save' } });
+        await prisma.place.delete({ where: { id: savedPlaceId } }).catch(() => {});
+      }
+    });
+
+    it('never exposes the submitter email in saved places', async () => {
+      const user = await prisma.user.findFirst({ where: { email: 'user@palsafar.com' } });
+      expect(user).toBeTruthy();
+
+      const place = await prisma.place.create({
+        data: {
+          name: `Saved Privacy Place ${testRunId}`,
+          slug: testSlug('saved-privacy-place'),
+          description: 'Regression fixture for saved place submitter privacy.',
+          latitude: 28.6129,
+          longitude: 77.2295,
+          category: 'MONUMENT',
+          city: 'Delhi',
+          status: 'APPROVED',
+          submittedById: user!.id,
+        },
+      });
+      savedPlaceId = place.id;
+
+      await prisma.placeStat.create({
+        data: { placeId: place.id, userId: user!.id, action: 'save' },
+      });
+
+      const res = await request(app)
+        .get('/api/v1/places/saved')
+        .query({ limit: 50 })
+        .set('Authorization', `Bearer ${userToken}`);
+
+      expect(res.status).toBe(200);
+      const entry = res.body.data.find((p: any) => p.id === place.id);
+      expect(entry).toBeTruthy();
+      expect(entry.submittedBy.id).toBe(user!.id);
+      expect(entry.submittedBy.email).toBeUndefined();
+    });
+  });
 });

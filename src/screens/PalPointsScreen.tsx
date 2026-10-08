@@ -135,18 +135,18 @@ export default function PalPointsScreen() {
   const mapTxIcon = (tx: WalletTransaction) => {
     const reason = (tx.reason || '').toLowerCase();
     if (tx.type === 'SPEND' || reason.includes('redeem') || reason.includes('claim')) {
-      return { icon: 'gift-outline' as const, color: '#DC2626', bg: '#FEF2F2', type: 'redeemed' as const, isPositive: false };
+      return { icon: 'gift-outline' as const, color: '#C94A4A', bg: '#FBEAEA', type: 'redeemed' as const, isPositive: false };
     }
     if (reason.includes('reel') || reason.includes('video')) {
-      return { icon: 'videocam-outline' as const, color: '#16A34A', bg: '#F0FDF4', type: 'earned' as const, isPositive: true };
+      return { icon: 'videocam-outline' as const, color: '#2E7D55', bg: '#F0FDF4', type: 'earned' as const, isPositive: true };
     }
     if (reason.includes('collaboration') || reason.includes('collab')) {
-      return { icon: 'hand-right-outline' as const, color: '#16A34A', bg: '#F0FDF4', type: 'earned' as const, isPositive: true };
+      return { icon: 'hand-right-outline' as const, color: '#2E7D55', bg: '#F0FDF4', type: 'earned' as const, isPositive: true };
     }
     if (tx.type === 'EARN' || tx.amount > 0) {
-      return { icon: 'star-outline' as const, color: '#16A34A', bg: '#F0FDF4', type: 'earned' as const, isPositive: true };
+      return { icon: 'star-outline' as const, color: '#2E7D55', bg: '#F0FDF4', type: 'earned' as const, isPositive: true };
     }
-    return { icon: 'remove-circle-outline' as const, color: '#DC2626', bg: '#FEF2F2', type: 'redeemed' as const, isPositive: false };
+    return { icon: 'remove-circle-outline' as const, color: '#C94A4A', bg: '#FBEAEA', type: 'redeemed' as const, isPositive: false };
   };
 
   const filteredTransactions = useMemo(() => {
@@ -303,7 +303,7 @@ export default function PalPointsScreen() {
                         </Text>
                       </View>
                       <View style={styles.txAmountWrap}>
-                        <Text style={[styles.txAmount, { color: meta.isPositive ? '#16A34A' : '#DC2626' }]}>
+                        <Text style={[styles.txAmount, { color: meta.isPositive ? '#2E7D55' : '#C94A4A' }]}>
                           {prefix}{amount}
                         </Text>
                         <Text style={styles.txAmountLabel}>PalPoints</Text>
@@ -360,13 +360,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 16,
     padding: 12,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#FBEAEA',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#FECACA',
   },
   errorText: {
-    color: '#DC2626',
+    color: '#C94A4A',
     fontSize: 14,
     textAlign: 'center',
   },

@@ -2,6 +2,8 @@ import { AuditAction } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { getPaginationParams, paginatedResponse } from '../../shared/utils/pagination';
 
+const AUDIT_ACTION_VALUES = Object.values(AuditAction) as string[];
+
 function csvSafe(val: unknown): string {
   const s = String(val ?? '');
   return s.length > 0 && /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
@@ -47,14 +49,23 @@ export const auditService = {
 
     if (query.entityType) where.entityType = query.entityType;
     if (query.entityId) where.entityId = query.entityId;
-    if (query.action) where.action = query.action;
+    if (query.action && AUDIT_ACTION_VALUES.includes(query.action)) {
+      where.action = query.action;
+    }
 
     if (query.search) {
-      where.OR = [
-        { entityType: { contains: query.search, mode: 'insensitive' } },
-        { entityId: { contains: query.search } },
-        { action: { contains: query.search, mode: 'insensitive' } },
+      const needle = query.search.trim();
+      const matchingActions = AUDIT_ACTION_VALUES.filter((action) =>
+        action.toLowerCase().includes(needle.toLowerCase()),
+      );
+      const or: any[] = [
+        { entityType: { contains: needle, mode: 'insensitive' } },
+        { entityId: { contains: needle } },
       ];
+      if (matchingActions.length > 0) {
+        or.push({ action: { in: matchingActions } });
+      }
+      where.OR = or;
     }
 
     if (query.from || query.to) {
@@ -112,7 +123,9 @@ export const auditService = {
   }) {
     const where: any = {};
     if (query.entityType) where.entityType = query.entityType;
-    if (query.action) where.action = query.action;
+    if (query.action && AUDIT_ACTION_VALUES.includes(query.action)) {
+      where.action = query.action;
+    }
     if (query.from || query.to) {
       where.createdAt = {};
       if (query.from) where.createdAt.gte = new Date(query.from);

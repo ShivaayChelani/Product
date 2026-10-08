@@ -28,7 +28,7 @@ const COLORS = {
   activeText: '#FFFFFF',
   inactiveBg: '#FFFFFF',
   inactiveText: '#202020',
-  inactiveBorder: '#ECE3D7',
+  inactiveBorder: '#D9E0DB',
 };
 
 function TabPill({ tab, active, onPress }: { tab: UITab; active: boolean; onPress: () => void }) {
@@ -89,7 +89,7 @@ export const NotificationFilterTabs = memo(NotificationFilterTabsComponent);
 const styles = StyleSheet.create({
   container: {
     flexGrow: 0,
-    backgroundColor: '#FCF9F4',
+    backgroundColor: '#F7F6F1',
   },
   scroll: {
     paddingHorizontal: 16,

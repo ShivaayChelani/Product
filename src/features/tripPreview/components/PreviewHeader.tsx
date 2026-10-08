@@ -13,11 +13,11 @@ export function PreviewHeader({ topInset, onBack, onShare }: Props) {
   return (
     <View style={[styles.wrap, { paddingTop: topInset + 10 }]}>
       <TouchableOpacity style={styles.backBtn} onPress={onBack} hitSlop={8}>
-        <Icon name="arrow-back" size={20} color="#1C1108" />
+        <Icon name="arrow-back" size={20} color="#1D2420" />
       </TouchableOpacity>
       <View style={styles.rightRow}>
         <TouchableOpacity style={styles.pillBtn} onPress={onShare} activeOpacity={0.8}>
-          <Icon name="share-outline" size={15} color="#1C1108" />
+          <Icon name="share-outline" size={15} color="#1D2420" />
           <Text style={styles.pillText}>Share</Text>
         </TouchableOpacity>
       </View>
@@ -32,22 +32,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 10,
-    backgroundColor: '#FAF8F4',
+    backgroundColor: '#F7F6F1',
   },
   backBtn: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1, borderColor: '#E8D5B7',
+    borderWidth: 1, borderColor: '#DDEBE3',
     alignItems: 'center', justifyContent: 'center',
   },
   rightRow: { flexDirection: 'row', gap: 10 },
   pillBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    borderWidth: 1, borderColor: '#E8D5B7', borderRadius: 20,
+    borderWidth: 1, borderColor: '#DDEBE3', borderRadius: 20,
     paddingHorizontal: 14, paddingVertical: 8,
     backgroundColor: '#FFFFFF',
   },
-  pillText: { fontFamily: SANS_SEMI, fontSize: 13, color: '#1C1108' },
+  pillText: { fontFamily: SANS_SEMI, fontSize: 13, color: '#1D2420' },
 });
 
 

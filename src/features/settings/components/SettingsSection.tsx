@@ -22,7 +22,7 @@ export type SettingsRowModel = {
 function SettingsRowInner({ item, isLast }: { item: SettingsRowModel; isLast: boolean }) {
   const pressable = !!item.onPress && !item.onSwitch;
   const iconColor = item.iconColor ?? T.primary;
-  const iconBg = item.iconBg ?? 'rgba(184,137,90,0.14)';
+  const iconBg = item.iconBg ?? 'rgba(183,121,31,0.14)';
 
   const body = (
     <View style={[styles.row, !isLast && styles.rowBorder]}>
@@ -43,7 +43,7 @@ function SettingsRowInner({ item, isLast }: { item: SettingsRowModel; isLast: bo
         <Switch
           value={item.switchValue}
           onValueChange={item.onSwitch}
-          trackColor={{ false: '#E8DFD4', true: T.secondary }}
+          trackColor={{ false: '#DDEBE3', true: T.secondary }}
           thumbColor={Platform.OS === 'android' ? T.card : undefined}
           disabled={item.loading}
         />

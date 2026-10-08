@@ -6,27 +6,28 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import type { TripPlan, TripPlanDay, TripPlanStop } from '../../../services/api/trips';
 import { SERIF, SANS, SANS_SEMI, SANS_BOLD } from '../theme';
+import { palette } from '../../../config/theme';
 
 const C = {
-  bg: '#FAF8F4',
-  card: '#FFFFFF',
-  accent: '#3E2005',
-  accentLight: '#F5E9D6',
-  accentBorder: '#E8D5B7',
-  gold: '#A87B3C',
-  text: '#1C1108',
-  textSub: '#7A6A55',
-  textMuted: '#B0A090',
-  pill: '#3E2005',
-  pillText: '#FFFFFF',
-  tabActive: '#3E2005',
-  tabActiveTxt: '#FFFFFF',
-  tabInactive: '#F0EAE0',
-  tabInactiveTxt: '#7A6A55',
-  starFill: '#F5A623',
-  lunchBg: '#FDF4E3',
-  summaryBg: '#F5EFE3',
-  timeline: '#E2D4BC',
+  bg: palette.background,
+  card: palette.surface,
+  accent: palette.primary,
+  accentLight: palette.primaryLight,
+  accentBorder: palette.border,
+  gold: palette.primary,
+  text: palette.text,
+  textSub: palette.textSecondary,
+  textMuted: palette.textSecondary,
+  pill: palette.primary,
+  pillText: palette.surface,
+  tabActive: palette.primary,
+  tabActiveTxt: palette.surface,
+  tabInactive: palette.background,
+  tabInactiveTxt: palette.textSecondary,
+  starFill: palette.primary,
+  lunchBg: palette.background,
+  summaryBg: palette.background,
+  timeline: palette.primaryLight,
 };
 
 function dayKm(stops: TripPlanStop[]): number {

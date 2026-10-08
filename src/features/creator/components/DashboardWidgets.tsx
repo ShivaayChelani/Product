@@ -4,14 +4,14 @@ import Icon from 'react-native-vector-icons/Ionicons';
 
 
 const COLORS = {
-  bg: '#FCF9F4', // Warm ivory
+  bg: '#F7F6F1', // Warm ivory
   card: '#FFFFFF',
   textPrimary: '#202020', // Charcoal
   textSecondary: '#6F6F6F',
-  gold: '#D9A441',
-  goldLight: '#FDF7EB',
+  gold: '#1F4D3A',
+  goldLight: '#F7F6F1',
   green: '#22C55E',
-  border: '#ECE3D7',
+  border: '#D9E0DB',
 };
 
 // ==========================================
@@ -85,14 +85,14 @@ const headerStyles = StyleSheet.create({
   logoText: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#8B6A3A',
+    color: '#B7791F',
     marginRight: 4,
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   logoBrand: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#A08051',
+    color: '#B7791F',
     letterSpacing: 1,
   },
   titleRow: {
@@ -252,7 +252,7 @@ export function QuickTool({ icon, label, onPress }: QuickToolProps) {
   return (
     <Pressable style={toolStyles.card} onPress={onPress}>
       <View style={toolStyles.iconWrap}>
-        <Icon name={icon} size={24} color="#8B6A3A" />
+        <Icon name={icon} size={24} color="#B7791F" />
       </View>
       <Text style={toolStyles.label}>{label}</Text>
     </Pressable>

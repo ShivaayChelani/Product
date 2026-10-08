@@ -37,12 +37,12 @@ function formatStatus(status: string): string {
 
 function statusColor(status: string): string {
   switch (status) {
-    case 'CAPTURED': return '#2E7D32';
-    case 'FREE': return '#2E7D32';
+    case 'CAPTURED': return '#2E7D55';
+    case 'FREE': return '#2E7D55';
     case 'FAILED': return '#C62828';
-    case 'REFUNDED': return '#E65100';
-    case 'PARTIALLY_REFUNDED': return '#E65100';
-    default: return '#8B7355';
+    case 'REFUNDED': return '#B7791F';
+    case 'PARTIALLY_REFUNDED': return '#B7791F';
+    default: return '#68756D';
   }
 }
 
@@ -123,14 +123,14 @@ export default function BillingHistoryScreen({ onBack }: { onBack?: () => void }
     <SafeAreaView style={[styles.safe, { paddingTop: Math.max(insets.top, 16) }]} edges={['left', 'right']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.iconBtn}>
-          <Icon name="chevron-back" size={22} color="#63300E" />
+          <Icon name="chevron-back" size={22} color="#16392B" />
         </TouchableOpacity>
         <Text style={styles.title}>Billing history</Text>
         <View style={styles.iconBtn} />
       </View>
 
       {loading ? (
-        <View style={styles.center}><ActivityIndicator color="#B9834B" /></View>
+        <View style={styles.center}><ActivityIndicator color="#1F4D3A" /></View>
       ) : error ? (
         <View style={styles.center}>
           <Text style={styles.muted}>{error}</Text>
@@ -169,7 +169,7 @@ export default function BillingHistoryScreen({ onBack }: { onBack?: () => void }
                 </View>
                 {hasInvoice ? (
                   <TouchableOpacity style={styles.link} onPress={() => openInvoice(item)}>
-                    <Icon name="download-outline" size={16} color="#B9834B" />
+                    <Icon name="download-outline" size={16} color="#1F4D3A" />
                     <Text style={styles.linkText}>GST invoice PDF · {item.invoice?.invoiceNumber}</Text>
                   </TouchableOpacity>
                 ) : (
@@ -185,26 +185,26 @@ export default function BillingHistoryScreen({ onBack }: { onBack?: () => void }
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FDFAF5' },
+  safe: { flex: 1, backgroundColor: '#F7F6F1' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10 },
   iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  title: { flex: 1, textAlign: 'center', fontWeight: '800', fontSize: 17, color: '#63300E' },
+  title: { flex: 1, textAlign: 'center', fontWeight: '800', fontSize: 17, color: '#16392B' },
   list: { padding: 16, gap: 10 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
   card: {
     backgroundColor: '#fff',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E9D4BE',
+    borderColor: '#D9E0DB',
     padding: 14,
     marginBottom: 10,
     gap: 8,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   statusRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  name: { fontWeight: '800', color: '#63300E', flex: 1, marginRight: 8, fontSize: 14 },
-  amount: { fontWeight: '900', color: '#B9834B', fontSize: 15 },
-  muted: { fontSize: 12, color: '#8B7355' },
+  name: { fontWeight: '800', color: '#16392B', flex: 1, marginRight: 8, fontSize: 14 },
+  amount: { fontWeight: '900', color: '#1F4D3A', fontSize: 15 },
+  muted: { fontSize: 12, color: '#68756D' },
   badge: {
     borderRadius: 20,
     borderWidth: 1,
@@ -213,8 +213,8 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontSize: 11, fontWeight: '700' },
   link: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
-  linkText: { color: '#B9834B', fontWeight: '700', fontSize: 12 },
-  noInvoice: { fontSize: 12, color: '#B8895A', fontStyle: 'italic' },
-  btn: { backgroundColor: '#B9834B', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10 },
+  linkText: { color: '#1F4D3A', fontWeight: '700', fontSize: 12 },
+  noInvoice: { fontSize: 12, color: '#68756D', fontStyle: 'italic' },
+  btn: { backgroundColor: '#1F4D3A', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10 },
   btnText: { color: '#fff', fontWeight: '800' },
 });

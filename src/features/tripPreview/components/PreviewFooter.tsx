@@ -37,13 +37,13 @@ export function PreviewFooter({ bottomInset, saving, onSaveDraft, onSaveTrip, on
 
 const styles = StyleSheet.create({
   wrap: {
-    backgroundColor: '#FAF8F4',
+    backgroundColor: '#F7F6F1',
     paddingHorizontal: 16,
     paddingTop: 10,
   },
   bar: {
     flexDirection: 'row',
-    backgroundColor: '#3E2005',
+    backgroundColor: '#1D2420',
     borderRadius: 18,
     overflow: 'hidden',
     height: 54,

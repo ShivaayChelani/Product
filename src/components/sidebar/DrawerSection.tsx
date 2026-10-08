@@ -33,14 +33,14 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: SANS_BOLD,
     fontSize: 11,
-    color: '#63300E',
+    color: '#16392B',
     textTransform: 'uppercase',
     letterSpacing: 1.5,
   },
   line: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E8DDD0',
+    backgroundColor: '#D9E0DB',
   },
   items: {
     paddingTop: 2,

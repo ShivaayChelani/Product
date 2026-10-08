@@ -14,8 +14,8 @@ type Props = {
 };
 
 const COLORS = {
-  bg: '#FCF9F4',
-  gold: '#D9A441',
+  bg: '#F7F6F1',
+  gold: '#1F4D3A',
   textPrimary: '#202020',
   textSecondary: '#6F6F6F',
   headerBlack: '#111111',

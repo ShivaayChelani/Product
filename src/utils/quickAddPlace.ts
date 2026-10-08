@@ -12,7 +12,7 @@ import {
 } from './destination';
 import { isCityMismatchError } from './tripNavigation';
 import { invalidateMyTripsList } from '../features/myTrips/myTripsCache';
-import { flattenTripPlaceIds, getActiveItineraryPlaceIds } from './resumeTrip';
+import { flattenTripPlaceIds, flattenTripEventIds, getActiveItineraryPlaceIds, getActiveItineraryEventIds } from './resumeTrip';
 import { parseJsonObject } from './safeJson';
 
 /** Offline map pins whose ids differ from the server seed. */
@@ -77,6 +77,23 @@ export async function loadItineraryPlaceIdSet(
   if (ids.size === 0) {
     try {
       for (const id of await getActiveItineraryPlaceIds()) ids.add(id);
+    } catch {
+      /* non-blocking */
+    }
+  }
+  return ids;
+}
+
+/** Event ids from the draft snapshot plus the trip the user is editing. */
+export async function loadItineraryEventIdSet(
+  currentItinerary?: string[],
+): Promise<Set<string>> {
+  const ids = new Set<string>(currentItinerary || []);
+  const snapshot = await loadDraftSnapshot();
+  for (const id of flattenTripEventIds(snapshot)) ids.add(id);
+  if (ids.size === 0) {
+    try {
+      for (const id of await getActiveItineraryEventIds()) ids.add(id);
     } catch {
       /* non-blocking */
     }
@@ -282,6 +299,29 @@ export async function quickAddPlaceToTrip(
   }
 
   throw lastError;
+}
+
+/**
+ * Add a Community Event stop to the current draft trip. Same server endpoint
+ * as `quickAddPlaceToTrip`, but anchored by `eventId` (the server rejects a
+ * payload carrying both anchors), and the post-add cache/draft bookkeeping is
+ * shared so TripBuilder sees the new stop immediately.
+ */
+export async function quickAddEventToTrip(
+  eventId: string,
+  options?: { city?: string; tripId?: string },
+) {
+  if (!eventId) throw new Error('eventId is required');
+  try {
+    const result = await tripsApi.quickAddEvent(eventId, options?.tripId);
+    return await persistQuickAddResult(result, options?.city);
+  } catch (err) {
+    if (options?.tripId && isCityMismatchError(err)) {
+      const result = await tripsApi.quickAddEvent(eventId);
+      return await persistQuickAddResult(result, options?.city);
+    }
+    throw err;
+  }
 }
 
 export function countTripStops(trip: TripPlan | null | undefined): number {

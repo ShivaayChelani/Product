@@ -58,7 +58,7 @@ function CreatorTabBar({ state, navigation }: BottomTabBarProps) {
             >
               <Icon 
                 name={focused ? item.active : item.icon} 
-                color={focused ? '#D9A441' : '#A3A3A3'} 
+                color={focused ? '#1F4D3A' : '#A3A3A3'} 
                 size={22} 
               />
               <Text style={[styles.tabLabel, focused && styles.tabLabelActive]} numberOfLines={1}>
@@ -129,13 +129,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tabLabelActive: {
-    color: '#D9A441', // Muted gold accent
+    color: '#1F4D3A', // Muted gold accent
   },
   activeDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#D9A441',
+    backgroundColor: '#1F4D3A',
     position: 'absolute',
     bottom: 6,
   },
@@ -149,11 +149,11 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#D9A441',
+    backgroundColor: '#1F4D3A',
     alignItems: 'center',
     justifyContent: 'center',
     top: -16, // Float above the bar
-    shadowColor: '#D9A441',
+    shadowColor: '#1F4D3A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,

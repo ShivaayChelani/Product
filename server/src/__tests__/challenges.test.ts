@@ -3,6 +3,7 @@ import app from '../app';
 import { getAuthToken } from './helpers/auth';
 import { prisma } from '../config/database';
 import { ChallengeStatus } from '@prisma/client';
+import { testRunId } from './helpers/testRunId';
 
 describe('Challenges API', () => {
   let userToken: string;
@@ -181,6 +182,87 @@ describe('Challenges API', () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(Array.isArray(res.body.data)).toBe(true);
+    });
+  });
+
+  describe('Public exposure of creator PII and unmoderated content (regression)', () => {
+    let pendingId: string;
+    let approvedId: string;
+
+    beforeAll(async () => {
+      const base = {
+        description:
+          'Regression fixture for public challenge detail privacy and moderation gating.',
+        difficulty: 'EASY' as const,
+        category: 'PrivacyRegression',
+        proofRequired: 'PHOTO' as const,
+        creatorId: userId,
+      };
+      const pending = await prisma.challenge.create({
+        data: { ...base, title: `Pending Privacy Probe ${testRunId}`, status: ChallengeStatus.PENDING },
+      });
+      const approved = await prisma.challenge.create({
+        data: { ...base, title: `Approved Privacy Probe ${testRunId}`, status: ChallengeStatus.APPROVED },
+      });
+      pendingId = pending.id;
+      approvedId = approved.id;
+    });
+
+    afterAll(async () => {
+      await prisma.challenge.deleteMany({ where: { id: { in: [pendingId, approvedId] } } });
+    });
+
+    it('never returns creator email from the public list endpoint', async () => {
+      const res = await request(app)
+        .get('/api/v1/challenges')
+        .query({ category: 'PrivacyRegression' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.length).toBeGreaterThan(0);
+      for (const item of res.body.data) {
+        expect(item.creator).toBeDefined();
+        expect(item.creator.email).toBeUndefined();
+      }
+    });
+
+    it('never returns creator email from the public detail endpoint', async () => {
+      const res = await request(app).get(`/api/v1/challenges/${approvedId}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.creator.email).toBeUndefined();
+      expect(res.body.data.creator.id).toBe(userId);
+    });
+
+    it('hides a PENDING challenge from anonymous detail reads', async () => {
+      const res = await request(app).get(`/api/v1/challenges/${pendingId}`);
+      expect(res.status).toBe(404);
+    });
+
+    it('hides a PENDING challenge from a different authenticated user', async () => {
+      const otherToken = await getAuthToken('CONTENT_CREATOR');
+      const res = await request(app)
+        .get(`/api/v1/challenges/${pendingId}`)
+        .set('Authorization', `Bearer ${otherToken}`);
+
+      expect(res.status).toBe(404);
+    });
+
+    it('still lets the creator read their own PENDING challenge', async () => {
+      const res = await request(app)
+        .get(`/api/v1/challenges/${pendingId}`)
+        .set('Authorization', `Bearer ${userToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.status).toBe('PENDING');
+    });
+
+    it('still lets an admin read a PENDING challenge', async () => {
+      const res = await request(app)
+        .get(`/api/v1/challenges/${pendingId}`)
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.status).toBe('PENDING');
     });
   });
 });

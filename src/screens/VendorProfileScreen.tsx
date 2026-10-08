@@ -735,7 +735,7 @@ export default function VendorProfileScreen({
                         </Text>
                         <View style={{ flexDirection: 'row', gap: 2, marginTop: 2 }}>
                           {[1, 2, 3, 4, 5].map((s) => (
-                            <Icon key={s} name="star" size={12} color={s <= item.rating ? '#FFB300' : '#E0E0E0'} />
+                            <Icon key={s} name="star" size={12} color={s <= item.rating ? '#B7791F' : '#E0E0E0'} />
                           ))}
                         </View>
                       </View>
@@ -1040,7 +1040,7 @@ export default function VendorProfileScreen({
                   <Icon
                     name={ratingInput != null && val <= ratingInput ? 'star' : 'star-outline'}
                     size={34}
-                    color={ratingInput != null && val <= ratingInput ? '#FFB300' : Pal.colors.light.textMuted}
+                    color={ratingInput != null && val <= ratingInput ? '#B7791F' : Pal.colors.light.textMuted}
                   />
                 </TouchableOpacity>
               ))}
@@ -1113,7 +1113,7 @@ const styles = StyleSheet.create({
   coverEmoji: { fontSize: 64 },
   coverScrim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(44, 24, 16, 0.18)',
+    backgroundColor: 'rgba(29, 36, 32, 0.18)',
   },
   coverActions: {
     position: 'absolute',
@@ -1165,7 +1165,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: 'rgba(185, 131, 75, 0.35)',
+    shadowColor: 'rgba(183, 121, 31, 0.35)',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 8,
@@ -1210,7 +1210,7 @@ const styles = StyleSheet.create({
     padding: Pal.spacing[4],
     borderWidth: 1,
     borderColor: Pal.colors.light.border,
-    shadowColor: 'rgba(185, 131, 75, 0.12)',
+    shadowColor: 'rgba(183, 121, 31, 0.12)',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 8,
@@ -1244,7 +1244,7 @@ const styles = StyleSheet.create({
   pendingHint: {
     marginTop: 8,
     fontSize: 12,
-    color: '#FF9F1C',
+    color: '#B7791F',
     fontFamily: Pal.typography.fontFamily.medium,
     textAlign: 'center',
   },

@@ -12,7 +12,6 @@ import { buildEventShareMessage } from './shareLinks';
  */
 export async function shareEvent(event: {
   id: string;
-  slug?: string | null;
   status?: string | null;
   title?: string | null;
 }): Promise<'unavailable' | 'cancelled' | 'shared'> {

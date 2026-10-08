@@ -38,17 +38,17 @@ const RETRY_DELAY_MS = 2000;
 type ScreenState = 'loading' | 'success' | 'error' | 'unauthenticated';
 
 const COLORS = {
-  cream: '#F5EFE6',
-  creamPanel: '#EDE4D8',
-  gold: '#C5A059',
-  goldDark: '#A67C3D',
-  brown: '#4B3621',
-  brownDark: '#3E2723',
-  text: '#2D1B0B',
-  textSecondary: '#8B7355',
-  textMuted: '#A89478',
-  checkBg: '#5C4228',
-  track: '#DDD2C4',
+  cream: '#F7F6F1',
+  creamPanel: '#D9E0DB',
+  gold: '#B7791F',
+  goldDark: '#B7791F',
+  brown: '#1D2420',
+  brownDark: '#1D2420',
+  text: '#1D2420',
+  textSecondary: '#68756D',
+  textMuted: '#68756D',
+  checkBg: '#16392B',
+  track: '#DDEBE3',
   card: '#FFFFFF',
 };
 
@@ -381,7 +381,7 @@ export default function GenerateLoadingScreen({ route: propRoute }: { navigation
         <View style={styles.progressTrack}>
           <Animated.View style={[styles.progressFillWrap, { width: progressWidth }]}>
             <LinearGradient
-              colors={['#4B3621', '#8B6914', '#C5A059']}
+              colors={['#1D2420', '#B7791F', '#B7791F']}
               start={{ x: 0, y: 0.5 }}
               end={{ x: 1, y: 0.5 }}
               style={styles.progressFill}
@@ -402,9 +402,9 @@ export default function GenerateLoadingScreen({ route: propRoute }: { navigation
         <Switch
           value={notifyEnabled}
           onValueChange={setNotifyEnabled}
-          trackColor={{ false: '#D9CFC0', true: '#8B6914' }}
+          trackColor={{ false: '#D9E0DB', true: '#B7791F' }}
           thumbColor="#FFF"
-          ios_backgroundColor="#D9CFC0"
+          ios_backgroundColor="#D9E0DB"
         />
       </View>
 
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(232,223,208,0.95)',
+    borderColor: 'rgba(221,235,227,0.95)',
     zIndex: 20,
   },
   scroll: {
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(221,210,196,0.85)',
+    borderColor: 'rgba(221,235,227,0.85)',
   },
   taskCard: {
     flexDirection: 'row',
@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 10,
-    shadowColor: '#2D1B0B',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
@@ -684,7 +684,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginBottom: 12,
     gap: 10,
-    shadowColor: '#2D1B0B',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -721,7 +721,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     gap: 8,
     marginBottom: 4,
-    shadowColor: '#2D1B0B',
+    shadowColor: '#1D2420',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.18,
     shadowRadius: 6,

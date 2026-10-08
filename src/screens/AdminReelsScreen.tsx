@@ -149,7 +149,7 @@ export default function AdminReelsScreen({ onBack }: AdminReelsScreenProps) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+      <StatusBar barStyle="light-content" backgroundColor="#1D2420" />
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
         <TouchableOpacity onPress={onBack} hitSlop={8}>
           <MaterialIcons name="arrow-back" size={24} color="#FFF" />
@@ -162,18 +162,18 @@ export default function AdminReelsScreen({ onBack }: AdminReelsScreenProps) {
 
       {/* Search bar */}
       <View style={styles.searchRow}>
-        <Icon name="search-outline" size={18} color="#94A3B8" style={{ marginRight: 8 }} />
+        <Icon name="search-outline" size={18} color="#68756D" style={{ marginRight: 8 }} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search by title, creator…"
-          placeholderTextColor="#64748B"
+          placeholderTextColor="#68756D"
           value={searchQuery}
           onChangeText={handleSearch}
           returnKeyType="search"
         />
         {searchQuery.length > 0 ? (
           <TouchableOpacity onPress={() => handleSearch('')} hitSlop={8}>
-            <Icon name="close-circle" size={18} color="#64748B" />
+            <Icon name="close-circle" size={18} color="#68756D" />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -181,7 +181,7 @@ export default function AdminReelsScreen({ onBack }: AdminReelsScreenProps) {
       <ScrollView
         style={styles.content}
         contentContainerStyle={{ paddingBottom: contentPadBottom }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#B9834B']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1F4D3A']} />}
         onScrollEndDrag={({ nativeEvent }) => {
           const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
           if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 80) {
@@ -191,14 +191,14 @@ export default function AdminReelsScreen({ onBack }: AdminReelsScreenProps) {
       >
         {loading && (
           <View style={styles.loader}>
-            <ActivityIndicator color="#B9834B" size="large" />
+            <ActivityIndicator color="#1F4D3A" size="large" />
             <Text style={styles.loaderText}>Loading reels…</Text>
           </View>
         )}
 
         {!loading && reels.length === 0 ? (
           <View style={styles.empty}>
-            <Icon name="videocam-outline" size={56} color="#334155" />
+            <Icon name="videocam-outline" size={56} color="#68756D" />
             <Text style={styles.emptyTitle}>No reels found</Text>
             <Text style={styles.emptySub}>
               {searchQuery ? `No results for "${searchQuery}"` : 'No reels have been uploaded yet.'}
@@ -214,7 +214,7 @@ export default function AdminReelsScreen({ onBack }: AdminReelsScreenProps) {
                 <Image source={{ uri: reel.thumbnail }} style={styles.thumb} resizeMode="cover" />
               ) : (
                 <View style={[styles.thumb, styles.thumbFallback]}>
-                  <Icon name="play-circle-outline" size={32} color="#475569" />
+                  <Icon name="play-circle-outline" size={32} color="#68756D" />
                 </View>
               )}
               {reel.isFeatured ? (
@@ -248,15 +248,15 @@ export default function AdminReelsScreen({ onBack }: AdminReelsScreenProps) {
 
               <View style={styles.statsRow}>
                 <View style={styles.statChip}>
-                  <Icon name="eye-outline" size={11} color="#94A3B8" />
+                  <Icon name="eye-outline" size={11} color="#68756D" />
                   <Text style={styles.statText}>{(reel.viewCount || 0).toLocaleString('en-IN')}</Text>
                 </View>
                 <View style={styles.statChip}>
-                  <Icon name="heart-outline" size={11} color="#94A3B8" />
+                  <Icon name="heart-outline" size={11} color="#68756D" />
                   <Text style={styles.statText}>{(reel._count?.likes || 0).toLocaleString('en-IN')}</Text>
                 </View>
                 <View style={styles.statChip}>
-                  <Icon name="chatbubble-outline" size={11} color="#94A3B8" />
+                  <Icon name="chatbubble-outline" size={11} color="#68756D" />
                   <Text style={styles.statText}>{(reel._count?.comments || 0).toLocaleString('en-IN')}</Text>
                 </View>
               </View>
@@ -322,22 +322,22 @@ export default function AdminReelsScreen({ onBack }: AdminReelsScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F172A' },
+  container: { flex: 1, backgroundColor: '#1D2420' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingBottom: 14,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#1D2420',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.06)',
   },
   title: { fontSize: 17, fontWeight: '800', color: '#FFF' },
-  subtitle: { fontSize: 11, color: '#64748B', marginTop: 1 },
+  subtitle: { fontSize: 11, color: '#68756D', marginTop: 1 },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#1D2420',
     marginHorizontal: 16,
     marginVertical: 10,
     paddingHorizontal: 14,
@@ -349,17 +349,17 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#E2E8F0',
+    color: '#D9E0DB',
   },
   content: { flex: 1, paddingHorizontal: 16 },
   loader: { alignItems: 'center', paddingVertical: 48, gap: 12 },
-  loaderText: { color: '#64748B', fontSize: 14 },
+  loaderText: { color: '#68756D', fontSize: 14 },
   empty: { alignItems: 'center', paddingVertical: 60, gap: 10 },
-  emptyTitle: { color: '#E2E8F0', fontSize: 16, fontWeight: '700' },
-  emptySub: { color: '#64748B', fontSize: 13, textAlign: 'center', maxWidth: 260 },
+  emptyTitle: { color: '#D9E0DB', fontSize: 16, fontWeight: '700' },
+  emptySub: { color: '#68756D', fontSize: 13, textAlign: 'center', maxWidth: 260 },
   reelCard: {
     flexDirection: 'row',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#1D2420',
     borderRadius: 16,
     marginBottom: 12,
     overflow: 'hidden',
@@ -368,12 +368,12 @@ const styles = StyleSheet.create({
   },
   thumbWrap: { width: 100, position: 'relative' },
   thumb: { width: 100, height: '100%', minHeight: 130 },
-  thumbFallback: { backgroundColor: '#0F172A', justifyContent: 'center', alignItems: 'center' },
+  thumbFallback: { backgroundColor: '#1D2420', justifyContent: 'center', alignItems: 'center' },
   featuredBadge: {
     position: 'absolute',
     top: 8,
     left: 4,
-    backgroundColor: '#D97706',
+    backgroundColor: '#B7791F',
     borderRadius: 8,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -383,17 +383,17 @@ const styles = StyleSheet.create({
   },
   featuredText: { color: '#FFF', fontSize: 9, fontWeight: '800' },
   reelInfo: { flex: 1, padding: 12, gap: 6 },
-  reelTitle: { color: '#F1F5F9', fontSize: 13, fontWeight: '700', lineHeight: 18 },
+  reelTitle: { color: '#F7F6F1', fontSize: 13, fontWeight: '700', lineHeight: 18 },
   creatorRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   avatarSmall: { width: 20, height: 20, borderRadius: 10 },
-  avatarFallback: { backgroundColor: '#334155', justifyContent: 'center', alignItems: 'center' },
-  avatarLetter: { color: '#94A3B8', fontSize: 10, fontWeight: '800' },
-  creatorName: { color: '#B9834B', fontSize: 12, fontWeight: '600', flex: 1 },
+  avatarFallback: { backgroundColor: '#68756D', justifyContent: 'center', alignItems: 'center' },
+  avatarLetter: { color: '#68756D', fontSize: 10, fontWeight: '800' },
+  creatorName: { color: '#1F4D3A', fontSize: 12, fontWeight: '600', flex: 1 },
   statsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   statChip: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  statText: { color: '#94A3B8', fontSize: 11 },
-  placeName: { color: '#64748B', fontSize: 11 },
-  dateText: { color: '#475569', fontSize: 10 },
+  statText: { color: '#68756D', fontSize: 11 },
+  placeName: { color: '#68756D', fontSize: 11 },
+  dateText: { color: '#68756D', fontSize: 10 },
   actionRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
   actionBtn: {
     flexDirection: 'row',
@@ -405,18 +405,18 @@ const styles = StyleSheet.create({
     minWidth: 72,
     justifyContent: 'center',
   },
-  featureBtn: { backgroundColor: '#D97706' },
-  unfeaturedBtn: { backgroundColor: '#475569' },
-  deleteBtn: { backgroundColor: '#DC2626' },
+  featureBtn: { backgroundColor: '#B7791F' },
+  unfeaturedBtn: { backgroundColor: '#68756D' },
+  deleteBtn: { backgroundColor: '#C94A4A' },
   actionBtnText: { color: '#FFF', fontSize: 11, fontWeight: '800' },
   loadMoreBtn: {
     alignItems: 'center',
     paddingVertical: 14,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#1D2420',
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
-  loadMoreText: { color: '#B9834B', fontSize: 13, fontWeight: '700' },
+  loadMoreText: { color: '#1F4D3A', fontSize: 13, fontWeight: '700' },
 });

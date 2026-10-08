@@ -1,14 +1,15 @@
+import { palette } from '../../config/theme';
 export const TravellerProfileTheme = {
-  bg: '#FFFFFF',
-  card: '#FFFFFF',
-  primary: '#6E4424',
-  secondary: '#B8895A',
-  border: '#ECE3D8',
-  text: '#2D241D',
-  textSecondary: '#7A7068',
+  bg: palette.surface,
+  card: palette.surface,
+  primary: palette.primary,
+  secondary: palette.textSecondary,
+  border: palette.border,
+  text: palette.text,
+  textSecondary: palette.textSecondary,
   radius: 28,
   shadow: {
-    shadowColor: '#2D241D',
+    shadowColor: palette.text,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
     shadowRadius: 16,

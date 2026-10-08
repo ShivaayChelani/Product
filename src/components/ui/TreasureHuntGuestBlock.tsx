@@ -6,7 +6,7 @@ import { TH, SANS, SANS_BOLD, SANS_SEMI } from '../../features/treasureHunt/them
 export function TreasureHuntGuestBlock() {
   return (
     <View style={styles.container}>
-      <Icon name="lock-closed-outline" size={64} color="#B9834B" />
+      <Icon name="lock-closed-outline" size={64} color="#1F4D3A" />
       <Text style={styles.title}>Authentication Required</Text>
       <Text style={styles.msg}>Please sign in or create an account to play Treasure Hunt and earn rewards.</Text>
     </View>

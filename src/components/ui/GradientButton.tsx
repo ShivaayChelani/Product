@@ -18,12 +18,12 @@ interface GradientButtonProps {
 import { scale, verticalScale, fontScale } from '../../design/responsive';
 
 const variantMap: Record<string, { colors: string[]; textColor: string }> = {
-  primary: { colors: ['#63300E', '#8B6B3A'], textColor: '#FFFFFF' },
-  secondary: { colors: ['#B9834B', '#D4A87A'], textColor: '#FFFFFF' },
-  accent: { colors: ['#B9834B', '#D4A87A'], textColor: '#FFFFFF' },
-  danger: { colors: ['#FF5A5F', '#FF7B7F'], textColor: '#FFFFFF' },
-  outline: { colors: ['transparent', 'transparent'], textColor: '#B9834B' },
-  ghost: { colors: ['transparent', 'transparent'], textColor: '#8B7355' },
+  primary: { colors: ['#16392B', '#68756D'], textColor: '#FFFFFF' },
+  secondary: { colors: ['#1F4D3A', '#DDEBE3'], textColor: '#FFFFFF' },
+  accent: { colors: ['#1F4D3A', '#DDEBE3'], textColor: '#FFFFFF' },
+  danger: { colors: ['#C94A4A', '#FF7B7F'], textColor: '#FFFFFF' },
+  outline: { colors: ['transparent', 'transparent'], textColor: '#1F4D3A' },
+  ghost: { colors: ['transparent', 'transparent'], textColor: '#68756D' },
 };
 
 const sizeMap: Record<string, { height: number; paddingHorizontal: number; fontSize: number }> = {

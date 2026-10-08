@@ -42,8 +42,8 @@ const COLORS = {
   card: '#FFFFFF',
   textPrimary: '#202020',
   textSecondary: '#6F6F6F',
-  gold: '#D9A441',
-  border: '#ECE3D7',
+  gold: '#1F4D3A',
+  border: '#D9E0DB',
 };
 
 type Period = '7d' | '30d' | '90d';
@@ -427,11 +427,11 @@ const styles = StyleSheet.create({
   heroBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#C58D33', // Adjusted gold for button
+    backgroundColor: '#B7791F', // Adjusted gold for button
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
-    shadowColor: '#C58D33',
+    shadowColor: '#B7791F',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
   viewAllText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#8B6A3A',
+    color: '#B7791F',
     marginRight: 4,
   },
   filterRow: {
@@ -487,8 +487,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   filterPillActive: {
-    backgroundColor: '#8B6A3A',
-    borderColor: '#8B6A3A',
+    backgroundColor: '#B7791F',
+    borderColor: '#B7791F',
   },
   filterText: {
     fontSize: 12,
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: 'rgba(236,227,215,0.4)',
+    borderColor: 'rgba(221,235,227,0.4)',
     paddingVertical: 16,
     marginBottom: 16,
   },

@@ -45,7 +45,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:password@localhost:5432/ci_build
           DIRECT_URL: postgresql://postgres:password@localhost:5432/ci_build
           JWT_SECRET: ci-build-jwt-secret-minimum-32-characters-minimum
-          CLIENT_URL: https://admin.palsafar.com
+          CLIENT_URL: https://admin.palsafar.in
           SMTP_HOST: smtp-relay.brevo.com
           SMTP_USER: ci@example.com
           SMTP_PASS: ci-smtp-pass

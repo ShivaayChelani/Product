@@ -130,6 +130,13 @@ export async function getOSRMRoute(
   if (cached && cached.expiresAt > Date.now()) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { expiresAt: _exp, ...result } = cached;
+    console.info('[OSRM] route result', {
+      httpStatus: 'cached',
+      success: true,
+      geometryPointCount: result.geometry.length,
+      distanceMeters: result.distanceMeters,
+      durationSeconds: result.durationSeconds,
+    });
     return result as RouteResult;
   }
 
@@ -148,30 +155,66 @@ export async function getOSRMRoute(
       headers: { Accept: 'application/json' },
     });
     if (!res.ok) {
+      console.info('[OSRM] route result', {
+        httpStatus: res.status,
+        success: false,
+        reason: 'http_error',
+      });
       return null;
     }
 
     const json = await res.json();
-    if (!json || !json.route && !json.routes) {
+    const route = json?.route ?? json?.routes?.[0];
+    if (!route) {
+      console.info('[OSRM] route result', {
+        httpStatus: res.status,
+        success: false,
+        reason: 'no_route',
+        responseCode: typeof json?.code === 'string' ? json.code : null,
+      });
       return null;
     }
 
-    let route;
-    if (json.route) {
-      route = json.route;
-    } else {
-      route = json.routes[0];
-    }
     const distanceMeters = Number(route.distance);
     const durationSeconds = Number(route.duration);
-    const geometry: [number, number][] = route.geometry?.coordinates ?? [];
+    const rawCoordinates: unknown = route.geometry?.coordinates;
+    const geometry: [number, number][] = [];
+    if (Array.isArray(rawCoordinates)) {
+      for (const point of rawCoordinates) {
+        if (
+          !Array.isArray(point) ||
+          point.length < 2 ||
+          typeof point[0] !== 'number' ||
+          typeof point[1] !== 'number' ||
+          !Number.isFinite(point[0]) ||
+          !Number.isFinite(point[1]) ||
+          Math.abs(point[0]) > 180 ||
+          Math.abs(point[1]) > 90
+        ) {
+          console.info('[OSRM] route result', {
+            httpStatus: res.status,
+            success: false,
+            reason: 'invalid_geometry',
+          });
+          return null;
+        }
+        geometry.push([point[0], point[1]]);
+      }
+    }
 
     if (
       !Number.isFinite(distanceMeters) ||
       distanceMeters <= 0 ||
       !Number.isFinite(durationSeconds) ||
-      durationSeconds <= 0
+      durationSeconds <= 0 ||
+      geometry.length < 2
     ) {
+      console.info('[OSRM] route result', {
+        httpStatus: res.status,
+        success: false,
+        reason: geometry.length < 2 ? 'missing_geometry' : 'invalid_metrics',
+        geometryPointCount: geometry.length,
+      });
       return null;
     }
 
@@ -183,11 +226,23 @@ export async function getOSRMRoute(
       source: 'routing',
     };
 
+    console.info('[OSRM] route result', {
+      httpStatus: res.status,
+      success: true,
+      geometryPointCount: geometry.length,
+      distanceMeters,
+      durationSeconds,
+    });
+
     // Cache with short TTL — retry routing sooner if conditions change
     routeCache.set(cacheKey, { ...result, expiresAt: Date.now() + CACHE_TTL_MS });
     return result;
-  } catch (err) {
-    if (__DEV__) console.warn('[OSRM] fetch failed', err);
+  } catch {
+    console.info('[OSRM] route result', {
+      httpStatus: null,
+      success: false,
+      reason: 'request_failed',
+    });
     return null;
   }
 }

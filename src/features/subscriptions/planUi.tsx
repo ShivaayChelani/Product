@@ -87,7 +87,7 @@ export function PlanFeatureList({ bullets }: { bullets: string[] }) {
     <View style={styles.featureList}>
       {bullets.map((h) => (
         <View key={h} style={styles.featureRow}>
-          <Icon name="checkmark-circle" size={16} color="#B9834B" />
+          <Icon name="checkmark-circle" size={16} color="#1F4D3A" />
           <Text style={styles.featureText}>{h}</Text>
         </View>
       ))}
@@ -112,14 +112,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E9D4BE',
+    borderColor: '#D9E0DB',
     marginRight: 8,
     backgroundColor: '#fff',
   },
-  periodChipActive: { backgroundColor: '#63300E', borderColor: '#63300E' },
-  periodChipText: { fontSize: 12, fontWeight: '700', color: '#8B7355' },
+  periodChipActive: { backgroundColor: '#16392B', borderColor: '#16392B' },
+  periodChipText: { fontSize: 12, fontWeight: '700', color: '#68756D' },
   periodChipTextActive: { color: '#FFFFFF' },
   featureList: { gap: 6, marginTop: 4 },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  featureText: { fontSize: 13, color: '#4D3227', flex: 1 },
+  featureText: { fontSize: 13, color: '#1D2420', flex: 1 },
 });

@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useQueryClient } from '@tanstack/react-query';
 import { RootStackParamList } from '../navigation/types';
 import { TouristSpot, UserPosition, UserActiveMode } from '../types';
 import { resolveTripResume, TripResumeTarget } from '../utils/resumeTrip';
@@ -19,7 +20,12 @@ import { DEV_FLAGS } from '../config/devFlags';
 import HomeSidebar from '../components/HomeSidebar';
 import { loadWishlistIds, toggleWishlistId } from '../utils/homeWishlist';
 import { refreshUnreadBadgeCount } from '../services/notificationService';
-import { getMainTabBarClearance } from '../design/tabBarLayout';
+import {
+  BOTTOM_NAV_BOTTOM_GAP,
+  BOTTOM_NAV_CONTENT_GAP,
+  BOTTOM_NAV_FAB_OVERHANG,
+  BOTTOM_NAV_HEIGHT,
+} from '../components/navigation/BottomNavigation';
 import { useResponsive, scale, verticalScale, fontScale, radiusScale } from '../design/responsive';
 import { getLuxuryTheme } from '../design/luxuryTravel';
 import {
@@ -42,17 +48,18 @@ import { walletApi } from '../services/api';
 import { hasValidImageUrl } from '../utils/imageUrl';
 import { buildNearbyVendorOffers } from '../utils/homeVendorOffers';
 import { HomeEventsStrip } from '../features/events/HomeEventsStrip';
+import { eventKeys } from '../features/events/queryKeys';
 
 const TRAVELER_BANNER = require('../assets/traveler_banner.jpg');
 const MAP_BANNER = require('../assets/map_banner.jpg');
 
-/** Home accents — warm brown/cream, no yellow/gold. */
+/** Home accents — black, white, and warm neutrals. */
 const HOME = {
-  accent: '#63300E',
-  accentSoft: 'rgba(99, 48, 14, 0.12)',
-  iconOnDark: '#E5D5C5',
-  iconMuted: '#8B7355',
-  cream: '#E5D5C5',
+  accent: '#111111',
+  accentSoft: 'rgba(17, 17, 17, 0.12)',
+  iconOnDark: '#E2E0DB',
+  iconMuted: '#6B6B6B',
+  cream: '#F7F6F2',
 } as const;
 
 const H_PAD = 20;
@@ -149,7 +156,7 @@ function Skeleton({ style }: { style: any }) {
       ])
     ).start();
   }, [opacity]);
-  return <Animated.View style={[style, { opacity, backgroundColor: '#EFEAE2' }]} />;
+  return <Animated.View style={[style, { opacity, backgroundColor: '#F7F6F1' }]} />;
 }
 
 // -----------------------------------------------------------------------------
@@ -210,6 +217,7 @@ export default function HomeScreen({
   const responsive = useResponsive();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const queryClient = useQueryClient();
   const { isGuest, user: ctxUser, setUser } = useUserContext();
   const { vendors, vendorOffers, currentVendor } = useDataContext();
   const { requestPermission } = useLocationContext();
@@ -258,7 +266,10 @@ export default function HomeScreen({
       if (position?.latitude != null && position?.longitude != null) {
         refreshNearby();
       }
-    }, [position?.latitude, position?.longitude, refreshNearby]),
+      // A moderation change (approval/rejection) must not stay hidden behind a
+      // stale "no events near you" next time Home regains focus.
+      void queryClient.invalidateQueries({ queryKey: eventKeys.homeStrip() });
+    }, [position?.latitude, position?.longitude, refreshNearby, queryClient]),
   );
 
   useEffect(() => {
@@ -523,8 +534,9 @@ export default function HomeScreen({
       refreshNearby(),
       refreshHomeRewards(),
       refreshWalletBalance(),
+      queryClient.invalidateQueries({ queryKey: eventKeys.homeStrip() }),
     ]);
-  }, [onRefresh, refreshNearby, refreshHomeRewards, refreshWalletBalance]);
+  }, [onRefresh, refreshNearby, refreshHomeRewards, refreshWalletBalance, queryClient]);
 
   const handleToggleWishlist = async (id: string) => {
     const next = await toggleWishlistId(id);
@@ -683,16 +695,21 @@ export default function HomeScreen({
   const placesCardWidth = (contentWidth - (placesCols - 1) * 12) / placesCols;
   const vendorCols = contentWidth >= 800 ? 3 : 2;
   const vendorCardWidth = (contentWidth - (vendorCols - 1) * 12) / vendorCols;
+  const bottomNavViewportClearance =
+    BOTTOM_NAV_HEIGHT +
+    BOTTOM_NAV_FAB_OVERHANG +
+    Math.max(insets.bottom, BOTTOM_NAV_BOTTOM_GAP);
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F6F2" translucent={false} />
 
       <ScrollView
+        style={{ marginBottom: bottomNavViewportClearance }}
         showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{
-          paddingBottom: getMainTabBarClearance(insets.bottom) + 24,
+          paddingBottom: BOTTOM_NAV_CONTENT_GAP,
         }}
         refreshControl={
           <RefreshControl
@@ -711,8 +728,6 @@ export default function HomeScreen({
             style={[styles.heroSection, responsive.isTablet && { minHeight: 400 }]}
             resizeMode="cover"
           >
-            
-            {/* Safe Area Padding */}
             <View style={{ height: Math.max(insets.top, 20) }} />
 
             {/* Header */}
@@ -819,7 +834,7 @@ export default function HomeScreen({
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
-                <Icon name="flame" size={18} color="#B9834B" />
+                <Icon name="flame" size={18} color={HOME.accent} />
                 <Text style={styles.sectionTitle}>Places Nearby</Text>
               </View>
               <TouchableOpacity onPress={onNavigateToMap}>
@@ -886,13 +901,23 @@ export default function HomeScreen({
           </View>
 
           {/* Community Events — featured strip + entry point to the Events feed */}
-          <HomeEventsStrip onOpenEvent={openEvent} onViewAll={openEvents} edgePadding={H_PAD} />
+          <HomeEventsStrip
+            onOpenEvent={openEvent}
+            onViewAll={openEvents}
+            onViewMap={() => navigation.navigate('MainTabs', {
+              screen: 'Map',
+              params: { initialMapTab: 'events', mapTabKey: Date.now() },
+            })}
+            edgePadding={H_PAD}
+            latitude={position?.latitude}
+            longitude={position?.longitude}
+          />
 
           {/* Vendor Offers Near You */}
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
-                <Icon name="pricetag" size={18} color="#B9834B" />
+                <Icon name="pricetag" size={18} color={HOME.accent} />
                 <Text style={styles.sectionTitle}>Vendor Offers Near You</Text>
               </View>
               <TouchableOpacity onPress={openVendorOffers}>
@@ -914,7 +939,7 @@ export default function HomeScreen({
                       <Text style={styles.vendorOfferName} numberOfLines={1}>{offer.vendorName}</Text>
                       <Text style={styles.vendorOfferLoc} numberOfLines={1}>{cityName === 'Nearby' ? 'Jabalpur' : cityName}</Text>
                       <View style={styles.vendorOfferRatingRow}>
-                        <Text style={styles.vendorOfferRatingTxt}>4.5 <Icon name="star" size={10} color="#B9834B" /></Text>
+                        <Text style={styles.vendorOfferRatingTxt}>4.5 <Icon name="star" size={10} color={HOME.accent} /></Text>
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -935,13 +960,13 @@ export default function HomeScreen({
                       <Text style={styles.vendorOfferName} numberOfLines={1}>{offer.vendorName}</Text>
                       <Text style={styles.vendorOfferLoc} numberOfLines={1}>{cityName === 'Nearby' ? 'Jabalpur' : cityName}</Text>
                       <View style={styles.vendorOfferRatingRow}>
-                        <Text style={styles.vendorOfferRatingTxt}>4.5 <Icon name="star" size={10} color="#B9834B" /></Text>
+                        <Text style={styles.vendorOfferRatingTxt}>4.5 <Icon name="star" size={10} color={HOME.accent} /></Text>
                       </View>
                     </View>
                   </TouchableOpacity>
                 ))}
                 <TouchableOpacity style={styles.promoOfferCard} onPress={openVendorOffers} activeOpacity={0.9}>
-                  <Icon name="gift-outline" size={24} color="#B9834B" style={{ marginBottom: 12 }} />
+                  <Icon name="gift-outline" size={24} color={HOME.accent} style={{ marginBottom: 12 }} />
                   <Text style={styles.promoOfferTitle}>
                     {nearbyVendorOffers.length ? 'More offers' : 'Exciting offers'}
                   </Text>
@@ -1000,7 +1025,7 @@ export default function HomeScreen({
                 <Text style={styles.tripTitle}>Plan Your{'\n'}Next Trip</Text>
                 <Text style={[styles.tripProgressText, { marginTop: 4, marginBottom: 12 }]}>Uncover unique experiences,{'\n'}local gems and hidden stories.</Text>
                 <View style={styles.tripActionRow}>
-                  <TouchableOpacity style={[styles.resumeButton, { backgroundColor: '#B9834B', flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' }]} onPress={onNavigateToAITripPlanner}>
+                  <TouchableOpacity style={[styles.resumeButton, { backgroundColor: HOME.accent, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' }]} onPress={onNavigateToAITripPlanner}>
                     <Text style={[styles.resumeButtonText, { color: '#FFF' }]}>Explore Now</Text>
                     <Icon name="arrow-forward" size={14} color="#FFF" style={{ marginLeft: 4 }} />
                   </TouchableOpacity>
@@ -1100,7 +1125,7 @@ const styles = StyleSheet.create({
   pointsPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2E2219',
+    backgroundColor: '#111111',
     borderRadius: 18,
     paddingVertical: 5,
     paddingHorizontal: 8,
@@ -1167,7 +1192,7 @@ const styles = StyleSheet.create({
   weatherDivider: {
     width: 1,
     height: 12,
-    backgroundColor: '#C5B5A3',
+    backgroundColor: '#111111',
     marginHorizontal: 10,
   },
   weatherText: {
@@ -1187,7 +1212,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 16,
     height: 54,
-    shadowColor: '#4B3B30',
+    shadowColor: '#111111',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
     shadowRadius: 16,
@@ -1196,7 +1221,7 @@ const styles = StyleSheet.create({
   searchText: {
     flex: 1,
     fontSize: 14,
-    color: '#A39990',
+    color: '#6B6B6B',
     marginLeft: 10,
     fontWeight: '400',
   },
@@ -1209,7 +1234,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-evenly',
-    backgroundColor: '#2D241D',
+    backgroundColor: '#111111',
     borderRadius: 16,
     paddingVertical: 18,
     paddingHorizontal: 20,
@@ -1224,7 +1249,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoryText: {
-    color: '#E5D5C5',
+    color: '#E2E0DB',
     fontSize: 11,
     fontWeight: '500',
     marginTop: 6,
@@ -1232,7 +1257,7 @@ const styles = StyleSheet.create({
   categoryDivider: {
     width: 1,
     height: 36,
-    backgroundColor: 'rgba(229, 213, 197, 0.15)',
+    backgroundColor: 'rgba(221, 235, 227, 0.15)',
   },
   sectionContainer: {
     marginTop: 28,
@@ -1279,7 +1304,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   tripProgressText: {
-    color: '#E5D5C5',
+    color: '#E2E0DB',
     fontSize: 13,
     fontWeight: '500',
     marginTop: 6,
@@ -1374,7 +1399,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   distanceText: {
-    color: '#E5D5C5',
+    color: '#E2E0DB',
     fontSize: 11,
     fontWeight: '500',
   },
@@ -1382,7 +1407,7 @@ const styles = StyleSheet.create({
     width: scale(120),
     height: verticalScale(180),
     borderRadius: radiusScale(16),
-    backgroundColor: '#2D241D',
+    backgroundColor: '#111111',
     padding: scale(16),
     justifyContent: 'center',
     alignItems: 'center',
@@ -1417,7 +1442,7 @@ const styles = StyleSheet.create({
     width: scale(140),
     height: verticalScale(160),
     borderRadius: radiusScale(12),
-    backgroundColor: '#F3EDE4',
+    backgroundColor: '#F7F6F1',
     padding: scale(16),
     justifyContent: 'space-between',
   },
@@ -1435,7 +1460,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#C58C4F',
+    backgroundColor: '#111111',
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'flex-end',
@@ -1459,7 +1484,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     left: 8,
-    backgroundColor: '#C58C4F',
+    backgroundColor: '#111111',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
