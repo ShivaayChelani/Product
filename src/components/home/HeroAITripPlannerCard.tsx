@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
   },
   bannerImage: {
     ...StyleSheet.absoluteFillObject,

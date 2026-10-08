@@ -1,6 +1,7 @@
 /* eslint-disable no-useless-escape */
 import { LEAFLET_VENDOR_CSS, LEAFLET_VENDOR_JS } from './leafletVendor';
 import { DEFAULT_ROUTE_COLOR } from '../design/directionsTheme';
+import { INDIA_BOUNDARY_RINGS } from './indiaBoundary';
 
 const INDIA_BOUNDS: [[number, number], [number, number]] = [
   [6.0, 68.0],
@@ -21,7 +22,7 @@ const PICK_CSS = [
   '#pickPin{position:fixed;left:50%;top:50%;transform:translate(-50%,-100%);',
   'z-index:1200;pointer-events:none;display:flex;flex-direction:column;align-items:center}',
   '#pickPin .pick-head{width:34px;height:34px;border-radius:50% 50% 50% 6px;',
-  'background:#1F4D3A;transform:rotate(-45deg);border:2px solid #fff;',
+  'background:#111111;transform:rotate(-45deg);border:2px solid #fff;',
   'box-shadow:0 4px 12px rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center}',
   '#pickPin .pick-dot{width:10px;height:10px;border-radius:50%;background:#fff}',
   '#pickPin .pick-shadow{width:14px;height:5px;border-radius:50%;background:rgba(15,23,42,.35);margin-top:5px}',
@@ -263,7 +264,7 @@ ${safeCss}
   }
   .user-dot-inner{
     width:14px;height:14px;border-radius:50%;
-    background:radial-gradient(circle at 35% 30%,#5eb0ff 0%,#007AFF 55%,#DDEBE3 100%);
+    background:radial-gradient(circle at 35% 30%,#5eb0ff 0%,#007AFF 55%,#F2F2F2 100%);
     box-shadow:0 0 8px rgba(0,122,255,.8),0 0 14px rgba(212,175,55,.45);
   }
   @keyframes userPulse{
@@ -314,6 +315,7 @@ ${safeCss}
     border-radius:0!important;
   }
   .leaflet-control-attribution a{color:rgba(255,255,255,.6)!important}
+  .india-mask{pointer-events:none!important;fill-rule:evenodd}
 ${pickMode ? PICK_CSS : ''}
 </style>
 </head>
@@ -358,10 +360,34 @@ var streetsLayer = L.tileLayer(
   'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   {
     maxZoom: 19,
+    noWrap: true,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }
 );
 streetsLayer.addTo(map);
+
+/* India-only presentation: one world-sized mask polygon whose holes are the
+   India boundary rings (mainland + Andaman & Nicobar + Lakshadweep), so every
+   foreign country and the sea outside India are dimmed while Indian territory
+   stays clear. maxBounds clamps panning to the India view, .india-mask keeps
+   the layer transparent to gestures, and fill-rule:evenodd (CSS) makes the
+   hole winding irrelevant. */
+var indiaMaskStyle = { stroke: false, interactive: false, className: 'india-mask', fillColor: '#8A93A0', fillOpacity: 0.42 };
+var WORLD_RING = [[85, -180], [85, 180], [-85, 180], [-85, -180], [85, -180]];
+var INDIA_BOUNDARY_RINGS = ${JSON.stringify(INDIA_BOUNDARY_RINGS)};
+var indiaMaskHoles = INDIA_BOUNDARY_RINGS.map(function(ring) {
+  return ring.map(function(p) { return [p[1], p[0]]; });
+});
+L.polygon([WORLD_RING].concat(indiaMaskHoles), indiaMaskStyle).addTo(map);
+
+/* Thin India outline (mainland + islands). Polylines per ring keep the stroke
+   independent of mask fill logic; interactive:false lets taps fall through. */
+INDIA_BOUNDARY_RINGS.forEach(function(ring) {
+  L.polyline(
+    ring.map(function(p) { return [p[1], p[0]]; }),
+    { color: '#334155', weight: 1.5, interactive: false, className: 'india-mask' }
+  ).addTo(map);
+});
 
 L.control.scale({ position: 'bottomleft', metric: true, imperial: false, maxWidth: 120 }).addTo(map);
 

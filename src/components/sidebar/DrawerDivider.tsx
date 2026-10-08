@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
   line: {
     flex: 1,
     height: 1,
-    backgroundColor: '#D9E0DB',
+    backgroundColor: '#E5E5EA',
   },
   iconContainer: {
     paddingHorizontal: 8,

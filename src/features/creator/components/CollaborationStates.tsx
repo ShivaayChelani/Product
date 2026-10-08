@@ -8,8 +8,8 @@ const COLORS = {
   white: '#FFFFFF',
   textPrimary: '#1F1A17',
   textSecondary: '#5E544C',
-  primary: '#68756D',
-  border: '#D9E0DB',
+  primary: '#6B6B6B',
+  border: '#E5E5EA',
 };
 
 // ==========================================
@@ -133,7 +133,7 @@ const promoStyles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#1F4D3A', // Muted gold
+    backgroundColor: '#111111', // Muted gold
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,

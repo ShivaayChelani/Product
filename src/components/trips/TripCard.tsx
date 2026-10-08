@@ -179,15 +179,15 @@ const styles = StyleSheet.create({
   },
   originBadgeAi: {
     backgroundColor: C.brandBlueLight,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
   },
   originBadgeManual: {
     backgroundColor: C.brandOrangeLight,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
   },
   originBadgeUnknown: {
     backgroundColor: '#F7F6F1',
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
   },
   originLabel: {
     fontSize: 9,
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#3E914F',
+    backgroundColor: '#111111',
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 8,
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: 11,
     fontFamily: SANS,
-    color: '#68756D',
+    color: '#6B6B6B',
     flexShrink: 1,
   },
   actionRow: {
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#16392B',
+    backgroundColor: '#000000',
     paddingVertical: 9,
     paddingHorizontal: 8,
     borderRadius: 20,
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   itineraryBtnText: {
     fontSize: 10,
     fontFamily: SANS_BOLD,
-    color: '#16392B',
+    color: '#000000',
     flexShrink: 1,
   },
 });

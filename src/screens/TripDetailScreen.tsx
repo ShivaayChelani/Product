@@ -546,18 +546,18 @@ export default function TripDetailScreen({
             source={require('../assets/logo.png')} 
             style={{ width: 140, height: 140, resizeMode: 'contain' }} 
           />
-          <Text style={{ fontSize: 13, color: '#68756D', marginTop: 8, letterSpacing: 0.3, fontWeight: '500' }}>
+          <Text style={{ fontSize: 13, color: '#6B6B6B', marginTop: 8, letterSpacing: 0.3, fontWeight: '500' }}>
             Explore • Experience • Memories
           </Text>
         </View>
 
         {/* Loading Indicator */}
         <View style={{ alignItems: 'center', marginBottom: 40 }}>
-          <ActivityIndicator size="large" color="#1F4D3A" style={{ transform: [{ scale: 1.2 }], marginBottom: 20 }} />
-          <Text style={{ color: '#1D2420', fontSize: 18, fontWeight: '600', marginBottom: 8 }}>
+          <ActivityIndicator size="large" color="#111111" style={{ transform: [{ scale: 1.2 }], marginBottom: 20 }} />
+          <Text style={{ color: '#000000', fontSize: 18, fontWeight: '600', marginBottom: 8 }}>
             Loading itinerary...
           </Text>
-          <Text style={{ color: '#68756D', fontSize: 14 }}>
+          <Text style={{ color: '#6B6B6B', fontSize: 14 }}>
             Crafting your perfect journey
           </Text>
         </View>
@@ -571,7 +571,7 @@ export default function TripDetailScreen({
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'flex-start',
-          shadowColor: '#1D2420',
+          shadowColor: '#000000',
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.05,
           shadowRadius: 12,
@@ -581,56 +581,56 @@ export default function TripDetailScreen({
           {/* Step 1 */}
           <View style={{ alignItems: 'center', flex: 1 }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-              <Icon name="search-outline" size={20} color="#1D2420" />
+              <Icon name="search-outline" size={20} color="#000000" />
             </View>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: '#1D2420', textAlign: 'center' }}>Discovering</Text>
-            <Text style={{ fontSize: 11, color: '#68756D', textAlign: 'center' }}>places</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: '#000000', textAlign: 'center' }}>Discovering</Text>
+            <Text style={{ fontSize: 11, color: '#6B6B6B', textAlign: 'center' }}>places</Text>
           </View>
           
           <View style={{ flex: 0.5, height: 44, justifyContent: 'center' }}>
-            <Text style={{ color: '#DDEBE3', textAlign: 'center', letterSpacing: 2 }}>......</Text>
+            <Text style={{ color: '#F2F2F2', textAlign: 'center', letterSpacing: 2 }}>......</Text>
           </View>
 
           {/* Step 2 */}
           <View style={{ alignItems: 'center', flex: 1 }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-              <Icon name="map-outline" size={20} color="#1D2420" />
+              <Icon name="map-outline" size={20} color="#000000" />
             </View>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: '#1D2420', textAlign: 'center' }}>Planning</Text>
-            <Text style={{ fontSize: 11, color: '#68756D', textAlign: 'center' }}>route</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: '#000000', textAlign: 'center' }}>Planning</Text>
+            <Text style={{ fontSize: 11, color: '#6B6B6B', textAlign: 'center' }}>route</Text>
           </View>
 
           <View style={{ flex: 0.5, height: 44, justifyContent: 'center' }}>
-            <Text style={{ color: '#DDEBE3', textAlign: 'center', letterSpacing: 2 }}>......</Text>
+            <Text style={{ color: '#F2F2F2', textAlign: 'center', letterSpacing: 2 }}>......</Text>
           </View>
 
           {/* Step 3 */}
           <View style={{ alignItems: 'center', flex: 1 }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-              <Icon name="calendar-outline" size={20} color="#1D2420" />
+              <Icon name="calendar-outline" size={20} color="#000000" />
             </View>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: '#1D2420', textAlign: 'center' }}>Organizing</Text>
-            <Text style={{ fontSize: 11, color: '#68756D', textAlign: 'center' }}>itinerary</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: '#000000', textAlign: 'center' }}>Organizing</Text>
+            <Text style={{ fontSize: 11, color: '#6B6B6B', textAlign: 'center' }}>itinerary</Text>
           </View>
 
           <View style={{ flex: 0.5, height: 44, justifyContent: 'center' }}>
-            <Text style={{ color: '#DDEBE3', textAlign: 'center', letterSpacing: 2 }}>......</Text>
+            <Text style={{ color: '#F2F2F2', textAlign: 'center', letterSpacing: 2 }}>......</Text>
           </View>
 
           {/* Step 4 */}
           <View style={{ alignItems: 'center', flex: 1 }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-              <Icon name="checkmark-circle-outline" size={22} color="#1D2420" />
+              <Icon name="checkmark-circle-outline" size={22} color="#000000" />
             </View>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: '#1D2420', textAlign: 'center' }}>Almost</Text>
-            <Text style={{ fontSize: 11, color: '#68756D', textAlign: 'center' }}>ready</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: '#000000', textAlign: 'center' }}>Almost</Text>
+            <Text style={{ fontSize: 11, color: '#6B6B6B', textAlign: 'center' }}>ready</Text>
           </View>
         </View>
 
         {/* Footer Message */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center' }}>
           <Text style={{ color: '#B7791F', fontSize: 14, marginRight: 6, marginTop: 2 }}>✨</Text>
-          <Text style={{ color: '#68756D', fontSize: 13, textAlign: 'center', lineHeight: 20 }}>
+          <Text style={{ color: '#6B6B6B', fontSize: 13, textAlign: 'center', lineHeight: 20 }}>
             Sit back and relax, we're building{'\n'}an amazing trip for you!
           </Text>
         </View>

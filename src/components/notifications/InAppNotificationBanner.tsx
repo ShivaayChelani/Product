@@ -64,7 +64,7 @@ export default function InAppNotificationBanner({
         style={[
           styles.card,
           {
-            backgroundColor: isDark ? '#1D2420' : palette.background,
+            backgroundColor: isDark ? '#000000' : palette.background,
             borderColor: isDark ? 'rgba(255,255,255,0.08)' : palette.border,
           },
         ]}
@@ -74,7 +74,7 @@ export default function InAppNotificationBanner({
             <Icon name="notifications" size={18} color={palette.primary} />
           </View>
           <View style={styles.textCol}>
-            <Text style={[styles.title, { color: isDark ? '#fff' : '#1D2420' }]} numberOfLines={1}>
+            <Text style={[styles.title, { color: isDark ? '#fff' : '#000000' }]} numberOfLines={1}>
               {title}
             </Text>
             {body ? (
@@ -145,5 +145,5 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: 'rgba(183,121,31,0.15)',
   },
-  actionText: { fontSize: 12, fontWeight: '700', color: '#1F4D3A' },
+  actionText: { fontSize: 12, fontWeight: '700', color: '#111111' },
 });

@@ -43,7 +43,7 @@ export const ProfileCard = ({
 
         <View style={styles.topRow}>
           <TouchableOpacity onPress={onEditPress} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={styles.editBtn}>
-            <Icon name="pencil" size={16} color="#1D2420" />
+            <Icon name="pencil" size={16} color="#000000" />
           </TouchableOpacity>
 
           <View style={styles.avatarWrapper}>
@@ -64,20 +64,20 @@ export const ProfileCard = ({
               <Text style={styles.name} numberOfLines={1}>{name}</Text>
             </View>
             <View style={styles.explorerBadge}>
-              <Icon name="rocket-outline" size={10} color="#68756D" />
+              <Icon name="rocket-outline" size={10} color="#6B6B6B" />
               <Text style={styles.explorerBadgeText}>Explorer</Text>
             </View>
 
             {email ? (
               <View style={styles.metaRow}>
-                <Icon name="mail-outline" size={13} color="#68756D" />
+                <Icon name="mail-outline" size={13} color="#6B6B6B" />
                 <Text style={styles.metaText} numberOfLines={1}>{email}</Text>
               </View>
             ) : null}
 
             {location ? (
               <View style={styles.metaRow}>
-                <Icon name="location-outline" size={13} color="#68756D" />
+                <Icon name="location-outline" size={13} color="#6B6B6B" />
                 <Text style={styles.metaText} numberOfLines={1}>{location}</Text>
               </View>
             ) : null}
@@ -93,18 +93,18 @@ export const ProfileCard = ({
               <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{formattedPoints}</Text>
               <Text style={styles.statLabel} numberOfLines={2}>Total Pal Points</Text>
             </View>
-            <Icon name="chevron-forward" size={14} color="#1D2420" />
+            <Icon name="chevron-forward" size={14} color="#000000" />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.statTile} onPress={onRewardsPress} activeOpacity={0.85}>
             <View style={[styles.statIconCircle, styles.rewardsIconCircle]}>
-              <Icon name="gift-outline" size={20} color="#68756D" />
+              <Icon name="gift-outline" size={20} color="#6B6B6B" />
             </View>
             <View style={styles.statCopy}>
               <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{unlockedRewards}</Text>
               <Text style={styles.statLabel} numberOfLines={2}>Rewards</Text>
             </View>
-            <Icon name="chevron-forward" size={14} color="#1D2420" />
+            <Icon name="chevron-forward" size={14} color="#000000" />
           </TouchableOpacity>
         </View>
       </View>
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 24,
     backgroundColor: '#FFFFFF',
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 10,
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     width: 74,
     height: 74,
     borderRadius: 37,
-    backgroundColor: '#D9E0DB',
+    backgroundColor: '#E5E5EA',
   },
   cameraBtn: {
     position: 'absolute',
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#16392B',
+    backgroundColor: '#000000',
     borderWidth: 2,
     borderColor: '#FFF',
     alignItems: 'center',
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 20,
     fontFamily: SANS_BOLD,
-    color: '#1D2420',
+    color: '#000000',
     flexShrink: 1,
     paddingRight: 10,
   },
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   explorerBadgeText: {
     fontSize: 10,
     fontFamily: SANS_BOLD,
-    color: '#68756D',
+    color: '#6B6B6B',
   },
   metaRow: {
     flexDirection: 'row',
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     fontFamily: SANS,
-    color: '#68756D',
+    color: '#6B6B6B',
   },
   editBtn: {
     position: 'absolute',
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   },
   rewardsIconCircle: {
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
     backgroundColor: '#F7F6F1',
   },
   statCopy: {
@@ -268,13 +268,13 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 16,
     fontFamily: SANS_BOLD,
-    color: '#1D2420',
+    color: '#000000',
     marginBottom: 0,
   },
   statLabel: {
     fontSize: 10,
     fontFamily: SANS,
-    color: '#68756D',
+    color: '#6B6B6B',
     lineHeight: 12,
   },
 });

@@ -20,7 +20,7 @@ export const SB = {
   pendingText: palette.textSecondary,
   danger: palette.error,
   dangerBg: '#FBEAEA',
-  shadow: 'rgba(29, 36, 32, 0.08)',
+  shadow: 'rgba(0, 0, 0, 0.08)',
 } as const;
 
 export { SERIF, SANS, SANS_BOLD, SANS_SEMI };
@@ -43,7 +43,7 @@ export const EXPLORE_ITEMS: ExploreMenuItem[] = [
     icon: 'compass-outline',
     label: 'Hidden Gems',
     subtitle: 'Discover secret spots & win rewards',
-    iconColor: '#2F4F3D',
+    iconColor: '#111111',
     iconBg: palette.primaryLight,
   },
   {

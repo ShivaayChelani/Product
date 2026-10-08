@@ -19,19 +19,20 @@ import { Reel } from '../types';
 import { useUserContext } from '../context/UserContext';
 import { useDataContext } from '../context/DataContext';
 import { isVendorApproved } from '../utils/workspaceRoles';
+import { normalizeReelCaption } from '../components/reels/reelCaptionUtils';
 
 type PlaceReelsRouteProp = RouteProp<RootStackParamList, 'PlaceReels'>;
 
 const COLORS = {
   bg: '#F7F6F1',
   card: '#FFFFFF',
-  text: '#1D2420',
+  text: '#000000',
   textMuted: '#5E544C',
   gold: '#B7791F',
   divider: '#F7F6F1',
   chipBg: '#FFFFFF',
-  chipBgActive: '#16392B',
-  chipText: '#1D2420',
+  chipBgActive: '#000000',
+  chipText: '#000000',
   chipTextActive: '#FFFFFF',
 };
 
@@ -131,7 +132,7 @@ export default function PlaceReelsScreen() {
           <Image source={{ uri: placeImage }} style={styles.bannerImage} />
         ) : (
           <View style={[styles.bannerImage, styles.bannerImagePlaceholder]}>
-            <Icon name="image-outline" size={24} color="#DDEBE3" />
+            <Icon name="image-outline" size={24} color="#F2F2F2" />
           </View>
         )}
       </View>
@@ -195,11 +196,13 @@ export default function PlaceReelsScreen() {
       }}
     >
       <View style={styles.reelThumbWrap}>
-        <Image 
-          source={{ uri: item.thumbnail || item.videoUrl }} 
-          style={styles.reelThumb} 
-          resizeMode="cover"
-        />
+        {item.thumbnail ? (
+          <Image source={{ uri: item.thumbnail }} style={styles.reelThumb} resizeMode="cover" />
+        ) : (
+          <View style={styles.reelThumbPlaceholder}>
+            <Icon name="videocam-outline" size={28} color="#B0B0B8" />
+          </View>
+        )}
         <View style={styles.durationBadge}>
           <Icon name="play" size={10} color="#FFF" style={{ marginRight: 2 }} />
           <Text style={styles.durationText}>Reel</Text>
@@ -231,7 +234,7 @@ export default function PlaceReelsScreen() {
         </Text>
 
         <Text style={styles.reelCaption} numberOfLines={2}>
-          {item.description || item.title || `Exploring ${placeName}`}
+          {normalizeReelCaption(item.description) || item.title || `Exploring ${placeName}`}
         </Text>
 
         <View style={styles.reelLocationRow}>
@@ -268,7 +271,7 @@ export default function PlaceReelsScreen() {
     return (
       <View style={styles.emptyWrap}>
         <View style={styles.emptyIconWrap}>
-          <Icon name="videocam-outline" size={48} color="#DDEBE3" />
+          <Icon name="videocam-outline" size={48} color="#F2F2F2" />
         </View>
         <Text style={styles.emptyTitle}>No Reels from this place yet</Text>
         <Text style={styles.emptyDesc}>
@@ -391,7 +394,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   bannerImagePlaceholder: {
-    backgroundColor: '#D9E0DB',
+    backgroundColor: '#E5E5EA',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -522,11 +525,17 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginRight: 16,
     position: 'relative',
-    backgroundColor: '#D9E0DB',
+    backgroundColor: '#E5E5EA',
   },
   reelThumb: {
     width: '100%',
     height: '100%',
+  },
+  reelThumbPlaceholder: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   durationBadge: {
     position: 'absolute',
@@ -558,14 +567,14 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     marginRight: 8,
-    backgroundColor: '#D9E0DB',
+    backgroundColor: '#E5E5EA',
   },
   creatorAvatarPlaceholder: {
     width: 24,
     height: 24,
     borderRadius: 12,
     marginRight: 8,
-    backgroundColor: '#16392B',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -656,11 +665,11 @@ const styles = StyleSheet.create({
   createBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#16392B',
+    backgroundColor: '#000000',
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 24,
-    shadowColor: '#16392B',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,

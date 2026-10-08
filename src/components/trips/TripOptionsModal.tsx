@@ -34,14 +34,14 @@ export const TripOptionsModal = ({ visible, trip, onShare, onDelete, onCancel }:
         <Animated.View style={[styles.dialog, { transform: [{ scale }] }]}>
           {/* Top Icon Circle */}
           <View style={styles.iconContainer}>
-            <Icon name="briefcase-outline" size={26} color="#16392B" style={styles.suitcase} />
-            <Icon name="leaf-outline" size={14} color="#16392B" style={styles.subIcon} />
+            <Icon name="briefcase-outline" size={26} color="#000000" style={styles.suitcase} />
+            <Icon name="leaf-outline" size={14} color="#000000" style={styles.subIcon} />
             {/* Sparkles */}
             <View style={styles.sparkleTopLeft}>
-              <Icon name="sparkles" size={10} color="#1F4D3A" />
+              <Icon name="sparkles" size={10} color="#111111" />
             </View>
             <View style={styles.sparkleBottomRight}>
-              <Icon name="sparkles" size={8} color="#1F4D3A" />
+              <Icon name="sparkles" size={8} color="#111111" />
             </View>
           </View>
 
@@ -62,8 +62,8 @@ export const TripOptionsModal = ({ visible, trip, onShare, onDelete, onCancel }:
               onPress={() => onShare(trip)} 
               activeOpacity={0.8}
             >
-              <Icon name="share-social-outline" size={18} color="#16392B" />
-              <Text style={[styles.actionText, { color: '#16392B' }]}>Share</Text>
+              <Icon name="share-social-outline" size={18} color="#000000" />
+              <Text style={[styles.actionText, { color: '#000000' }]}>Share</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -80,8 +80,8 @@ export const TripOptionsModal = ({ visible, trip, onShare, onDelete, onCancel }:
               onPress={onCancel} 
               activeOpacity={0.8}
             >
-              <Icon name="close-outline" size={20} color="#1D2420" />
-              <Text style={[styles.actionText, { color: '#1D2420' }]}>Cancel</Text>
+              <Icon name="close-outline" size={20} color="#000000" />
+              <Text style={[styles.actionText, { color: '#000000' }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -93,7 +93,7 @@ export const TripOptionsModal = ({ visible, trip, onShare, onDelete, onCancel }:
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(29, 36, 32, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     paddingHorizontal: 20,
     alignItems: 'center',
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.08,
     shadowRadius: 24,
@@ -143,13 +143,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#1D2420',
+    color: '#000000',
     marginBottom: 8,
     textAlign: 'center',
   },
   description: {
     fontSize: 15,
-    color: '#68756D',
+    color: '#6B6B6B',
     textAlign: 'center',
     marginBottom: 24,
   },

@@ -42,15 +42,15 @@ export type SelectPlacesParams = {
 const C = {
   bg: '#FFFFFF',
   surface: '#FFFFFF',
-  navy: '#1D2420',
-  ink: '#16392B',
-  text: '#1D2420',
-  textSub: '#68756D',
-  textMuted: '#68756D',
+  navy: '#000000',
+  ink: '#000000',
+  text: '#000000',
+  textSub: '#6B6B6B',
+  textMuted: '#6B6B6B',
   border: 'rgba(183, 121, 31, 0.18)',
   banner: '#F7F6F1',
   bannerBorder: 'rgba(183, 121, 31, 0.25)',
-  green: '#2E7D55',
+  green: '#111111',
   chipBg: '#F3F4F6',
 };
 
@@ -353,7 +353,7 @@ export default function SelectPlacesForTripScreen() {
             'Select places you want to visit. AI will order them for less travel, estimate times and costs, and split them across your trip days.',
           )}
         >
-          <Icon name="information-circle-outline" size={16} color="#1F4D3A" />
+          <Icon name="information-circle-outline" size={16} color="#111111" />
           <Text style={styles.learnMore}>Learn more</Text>
         </TouchableOpacity>
       </View>
@@ -550,7 +550,7 @@ const styles = StyleSheet.create({
   },
   aiBannerText: { flex: 1, fontSize: 11, fontFamily: 'Inter-Medium', color: C.ink, lineHeight: 16 },
   learnMoreBtn: { alignItems: 'center' },
-  learnMore: { fontSize: 10, fontFamily: 'Inter-Bold', color: '#1F4D3A', marginTop: 2 },
+  learnMore: { fontSize: 10, fontFamily: 'Inter-Bold', color: '#111111', marginTop: 2 },
 
   searchRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -604,14 +604,14 @@ const styles = StyleSheet.create({
 
   list: { flex: 1 },
   errorBox: { backgroundColor: '#F8F0E1', borderRadius: 12, padding: 12, marginBottom: 8 },
-  errorText: { fontSize: 12, fontFamily: 'Inter-Medium', color: '#16392B' },
+  errorText: { fontSize: 12, fontFamily: 'Inter-Medium', color: '#000000' },
 
   placeCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
     backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border,
     padding: 10, marginBottom: 10,
   },
-  placeCardSelected: { borderColor: 'rgba(29, 36, 32, 0.35)', backgroundColor: '#F7F6F1' },
+  placeCardSelected: { borderColor: 'rgba(0, 0, 0, 0.35)', backgroundColor: '#F7F6F1' },
   checkBox: {
     width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: C.border,
     alignItems: 'center', justifyContent: 'center', marginTop: 4,

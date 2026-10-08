@@ -17,15 +17,15 @@ const { width } = Dimensions.get('window');
 const C = {
   bg: '#F7F6F1',
   white: '#FFFFFF',
-  textDark: '#1D2420',
+  textDark: '#000000',
   textGray: '#4B5563',
   textLightGray: '#9CA3AF',
   orange: '#B7791F',
-  blue: '#16392B', // Now a brown color
+  blue: '#000000', // Now a brown color
   blueLight: '#F7F6F1', // Light cream/brown
-  blueBorder: '#DDEBE3', // Brown border
-  purple: '#1F4D3A',
-  green: '#10B981',
+  blueBorder: '#F2F2F2', // Brown border
+  purple: '#111111',
+  green: '#111111',
   red: '#C94A4A',
   shadow: 'rgba(0,0,0,0.06)',
 };
@@ -35,28 +35,28 @@ export default function HowItWorksScreen({ navigation, onBack }: HowItWorksScree
   const headerPadTop = useHeaderSafePadding(12);
 
   const earnActivities = [
-    { id: 'checkin', icon: 'location-sharp', iconColor: '#1F4D3A', iconBg: '#DDEBE3', title: 'Check-in\nat Places', points: '+10 to +50 P', pointsColor: '#1F4D3A' },
-    { id: 'gem', icon: 'diamond', iconColor: '#1F4D3A', iconBg: '#F7F6F1', title: 'Submit\nHidden Gem', points: '+20 to +200 P', pointsColor: '#1F4D3A' },
+    { id: 'checkin', icon: 'location-sharp', iconColor: '#111111', iconBg: '#F2F2F2', title: 'Check-in\nat Places', points: '+10 to +50 P', pointsColor: '#111111' },
+    { id: 'gem', icon: 'diamond', iconColor: '#111111', iconBg: '#F7F6F1', title: 'Submit\nHidden Gem', points: '+20 to +200 P', pointsColor: '#111111' },
     { id: 'review', icon: 'star', iconColor: '#B7791F', iconBg: '#F8F0E1', title: 'Write\na Review', points: '+5 to +50 P', pointsColor: '#B7791F' },
   ];
 
   const redeemSteps = [
-    { id: '1', icon: 'storefront', iconBg: '#1F4D3A', title: 'Find a\nPartner Vendor', desc: 'Browse vendors\nnear you' },
-    { id: '2', icon: 'cellphone', iconBg: '#16392B', title: 'Show Your\nPal ID', desc: 'Share your Pal ID\nor QR code' },
+    { id: '1', icon: 'storefront', iconBg: '#111111', title: 'Find a\nPartner Vendor', desc: 'Browse vendors\nnear you' },
+    { id: '2', icon: 'cellphone', iconBg: '#000000', title: 'Show Your\nPal ID', desc: 'Share your Pal ID\nor QR code' },
     { id: '3', icon: 'wallet', iconBg: '#B7791F', title: 'Confirm &\nRedeem', desc: 'Pay with PalPoints\nat the vendor' },
-    { id: '4', icon: 'gift', iconBg: '#10B981', title: 'Enjoy Offer\nor Service', desc: 'Get discounts,\ndeals & more' },
+    { id: '4', icon: 'gift', iconBg: '#111111', title: 'Enjoy Offer\nor Service', desc: 'Get discounts,\ndeals & more' },
     { id: '5', icon: 'tag', iconBg: '#C94A4A', title: 'Earn More\nPalPoints', desc: 'Keep exploring\n& earning' },
   ];
 
   const renderSectionHeader = (num: string, title: string, subtitle?: string) => (
     <View style={styles.sectionHeader}>
       <View style={styles.sectionTitleRow}>
-        <Ionicons name="leaf-outline" size={16} color="#DDEBE3" style={{ transform: [{ scaleX: -1 }] }} />
+        <Ionicons name="leaf-outline" size={16} color="#F2F2F2" style={{ transform: [{ scaleX: -1 }] }} />
         <View style={styles.stepBadge}>
           <Text style={styles.stepBadgeText}>{num}</Text>
         </View>
         <Text style={styles.sectionTitle}>{title}</Text>
-        <Ionicons name="leaf-outline" size={16} color="#DDEBE3" />
+        <Ionicons name="leaf-outline" size={16} color="#F2F2F2" />
       </View>
       {subtitle && <Text style={styles.sectionSubtitle}>{subtitle}</Text>}
     </View>
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
   },
   timelineLineDotted: {
     borderBottomWidth: 1.5,
-    borderBottomColor: '#DDEBE3',
+    borderBottomColor: '#F2F2F2',
     borderStyle: 'dashed',
     width: 1000,
   },
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
   benefitsHeaderForYou: {
     alignItems: 'center',
     paddingVertical: 16,
-    backgroundColor: '#DDEBE3',
+    backgroundColor: '#F2F2F2',
     borderBottomWidth: 1,
     borderBottomColor: '#F7F6F1',
   },
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 36,
     marginBottom: 20,
-    backgroundColor: '#DDEBE3',
+    backgroundColor: '#F2F2F2',
     borderRadius: 16,
     padding: 16,
     flexDirection: 'row',

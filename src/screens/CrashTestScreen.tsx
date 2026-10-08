@@ -132,9 +132,9 @@ export default function CrashTestScreen({ navigation }: { navigation?: { goBack:
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F7F6F1' },
   header: { paddingHorizontal: 16, marginBottom: 12 },
-  back: { color: '#1F4D3A', fontWeight: '700', marginBottom: 8 },
-  title: { fontSize: 22, fontWeight: '800', color: '#1D2420' },
-  sub: { marginTop: 4, fontSize: 12, color: '#68756D' },
+  back: { color: '#111111', fontWeight: '700', marginBottom: 8 },
+  title: { fontSize: 22, fontWeight: '800', color: '#000000' },
+  sub: { marginTop: 4, fontSize: 12, color: '#6B6B6B' },
   body: { paddingHorizontal: 16, gap: 10 },
   btn: {
     backgroundColor: '#fff',
@@ -145,10 +145,10 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(183,121,31,0.2)',
   },
   btnDanger: { borderColor: 'rgba(220,76,76,0.35)', backgroundColor: '#FBEAEA' },
-  btnText: { fontSize: 15, fontWeight: '700', color: '#1D2420' },
+  btnText: { fontSize: 15, fontWeight: '700', color: '#000000' },
   btnTextDanger: { color: '#C94A4A' },
   btnDisabled: { opacity: 0.55, backgroundColor: '#F7F6F1' },
-  btnTextDisabled: { color: '#68756D' },
+  btnTextDisabled: { color: '#6B6B6B' },
   dsnBanner: {
     marginTop: 12,
     padding: 12,
@@ -158,10 +158,10 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(220,76,76,0.25)',
   },
   dsnBannerOk: {
-    backgroundColor: '#EAF3ED',
-    borderColor: 'rgba(5,150,105,0.25)',
+    backgroundColor: '#F2F2F2',
+    borderColor: 'rgba(0,0,0,0.25)',
   },
   dsnBannerTitle: { fontSize: 13, fontWeight: '800', color: '#C94A4A', marginBottom: 4 },
-  dsnBannerTitleOk: { color: '#2E7D55' },
+  dsnBannerTitleOk: { color: '#111111' },
   dsnBannerText: { fontSize: 12, lineHeight: 17, color: '#B7791F' },
 });

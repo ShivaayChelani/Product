@@ -238,7 +238,7 @@ export default function ItineraryScreen(props: ItineraryScreenProps) {
       <View style={styles.vpHeader}>
         <ImageBackground source={require('../assets/generate_plan_bg.jpg')} style={StyleSheet.absoluteFill} resizeMode="cover">
           <LinearGradient
-            colors={['rgba(29,36,32,0.3)', 'rgba(29,36,32,0.85)']}
+            colors={['rgba(0, 0, 0,0.3)', 'rgba(0, 0, 0,0.85)']}
             locations={[0.2, 1]}
             style={StyleSheet.absoluteFill}
           />
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
   
   emptyTitle: { fontSize: 24, fontFamily: 'Inter-Black', marginBottom: 8 },
   emptySub: { fontSize: 14, fontFamily: 'Inter-Medium', textAlign: 'center', marginBottom: 32, paddingHorizontal: 40 },
-  exploreBtn: { backgroundColor: '#16392B', paddingHorizontal: 32, paddingVertical: 16, borderRadius: 24 },
+  exploreBtn: { backgroundColor: '#000000', paddingHorizontal: 32, paddingVertical: 16, borderRadius: 24 },
   exploreBtnText: { color: '#FFFFFF', fontSize: 16, fontFamily: 'Inter-Bold' },
 
   vpHeader: { height: 260, width: '100%', position: 'relative' },
@@ -373,6 +373,6 @@ const styles = StyleSheet.create({
   scheduleBadgeText: { fontSize: 12, fontFamily: 'Inter-SemiBold' },
 
   startTripBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#FFFFFF', padding: 20, paddingTop: 16, paddingBottom: 0, borderTopWidth: 1, borderColor: 'rgba(183, 121, 31, 0.15)', elevation: 20, shadowColor: 'rgba(183,121,31,0.25)', shadowOffset: {width: 0, height: -10}, shadowOpacity: 0.2, shadowRadius: 20 },
-  startTripBtn: { backgroundColor: '#16392B', height: 56, borderRadius: 28, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, shadowColor: '#16392B', shadowOffset: {width: 0, height: 8}, shadowOpacity: 0.25, shadowRadius: 16, elevation: 6 },
+  startTripBtn: { backgroundColor: '#000000', height: 56, borderRadius: 28, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, shadowColor: '#000000', shadowOffset: {width: 0, height: 8}, shadowOpacity: 0.25, shadowRadius: 16, elevation: 6 },
   startTripText: { color: '#FFFFFF', fontSize: 16, fontFamily: 'Inter-Bold' },
 });

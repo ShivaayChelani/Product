@@ -15,12 +15,12 @@ import Icon from 'react-native-vector-icons/Ionicons';
 const COLORS = {
   white: '#FFFFFF',
   text: '#202020',
-  textMuted: '#68756D',
-  gold: '#1F4D3A',
-  border: '#DDEBE3',
+  textMuted: '#6B6B6B',
+  gold: '#111111',
+  border: '#F2F2F2',
   background: '#FFFFFF',
   error: '#FF3B30',
-  success: '#34C759',
+  success: '#111111',
 };
 
 interface VendorCodeRedeemModalProps {

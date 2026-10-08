@@ -62,7 +62,7 @@ export default function TripPreviewScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#1D2420" />
+        <ActivityIndicator size="large" color="#000000" />
         <Text style={styles.loadingText}>Loading preview...</Text>
       </View>
     );
@@ -101,6 +101,6 @@ export default function TripPreviewScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F7F6F1' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F6F1' },
-  loadingText: { marginTop: 12, fontSize: 14, color: '#68756D' },
+  loadingText: { marginTop: 12, fontSize: 14, color: '#6B6B6B' },
   errorTitle: { fontSize: 16, color: '#D32F2F', fontWeight: 'bold' },
 });

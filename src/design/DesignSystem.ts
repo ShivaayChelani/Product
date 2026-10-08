@@ -109,14 +109,14 @@ export const PalSafarDesign = {
       elevation: 12,
     },
     glow: {
-      shadowColor: '#1F4D3A',
+      shadowColor: '#111111',
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.35,
       shadowRadius: 20,
       elevation: 8,
     },
     goldGlow: {
-      shadowColor: '#1F4D3A',
+      shadowColor: '#111111',
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.35,
       shadowRadius: 20,

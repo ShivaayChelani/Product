@@ -19,7 +19,7 @@ import { useBackDismissesKeyboard } from '../../hooks/useBackDismissesKeyboard';
 
 const COLORS = {
   bg: '#FFFFFF',
-  title: '#1D2420',
+  title: '#000000',
   muted: '#6F6F6F',
 };
 
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     marginTop: 0,

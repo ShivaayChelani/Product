@@ -329,7 +329,7 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
               accessibilityRole="button"
               accessibilityLabel="Go back"
             >
-              <Icon name="chevron-back" size={20} color="#1D2420" />
+              <Icon name="chevron-back" size={20} color="#000000" />
             </Pressable>
             <Pressable
               style={styles.circleBtn}
@@ -337,7 +337,7 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
               accessibilityRole="button"
               accessibilityLabel="Share event"
             >
-              <Icon name="share-outline" size={19} color="#1D2420" />
+              <Icon name="share-outline" size={19} color="#000000" />
             </Pressable>
           </View>
 
@@ -500,7 +500,7 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
                       <Icon
                         name={added ? 'checkmark-circle' : 'add-circle-outline'}
                         size={15}
-                        color={added ? '#15803D' : EVENT_COLORS.accent}
+                        color={added ? '#111111' : EVENT_COLORS.accent}
                       />
                       <Text style={[styles.nearbyAddText, added && styles.nearbyAddTextDone]}>
                         {added ? 'In itinerary' : 'Add'}
@@ -574,7 +574,7 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
             <Icon
               name={inItinerary ? 'checkmark-circle' : addingToTrip ? 'sync' : 'add-circle-outline'}
               size={18}
-              color={inItinerary ? '#15803D' : '#FFFFFF'}
+              color={inItinerary ? '#111111' : '#FFFFFF'}
             />
             <Text style={[styles.itineraryBtnText, inItinerary && styles.itineraryBtnTextDone]}>
               {inItinerary ? 'In your itinerary' : addingToTrip ? 'Adding…' : 'Add to itinerary'}
@@ -621,7 +621,7 @@ function DetailHeader({ onBack }: { onBack: () => void }) {
         accessibilityRole="button"
         accessibilityLabel="Go back"
       >
-        <Icon name="chevron-back" size={20} color="#1D2420" />
+        <Icon name="chevron-back" size={20} color="#000000" />
       </Pressable>
     </View>
   );
@@ -675,7 +675,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: 'rgba(29,36,32,0.62)',
+    backgroundColor: 'rgba(0, 0, 0,0.62)',
   },
   badgeTextGlass: { fontSize: 10.5, fontWeight: '700', color: '#FFFFFF' },
   body: { padding: 20, gap: 14 },
@@ -727,9 +727,9 @@ const styles = StyleSheet.create({
     borderColor: EVENT_COLORS.accentBorder,
     backgroundColor: EVENT_COLORS.accentSoft,
   },
-  nearbyAddBtnDone: { backgroundColor: '#EFFAF3', borderColor: '#BFE6CE' },
+  nearbyAddBtnDone: { backgroundColor: '#F2F2F2', borderColor: '#F2F2F2' },
   nearbyAddText: { fontSize: 12, fontWeight: '700', color: EVENT_COLORS.accent },
-  nearbyAddTextDone: { color: '#15803D' },
+  nearbyAddTextDone: { color: '#111111' },
   itineraryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -739,9 +739,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: EVENT_COLORS.accent,
   },
-  itineraryBtnDone: { backgroundColor: '#EFFAF3', borderWidth: 1, borderColor: '#BFE6CE' },
+  itineraryBtnDone: { backgroundColor: '#F2F2F2', borderWidth: 1, borderColor: '#F2F2F2' },
   itineraryBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
-  itineraryBtnTextDone: { color: '#15803D' },
+  itineraryBtnTextDone: { color: '#111111' },
   scheduleCard: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -52,7 +52,7 @@ export const TripDeleteConfirmModal = ({ visible, trip, onConfirm, onCancel, loa
 
           {/* Warning Box */}
           <View style={styles.warningBox}>
-            <Icon name="shield-outline" size={20} color="#1F4D3A" style={styles.warningIcon} />
+            <Icon name="shield-outline" size={20} color="#111111" style={styles.warningIcon} />
             <View style={styles.warningTextContainer}>
               <Text style={styles.warningTitle}>This action cannot be undone.</Text>
               <Text style={styles.warningDesc}>All trip details, places and plans will be permanently removed.</Text>
@@ -77,7 +77,7 @@ export const TripDeleteConfirmModal = ({ visible, trip, onConfirm, onCancel, loa
               style={styles.deleteBtnWrapper}
             >
               <LinearGradient 
-                colors={['#1F4D3A', '#1F4D3A']} 
+                colors={['#111111', '#111111']}
                 start={{ x: 0, y: 0 }} 
                 end={{ x: 1, y: 0 }} 
                 style={styles.deleteBtn}
@@ -96,7 +96,7 @@ export const TripDeleteConfirmModal = ({ visible, trip, onConfirm, onCancel, loa
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(29, 36, 32, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     paddingHorizontal: 20,
     alignItems: 'center',
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.08,
     shadowRadius: 24,
@@ -131,17 +131,17 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1D2420',
+    color: '#000000',
     marginBottom: 6,
   },
   subtitle: {
     fontSize: 16,
-    color: '#1D2420',
+    color: '#000000',
     marginBottom: 20,
     fontWeight: '400',
   },
   highlightText: {
-    color: '#1F4D3A',
+    color: '#111111',
   },
   warningBox: {
     flexDirection: 'row',
@@ -161,12 +161,12 @@ const styles = StyleSheet.create({
   warningTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1D2420',
+    color: '#000000',
     marginBottom: 4,
   },
   warningDesc: {
     fontSize: 13,
-    color: '#68756D',
+    color: '#6B6B6B',
     lineHeight: 18,
   },
   buttonContainer: {
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#16392B',
+    color: '#000000',
   },
   deleteBtnWrapper: {
     flex: 1.2,

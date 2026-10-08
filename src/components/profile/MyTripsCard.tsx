@@ -35,7 +35,7 @@ export const MyTripsCard = ({
       <View style={styles.statsRow}>
         <TouchableOpacity style={styles.statItem} onPress={onPressUpcoming} activeOpacity={0.7}>
           <View style={styles.statIconWrapper}>
-            <Icon name="briefcase-outline" size={22} color="#1D2420" />
+            <Icon name="briefcase-outline" size={22} color="#000000" />
           </View>
           <Text style={styles.statNumber}>{upcomingCount}</Text>
           <Text style={styles.statLabel}>Upcoming</Text>
@@ -43,7 +43,7 @@ export const MyTripsCard = ({
 
         <TouchableOpacity style={styles.statItem} onPress={onPressCompleted} activeOpacity={0.7}>
           <View style={styles.statIconWrapper}>
-            <Icon name="git-network-outline" size={22} color="#1D2420" />
+            <Icon name="git-network-outline" size={22} color="#000000" />
           </View>
           <Text style={styles.statNumber}>{completedCount}</Text>
           <Text style={styles.statLabel}>Completed</Text>
@@ -51,7 +51,7 @@ export const MyTripsCard = ({
 
         <TouchableOpacity style={styles.statItem} onPress={onPressDrafts} activeOpacity={0.7}>
           <View style={styles.statIconWrapper}>
-            <Icon name="document-text-outline" size={22} color="#1D2420" />
+            <Icon name="document-text-outline" size={22} color="#000000" />
           </View>
           <Text style={styles.statNumber}>{draftsCount}</Text>
           <Text style={styles.statLabel}>Drafts</Text>
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
     marginBottom: 20,
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 10,
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontFamily: SANS_BOLD,
-    color: '#1D2420',
+    color: '#000000',
   },
   viewAllBtn: {
     flexDirection: 'row',
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   viewAllText: {
     fontSize: 13,
     fontFamily: SANS,
-    color: '#1D2420',
+    color: '#000000',
   },
   viewAllArrow: {
     marginLeft: 4,
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: '#F7F6F1',
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
@@ -124,13 +124,13 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 16,
     fontFamily: SANS_BOLD,
-    color: '#1D2420',
+    color: '#000000',
     lineHeight: 18,
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 11,
     fontFamily: SANS,
-    color: '#68756D',
+    color: '#6B6B6B',
   },
 });

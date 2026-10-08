@@ -737,7 +737,7 @@ export default function HomeScreen({
                 style={[styles.menuButton, { zIndex: 10, elevation: 10 }]}
                 hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
               >
-                <Icon name="menu-outline" size={32} color="#1E1B18" />
+                <Icon name="menu-outline" size={32} color="#000000" />
               </TouchableOpacity>
               
               <Image 
@@ -893,7 +893,7 @@ export default function HomeScreen({
                   </View>
                   <Text style={styles.exploreMoreText}>Explore{'\n'}More</Text>
                   <View style={styles.exploreMoreArrow}>
-                    <Icon name="arrow-forward" size={18} color="#1E1B18" />
+                    <Icon name="arrow-forward" size={18} color="#000000" />
                   </View>
                 </TouchableOpacity>
               </ScrollView>
@@ -1008,7 +1008,7 @@ export default function HomeScreen({
                     <Text style={styles.resumeButtonText}>Resume Trip</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.arrowCircleButton} onPress={onStartTrip}>
-                    <Icon name="arrow-forward" size={20} color="#1E1B18" />
+                    <Icon name="arrow-forward" size={20} color="#000000" />
                   </TouchableOpacity>
                 </View>
               </ImageBackground>
@@ -1238,7 +1238,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 18,
     paddingHorizontal: 20,
-    shadowColor: '#1E1B18',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.25,
     shadowRadius: 20,
@@ -1257,7 +1257,7 @@ const styles = StyleSheet.create({
   categoryDivider: {
     width: 1,
     height: 36,
-    backgroundColor: 'rgba(221, 235, 227, 0.15)',
+    backgroundColor: 'rgba(0, 0, 0, 0.12)',
   },
   sectionContainer: {
     marginTop: 28,
@@ -1276,7 +1276,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    color: '#1E1B18',
+    color: '#000000',
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     fontWeight: '700',
   },
@@ -1333,7 +1333,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   resumeButtonText: {
-    color: '#1E1B18',
+    color: '#000000',
     fontSize: 13,
     fontWeight: '700',
   },

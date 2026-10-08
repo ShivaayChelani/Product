@@ -180,7 +180,7 @@ export default function ItineraryCard({
         <View style={styles.badgeRow}>
           {spot.verificationStatus === 'verified' && (
             <View style={[styles.badge, styles.badgeVerified]}>
-              <Ionicons name="checkmark-circle" size={10} color="#2E7D55" />
+              <Ionicons name="checkmark-circle" size={10} color="#111111" />
               <Text style={styles.badgeText}>Verified</Text>
             </View>
           )}
@@ -268,13 +268,13 @@ const styles = StyleSheet.create({
     marginLeft: 16,
     marginRight: 16,
     overflow: 'visible',
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
     elevation: 8,
     borderWidth: 1,
-    borderColor: 'rgba(31, 77, 58, 0.08)',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
     position: 'relative',
   },
   cardCompleted: {
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 3,
-    backgroundColor: '#1F4D3A',
+    backgroundColor: '#111111',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     opacity: 0.6,
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F7F6F1',
@@ -326,12 +326,12 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#D9E0DB',
+    backgroundColor: '#E5E5EA',
   },
   timelineDot: {
     width: 2,
     flex: 1,
-    backgroundColor: '#D9E0DB',
+    backgroundColor: '#E5E5EA',
     marginTop: 4,
     minHeight: 20,
   },
@@ -354,15 +354,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#DDEBE3',
+    backgroundColor: '#F2F2F2',
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(31, 77, 58, 0.15)',
+    borderColor: 'rgba(0, 0, 0, 0.15)',
   },
   timeBadgeDone: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#F2F2F2',
     borderColor: 'rgba(45, 212, 191, 0.2)',
   },
   time: {
@@ -384,15 +384,15 @@ const styles = StyleSheet.create({
   },
   durationBadgeDone: {
     backgroundColor: '#F7F6F1',
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
   },
   duration: {
     fontSize: 11,
-    color: '#68756D',
+    color: '#6B6B6B',
     fontWeight: '600',
   },
   durationDone: {
-    color: '#D9E0DB',
+    color: '#E5E5EA',
   },
   heroImageWrap: {
     height: 140,
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 12,
     position: 'relative',
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 10,
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
     borderWidth: 1,
     borderColor: '#F7F6F1',
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
   },
   emojiContainerDone: {
     backgroundColor: '#F7F6F1',
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
   },
   emoji: {
     fontSize: 20,
@@ -528,7 +528,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginRight: 12,
     overflow: 'hidden',
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
   },
   imageOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(31, 77, 58, 0.08)',
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
   },
   spotInfo: {
     flex: 1,
@@ -549,12 +549,12 @@ const styles = StyleSheet.create({
   spotName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1D2420',
+    color: '#000000',
     letterSpacing: -0.3,
   },
   spotNameCompleted: {
     textDecorationLine: 'line-through',
-    color: '#68756D',
+    color: '#6B6B6B',
   },
   categoryRow: {
     flexDirection: 'row',
@@ -569,11 +569,11 @@ const styles = StyleSheet.create({
   },
   category: {
     fontSize: 12,
-    color: '#68756D',
+    color: '#6B6B6B',
     fontWeight: '500',
   },
   categoryDone: {
-    color: '#68756D',
+    color: '#6B6B6B',
   },
   badgeRow: {
     flexDirection: 'row',
@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   badgeVerified: {
-    backgroundColor: '#EAF3ED',
+    backgroundColor: '#F2F2F2',
   },
   badgeMustVisit: {
     backgroundColor: '#FBEAEA',
@@ -600,7 +600,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 10,
-    color: '#1D2420',
+    color: '#000000',
     fontWeight: '700',
   },
   tipRow: {
@@ -626,7 +626,7 @@ const styles = StyleSheet.create({
   },
   tipText: {
     fontSize: 12,
-    color: '#16392B',
+    color: '#000000',
     flex: 1,
     lineHeight: 16,
     fontWeight: '500',
@@ -644,11 +644,11 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: '#68756D',
+    color: '#6B6B6B',
     fontWeight: '500',
   },
   freeBadge: {
-    backgroundColor: '#EAF3ED',
+    backgroundColor: '#F2F2F2',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   actionNavigate: {
-    backgroundColor: '#DDEBE3',
+    backgroundColor: '#F2F2F2',
   },
   actionDetails: {
     backgroundColor: '#F7F6F1',

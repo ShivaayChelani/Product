@@ -42,8 +42,8 @@ const COLORS = {
   card: '#FFFFFF',
   textPrimary: '#202020',
   textSecondary: '#6F6F6F',
-  gold: '#1F4D3A',
-  border: '#D9E0DB',
+  gold: '#111111',
+  border: '#E5E5EA',
 };
 
 type Period = '7d' | '30d' | '90d';
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: 'rgba(221,235,227,0.4)',
+    borderColor: 'rgba(0,0,0,0.10)',
     paddingVertical: 16,
     marginBottom: 16,
   },

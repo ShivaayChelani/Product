@@ -57,7 +57,7 @@ const COLORS = {
   background: TP.bg,
   text: TP.text,
   textSecondary: TP.textSecondary,
-  textMuted: '#68756D',
+  textMuted: '#6B6B6B',
   border: TP.border,
   danger: '#C94A4A',
 };
@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
     padding: 14,
   },
   workspaceSubIcon: {
@@ -720,10 +720,10 @@ const styles = StyleSheet.create({
   },
   roleChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   roleChoice: { borderWidth: 1, borderColor: '#B7791F', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: '#FFFFFF' },
-  roleChoiceActive: { backgroundColor: '#1F4D3A', borderColor: '#1F4D3A' },
-  roleChoiceText: { color: '#16392B', fontSize: 12, fontWeight: '700' },
+  roleChoiceActive: { backgroundColor: '#111111', borderColor: '#111111' },
+  roleChoiceText: { color: '#000000', fontSize: 12, fontWeight: '700' },
   roleChoiceTextActive: { color: '#fff' },
-  applicationUnavailable: { color: '#68756D', fontSize: 12, fontWeight: '600', marginTop: 8 },
+  applicationUnavailable: { color: '#6B6B6B', fontSize: 12, fontWeight: '600', marginTop: 8 },
   content: { flex: 1 },
 
   // Hero Section
@@ -774,7 +774,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#DDEBE3',
+    backgroundColor: '#F2F2F2',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -816,7 +816,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 17, fontWeight: '700' },
   sectionCount: { fontSize: 13, fontWeight: '600' },
   sectionLink: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  sectionLinkText: { fontSize: 13, fontWeight: '600', color: '#DDEBE3' },
+  sectionLinkText: { fontSize: 13, fontWeight: '600', color: '#F2F2F2' },
 
   // Progress Cards
   progressCard: {

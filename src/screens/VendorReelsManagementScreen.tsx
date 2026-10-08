@@ -26,6 +26,7 @@ import {
   subscribeUnreadBadge,
 } from '../services/notifications/notificationBadgeStore';
 import { useVendorScreenInsets } from '../design/vendorLayout';
+import { normalizeReelCaption } from '../components/reels/reelCaptionUtils';
 
 const GRID_GAP = 10;
 const GRID_H_PAD = 16;
@@ -59,13 +60,13 @@ const C = {
   surface: '#FFFFFF',
   soft: '#F7F6F1',
   peach: '#F7F6F1',
-  deep: '#1D2420',
-  muted: '#68756D',
+  deep: '#000000',
+  muted: '#6B6B6B',
   mutedLight: '#B7791F',
-  border: '#DDEBE3',
-  bronze: '#1F4D3A',
-  green: '#2E7D55',
-  greenBg: '#EAF3ED',
+  border: '#F2F2F2',
+  bronze: '#111111',
+  green: '#111111',
+  greenBg: '#F2F2F2',
 };
 
 type SortKey = 'latest' | 'oldest' | 'views' | 'likes';
@@ -332,6 +333,7 @@ export default function VendorReelsManagementScreen({
   const renderListCard = ({ item }: { item: any }) => {
     const status = getReelStatus(item, archivedIds);
     const statusLabel = status === 'published' ? 'Published' : status === 'drafts' ? 'Draft' : 'Archived';
+    const reelCaption = normalizeReelCaption(item.description);
     return (
       <TouchableOpacity
         style={styles.card}
@@ -345,7 +347,7 @@ export default function VendorReelsManagementScreen({
           <View style={styles.cardBody}>
             <View style={styles.titleRow}>
               <Text style={styles.cardTitle} numberOfLines={2}>
-                {item.title || item.description || 'Promotional reel'}
+                {item.title || reelCaption || 'Promotional reel'}
               </Text>
               <TouchableOpacity hitSlop={8} onPress={() => onReelMenu(item)}>
                 <Icon name="ellipsis-vertical" size={16} color={C.muted} />
@@ -376,8 +378,8 @@ export default function VendorReelsManagementScreen({
               </View>
             </View>
 
-            {item.description ? (
-              <Text style={styles.caption} numberOfLines={1}>{item.description}</Text>
+            {reelCaption ? (
+              <Text style={styles.caption} numberOfLines={1}>{reelCaption}</Text>
             ) : null}
           </View>
         </View>
@@ -422,7 +424,7 @@ export default function VendorReelsManagementScreen({
         </TouchableOpacity>
       </View>
       <Text style={styles.gridTitle} numberOfLines={2}>
-        {item.title || item.description || 'Promotional reel'}
+        {item.title || normalizeReelCaption(item.description) || 'Promotional reel'}
       </Text>
     </TouchableOpacity>
   );
@@ -850,7 +852,7 @@ const styles = StyleSheet.create({
 
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(29,36,32,.42)',
+    backgroundColor: 'rgba(0, 0, 0,.42)',
     justifyContent: 'center',
     padding: 24,
   },

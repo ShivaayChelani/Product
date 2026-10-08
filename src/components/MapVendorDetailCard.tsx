@@ -335,7 +335,7 @@ export default function MapVendorDetailCard({
             >
               <View style={styles.tileHeader}>
                 <View style={[styles.tileIconWrap, styles.offersIconWrap]}>
-                  <Icon name="pricetag" size={20} color="#1F4D3A" />
+                  <Icon name="pricetag" size={20} color="#111111" />
                 </View>
                 <Icon name="chevron-forward" size={16} color={T.textSecondary} />
               </View>
@@ -360,7 +360,7 @@ export default function MapVendorDetailCard({
                   activeOpacity={0.8}
                 >
                   <View style={styles.offerPreviewIcon}>
-                    <Icon name="pricetag" size={16} color="#1F4D3A" />
+                    <Icon name="pricetag" size={16} color="#111111" />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.offerPreviewTitle} numberOfLines={1}>{offer.title}</Text>
@@ -384,7 +384,7 @@ export default function MapVendorDetailCard({
           ) : null}
           <View style={styles.actions}>
             <TouchableOpacity style={styles.actionTile} onPress={onNavigate} activeOpacity={0.8}>
-              <Icon name="navigate-outline" size={24} color="#1D2420" />
+              <Icon name="navigate-outline" size={24} color="#000000" />
               <Text style={styles.actionTileText}>Navigate</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -394,18 +394,18 @@ export default function MapVendorDetailCard({
               activeOpacity={0.8}
             >
               {addingToItinerary ? (
-                <ActivityIndicator size="small" color="#1D2420" />
+                <ActivityIndicator size="small" color="#000000" />
               ) : (
                 <Icon
                   name={inItinerary ? 'checkmark-circle-outline' : 'briefcase-outline'}
                   size={24}
-                  color="#1D2420"
+                  color="#000000"
                 />
               )}
               <Text style={styles.actionTileText}>{inItinerary ? 'Added' : 'Add to Trip'}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionTile} onPress={onBookRide} activeOpacity={0.8}>
-              <Icon name="car-outline" size={24} color="#1D2420" />
+              <Icon name="car-outline" size={24} color="#000000" />
               <Text style={styles.actionTileText}>Get a Ride</Text>
             </TouchableOpacity>
           </View>
@@ -478,22 +478,22 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#1D2420',
+    color: '#000000',
     lineHeight: 22,
   },
   verifiedIcon: { marginLeft: 4, marginTop: 2 },
   iconHit: { padding: 4, position: 'absolute', right: 0, top: -2 },
   subtitle: { fontSize: 13, color: '#8C7B6F', marginTop: 4 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
-  metaText: { fontSize: 12, fontWeight: '600', color: '#16392B' },
+  metaText: { fontSize: 12, fontWeight: '600', color: '#000000' },
   hoursRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' },
   openPill: {
-    backgroundColor: '#EAF3ED',
+    backgroundColor: '#F2F2F2',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
   },
-  openText: { fontSize: 10, fontWeight: '800', color: '#2E7D55' },
+  openText: { fontSize: 10, fontWeight: '800', color: '#111111' },
   closedPill: { backgroundColor: '#F7F6F1' },
   closedText: { color: '#8C7B6F' },
   closesText: { fontSize: 11, color: '#8C7B6F', fontWeight: '600' },
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 10,
   },
-  ratingText: { fontSize: 13, fontWeight: '700', color: '#16392B' },
+  ratingText: { fontSize: 13, fontWeight: '700', color: '#000000' },
   pendingWrap: {
     paddingHorizontal: 16,
     marginTop: 16,
@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
   vendorReelsLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#68756D',
+    color: '#6B6B6B',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
     marginBottom: 8,
@@ -579,9 +579,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  reelsIconWrap: { backgroundColor: '#DDEBE3' },
+  reelsIconWrap: { backgroundColor: '#F2F2F2' },
   offersIconWrap: { backgroundColor: '#F7F6F1' },
-  tileTitle: { fontSize: 14, fontWeight: '800', color: '#1D2420' },
+  tileTitle: { fontSize: 14, fontWeight: '800', color: '#000000' },
   tileSubtitle: { fontSize: 12, color: '#8C7B6F', marginTop: 4, fontWeight: '600' },
   offersPreviewWrap: {
     marginTop: 12,
@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  offerPreviewTitle: { fontSize: 13, fontWeight: '800', color: '#1D2420' },
+  offerPreviewTitle: { fontSize: 13, fontWeight: '800', color: '#000000' },
   offerPreviewSub: { fontSize: 11, fontWeight: '600', color: '#8C7B6F', marginTop: 2 },
   reviewBtn: {
     flexDirection: 'row',
@@ -642,6 +642,6 @@ const styles = StyleSheet.create({
   actionTileText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1D2420',
+    color: '#000000',
   },
 });

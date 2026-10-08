@@ -103,7 +103,7 @@ export default function LoginSplashScreen({ navigation, onGoogleLogin, onAppleLo
 
 const COLORS = {
   bg: '#FFFFFF',
-  divider: '#D9E0DB',
+  divider: '#E5E5EA',
   muted: '#6F6F6F',
   link: '#202020',
 };

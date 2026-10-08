@@ -468,7 +468,7 @@ export default function SpotDetailScreen({
         paddingTop: insets.top + 8,
         backgroundColor: scrollY.interpolate({
           inputRange: [0, 200],
-          outputRange: ['rgba(0,0,0,0)', 'rgba(29, 36, 32, 0.9)']
+          outputRange: ['rgba(0,0,0,0)', 'rgba(0, 0, 0, 0.9)']
         })
       }]}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
@@ -479,7 +479,7 @@ export default function SpotDetailScreen({
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={handleSave} style={styles.headerActionBtn}>
             <View style={styles.glassButton}>
-              <Icon name={isSaved ? 'bookmark' : 'bookmark-outline'} size={22} color={isSaved ? '#DDEBE3' : '#FFF'} />
+              <Icon name={isSaved ? 'bookmark' : 'bookmark-outline'} size={22} color={isSaved ? '#F2F2F2' : '#FFF'} />
             </View>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleShare} style={styles.headerActionBtn}>
@@ -634,7 +634,7 @@ export default function SpotDetailScreen({
             </View>
 
             <View style={styles.infoGridItem}>
-              <Icon name="fitness-outline" size={20} color={displaySpot.difficulty === 'easy' ? '#2E7D55' : displaySpot.difficulty === 'medium' ? '#B7791F' : displaySpot.difficulty === 'hard' ? '#F44336' : colors.textMuted} />
+              <Icon name="fitness-outline" size={20} color={displaySpot.difficulty === 'easy' ? '#111111' : displaySpot.difficulty === 'medium' ? '#B7791F' : displaySpot.difficulty === 'hard' ? '#F44336' : colors.textMuted} />
               <View style={styles.infoGridTextCol}>
                 <Text style={styles.infoGridLabel}>Difficulty</Text>
                 <Text style={styles.infoGridValue}>{displaySpot.difficulty?.toUpperCase() || (displaySpot.source === 'HIDDEN_GEM' || displaySpot.tags?.includes('hidden-gem') ? 'Unknown' : 'N/A')}</Text>
@@ -712,7 +712,11 @@ export default function SpotDetailScreen({
                   style={[styles.vendorCard, { width: 130, backgroundColor: colors.surface }]}
                   onPress={() => _navigation.navigate('ReelDetail', { reelId: reel.id, reels: spotReels.filter((r: any) => r.status === 'APPROVED') })}
                 >
-                  <Image source={{ uri: reel.thumbnail || reel.videoUrl }} style={[styles.vendorImg, { height: 160 }]} />
+                  {reel.thumbnail || reel.thumbnailUrl ? (
+                    <Image source={{ uri: reel.thumbnail || reel.thumbnailUrl }} style={[styles.vendorImg, { height: 160 }]} />
+                  ) : (
+                    <ImageComingSoon style={[styles.vendorImg, { height: 160 }]} compact />
+                  )}
                   <View style={styles.vendorInfo}>
                     <Text style={styles.vendorName} numberOfLines={1}>@{reel.creator?.username || 'Creator'}</Text>
                     <Text style={styles.vendorType} numberOfLines={1}>
@@ -803,9 +807,9 @@ export default function SpotDetailScreen({
 
                   if (quizAnswered) {
                     if (idx === quizQuestions[quizCurrentIdx].correctIndex) {
-                      btnBg = 'rgba(76, 175, 80, 0.15)';
-                      border = '#2E7D55';
-                      txtColor = '#2E7D55';
+                      btnBg = 'rgba(0, 0, 0, 0.15)';
+                      border = '#111111';
+                      txtColor = '#111111';
                     } else if (idx === quizSelectedOption) {
                       btnBg = 'rgba(244, 67, 54, 0.15)';
                       border = '#F44336';
@@ -913,11 +917,11 @@ export default function SpotDetailScreen({
 
             {puzzleSolved && (
               <View style={{ alignItems: 'center', marginTop: 16 }}>
-                <Text style={{ fontSize: 18, fontWeight: '700', color: '#2E7D55', marginBottom: 8 }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#111111', marginBottom: 8 }}>
                   🎉 Solved! +50 Points
                 </Text>
                 <TouchableOpacity
-                  style={[styles.submitButton, { backgroundColor: '#2E7D55', marginTop: 0 }]}
+                  style={[styles.submitButton, { backgroundColor: '#111111', marginTop: 0 }]}
                   onPress={() => setPuzzleVisible(false)}
                 >
                   <Text style={styles.submitButtonText}>Claim reward</Text>
@@ -1614,9 +1618,9 @@ function createStyles(
       height: puzzleSize,
       flexWrap: 'wrap',
       flexDirection: 'row',
-      backgroundColor: '#D9E0DB',
+      backgroundColor: '#E5E5EA',
       borderWidth: 1,
-      borderColor: '#D9E0DB',
+      borderColor: '#E5E5EA',
       alignSelf: 'center',
     },
     puzzleTile: {

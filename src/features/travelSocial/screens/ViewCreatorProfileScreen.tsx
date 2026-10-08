@@ -534,7 +534,7 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
                 onPress={handleCopyProfileLink}
               >
                 <View style={[styles.optionIconWrap, { backgroundColor: '#F7F6F1' }]}>
-                  <Icon name="link" size={22} color="#1F4D3A" />
+                  <Icon name="link" size={22} color="#111111" />
                 </View>
                 <View style={styles.optionTextWrap}>
                   <Text style={styles.optionTitle}>Copy profile link</Text>
@@ -550,8 +550,8 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
                   handleShareProfile();
                 }}
               >
-                <View style={[styles.optionIconWrap, { backgroundColor: '#EAF3ED' }]}>
-                  <Icon name="share-social-outline" size={22} color="#2E7D55" />
+                <View style={[styles.optionIconWrap, { backgroundColor: '#F2F2F2' }]}>
+                  <Icon name="share-social-outline" size={22} color="#111111" />
                 </View>
                 <View style={styles.optionTextWrap}>
                   <Text style={styles.optionTitle}>Share profile</Text>
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
   heroImage: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(32,36,29,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.25)',
   },
   heroNav: {
     flexDirection: 'row',
@@ -617,7 +617,7 @@ const styles = StyleSheet.create({
     borderColor: T.border,
   },
   profileCardShadow: {
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.06,
     shadowRadius: 16,
@@ -720,7 +720,7 @@ const styles = StyleSheet.create({
   collaborateBtn: {
     backgroundColor: '#F7F6F1',
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     paddingVertical: 14,
     borderRadius: T.radiusButton,
     alignItems: 'center',
@@ -735,9 +735,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: T.radiusPill,
-    backgroundColor: '#EAF3ED',
+    backgroundColor: '#F2F2F2',
   },
-  selfBadgeText: { color: '#2E7D55', fontWeight: '600' },
+  selfBadgeText: { color: '#111111', fontWeight: '600' },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

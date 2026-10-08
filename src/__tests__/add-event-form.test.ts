@@ -261,3 +261,23 @@ function firstFieldErrors(draft: EventDraft): Record<string, string> {
   }
   return map;
 }
+
+describe('event form: submit guard rails', () => {
+  const screen = read('screens/AddEventScreen.tsx');
+
+  it('refuses to submit until every required field validates', () => {
+    expect(screen).toMatch(/if \(!runClientValidation\(\)\) return;/);
+    expect(screen).toMatch(/const found = validateEventDraft\(target\);/);
+    expect(screen).toMatch(/setSubmitting\(true\);/);
+    expect(screen).toMatch(/eventsApi\.create\(input\)/);
+  });
+
+  it('re-validates the live draft after uploads, before the create call', () => {
+    // Uploads are async: the draft can change while they run, so the payload is
+    // built from (and validated against) the ref, never the submit-time closure.
+    expect(screen).toMatch(/const draftRef = useRef\(draft\);/);
+    expect(screen).toMatch(/const live = draftRef\.current;/);
+    expect(screen).toMatch(/if \(!runClientValidation\(live\)\) return;/);
+    expect(screen).toMatch(/buildCreateEventInput\(live, \{ coverImage: cover, images: gallery \}\)/);
+  });
+});

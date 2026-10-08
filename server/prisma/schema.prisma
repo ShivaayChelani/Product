@@ -679,9 +679,11 @@ model Place {
   // ST_Intersects(location, ...) was sequential-scanning the whole table.
   // The named map keeps this stable across `prisma migrate`.
   @@index([location], type: Gist, map: "places_location_idx")
-  // Functional index so LOWER(category) in the map/category filters stays
-  // sargable instead of forcing a sequential scan.
-  @@index([category(ops: raw("lower(category::text)"))], map: "places_category_lower_idx")
+  // Functional index `places_category_lower_idx` on lower(category::text) cannot be
+  // declared here: Prisma emits ops: raw(...) in the operator-class slot, producing
+  // `"category" lower(category::text)`, which fails `prisma db push` with
+  // `syntax error at or near "::"`. It is created idempotently at boot instead —
+  // see src/config/db-extensions.ts.
   @@map("places")
 }
 

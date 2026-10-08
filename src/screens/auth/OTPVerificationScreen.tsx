@@ -21,10 +21,10 @@ const RESEND_SECONDS = 45;
 
 const COLORS = {
   bg: '#FFFFFF',
-  title: '#1D2420',
+  title: '#000000',
   muted: '#6F6F6F',
-  change: '#1F4D3A',
-  privacy: '#68756D',
+  change: '#111111',
+  privacy: '#6B6B6B',
 };
 
 interface SignupDraft {

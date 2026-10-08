@@ -31,7 +31,7 @@ export const DrawerHeader: React.FC<DrawerHeaderProps> = ({
         resizeMode="cover"
       >
         <TouchableOpacity style={[styles.closeBtn, { top: insets.top + 10 }]} onPress={onClose} hitSlop={10}>
-          <Icon name="close" size={20} color="#16392B" />
+          <Icon name="close" size={20} color="#000000" />
         </TouchableOpacity>
         
         <View style={styles.logoContainer}>
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#DDEBE3', // Lighter color to match the image
+    backgroundColor: '#F2F2F2', // Lighter color to match the image
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 24,
-    backgroundColor: '#1F4D3A',
+    backgroundColor: '#111111',
     marginTop: 6,
   },
   guestChipText: {

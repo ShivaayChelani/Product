@@ -56,7 +56,7 @@ export default function LegalHubScreen({ onBack, onSelect }: LegalHubScreenProps
           />
           <View style={styles.headerContent}>
             <TouchableOpacity onPress={onBack} style={styles.backBtn} hitSlop={12}>
-              <Icon name="arrow-back" size={24} color="#16392B" />
+              <Icon name="arrow-back" size={24} color="#000000" />
             </TouchableOpacity>
             <View style={styles.headerTextWrap}>
               <Text style={styles.title}>Legal & Policies</Text>
@@ -69,25 +69,25 @@ export default function LegalHubScreen({ onBack, onSelect }: LegalHubScreenProps
         <Text style={styles.sectionTitle}>LEGAL DOCUMENTS</Text>
         <View style={styles.card}>
           <TouchableOpacity style={styles.row} onPress={() => onSelect?.('PRIVACY_POLICY', 'Privacy Policy')}>
-            <View style={[styles.iconBox, { backgroundColor: '#DDEBE3' }]}>
-              <Icon name="shield-checkmark-outline" size={20} color="#16392B" />
+            <View style={[styles.iconBox, { backgroundColor: '#F2F2F2' }]}>
+              <Icon name="shield-checkmark-outline" size={20} color="#000000" />
             </View>
             <View style={styles.rowContent}>
               <Text style={styles.rowTitle}>Privacy Policy</Text>
               <Text style={styles.rowSubtitle}>Learn how we collect and protect your information.</Text>
             </View>
-            <Icon name="chevron-forward" size={18} color="#68756D" />
+            <Icon name="chevron-forward" size={18} color="#6B6B6B" />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.row} onPress={() => onSelect?.('TERMS_CONDITIONS', 'Terms & Conditions')}>
             <View style={[styles.iconBox, { backgroundColor: '#F7F6F1' }]}>
-              <Icon name="document-text-outline" size={20} color="#1F4D3A" />
+              <Icon name="document-text-outline" size={20} color="#111111" />
             </View>
             <View style={styles.rowContent}>
               <Text style={styles.rowTitle}>Terms & Conditions</Text>
               <Text style={styles.rowSubtitle}>Rules and conditions for using PalSafar.</Text>
             </View>
-            <Icon name="chevron-forward" size={18} color="#68756D" />
+            <Icon name="chevron-forward" size={18} color="#6B6B6B" />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.row} onPress={() => onSelect?.('REWARDS_POLICY', 'Rewards Policy')}>
@@ -98,29 +98,29 @@ export default function LegalHubScreen({ onBack, onSelect }: LegalHubScreenProps
               <Text style={styles.rowTitle}>Rewards Policy</Text>
               <Text style={styles.rowSubtitle}>Understand points, rewards and redemption.</Text>
             </View>
-            <Icon name="chevron-forward" size={18} color="#68756D" />
+            <Icon name="chevron-forward" size={18} color="#6B6B6B" />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.row} onPress={() => onSelect?.('COMMUNITY_GUIDELINES', 'Community Guidelines')}>
             <View style={[styles.iconBox, { backgroundColor: '#F7F6F1' }]}>
-              <Icon name="people-outline" size={20} color="#1F4D3A" />
+              <Icon name="people-outline" size={20} color="#111111" />
             </View>
             <View style={styles.rowContent}>
               <Text style={styles.rowTitle}>Community Guidelines</Text>
               <Text style={styles.rowSubtitle}>Help us keep PalSafar safe for everyone.</Text>
             </View>
-            <Icon name="chevron-forward" size={18} color="#68756D" />
+            <Icon name="chevron-forward" size={18} color="#6B6B6B" />
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]} onPress={() => onSelect?.('REFUND_POLICY', 'Refund Policy')}>
-            <View style={[styles.iconBox, { backgroundColor: '#EAF3ED' }]}>
-              <Icon name="card-outline" size={20} color="#2E7D55" />
+            <View style={[styles.iconBox, { backgroundColor: '#F2F2F2' }]}>
+              <Icon name="card-outline" size={20} color="#111111" />
             </View>
             <View style={styles.rowContent}>
               <Text style={styles.rowTitle}>Refund & Cancellation Policy</Text>
               <Text style={styles.rowSubtitle}>Booking, cancellation and refund information.</Text>
             </View>
-            <Icon name="chevron-forward" size={18} color="#68756D" />
+            <Icon name="chevron-forward" size={18} color="#6B6B6B" />
           </TouchableOpacity>
         </View>
 
@@ -138,7 +138,7 @@ export default function LegalHubScreen({ onBack, onSelect }: LegalHubScreenProps
                     <Text style={styles.rowTitle}>Vendor Terms & Conditions</Text>
                     <Text style={styles.rowSubtitle}>Terms for businesses and verified vendors.</Text>
                   </View>
-                  <Icon name="chevron-forward" size={18} color="#68756D" />
+                  <Icon name="chevron-forward" size={18} color="#6B6B6B" />
                 </TouchableOpacity>
               )}
               {isCreator && (
@@ -150,7 +150,7 @@ export default function LegalHubScreen({ onBack, onSelect }: LegalHubScreenProps
                     <Text style={styles.rowTitle}>Creator Terms & Conditions</Text>
                     <Text style={styles.rowSubtitle}>Terms for content creators and affiliates.</Text>
                   </View>
-                  <Icon name="chevron-forward" size={18} color="#68756D" />
+                  <Icon name="chevron-forward" size={18} color="#6B6B6B" />
                 </TouchableOpacity>
               )}
             </View>
@@ -161,25 +161,25 @@ export default function LegalHubScreen({ onBack, onSelect }: LegalHubScreenProps
         <Text style={styles.sectionTitle}>COMPANY</Text>
         <View style={styles.card}>
           <TouchableOpacity style={styles.row} onPress={() => onSelect?.('ABOUT_US', 'About Us')}>
-            <View style={[styles.iconBox, { backgroundColor: '#DDEBE3' }]}>
-              <Icon name="information-circle-outline" size={20} color="#1F4D3A" />
+            <View style={[styles.iconBox, { backgroundColor: '#F2F2F2' }]}>
+              <Icon name="information-circle-outline" size={20} color="#111111" />
             </View>
             <View style={styles.rowContent}>
               <Text style={styles.rowTitle}>About PalSafar</Text>
               <Text style={styles.rowSubtitle}>Learn more about our mission and vision.</Text>
             </View>
-            <Icon name="chevron-forward" size={18} color="#68756D" />
+            <Icon name="chevron-forward" size={18} color="#6B6B6B" />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.row} onPress={() => onSelect?.('CONTACT_INFO', 'Contact Information')}>
             <View style={[styles.iconBox, { backgroundColor: '#F7F6F1' }]}>
-              <Icon name="mail-outline" size={20} color="#16392B" />
+              <Icon name="mail-outline" size={20} color="#000000" />
             </View>
             <View style={styles.rowContent}>
               <Text style={styles.rowTitle}>Contact Us</Text>
               <Text style={styles.rowSubtitle}>Email, phone and office information.</Text>
             </View>
-            <Icon name="chevron-forward" size={18} color="#68756D" />
+            <Icon name="chevron-forward" size={18} color="#6B6B6B" />
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]} onPress={() => onSelect?.('FAQ', 'FAQ')}>
@@ -190,7 +190,7 @@ export default function LegalHubScreen({ onBack, onSelect }: LegalHubScreenProps
               <Text style={styles.rowTitle}>Help Center</Text>
               <Text style={styles.rowSubtitle}>FAQs and support articles.</Text>
             </View>
-            <Icon name="chevron-forward" size={18} color="#68756D" />
+            <Icon name="chevron-forward" size={18} color="#6B6B6B" />
           </TouchableOpacity>
         </View>
 
@@ -199,14 +199,14 @@ export default function LegalHubScreen({ onBack, onSelect }: LegalHubScreenProps
         {/* SECTION 5: Security Status Banner */}
         <View style={styles.securityCard}>
           <View style={styles.securityIconBox}>
-            <Icon name="shield-checkmark-outline" size={20} color="#2E7D55" />
+            <Icon name="shield-checkmark-outline" size={20} color="#111111" />
           </View>
           <View style={styles.securityContent}>
             <Text style={styles.securityTitle}>Your privacy matters</Text>
             <Text style={styles.securitySubtitle}>PalSafar protects your personal information using secure encryption and industry best practices.</Text>
           </View>
           <View style={styles.securityCheckBox}>
-            <Icon name="checkmark" size={16} color="#2E7D55" />
+            <Icon name="checkmark" size={16} color="#111111" />
           </View>
         </View>
 
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -268,13 +268,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#16392B',
+    color: '#000000',
     letterSpacing: -0.5,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#1F4D3A',
+    color: '#111111',
     fontWeight: '500',
     lineHeight: 20,
     paddingRight: 10,
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#16392B',
+    color: '#000000',
     letterSpacing: 1.2,
     marginBottom: 10,
     marginTop: 8,
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.03,
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#DDEBE3',
+    borderBottomColor: '#F2F2F2',
     gap: 14,
   },
   iconBox: {
@@ -322,19 +322,19 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1D2420',
+    color: '#000000',
     marginBottom: 2,
   },
   rowSubtitle: {
     fontSize: 13,
-    color: '#1F4D3A',
+    color: '#111111',
   },
   promoCard: {
     backgroundColor: '#F7F6F1',
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     marginBottom: 16,
     flexDirection: 'column',
     gap: 16,
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
   },
   promoSparkle1: {
     position: 'absolute',
@@ -371,19 +371,19 @@ const styles = StyleSheet.create({
   promoTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1D2420',
+    color: '#000000',
     marginBottom: 4,
   },
   promoSubtitle: {
     fontSize: 13,
-    color: '#68756D',
+    color: '#6B6B6B',
     lineHeight: 18,
   },
   promoBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 14,
@@ -397,11 +397,11 @@ const styles = StyleSheet.create({
   securityCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAF5',
+    backgroundColor: '#F2F2F2',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E8F3EC',
+    borderColor: '#F2F2F2',
     marginBottom: 40,
     gap: 14,
   },
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#EAF3ED',
+    backgroundColor: '#F2F2F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -419,19 +419,19 @@ const styles = StyleSheet.create({
   securityTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1D2420',
+    color: '#000000',
     marginBottom: 2,
   },
   securitySubtitle: {
     fontSize: 12,
-    color: '#68756D',
+    color: '#6B6B6B',
     lineHeight: 16,
   },
   securityCheckBox: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#DDEBE3',
+    backgroundColor: '#F2F2F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     height: 58,
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',

@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     borderRadius: LuxuryRadii.search,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
     gap: 10,
   },
   placeholderWrap: {

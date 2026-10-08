@@ -29,13 +29,13 @@ import {
 const C = {
   bg: '#FFFFFF',
   white: '#FFFFFF',
-  brown: '#1D2420',
-  brownLight: '#68756D',
+  brown: '#000000',
+  brownLight: '#6B6B6B',
   text: '#1F1A17',
   textSub: '#5E544C',
   textMuted: '#A0968C',
-  border: '#D9E0DB',
-  green: '#2E7D55',
+  border: '#E5E5EA',
+  green: '#111111',
   red: '#D32F2F',
   pending: '#B7791F',
 };
@@ -178,7 +178,7 @@ export default function CollaborationDetailScreen() {
         {item.status === 'REVISION_REQUESTED' && isCreator ? (
           <View style={styles.revisionCard}>
             <View style={styles.revisionHeader}>
-              <Icon name="alert-circle" size={20} color="#16392B" />
+              <Icon name="alert-circle" size={20} color="#000000" />
               <Text style={styles.revisionTitle}>Vendor requested changes</Text>
             </View>
             <Text style={styles.revisionBody}>
@@ -515,21 +515,21 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
   },
   revisionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   revisionTitle: { fontSize: 15, fontWeight: '800', color: '#B7791F', flex: 1 },
   revisionBody: { fontSize: 14, color: '#B7791F', lineHeight: 20 },
   publishCard: {
-    backgroundColor: '#EAF3ED',
+    backgroundColor: '#F2F2F2',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: '#F2F2F2',
   },
-  publishTitle: { fontSize: 15, fontWeight: '800', color: '#065F46', flex: 1 },
-  publishBody: { fontSize: 14, color: '#047857', lineHeight: 20 },
+  publishTitle: { fontSize: 15, fontWeight: '800', color: '#111111', flex: 1 },
+  publishBody: { fontSize: 14, color: '#111111', lineHeight: 20 },
   
   link: { fontSize: 15, color: C.brown, fontWeight: '600', marginVertical: 6 },
   

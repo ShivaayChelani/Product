@@ -15,15 +15,15 @@ import {
 } from '../../utils/normalizeTripPlan';
 
 const C = {
-  text: '#1D2420',
-  textSub: '#68756D',
-  textMuted: '#68756D',
+  text: '#000000',
+  textSub: '#6B6B6B',
+  textMuted: '#6B6B6B',
   border: 'rgba(183, 121, 31, 0.18)',
   surface: '#FFFFFF',
   card: '#FFFFFF',
-  ink: '#16392B',
-  green: '#2E7D55',
-  greenBg: '#DDEBE3',
+  ink: '#000000',
+  green: '#111111',
+  greenBg: '#F2F2F2',
 };
 
 const H_PAD = 16;
@@ -66,11 +66,11 @@ export default function TripBudgetPanel({ trip }: Props) {
       </View>
 
       <View style={styles.breakdownRow}>
-        <BreakdownChip icon="ticket-outline" label="Entry fees" value={formatInr(budget.entryTotal)} color="#1F4D3A" bg="#F7F6F1" />
+        <BreakdownChip icon="ticket-outline" label="Entry fees" value={formatInr(budget.entryTotal)} color="#111111" bg="#F7F6F1" />
         {budget.includesTravel ? (
-          <BreakdownChip icon="car-outline" label="Transport" value={formatInr(budget.transportTotal)} color="#1F4D3A" bg="rgba(183,121,31,0.12)" />
+          <BreakdownChip icon="car-outline" label="Transport" value={formatInr(budget.transportTotal)} color="#111111" bg="rgba(183,121,31,0.12)" />
         ) : null}
-        <BreakdownChip icon="restaurant-outline" label="Food est.*" value={formatInr(budget.foodTotal)} color="#1F4D3A" bg="#F7F6F1" />
+        <BreakdownChip icon="restaurant-outline" label="Food est.*" value={formatInr(budget.foodTotal)} color="#111111" bg="#F7F6F1" />
       </View>
 
       <Text style={styles.sectionTitle}>Cost by day</Text>

@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
   },
   bar: {
     flexDirection: 'row',
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     borderRadius: 18,
     overflow: 'hidden',
     height: 54,

@@ -28,7 +28,7 @@ const COLORS = {
   activeText: '#FFFFFF',
   inactiveBg: '#FFFFFF',
   inactiveText: '#202020',
-  inactiveBorder: '#D9E0DB',
+  inactiveBorder: '#E5E5EA',
 };
 
 function TabPill({ tab, active, onPress }: { tab: UITab; active: boolean; onPress: () => void }) {

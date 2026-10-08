@@ -86,6 +86,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 6,
     borderWidth: 1,
-    borderColor: 'rgba(221,235,227,0.9)',
+    borderColor: 'rgba(0,0,0,0.12)',
   },
 });

@@ -25,13 +25,13 @@ export const ProfileHeader = ({
       </View>
       <View style={styles.rightCol}>
         <TouchableOpacity style={styles.iconBtn} onPress={onNotificationPress} activeOpacity={0.8}>
-          <Icon name="notifications-outline" size={22} color="#1D2420" />
+          <Icon name="notifications-outline" size={22} color="#000000" />
           {unreadCount > 0 ? (
             <View style={styles.badge} />
           ) : null}
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconBtn} onPress={onSettingsPress} activeOpacity={0.8}>
-          <Icon name="settings-outline" size={22} color="#1D2420" />
+          <Icon name="settings-outline" size={22} color="#000000" />
         </TouchableOpacity>
       </View>
     </View>
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontFamily: SANS_BOLD,
     fontWeight: '800',
-    color: '#1D2420',
+    color: '#000000',
     letterSpacing: -0.5,
   },
   titleUnderline: {
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 13,
     fontFamily: SANS,
-    color: '#68756D',
+    color: '#6B6B6B',
     lineHeight: 18,
   },
   rightCol: {
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     borderColor: '#F7F6F1',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 12,
-    backgroundColor: '#1F4D3A',
+    backgroundColor: '#111111',
     width: 8,
     height: 8,
     borderRadius: 4,

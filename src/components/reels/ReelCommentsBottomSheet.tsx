@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   container: {
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     height: '60%',
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#16392B',
+    backgroundColor: 'rgba(255,255,255,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   postText: {
-    color: '#16392B',
+    color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 15,
   }

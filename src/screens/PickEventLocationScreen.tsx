@@ -195,7 +195,7 @@ export default function PickEventLocationScreen() {
           accessibilityLabel="Go back"
           testID="pick-location-back"
         >
-          <Icon name="chevron-back" size={20} color="#1D2420" />
+          <Icon name="chevron-back" size={20} color="#000000" />
         </Pressable>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle} accessibilityRole="header">
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     borderColor: EVENT_COLORS.accentBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOpacity: 0.18,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },

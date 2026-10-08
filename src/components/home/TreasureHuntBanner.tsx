@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     right: 12,
-    backgroundColor: '#1E3E2A',
+    backgroundColor: '#000000',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 16,
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#111111',
     marginRight: 6,
   },
   liveText: {

@@ -21,7 +21,7 @@ export const PremiumBanner = ({ onUpgradePress }: PremiumBannerProps) => {
       <View style={styles.topRow}>
         <View style={styles.headerLeft}>
           <View style={styles.crownCircle}>
-            <Icon name="medal-outline" size={24} color="#68756D" />
+            <Icon name="medal-outline" size={24} color="#6B6B6B" />
           </View>
           <View style={styles.headerTextCol}>
             <Text style={styles.goPremiumText}>Go Premium</Text>
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 20,
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 10,
@@ -119,13 +119,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   goPremiumText: {
-    color: '#1D2420',
+    color: '#000000',
     fontSize: 16,
     fontFamily: SANS_BOLD,
     marginBottom: 0,
   },
   subtitle: {
-    color: '#68756D',
+    color: '#6B6B6B',
     fontSize: 10,
     fontFamily: SANS,
     lineHeight: 12,
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   upgradeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#68756D',
+    backgroundColor: '#6B6B6B',
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 20,
@@ -164,14 +164,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 6,
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
   },
   perkImage: {
     width: 40,
     height: 40,
   },
   perkLabel: {
-    color: '#1D2420',
+    color: '#000000',
     fontSize: 9,
     fontFamily: SANS,
     textAlign: 'center',

@@ -6,8 +6,8 @@ const COLORS = {
   card: '#FFFFFF',
   textPrimary: '#1F1A17',
   textSecondary: '#5E544C',
-  border: '#D9E0DB',
-  primary: '#68756D',
+  border: '#E5E5EA',
+  primary: '#6B6B6B',
   iconBg: '#F7F6F1',
 };
 

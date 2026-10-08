@@ -26,7 +26,7 @@ export const CreatorUI = {
     success: palette.success,
     successBg: palette.successSoft,
     danger: palette.error,
-    shadow: 'rgba(29, 36, 32, 0.14)',
+    shadow: 'rgba(0, 0, 0, 0.14)',
   },
   space: {
     xs: 4,

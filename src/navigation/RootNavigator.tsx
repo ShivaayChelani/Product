@@ -434,17 +434,17 @@ function WalletWrapper({ navigation, route }: any) {
   if (!user) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#F7F6F1' }}>
-        <Text style={{ fontSize: 16, color: '#1D2420', textAlign: 'center', marginBottom: 16 }}>
+        <Text style={{ fontSize: 16, color: '#000000', textAlign: 'center', marginBottom: 16 }}>
           Sign in to view PalPoints and earn rewards.
         </Text>
         <TouchableOpacity
           onPress={() => onLogout()}
-          style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: '#1D2420', borderRadius: 8 }}
+          style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: '#000000', borderRadius: 8 }}
         >
           <Text style={{ color: '#FFF', fontWeight: '600' }}>Sign In</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 12 }}>
-          <Text style={{ color: '#68756D' }}>Go back</Text>
+          <Text style={{ color: '#6B6B6B' }}>Go back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -1227,8 +1227,8 @@ function AuthenticatedStack({ mode }: { mode: string }) {
   if (mode === 'VENDOR' && hasVendorRole && !hasVendorIdentity && !vendorWaitTimedOut) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
-        <ActivityIndicator size="large" color="#1F4D3A" />
-        <Text style={{ marginTop: 12, color: '#68756D' }}>Loading vendor workspace...</Text>
+        <ActivityIndicator size="large" color="#111111" />
+        <Text style={{ marginTop: 12, color: '#6B6B6B' }}>Loading vendor workspace...</Text>
       </View>
     );
   }
@@ -1326,7 +1326,7 @@ export default function RootNavigator() {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: theme.background }]}>
         <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
-        <ActivityIndicator size="large" color="#1F4D3A" />
+        <ActivityIndicator size="large" color="#111111" />
       </View>
     );
   }
@@ -1335,7 +1335,7 @@ export default function RootNavigator() {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: theme.background }]}>
         <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
-        <ActivityIndicator size="large" color="#1F4D3A" />
+        <ActivityIndicator size="large" color="#111111" />
       </View>
     );
   }
@@ -1344,7 +1344,7 @@ export default function RootNavigator() {
     return (
       <MonitoredNavigation linkingConfig={linking}>
         <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
-        <View style={{ flex: 1, backgroundColor: '#1E1B18' }}>
+        <View style={{ flex: 1, backgroundColor: '#000000' }}>
           <OfflineBanner />
           <AuthenticatedStack mode={shellMode} />
         </View>

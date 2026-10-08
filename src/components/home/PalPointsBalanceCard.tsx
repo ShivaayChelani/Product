@@ -18,7 +18,7 @@ type Props = {
   onPress?: () => void;
 };
 
-const PAL_POINTS_ACCENT = '#1F4D3A';
+const PAL_POINTS_ACCENT = '#111111';
 
 function PalPointsBalanceCardComponent({ balance, nextCampaign, onPress }: Props) {
   const theme = getLuxuryTheme('light');

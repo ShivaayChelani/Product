@@ -12,8 +12,8 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COLORS = {
-  brown: '#1D2420',
-  inactiveDot: '#D9E0DB',
+  brown: '#000000',
+  inactiveDot: '#E5E5EA',
 };
 
 const SLIDES = [

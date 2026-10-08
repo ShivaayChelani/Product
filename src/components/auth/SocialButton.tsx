@@ -4,7 +4,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const COLORS = {
-  border: '#D9E0DB',
+  border: '#E5E5EA',
   text: '#202020',
   white: '#FFFFFF',
 };

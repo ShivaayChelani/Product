@@ -22,14 +22,14 @@ type Props = {
 const COLORS = {
   bg: '#F7F6F1',
   card: '#FFFFFF',
-  gold: '#1F4D3A',
+  gold: '#111111',
   goldLight: '#F7F6F1',
   black: '#111111',
-  border: '#D9E0DB',
+  border: '#E5E5EA',
   textPrimary: '#202020',
   textSecondary: '#6F6F6F',
   timeText: '#888888',
-  green: '#22C55E',
+  green: '#111111',
 };
 
 function getThumbnail(n: InAppNotification): string | undefined {

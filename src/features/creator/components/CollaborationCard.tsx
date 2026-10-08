@@ -7,19 +7,19 @@ const COLORS = {
   card: '#FFFFFF',
   textPrimary: '#1F1A17',
   textSecondary: '#5E544C',
-  border: '#D9E0DB',
-  gold: '#1F4D3A',
+  border: '#E5E5EA',
+  gold: '#111111',
 };
 
 // Subtle colors mapping
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  PENDING: { bg: '#F8F0E1', text: '#16392B' }, // Muted orange
-  ACCEPTED: { bg: '#E6F4EA', text: '#1E8E3E' }, // Muted green
-  IN_PROGRESS: { bg: '#F7F6F1', text: '#68756D' }, // Muted brown/gold
-  REVISION_REQUESTED: { bg: '#F7F6F1', text: '#68756D' },
-  REEL_UPLOADED: { bg: '#F7F6F1', text: '#68756D' },
-  APPROVED: { bg: '#E6F4EA', text: '#1E8E3E' },
-  COMPLETED: { bg: '#E6F4EA', text: '#1E8E3E' }, // Muted green
+  PENDING: { bg: '#F8F0E1', text: '#000000' }, // Muted orange
+  ACCEPTED: { bg: '#F2F2F2', text: '#111111' }, // Muted neutral
+  IN_PROGRESS: { bg: '#F7F6F1', text: '#6B6B6B' }, // Muted brown/gold
+  REVISION_REQUESTED: { bg: '#F7F6F1', text: '#6B6B6B' },
+  REEL_UPLOADED: { bg: '#F7F6F1', text: '#6B6B6B' },
+  APPROVED: { bg: '#F2F2F2', text: '#111111' },
+  COMPLETED: { bg: '#F2F2F2', text: '#111111' }, // Muted neutral
   REJECTED: { bg: '#FBEAEA', text: '#C94A4A' }, // Muted red
   CANCELLED: { bg: '#FBEAEA', text: '#C94A4A' }, // Muted red
 };
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#68756D',
+    color: '#6B6B6B',
   },
   infoWrap: {
     flex: 1,
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   earningsAmount: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E8E3E',
+    color: '#111111',
   },
   earningsLabel: {
     fontSize: 10,

@@ -105,7 +105,7 @@ export default function EventsScreen() {
               value={searchText}
               onChangeText={setSearchText}
               placeholder="Search festivals, concerts, fairs…"
-              placeholderTextColor="#68756D"
+              placeholderTextColor="#6B6B6B"
               style={styles.searchInput}
               returnKeyType="search"
               autoCorrect={false}
@@ -118,7 +118,7 @@ export default function EventsScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Clear search"
               >
-                <Icon name="close-circle" size={17} color="#68756D" />
+                <Icon name="close-circle" size={17} color="#6B6B6B" />
               </Pressable>
             ) : null}
           </View>

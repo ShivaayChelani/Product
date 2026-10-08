@@ -282,7 +282,7 @@ export default function SignupScreen({
             <View style={styles.legalSection}>
               {legalVersionsLoading ? (
                 <View style={styles.legalLoadingRow}>
-                  <ActivityIndicator size="small" color="#1F4D3A" />
+                  <ActivityIndicator size="small" color="#111111" />
                   <Text style={styles.legalLoadingText}>Loading agreement…</Text>
                 </View>
               ) : legalVersionsError ? (
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   legalRetryLink: {
-    color: '#1F4D3A',
+    color: '#111111',
     fontSize: 13,
     fontWeight: '700',
     textDecorationLine: 'underline',
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#D9E0DB',
+    backgroundColor: '#E5E5EA',
   },
   dividerText: {
     marginHorizontal: 16,

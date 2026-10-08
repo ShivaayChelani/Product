@@ -28,16 +28,16 @@ const C = {
   bg: '#F7F6F1', // lighter warm background
   surface: '#FFFFFF',
   card: '#FFFFFF',
-  ink: '#1D2420', // dark brown text
-  text: '#1D2420',
-  textSub: '#16392B',
-  textMuted: '#68756D',
-  border: '#DDEBE3',
-  green: '#DDEBE3',
-  greenText: '#065F46',
+  ink: '#000000', // dark brown text
+  text: '#000000',
+  textSub: '#000000',
+  textMuted: '#6B6B6B',
+  border: '#F2F2F2',
+  green: '#F2F2F2',
+  greenText: '#111111',
   goldPill: 'rgba(183,121,31,0.12)',
-  goldText: '#1F4D3A',
-  darkBrown: '#1D2420', // for day 1 tab and active elements
+  goldText: '#111111',
+  darkBrown: '#000000', // for day 1 tab and active elements
   lightBrown: '#B7791F',
   lineBrown: '#B7791F',
 };
@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
   },
   aiBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(29,36,32,0.6)', // dark brown semi transparent
+    backgroundColor: 'rgba(0, 0, 0,0.6)', // dark brown semi transparent
     paddingHorizontal: 10, paddingVertical: 4,
     borderRadius: 12, alignSelf: 'flex-start',
     marginBottom: 8, borderWidth: 1, borderColor: C.goldText,

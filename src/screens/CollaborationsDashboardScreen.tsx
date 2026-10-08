@@ -37,16 +37,16 @@ const COLORS = {
   textSub: '#5E544C',
   textMuted: '#A0968C',
   border: '#F7F6F1',
-  primary: '#68756D',
+  primary: '#6B6B6B',
   primarySoft: '#F7F6F1',
   accent: '#B7791F',
-  success: '#10B981',
-  successSoft: '#EAF3ED',
+  success: '#111111',
+  successSoft: '#F2F2F2',
   pending: '#B7791F',
   pendingSoft: '#F8F0E1',
-  progress: '#1F4D3A',
-  progressSoft: '#E8F4E9', // Using soft green for progress in screenshot
-  purple: '#1F4D3A',
+  progress: '#111111',
+  progressSoft: '#F2F2F2', // Soft neutral for progress
+  purple: '#111111',
   purpleSoft: '#F7F6F1',
   danger: '#C94A4A',
   dangerSoft: '#FBEAEA',
@@ -138,12 +138,12 @@ export default function CollaborationsDashboardScreen() {
   const getStatusDisplay = (status: string) => {
     switch(status) {
       case 'PENDING': return { text: 'New Request', color: '#B7791F', bg: '#F8F0E1' }; // Amber
-      case 'ACCEPTED': return { text: 'Accepted', color: '#1F4D3A', bg: '#F7F6F1' }; // Blue
+      case 'ACCEPTED': return { text: 'Accepted', color: '#111111', bg: '#F7F6F1' }; // Blue
       case 'IN_PROGRESS':
-      case 'REVISION_REQUESTED': return { text: 'Changes requested', color: '#16392B', bg: '#F7F6F1' };
+      case 'REVISION_REQUESTED': return { text: 'Changes requested', color: '#000000', bg: '#F7F6F1' };
       case 'REEL_UPLOADED': return { text: 'Pending', color: '#B7791F', bg: '#F8F0E1' };
-      case 'APPROVED': return { text: 'Ready to publish', color: '#047857', bg: '#DDEBE3' };
-      case 'COMPLETED': return { text: 'Completed', color: '#1F4D3A', bg: '#F7F6F1' }; // Purple
+      case 'APPROVED': return { text: 'Ready to publish', color: '#111111', bg: '#F2F2F2' };
+      case 'COMPLETED': return { text: 'Completed', color: '#111111', bg: '#F7F6F1' }; // Purple
       case 'REJECTED': 
       case 'CANCELLED': return { text: 'Cancelled', color: '#C94A4A', bg: '#FBEAEA' }; // Red
       default: return { text: status, color: COLORS.textSub, bg: COLORS.border };

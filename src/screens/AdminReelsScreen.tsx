@@ -149,7 +149,7 @@ export default function AdminReelsScreen({ onBack }: AdminReelsScreenProps) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1D2420" />
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
         <TouchableOpacity onPress={onBack} hitSlop={8}>
           <MaterialIcons name="arrow-back" size={24} color="#FFF" />
@@ -181,7 +181,7 @@ export default function AdminReelsScreen({ onBack }: AdminReelsScreenProps) {
       <ScrollView
         style={styles.content}
         contentContainerStyle={{ paddingBottom: contentPadBottom }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1F4D3A']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FFFFFF']} />}
         onScrollEndDrag={({ nativeEvent }) => {
           const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
           if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 80) {
@@ -191,7 +191,7 @@ export default function AdminReelsScreen({ onBack }: AdminReelsScreenProps) {
       >
         {loading && (
           <View style={styles.loader}>
-            <ActivityIndicator color="#1F4D3A" size="large" />
+            <ActivityIndicator color="#FFFFFF" size="large" />
             <Text style={styles.loaderText}>Loading reels…</Text>
           </View>
         )}
@@ -322,13 +322,13 @@ export default function AdminReelsScreen({ onBack }: AdminReelsScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1D2420' },
+  container: { flex: 1, backgroundColor: '#000000' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingBottom: 14,
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.06)',
   },
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     marginHorizontal: 16,
     marginVertical: 10,
     paddingHorizontal: 14,
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
   emptySub: { color: '#68756D', fontSize: 13, textAlign: 'center', maxWidth: 260 },
   reelCard: {
     flexDirection: 'row',
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     borderRadius: 16,
     marginBottom: 12,
     overflow: 'hidden',
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
   },
   thumbWrap: { width: 100, position: 'relative' },
   thumb: { width: 100, height: '100%', minHeight: 130 },
-  thumbFallback: { backgroundColor: '#1D2420', justifyContent: 'center', alignItems: 'center' },
+  thumbFallback: { backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center' },
   featuredBadge: {
     position: 'absolute',
     top: 8,
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
   avatarSmall: { width: 20, height: 20, borderRadius: 10 },
   avatarFallback: { backgroundColor: '#68756D', justifyContent: 'center', alignItems: 'center' },
   avatarLetter: { color: '#68756D', fontSize: 10, fontWeight: '800' },
-  creatorName: { color: '#1F4D3A', fontSize: 12, fontWeight: '600', flex: 1 },
+  creatorName: { color: '#FFFFFF', fontSize: 12, fontWeight: '600', flex: 1 },
   statsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   statChip: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   statText: { color: '#68756D', fontSize: 11 },
@@ -412,11 +412,11 @@ const styles = StyleSheet.create({
   loadMoreBtn: {
     alignItems: 'center',
     paddingVertical: 14,
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
-  loadMoreText: { color: '#1F4D3A', fontSize: 13, fontWeight: '700' },
+  loadMoreText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
 });

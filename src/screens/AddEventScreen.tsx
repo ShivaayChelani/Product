@@ -89,6 +89,10 @@ export default function AddEventScreen() {
   const [errors, setErrors] = useState<ErrorMap>({});
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState<'cover' | 'images' | null>(null);
+  // Mirrors `draft` so async code (uploads) validates the form as it is *now*,
+  // not as it was when Submit was pressed.
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
 
   const [dateTarget, setDateTarget] = useState<'startDate' | 'endDate' | null>(null);
   const [timeTarget, setTimeTarget] = useState<'startTime' | 'endTime' | null>(null);
@@ -158,8 +162,8 @@ export default function AddEventScreen() {
     }
   }, []);
 
-  const runClientValidation = useCallback((): boolean => {
-    const found = validateEventDraft(draft);
+  const runClientValidation = useCallback((target: EventDraft = draft): boolean => {
+    const found = validateEventDraft(target);
     if (!found.length) {
       setErrors({});
       return true;
@@ -167,7 +171,7 @@ export default function AddEventScreen() {
     const next: ErrorMap = {};
     for (const error of found) next[error.field] = error.message;
     setErrors(next);
-    const first = firstEventFormError(draft);
+    const first = firstEventFormError(target);
     if (first) scrollToField(first.field);
     return false;
   }, [draft, scrollToField]);
@@ -214,7 +218,12 @@ export default function AddEventScreen() {
         ? (await uploadApi.uploadMultiple(draft.imageUris)).map(item => item.url).filter(Boolean)
         : [];
 
-      const input = buildCreateEventInput(draft, { coverImage: cover, images: gallery });
+      // Uploads take time: the form can change underneath us while they run.
+      // Re-validate the live draft so an incomplete payload is never POSTed.
+      const live = draftRef.current;
+      if (!runClientValidation(live)) return;
+
+      const input = buildCreateEventInput(live, { coverImage: cover, images: gallery });
       const created = await eventsApi.create(input);
 
       submittedRef.current = true;
@@ -268,7 +277,7 @@ export default function AddEventScreen() {
           accessibilityLabel="Go back"
           testID="add-event-back"
         >
-          <Icon name="chevron-back" size={20} color="#1D2420" />
+          <Icon name="chevron-back" size={20} color="#000000" />
         </Pressable>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle} accessibilityRole="header">
@@ -299,7 +308,7 @@ export default function AddEventScreen() {
                 value={draft.title}
                 onChangeText={value => patch({ title: value })}
                 placeholder="e.g. Diwali Mela at the Fort"
-                placeholderTextColor="#68756D"
+                placeholderTextColor="#6B6B6B"
                 style={styles.input}
                 maxLength={EVENT_FORM_LIMITS.titleMax}
                 multiline={false}
@@ -440,7 +449,7 @@ export default function AddEventScreen() {
                 value={draft.address}
                 onChangeText={value => patch({ address: value })}
                 placeholder="Street, landmark, area"
-                placeholderTextColor="#68756D"
+                placeholderTextColor="#6B6B6B"
                 style={[styles.input, styles.inputMulti]}
                 multiline
                 maxLength={EVENT_FORM_LIMITS.addressMax}
@@ -455,7 +464,7 @@ export default function AddEventScreen() {
                     value={draft.city}
                     onChangeText={value => patch({ city: value })}
                     placeholder="City"
-                    placeholderTextColor="#68756D"
+                    placeholderTextColor="#6B6B6B"
                     style={styles.input}
                     maxLength={EVENT_FORM_LIMITS.cityMax}
                     accessibilityLabel="City"
@@ -468,7 +477,7 @@ export default function AddEventScreen() {
                     value={draft.state}
                     onChangeText={value => patch({ state: value })}
                     placeholder="State"
-                    placeholderTextColor="#68756D"
+                    placeholderTextColor="#6B6B6B"
                     style={styles.input}
                     maxLength={EVENT_FORM_LIMITS.stateMax}
                     accessibilityLabel="State"
@@ -492,7 +501,7 @@ export default function AddEventScreen() {
                 value={draft.shortDescription}
                 onChangeText={value => patch({ shortDescription: value })}
                 placeholder="What makes this event worth showing up for?"
-                placeholderTextColor="#68756D"
+                placeholderTextColor="#6B6B6B"
                 style={styles.input}
                 maxLength={EVENT_FORM_LIMITS.shortDescriptionMax}
                 accessibilityLabel="Short description"
@@ -509,7 +518,7 @@ export default function AddEventScreen() {
                 value={draft.description}
                 onChangeText={value => patch({ description: value })}
                 placeholder="Schedule, entry rules, how to reach, what to bring…"
-                placeholderTextColor="#68756D"
+                placeholderTextColor="#6B6B6B"
                 style={[styles.input, styles.inputTall]}
                 multiline
                 maxLength={EVENT_FORM_LIMITS.descriptionMax}
@@ -595,7 +604,7 @@ export default function AddEventScreen() {
                 value={draft.organizerName}
                 onChangeText={value => patch({ organizerName: value })}
                 placeholder="Committee, temple trust, venue…"
-                placeholderTextColor="#68756D"
+                placeholderTextColor="#6B6B6B"
                 style={styles.input}
                 maxLength={EVENT_FORM_LIMITS.organizerNameMax}
                 accessibilityLabel="Organiser name"
@@ -607,7 +616,7 @@ export default function AddEventScreen() {
                 value={draft.organizerContact}
                 onChangeText={value => patch({ organizerContact: value })}
                 placeholder="+91 98765 43210"
-                placeholderTextColor="#68756D"
+                placeholderTextColor="#6B6B6B"
                 style={styles.input}
                 maxLength={EVENT_FORM_LIMITS.organizerContactMax}
                 keyboardType="default"
@@ -620,7 +629,7 @@ export default function AddEventScreen() {
                 value={draft.websiteUrl}
                 onChangeText={value => patch({ websiteUrl: value })}
                 placeholder="https://example.com"
-                placeholderTextColor="#68756D"
+                placeholderTextColor="#6B6B6B"
                 style={styles.input}
                 autoCapitalize="none"
                 keyboardType="url"
@@ -636,7 +645,7 @@ export default function AddEventScreen() {
                   value={draft.entryFee}
                   onChangeText={value => patch({ entryFee: value.replace(/[^0-9]/g, '') })}
                   placeholder="0"
-                  placeholderTextColor="#68756D"
+                  placeholderTextColor="#6B6B6B"
                   style={[styles.input, styles.feeInput]}
                   keyboardType="number-pad"
                   accessibilityLabel="Entry fee in rupees"
@@ -854,7 +863,7 @@ const styles = StyleSheet.create({
   inputTall: { minHeight: 132, paddingTop: 12 },
   selectRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   selectText: { flex: 1, fontSize: 14.5, color: EVENT_COLORS.text, fontWeight: '600' },
-  placeholder: { color: '#68756D', fontWeight: '500' },
+  placeholder: { color: '#6B6B6B', fontWeight: '500' },
   pairRow: { flexDirection: 'row', gap: 10 },
   pairItem: { flex: 1 },
   mapPicker: {
@@ -899,7 +908,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(29,36,32,0.72)',
+    backgroundColor: 'rgba(0, 0, 0,0.72)',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
@@ -917,7 +926,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
   },

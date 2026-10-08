@@ -7,8 +7,8 @@ export const RIDE_PROVIDER_REGISTRY: Record<
 > = {
   rapido: { color: '#B7791F', icon: 'bicycle', sortOrder: 0 },
   uber: { color: '#000000', icon: 'car-sport', sortOrder: 1 },
-  ola: { color: '#1FAF38', icon: 'car', sortOrder: 2 },
-  blusmart: { color: '#1F4D3A', icon: 'flash', sortOrder: 3 },
+  ola: { color: '#111111', icon: 'car', sortOrder: 2 },
+  blusmart: { color: '#111111', icon: 'flash', sortOrder: 3 },
 };
 
 export const RIDE_ASSISTANT_DISCLAIMER =

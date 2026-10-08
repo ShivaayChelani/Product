@@ -55,27 +55,27 @@ export function CreatorReelMenuModal({
 
               {(isPublished || isDraft) && (
                 <TouchableOpacity style={[styles.row, styles.rowGreen]} activeOpacity={0.7} onPress={onEdit}>
-                  <View style={[styles.iconBox, { backgroundColor: '#EAF3ED' }]}>
-                    <Icon name="pencil-outline" size={20} color="#2E7D55" />
+                  <View style={[styles.iconBox, { backgroundColor: '#F2F2F2' }]}>
+                    <Icon name="pencil-outline" size={20} color="#111111" />
                   </View>
                   <View style={styles.rowTextWrap}>
-                    <Text style={[styles.rowTitle, { color: '#2E7D55' }]}>{isDraft ? 'Continue Editing' : 'Edit Reel'}</Text>
+                    <Text style={[styles.rowTitle, { color: '#111111' }]}>{isDraft ? 'Continue Editing' : 'Edit Reel'}</Text>
                     <Text style={styles.rowSub}>{isDraft ? 'Finish your draft' : 'Update your reel details'}</Text>
                   </View>
-                  <Icon name="chevron-forward" size={20} color="#2E7D55" />
+                  <Icon name="chevron-forward" size={20} color="#111111" />
                 </TouchableOpacity>
               )}
 
               {isPublished && (
                 <TouchableOpacity style={[styles.row, styles.rowPurple]} activeOpacity={0.7} onPress={onAnalytics}>
                   <View style={[styles.iconBox, { backgroundColor: '#F7F6F1' }]}>
-                    <Icon name="stats-chart-outline" size={20} color="#16392B" />
+                    <Icon name="stats-chart-outline" size={20} color="#000000" />
                   </View>
                   <View style={styles.rowTextWrap}>
-                    <Text style={[styles.rowTitle, { color: '#16392B' }]}>View Analytics</Text>
+                    <Text style={[styles.rowTitle, { color: '#000000' }]}>View Analytics</Text>
                     <Text style={styles.rowSub}>See performance and insights</Text>
                   </View>
-                  <Icon name="chevron-forward" size={20} color="#16392B" />
+                  <Icon name="chevron-forward" size={20} color="#000000" />
                 </TouchableOpacity>
               )}
 
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 4,
-    backgroundColor: '#DDEBE3',
+    backgroundColor: '#F2F2F2',
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: 20,
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 16,
@@ -178,8 +178,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   rowGreen: {
-    backgroundColor: '#FAFCFA',
-    borderColor: '#EAF3ED',
+    backgroundColor: '#FAFAFA',
+    borderColor: '#F2F2F2',
   },
   rowPurple: {
     backgroundColor: '#F7F6F1',

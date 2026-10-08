@@ -6,6 +6,7 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useBottomSafePadding } from '../design/responsive';
 import { vendorsApi } from '../services/api/vendors';
+import { normalizeReelCaption } from '../components/reels/reelCaptionUtils';
 
 interface VendorReelItem {
   id: string;
@@ -92,7 +93,7 @@ export default function VendorReelsScreen({
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Icon name="arrow-back" size={22} color="#1D2420" />
+          <Icon name="arrow-back" size={22} color="#000000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{vendorName}</Text>
         <View style={{ width: 40 }} />
@@ -100,7 +101,7 @@ export default function VendorReelsScreen({
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#1F4D3A" />
+          <ActivityIndicator size="large" color="#111111" />
         </View>
       ) : error ? (
         <View style={styles.centered}>
@@ -122,12 +123,12 @@ export default function VendorReelsScreen({
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => { setRefreshing(true); load(); }}
-              tintColor="#1F4D3A"
+              tintColor="#111111"
             />
           }
           ListEmptyComponent={
             <View style={styles.centered}>
-              <Icon name="videocam-outline" size={48} color="#68756D" />
+              <Icon name="videocam-outline" size={48} color="#6B6B6B" />
               <Text style={styles.emptyTitle}>No reels yet</Text>
               <Text style={styles.emptyText}>Published business reels and allowed creator reels will show up here.</Text>
             </View>
@@ -142,12 +143,12 @@ export default function VendorReelsScreen({
                 <Image source={{ uri: item.thumbnail }} style={styles.thumb} />
               ) : (
                 <View style={[styles.thumb, styles.thumbPlaceholder]}>
-                  <Icon name="play-circle" size={36} color="#1F4D3A" />
+                  <Icon name="play-circle" size={36} color="#111111" />
                 </View>
               )}
               <View style={styles.cardBody}>
                 <Text style={styles.cardTitle} numberOfLines={2}>
-                  {item.title || item.description || 'Vendor reel'}
+                  {item.title || normalizeReelCaption(item.description) || 'Vendor reel'}
                 </Text>
                 <Text style={styles.cardMeta}>
                   {(item.views || 0).toLocaleString()} views · {(item.likes || 0).toLocaleString()} likes
@@ -186,20 +187,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 17,
     fontWeight: '800',
-    color: '#1D2420',
+    color: '#000000',
   },
   centered: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   list: { padding: 16 },
   errorText: { color: '#C94A4A', marginBottom: 12, textAlign: 'center' },
   retryBtn: {
-    backgroundColor: '#1F4D3A',
+    backgroundColor: '#111111',
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 16,
   },
   retryText: { color: '#FFFFFF', fontWeight: '700' },
-  emptyTitle: { color: '#1D2420', fontSize: 18, fontWeight: '800', marginTop: 12 },
-  emptyText: { color: '#68756D', textAlign: 'center', marginTop: 6 },
+  emptyTitle: { color: '#000000', fontSize: 18, fontWeight: '800', marginTop: 12 },
+  emptyText: { color: '#6B6B6B', textAlign: 'center', marginTop: 6 },
   card: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
@@ -216,6 +217,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardBody: { flex: 1, padding: 12, justifyContent: 'center' },
-  cardTitle: { fontSize: 14, fontWeight: '700', color: '#1D2420' },
-  cardMeta: { fontSize: 12, color: '#68756D', marginTop: 6 },
+  cardTitle: { fontSize: 14, fontWeight: '700', color: '#000000' },
+  cardMeta: { fontSize: 12, color: '#6B6B6B', marginTop: 6 },
 });

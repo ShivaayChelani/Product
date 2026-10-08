@@ -186,3 +186,42 @@ describe('Places and Vendors behaviour is untouched', () => {
     expect(map).toMatch(/handleSavePlace|placeSavingId/);
   });
 });
+
+describe('Events layer anchors on the live device position', () => {
+  it('asks permission and takes a fresh fix when the layer comes up', () => {
+    expect(map).toMatch(/const runEventsGpsInit = useCallback\(async \(\) => \{/);
+    expect(map).toMatch(/hasPermission \|\| \(await requestPermission\(\)\)/);
+    expect(map).toMatch(/await requestFreshPosition\(\)/);
+    expect(map).toMatch(/if \(!mapReady \|\| activeTab !== 'events'\) return;/);
+    expect(map).toMatch(/void runEventsGpsInit\(\);/);
+    // Anchored on the fix, not on a country-level default.
+    expect(map).toMatch(/type: 'flyTo'[\s\S]{0,80}zoom: MAP_TAB_ZOOM/);
+  });
+
+  it('never paints a previous session camera onto the Events layer', () => {
+    expect(map).toMatch(
+      /const eventsLayer =[\s\S]{0,240}resolveExplicitMapTab\(initialMapTabRef\.current, reviewModeRef\.current\) === 'events'/,
+    );
+    expect(map).toMatch(/if \(!eventsLayer\) \{[\s\S]{0,160}type: 'restoreView'/);
+    // Directions keep the route fit as the camera owner; the anchor skips them.
+    expect(map).toMatch(/if \(reviewModeRef\.current \|\| directionsRef\.current \|\| routeRef\.current\) return;/);
+  });
+
+  it('does not fall back to the country-level default view on Events', () => {
+    expect(map).toMatch(/if \(!pos && activeTab !== 'events' && !initialFallbackRef\.current\) \{/);
+  });
+
+  it('surfaces a denied permission or missing fix as an actionable notice', () => {
+    expect(map).toMatch(/setEventsLocationNotice\('permission'\)/);
+    expect(map).toMatch(/setEventsLocationNotice\('gps'\)/);
+    expect(map).toMatch(/openLocationSettings\(\)/);
+    expect(map).toMatch(
+      /testID=\{\s*eventsLocationNotice === 'permission'\s*\? 'events-open-location-settings'\s*: 'events-retry-location'\s*\}/,
+    );
+  });
+
+  it('lets a user camera drag cancel the pending anchor', () => {
+    expect(map).toMatch(/eventsGpsPendingRef\.current &&\s*Date\.now\(\) > programmaticMoveUntilRef\.current/);
+    expect(map).toMatch(/eventsGpsSeqRef\.current \+= 1;/);
+  });
+});

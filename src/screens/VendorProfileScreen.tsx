@@ -1113,7 +1113,7 @@ const styles = StyleSheet.create({
   coverEmoji: { fontSize: 64 },
   coverScrim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(29, 36, 32, 0.18)',
+    backgroundColor: 'rgba(0, 0, 0, 0.18)',
   },
   coverActions: {
     position: 'absolute',

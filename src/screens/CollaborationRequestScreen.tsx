@@ -23,13 +23,13 @@ import { useBottomSafePadding } from '../design/responsive';
 const C = {
   bg: '#FFFFFF',
   white: '#FFFFFF',
-  brown: '#1D2420',
-  brownLight: '#68756D',
+  brown: '#000000',
+  brownLight: '#6B6B6B',
   text: '#1F1A17',
   textSub: '#5E544C',
   textMuted: '#A0968C',
-  border: '#D9E0DB',
-  green: '#2E7D55',
+  border: '#E5E5EA',
+  green: '#111111',
 };
 
 const SERVICES = [
@@ -528,9 +528,9 @@ const styles = StyleSheet.create({
   dropdownSelected: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F8E9',
+    backgroundColor: '#F2F2F2',
     borderWidth: 1,
-    borderColor: '#C5E1A5',
+    borderColor: '#F2F2F2',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,

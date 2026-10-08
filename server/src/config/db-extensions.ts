@@ -7,6 +7,11 @@ const EXTENSIONS_SQL_STATEMENTS = [
   // Speeds up fuzzy name matching (word_similarity / %)
   `CREATE INDEX IF NOT EXISTS places_name_trgm_idx ON places USING GIN (name gin_trgm_ops);`,
 
+  // Sargable functional index for the /places/map LOWER(category) filter.
+  // Cannot live in schema.prisma: Prisma has no expression-index support, so
+  // `ops: raw(...)` is rendered as an operator class and breaks `db push`.
+  `CREATE INDEX IF NOT EXISTS places_category_lower_idx ON places ((lower(category::text)));`,
+
   `CREATE OR REPLACE FUNCTION places_search_update() RETURNS trigger AS $$
   DECLARE
     alias_blob TEXT;

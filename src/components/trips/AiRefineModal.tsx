@@ -83,18 +83,18 @@ export const AiRefineModal = ({
       <Animated.View style={[{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '85%', transform: [{ translateY }] }]}>
         <KeyboardAvoidingView enabled={Platform.OS === 'ios'} behavior="padding" style={{ flex: 1 }}>
           <View style={{ flex: 1, backgroundColor: '#FFFFFF', borderTopLeftRadius: 28, borderTopRightRadius: 28 }}>
-            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#D9E0DB', alignSelf: 'center', marginTop: 12, marginBottom: 8 }} />
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#E5E5EA', alignSelf: 'center', marginTop: 12, marginBottom: 8 }} />
             
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 24, paddingBottom: 24, gap: 24 }} showsVerticalScrollIndicator={false}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, position: 'relative' }}>
                 <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: '#F7F6F1', borderWidth: 1, borderColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="color-wand" size={32} color="#1F4D3A" />
+                  <Icon name="color-wand" size={32} color="#111111" />
                 </View>
                 <View style={{ flex: 1, zIndex: 10 }}>
-                  <Text style={{ fontFamily: 'Inter-SemiBold', fontSize: 22, color: '#1D2420', marginBottom: 4 }}>
+                  <Text style={{ fontFamily: 'Inter-SemiBold', fontSize: 22, color: '#000000', marginBottom: 4 }}>
                     AI Refine Itinerary
                   </Text>
-                  <Text style={{ fontSize: 13, color: '#68756D', lineHeight: 18, paddingRight: 40 }}>
+                  <Text style={{ fontSize: 13, color: '#6B6B6B', lineHeight: 18, paddingRight: 40 }}>
                     Keeps your pinned stops and re-generates the rest around your updated preferences.
                   </Text>
                 </View>
@@ -109,7 +109,7 @@ export const AiRefineModal = ({
                   <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="time-outline" size={14} color="#B7791F" />
                   </View>
-                  <Text style={{ fontFamily: 'Inter-Medium', fontSize: 15, color: '#1D2420' }}>Pace</Text>
+                  <Text style={{ fontFamily: 'Inter-Medium', fontSize: 15, color: '#000000' }}>Pace</Text>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
                   {(['VERY_RELAXED', 'RELAXED', 'BALANCED', 'QUICK'] as TravelPace[]).map((p) => {
@@ -126,10 +126,10 @@ export const AiRefineModal = ({
                           minWidth: 100, justifyContent: 'center'
                         }}
                       >
-                        <Text style={{ fontSize: 12, color: selected ? '#1F4D3A' : '#68756D', fontFamily: selected ? 'Inter-SemiBold' : 'Inter-Medium' }}>
+                        <Text style={{ fontSize: 12, color: selected ? '#111111' : '#6B6B6B', fontFamily: selected ? 'Inter-SemiBold' : 'Inter-Medium' }}>
                           {p.replace('_', ' ')}
                         </Text>
-                        {selected && <Icon name="checkmark-circle" size={16} color="#1F4D3A" />}
+                        {selected && <Icon name="checkmark-circle" size={16} color="#111111" />}
                       </TouchableOpacity>
                     );
                   })}
@@ -138,10 +138,10 @@ export const AiRefineModal = ({
 
               <View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#F0FDF4', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="wallet-outline" size={14} color="#15803D" />
+                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#F2F2F2', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="wallet-outline" size={14} color="#111111" />
                   </View>
-                  <Text style={{ fontFamily: 'Inter-Medium', fontSize: 15, color: '#1D2420' }}>Budget</Text>
+                  <Text style={{ fontFamily: 'Inter-Medium', fontSize: 15, color: '#000000' }}>Budget</Text>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
                   {(['LOW', 'MEDIUM', 'HIGH'] as BudgetTier[]).map((b) => {
@@ -152,16 +152,16 @@ export const AiRefineModal = ({
                         onPress={() => setBudget(b)}
                         style={{
                           paddingHorizontal: 16, paddingVertical: 12, borderRadius: 24,
-                          backgroundColor: selected ? '#F0FDF4' : '#FFFFFF',
-                          borderWidth: 1, borderColor: selected ? '#22C55E' : '#F7F6F1',
+                          backgroundColor: selected ? '#F2F2F2' : '#FFFFFF',
+                          borderWidth: 1, borderColor: selected ? '#111111' : '#F7F6F1',
                           flexDirection: 'row', alignItems: 'center', gap: 6,
                           minWidth: 100, justifyContent: 'center'
                         }}
                       >
-                        <Text style={{ fontSize: 12, color: selected ? '#166534' : '#68756D', fontFamily: selected ? 'Inter-SemiBold' : 'Inter-Medium' }}>
+                        <Text style={{ fontSize: 12, color: selected ? '#111111' : '#6B6B6B', fontFamily: selected ? 'Inter-SemiBold' : 'Inter-Medium' }}>
                           {b}
                         </Text>
-                        {selected && <Icon name="checkmark-circle" size={16} color="#15803D" />}
+                        {selected && <Icon name="checkmark-circle" size={16} color="#111111" />}
                       </TouchableOpacity>
                     );
                   })}
@@ -173,7 +173,7 @@ export const AiRefineModal = ({
                   <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#FBEAEA', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="warning-outline" size={14} color="#C94A4A" />
                   </View>
-                  <Text style={{ fontFamily: 'Inter-Medium', fontSize: 15, color: '#1D2420' }}>Must avoid</Text>
+                  <Text style={{ fontFamily: 'Inter-Medium', fontSize: 15, color: '#000000' }}>Must avoid</Text>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
                   {([
@@ -190,12 +190,12 @@ export const AiRefineModal = ({
                         style={{
                           paddingHorizontal: 16, paddingVertical: 12, borderRadius: 24,
                           backgroundColor: selected ? '#FBEAEA' : '#FFFFFF',
-                          borderWidth: 1, borderColor: selected ? '#FCA5A5' : '#D9E0DB',
+                          borderWidth: 1, borderColor: selected ? '#FCA5A5' : '#E5E5EA',
                           flexDirection: 'row', alignItems: 'center', gap: 8,
                         }}
                       >
-                        <Icon name={a.icon} size={16} color={selected ? '#C94A4A' : '#68756D'} />
-                        <Text style={{ fontSize: 12, color: selected ? '#C94A4A' : '#68756D', fontFamily: selected ? 'Inter-SemiBold' : 'Inter-Medium' }}>
+                        <Icon name={a.icon} size={16} color={selected ? '#C94A4A' : '#6B6B6B'} />
+                        <Text style={{ fontSize: 12, color: selected ? '#C94A4A' : '#6B6B6B', fontFamily: selected ? 'Inter-SemiBold' : 'Inter-Medium' }}>
                           {a.label}
                         </Text>
                         {selected && <Icon name="checkmark-circle" size={16} color="#C94A4A" style={{ marginLeft: 2 }} />}
@@ -208,32 +208,32 @@ export const AiRefineModal = ({
               <View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                   <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="chatbubble-ellipses-outline" size={14} color="#1F4D3A" />
+                    <Icon name="chatbubble-ellipses-outline" size={14} color="#111111" />
                   </View>
-                  <Text style={{ fontFamily: 'Inter-Medium', fontSize: 15, color: '#1D2420' }}>
-                    Anything else? <Text style={{ color: '#68756D', fontSize: 13, fontFamily: 'Inter-Regular' }}>(optional)</Text>
+                  <Text style={{ fontFamily: 'Inter-Medium', fontSize: 15, color: '#000000' }}>
+                    Anything else? <Text style={{ color: '#6B6B6B', fontSize: 13, fontFamily: 'Inter-Regular' }}>(optional)</Text>
                   </Text>
                 </View>
                 <TextInput
                   style={{
-                    minHeight: 80, borderWidth: 1, borderColor: '#D9E0DB', borderRadius: 16,
-                    padding: 16, color: '#1D2420', fontSize: 14, fontFamily: 'Inter-Regular',
+                    minHeight: 80, borderWidth: 1, borderColor: '#E5E5EA', borderRadius: 16,
+                    padding: 16, color: '#000000', fontSize: 14, fontFamily: 'Inter-Regular',
                     textAlignVertical: 'top', backgroundColor: '#F7F6F1',
                   }}
                   value={notes}
                   onChangeText={setNotes}
                   placeholder={'Try: "Make Day 2 less busy", "Start after 10 AM", "Add more nature", or "Remove a place"'}
-                  placeholderTextColor="#68756D"
+                  placeholderTextColor="#6B6B6B"
                   multiline
                 />
               </View>
             </ScrollView>
 
             <View style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 24, paddingTop: 16, paddingBottom: Math.max(paddingBottom, 32), backgroundColor: '#FFFFFF', borderTopWidth: 1, borderColor: '#F7F6F1' }}>
-              <TouchableOpacity onPress={onClose} disabled={refining} style={{ flex: 1, height: 52, borderRadius: 26, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#D9E0DB', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: '#1D2420', fontFamily: 'Inter-Medium', fontSize: 15 }}>Cancel</Text>
+              <TouchableOpacity onPress={onClose} disabled={refining} style={{ flex: 1, height: 52, borderRadius: 26, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E5EA', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#000000', fontFamily: 'Inter-Medium', fontSize: 15 }}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => onRefine(pace, budget, avoid, notes)} disabled={refining} style={{ flex: 1.5, height: 52, borderRadius: 26, backgroundColor: '#1F4D3A', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity onPress={() => onRefine(pace, budget, avoid, notes)} disabled={refining} style={{ flex: 1.5, height: 52, borderRadius: 26, backgroundColor: '#111111', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
                 {refining ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (

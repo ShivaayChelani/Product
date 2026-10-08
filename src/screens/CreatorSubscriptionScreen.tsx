@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.successBg,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#D5E4CF',
+    borderColor: '#F2F2F2',
     padding: 16,
     gap: 6,
     alignItems: 'center',
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
     justifyContent: 'center',
   },
-  btnDisabled: { backgroundColor: '#DDEBE3' },
+  btnDisabled: { backgroundColor: '#F2F2F2' },
   btnText: { color: C.white, fontWeight: '800', fontSize: 15 },
   usageRow: { flexDirection: 'row', gap: 8 },
   usage: {

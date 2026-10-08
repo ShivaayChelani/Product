@@ -5,7 +5,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../../navigation/types';
-import { palette } from '../../config/theme';
 
 export type BottomNavTab = 'home' | 'reels' | 'map' | 'trips' | 'profile';
 
@@ -53,7 +52,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab })
 
   const renderTab = (tab: BottomNavTab, label: string, activeIcon: string, inactiveIcon: string) => {
     const isActive = activeTab === tab;
-    const color = isActive ? palette.primary : palette.textSecondary;
+    const color = '#FFFFFF';
     const iconName = isActive ? activeIcon : inactiveIcon;
     const iconSize = IS_SMALL ? 22 : 24;
 
@@ -86,10 +85,10 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab })
             activeOpacity={0.9}
           >
             <View style={styles.mapInner}>
-              <Icon name="map" size={30} color={palette.primary} />
+              <Icon name="map" size={30} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
-          <Text style={[styles.tabLabel, { color: activeTab === 'map' ? palette.primary : palette.textSecondary, marginTop: 44 }, activeTab === 'map' && styles.activeTabLabel]}>
+          <Text style={[styles.tabLabel, { color: '#FFFFFF', marginTop: 44 }, activeTab === 'map' && styles.activeTabLabel]}>
             Map
           </Text>
         </View>
@@ -114,13 +113,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: palette.surface,
+    backgroundColor: '#000000',
     height: BOTTOM_NAV_HEIGHT,
     borderRadius: 35,
     paddingHorizontal: IS_SMALL ? 12 : 20,
     width: '92%',
     maxWidth: 600,
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -152,7 +151,9 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: palette.primary,
+    backgroundColor: '#000000',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
     width: 62,
     height: 62,
     borderRadius: 31,
-    backgroundColor: palette.background,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },

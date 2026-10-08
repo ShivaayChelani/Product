@@ -74,7 +74,7 @@ export default function ProfileModeSwitcher({
       <View style={[styles.wrap, withTopInset && { paddingTop: Math.max(insets.top, 12) + 8 }]}>
         <View style={styles.row}>
           <Text style={styles.label}>Switch workspace</Text>
-          {busy ? <ActivityIndicator size="small" color="#1F4D3A" /> : null}
+          {busy ? <ActivityIndicator size="small" color="#111111" /> : null}
         </View>
         <View style={styles.choices}>
           {switchable.map((mode) => {
@@ -115,7 +115,7 @@ export default function ProfileModeSwitcher({
               : `${LABELS[String(activeMode)] || String(activeMode)} ▼`}
           </Text>
         </View>
-        {busy ? <ActivityIndicator size="small" color="#1F4D3A" /> : null}
+        {busy ? <ActivityIndicator size="small" color="#111111" /> : null}
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 16,
     fontWeight: '800',
-    color: '#16392B',
+    color: '#000000',
   },
   backdrop: {
     flex: 1,
@@ -199,13 +199,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#DDEBE3',
+    backgroundColor: '#F2F2F2',
     marginBottom: 12,
   },
   sheetTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#1D2420',
+    color: '#000000',
     marginBottom: 4,
   },
   sheetHint: {
@@ -224,12 +224,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F6F1',
   },
   sheetRowActive: {
-    backgroundColor: '#1F4D3A',
+    backgroundColor: '#111111',
   },
   sheetRowText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#16392B',
+    color: '#000000',
   },
   sheetRowSub: {
     marginTop: 2,
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   label: {
-    color: '#68756D',
+    color: '#6B6B6B',
     fontSize: 12,
     fontWeight: '800',
     textTransform: 'uppercase',
@@ -279,11 +279,11 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(183,121,31,0.28)',
   },
   choiceActive: {
-    backgroundColor: '#1F4D3A',
-    borderColor: '#1F4D3A',
+    backgroundColor: '#111111',
+    borderColor: '#111111',
   },
   choiceText: {
-    color: '#16392B',
+    color: '#000000',
     fontSize: 13,
     fontWeight: '700',
   },

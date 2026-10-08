@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     borderColor: EVENT_COLORS.border,
     marginBottom: 14,
     overflow: 'hidden',
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.07,
     shadowRadius: 14,

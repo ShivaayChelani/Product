@@ -129,7 +129,7 @@ export default function MyEventsScreen() {
           accessibilityLabel="Go back"
           testID="my-events-back"
         >
-          <Icon name="chevron-back" size={20} color="#1D2420" />
+          <Icon name="chevron-back" size={20} color="#000000" />
         </Pressable>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle} accessibilityRole="header">

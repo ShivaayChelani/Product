@@ -10,7 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 const COLORS = {
   background: '#FFFFFF',
   text: '#202020',
-  gold: '#1F4D3A',
+  gold: '#111111',
   white: '#FFFFFF',
 };
 

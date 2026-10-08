@@ -95,7 +95,7 @@ export default function AdminClaimsReviewScreen({ onBack }: AdminClaimsReviewScr
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1D2420" />
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
         <TouchableOpacity onPress={onBack}>
           <MaterialIcons name="arrow-back" size={24} color="#FFF" />
@@ -108,7 +108,7 @@ export default function AdminClaimsReviewScreen({ onBack }: AdminClaimsReviewScr
         style={styles.content}
         contentContainerStyle={{ paddingBottom: contentPadBottom }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1F4D3A']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FFFFFF']} />
         }
       >
         <View style={styles.statsRow}>
@@ -128,7 +128,7 @@ export default function AdminClaimsReviewScreen({ onBack }: AdminClaimsReviewScr
 
         {loading && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator color="#1F4D3A" />
+            <ActivityIndicator color="#FFFFFF" />
             <Text style={styles.loadingText}>Loading reward claims…</Text>
           </View>
         )}
@@ -153,7 +153,7 @@ export default function AdminClaimsReviewScreen({ onBack }: AdminClaimsReviewScr
                       <Image source={{ uri: claim.campaign.imageUrl }} style={styles.campaignThumb} />
                     ) : (
                       <View style={[styles.campaignThumb, styles.campaignThumbFallback]}>
-                        <Icon name="gift-outline" size={20} color="#1F4D3A" />
+                        <Icon name="gift-outline" size={20} color="#FFFFFF" />
                       </View>
                     )}
                     <View style={{ flex: 1 }}>
@@ -229,21 +229,21 @@ export default function AdminClaimsReviewScreen({ onBack }: AdminClaimsReviewScr
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1D2420' },
+  container: { flex: 1, backgroundColor: '#000000' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingBottom: 16,
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
   },
   title: { fontSize: 18, fontWeight: '800', color: '#FFF' },
   content: { flex: 1, padding: 16 },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   statCard: {
     flex: 1,
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     borderRadius: 14,
     padding: 14,
     alignItems: 'center',
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 40 },
   emptyText: { color: '#68756D', fontSize: 14 },
   claimCard: {
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     borderRadius: 16,
     padding: 16,
     marginBottom: 14,
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   statusText: { fontSize: 11, fontWeight: '800' },
   detailsBox: {
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     borderRadius: 12,
     padding: 12,
     marginTop: 12,
@@ -281,12 +281,12 @@ const styles = StyleSheet.create({
   detailRow: { color: '#D9E0DB', fontSize: 12, lineHeight: 18 },
   detailBold: { fontWeight: '700', color: '#FFF' },
   notesWrap: { marginTop: 6, paddingTop: 6, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
-  notesLabel: { color: '#1F4D3A', fontSize: 11, fontWeight: '800', marginBottom: 2 },
+  notesLabel: { color: '#FFFFFF', fontSize: 11, fontWeight: '800', marginBottom: 2 },
   notesText: { color: '#D9E0DB', fontSize: 12, lineHeight: 18 },
   actionRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
   actionBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  approveBtn: { backgroundColor: '#2E7D55' },
+  approveBtn: { backgroundColor: '#111111', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
   rejectBtn: { backgroundColor: 'rgba(220,38,38,0.12)', borderWidth: 1, borderColor: '#C94A4A' },
-  completeBtn: { backgroundColor: '#1F4D3A' },
+  completeBtn: { backgroundColor: '#111111', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
   actionBtnText: { color: '#FFF', fontSize: 13, fontWeight: '800' },
 });

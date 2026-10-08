@@ -78,7 +78,7 @@ function VendorOfferCard({
 
         {item.distanceLabel ? (
           <View style={styles.distanceRow}>
-            <Icon name="location-outline" size={12} color="#1F4D3A" />
+            <Icon name="location-outline" size={12} color="#111111" />
             <Text style={styles.distanceText}>{item.distanceLabel}</Text>
           </View>
         ) : null}
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    color: '#1E1B18',
+    color: '#000000',
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     fontWeight: '700',
     flexShrink: 1,
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   },
   offerLeft: {
     width: 98,
-    backgroundColor: '#D9E0DB',
+    backgroundColor: '#E5E5EA',
   },
   offerImage: {
     ...StyleSheet.absoluteFillObject,
@@ -223,12 +223,12 @@ const styles = StyleSheet.create({
   offerHeadline: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#1E1B18',
+    color: '#000000',
     letterSpacing: -0.3,
   },
   offerSubtitle: {
     fontSize: 12,
-    color: '#1D2420',
+    color: '#000000',
     fontWeight: '500',
     marginTop: 2,
   },

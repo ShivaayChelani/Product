@@ -246,7 +246,7 @@ export default function UploadPlacePhotoScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back-ios" size={20} color="#1D2420" style={{ marginLeft: 6 }} />
+          <MaterialIcons name="arrow-back-ios" size={20} color="#000000" style={{ marginLeft: 6 }} />
         </TouchableOpacity>
 
         <View style={styles.headerTextContainer}>
@@ -279,15 +279,15 @@ export default function UploadPlacePhotoScreen() {
               <Text style={styles.benefitText}>Share real places</Text>
             </View>
             <View style={styles.benefitRow}>
-              <MaterialIcons name="card-giftcard" size={16} color="#1F4D3A" />
+              <MaterialIcons name="card-giftcard" size={16} color="#111111" />
               <Text style={styles.benefitText}>Earn PalPoints</Text>
             </View>
             <View style={styles.benefitRow}>
-              <MaterialIcons name="workspace-premium" size={16} color="#DDEBE3" />
+              <MaterialIcons name="workspace-premium" size={16} color="#F2F2F2" />
               <Text style={styles.benefitText}>Inspire other travelers</Text>
             </View>
             <View style={styles.benefitRow}>
-              <MaterialIcons name="people-outline" size={16} color="#16392B" />
+              <MaterialIcons name="people-outline" size={16} color="#000000" />
               <Text style={styles.benefitText}>Build your journey reputation</Text>
             </View>
           </View>
@@ -298,21 +298,21 @@ export default function UploadPlacePhotoScreen() {
           <Text style={styles.sectionTitle}>1. Select Place <Text style={styles.requiredText}>(Required)</Text></Text>
 
           <View style={styles.searchInputWrapper}>
-            <MaterialIcons name="search" size={20} color="#68756D" style={styles.inputIcon} />
+            <MaterialIcons name="search" size={20} color="#6B6B6B" style={styles.inputIcon} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search or select a place"
-              placeholderTextColor="#68756D"
+              placeholderTextColor="#6B6B6B"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
             <TouchableOpacity onPress={() => void refreshDistance(selectedPlace)}>
-              <MaterialIcons name="my-location" size={20} color="#16392B" />
+              <MaterialIcons name="my-location" size={20} color="#000000" />
             </TouchableOpacity>
           </View>
 
           {searching ? (
-            <ActivityIndicator color="#16392B" style={{ marginBottom: 8 }} />
+            <ActivityIndicator color="#000000" style={{ marginBottom: 8 }} />
           ) : null}
 
           {searchResults.length > 0 && !selectedPlace ? (
@@ -335,14 +335,14 @@ export default function UploadPlacePhotoScreen() {
           {selectedPlace && (
             <View style={styles.selectedPlaceCard}>
               <View style={styles.pinIconWrapper}>
-                <MaterialIcons name="place" size={20} color="#1F4D3A" />
+                <MaterialIcons name="place" size={20} color="#111111" />
               </View>
               <View style={styles.selectedPlaceTextCol}>
                 <Text style={styles.selectedPlaceName}>{selectedPlace.name}</Text>
                 <Text style={styles.selectedPlaceLoc}>{selectedPlace.location}</Text>
               </View>
               <TouchableOpacity onPress={() => setSelectedPlace(null)}>
-                <MaterialIcons name="close" size={20} color="#1D2420" />
+                <MaterialIcons name="close" size={20} color="#000000" />
               </TouchableOpacity>
             </View>
           )}
@@ -357,7 +357,7 @@ export default function UploadPlacePhotoScreen() {
                <Image source={{ uri: imageUri }} style={styles.uploadedImg} />
             ) : (
               <>
-                <MaterialIcons name="image" size={40} color="#1F4D3A" />
+                <MaterialIcons name="image" size={40} color="#111111" />
                 <Text style={styles.uploadBoxTitle}>Upload a clear photo of the place</Text>
                 <Text style={styles.uploadBoxSub}>Tap to upload or drag and drop</Text>
                 <Text style={styles.uploadBoxHint}>JPG, PNG up to 10MB</Text>
@@ -366,7 +366,7 @@ export default function UploadPlacePhotoScreen() {
           </TouchableOpacity>
 
           <View style={styles.infoBanner}>
-            <MaterialIcons name="info-outline" size={16} color="#1F4D3A" style={{ marginRight: 8 }} />
+            <MaterialIcons name="info-outline" size={16} color="#111111" style={{ marginRight: 8 }} />
             <Text style={styles.infoBannerText}>Make sure the photo shows the place clearly. No selfies or people-focused photos.</Text>
           </View>
         </View>
@@ -378,7 +378,7 @@ export default function UploadPlacePhotoScreen() {
             <TextInput
               style={styles.captionInput}
               placeholder="Write a caption about this place..."
-              placeholderTextColor="#68756D"
+              placeholderTextColor="#6B6B6B"
               multiline
               maxLength={150}
               value={caption}
@@ -393,13 +393,13 @@ export default function UploadPlacePhotoScreen() {
           <Text style={styles.sectionTitle}>4. Location Verification</Text>
           <View style={[
             styles.verificationCard,
-            locationStatus === 'far' || locationStatus === 'denied' ? { backgroundColor: '#F7F6F1', borderColor: '#DDEBE3' } : null,
+            locationStatus === 'far' || locationStatus === 'denied' ? { backgroundColor: '#F7F6F1', borderColor: '#F2F2F2' } : null,
           ]}>
             <View style={styles.verificationIconCol}>
               <MaterialIcons
                 name="location-on"
                 size={32}
-                color={locationStatus === 'ok' ? '#2E7D55' : '#B7791F'}
+                color={locationStatus === 'ok' ? '#111111' : '#B7791F'}
               />
               {locationStatus === 'ok' ? (
                 <View style={styles.verificationCheck}>
@@ -411,7 +411,7 @@ export default function UploadPlacePhotoScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Text style={styles.verificationTitle}>{verificationTitle}</Text>
                 {locationStatus === 'ok' ? (
-                  <MaterialIcons name="verified" size={16} color="#2E7D55" style={{ marginLeft: 4 }} />
+                  <MaterialIcons name="verified" size={16} color="#111111" style={{ marginLeft: 4 }} />
                 ) : null}
               </View>
               <Text style={styles.verificationDesc}>{verificationDesc1}</Text>
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: '#FFF',
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -502,19 +502,19 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#1D2420',
+    color: '#000000',
     fontFamily: 'serif',
   },
   titleUnderline: {
     width: 60,
     height: 2,
-    backgroundColor: '#DDEBE3',
+    backgroundColor: '#F2F2F2',
     marginTop: 4,
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#68756D',
+    color: '#6B6B6B',
   },
   headerRightIcon: {
     width: 40,
@@ -548,29 +548,29 @@ const styles = StyleSheet.create({
     width: '30%',
     alignItems: 'center',
     borderRightWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     paddingRight: 8,
   },
   earnText: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#1D2420',
+    color: '#000000',
   },
   pointsText: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1F4D3A',
+    color: '#111111',
     lineHeight: 32,
   },
   palPointsText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#1D2420',
+    color: '#000000',
     marginBottom: 4,
   },
   heroDesc: {
     fontSize: 10,
-    color: '#68756D',
+    color: '#6B6B6B',
     textAlign: 'center',
   },
   heroRight: {
@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
   },
   benefitText: {
     fontSize: 10,
-    color: '#1D2420',
+    color: '#000000',
     marginLeft: 6,
     flex: 1,
   },
@@ -594,17 +594,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: 'bold',
-    color: '#1D2420',
+    color: '#000000',
     marginBottom: 10,
   },
   requiredText: {
     fontWeight: 'normal',
-    color: '#68756D',
+    color: '#6B6B6B',
     fontSize: 11,
   },
   optionalText: {
     fontWeight: 'normal',
-    color: '#68756D',
+    color: '#6B6B6B',
     fontSize: 11,
   },
   searchInputWrapper: {
@@ -612,7 +612,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFF',
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
     borderRadius: 8,
     height: 48,
     paddingHorizontal: 12,
@@ -624,12 +624,12 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#1D2420',
+    color: '#000000',
   },
   searchResults: {
     backgroundColor: '#FFF',
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
     borderRadius: 8,
     marginBottom: 12,
     overflow: 'hidden',
@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#DDEBE3',
+    borderBottomColor: '#F2F2F2',
   },
   selectedPlaceCard: {
     flexDirection: 'row',
@@ -662,16 +662,16 @@ const styles = StyleSheet.create({
   selectedPlaceName: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#1D2420',
+    color: '#000000',
   },
   selectedPlaceLoc: {
     fontSize: 12,
-    color: '#68756D',
+    color: '#6B6B6B',
     marginTop: 2,
   },
   uploadBox: {
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
     borderStyle: 'dashed',
     borderRadius: 12,
     backgroundColor: '#FFF',
@@ -689,17 +689,17 @@ const styles = StyleSheet.create({
   uploadBoxTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#1D2420',
+    color: '#000000',
     marginTop: 12,
   },
   uploadBoxSub: {
     fontSize: 12,
-    color: '#68756D',
+    color: '#6B6B6B',
     marginTop: 4,
   },
   uploadBoxHint: {
     fontSize: 11,
-    color: '#68756D',
+    color: '#6B6B6B',
     marginTop: 8,
   },
   infoBanner: {
@@ -711,13 +711,13 @@ const styles = StyleSheet.create({
   },
   infoBannerText: {
     fontSize: 12,
-    color: '#16392B',
+    color: '#000000',
     flex: 1,
   },
   captionWrapper: {
     backgroundColor: '#FFF',
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
     borderRadius: 8,
     minHeight: 100,
     padding: 12,
@@ -725,21 +725,21 @@ const styles = StyleSheet.create({
   captionInput: {
     flex: 1,
     fontSize: 14,
-    color: '#1D2420',
+    color: '#000000',
     textAlignVertical: 'top',
     padding: 0,
   },
   charCount: {
     alignSelf: 'flex-end',
     fontSize: 11,
-    color: '#68756D',
+    color: '#6B6B6B',
     marginTop: 8,
   },
   verificationCard: {
     flexDirection: 'row',
-    backgroundColor: '#F1F8E9',
+    backgroundColor: '#F2F2F2',
     borderWidth: 1,
-    borderColor: '#C8E6C9',
+    borderColor: '#F2F2F2',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -748,7 +748,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#EAF3ED',
+    backgroundColor: '#F2F2F2',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -757,7 +757,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 2,
     right: 2,
-    backgroundColor: '#2E7D55',
+    backgroundColor: '#111111',
     borderRadius: 8,
     padding: 1,
   },
@@ -767,35 +767,35 @@ const styles = StyleSheet.create({
   verificationTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#1B5E20',
+    color: '#111111',
     marginBottom: 4,
   },
   verificationDesc: {
     fontSize: 11,
-    color: '#2E7D55',
+    color: '#111111',
   },
   verificationRightCol: {
     alignItems: 'flex-end',
   },
   verificationDistLabel: {
     fontSize: 11,
-    color: '#2E7D55',
+    color: '#111111',
   },
   verificationDistValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1B5E20',
+    color: '#111111',
   },
   verificationStatusText: {
     fontSize: 10,
-    color: '#2E7D55',
+    color: '#111111',
     marginRight: 4,
   },
   statusDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#2E7D55',
+    backgroundColor: '#111111',
   },
   footer: {
     position: 'absolute',
@@ -806,7 +806,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F6F1',
     padding: 16,
     borderTopWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
@@ -822,18 +822,18 @@ const styles = StyleSheet.create({
   },
   footerEarnLabel: {
     fontSize: 11,
-    color: '#68756D',
+    color: '#6B6B6B',
   },
   footerEarnValue: {
     fontSize: 11,
-    color: '#68756D',
+    color: '#6B6B6B',
   },
   footerEarnHighlight: {
     fontWeight: 'bold',
-    color: '#1F4D3A',
+    color: '#111111',
   },
   uploadBtn: {
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',

@@ -43,7 +43,7 @@ function SettingsRowInner({ item, isLast }: { item: SettingsRowModel; isLast: bo
         <Switch
           value={item.switchValue}
           onValueChange={item.onSwitch}
-          trackColor={{ false: '#DDEBE3', true: T.secondary }}
+          trackColor={{ false: '#F2F2F2', true: T.secondary }}
           thumbColor={Platform.OS === 'android' ? T.card : undefined}
           disabled={item.loading}
         />

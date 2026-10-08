@@ -13,15 +13,15 @@ import { PalPointsIcon } from '../PalPointsIcon';
 import { vendorsApi } from '../../services/api/vendors';
 
 const C = {
-  deep: '#1D2420',
-  muted: '#68756D',
-  mutedLight: '#68756D',
-  border: '#DDEBE3',
+  deep: '#000000',
+  muted: '#6B6B6B',
+  mutedLight: '#6B6B6B',
+  border: '#F2F2F2',
   soft: '#F7F6F1',
   white: '#FFFFFF',
-  success: '#2E7D55',
-  bronze: '#1F4D3A',
-  purple: '#68756D',
+  success: '#111111',
+  bronze: '#111111',
+  purple: '#6B6B6B',
 };
 
 type Props = {
@@ -104,9 +104,9 @@ export default function OfferStatsModal({ visible, offerId, offerTitle, onClose,
             <View style={styles.grid}>
               {[
                 { label: 'Views', value: stats.views, icon: 'eye-outline', color: C.bronze, bg: '#F7F6F1' },
-                { label: 'Clicks', value: stats.clicks, icon: 'hand-left-outline', color: '#1F4D3A', bg: '#F7F6F1' },
-                { label: 'Redeems', value: stats.redemptions, icon: 'gift-outline', color: C.success, bg: '#EAF7F0' },
-                { label: 'Verified', value: stats.verified, icon: 'checkmark-circle-outline', color: C.success, bg: '#EAF7F0' },
+                { label: 'Clicks', value: stats.clicks, icon: 'hand-left-outline', color: '#111111', bg: '#F7F6F1' },
+                { label: 'Redeems', value: stats.redemptions, icon: 'gift-outline', color: C.success, bg: '#F2F2F2' },
+                { label: 'Verified', value: stats.verified, icon: 'checkmark-circle-outline', color: C.success, bg: '#F2F2F2' },
                 { label: 'Conversion', value: `${stats.conversion.toFixed(1)}%`, icon: 'trending-up', color: C.purple, bg: '#F7F6F1' },
                 { label: 'PalPoints', value: stats.pointsSpent, palPoints: true, color: C.purple, bg: '#F7F6F1' },
               ].map((item) => (
@@ -145,7 +145,7 @@ export default function OfferStatsModal({ visible, offerId, offerTitle, onClose,
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(29,36,32,0.45)',
+    backgroundColor: 'rgba(0, 0, 0,0.45)',
     justifyContent: 'flex-end',
   },
   sheet: {

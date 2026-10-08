@@ -19,6 +19,7 @@ import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/nativ
 import { creatorApi } from '../features/creator/api/creatorApi';
 import { socialApi } from '../services/api/social';
 import { getReelThumbnail } from '../services/reelService';
+import { normalizeReelCaption } from '../components/reels/reelCaptionUtils';
 import { hasValidImageUrl } from '../utils/imageUrl';
 import { useUserContext } from '../context/UserContext';
 import type { Reel } from '../types';
@@ -105,7 +106,7 @@ function filterOwnReels(items: CreatorReelRow[], creatorProfileId?: string | nul
 }
 
 function reelDisplayTitle(reel: Pick<Reel, 'title' | 'description'>): string {
-  return reel.title?.trim() || reel.description?.trim() || 'Untitled reel';
+  return reel.title?.trim() || normalizeReelCaption(reel.description) || 'Untitled reel';
 }
 
 function formatDate(dateStr: string): string {
@@ -778,14 +779,14 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     marginRight: 8,
-    backgroundColor: '#D9E0DB',
+    backgroundColor: '#E5E5EA',
   },
   creatorAvatarPlaceholder: {
     width: 24,
     height: 24,
     borderRadius: 12,
     marginRight: 8,
-    backgroundColor: '#16392B',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -937,7 +938,7 @@ const styles = StyleSheet.create({
   errorText: { color: '#A84032', textAlign: 'center', fontSize: 12, marginBottom: 10 },
   retryBtn: { backgroundColor: C.primary, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10 },
   retryText: { color: '#fff', fontWeight: '800' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(29,36,32,.42)', justifyContent: 'center', padding: 24 },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0, 0, 0,.42)', justifyContent: 'center', padding: 24 },
   modal: { backgroundColor: C.bg, borderRadius: 18, padding: 20 },
   modalTitle: { color: C.deep, fontSize: 20, fontWeight: '800', marginBottom: 14 },
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: C.border, borderRadius: 10, padding: 12, color: C.deep, marginBottom: 10 },

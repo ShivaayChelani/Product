@@ -176,7 +176,7 @@ export default function MapEventDetailCard({
               accessibilityRole="button"
               accessibilityLabel="Close"
             >
-              <Icon name="close" size={18} color="#1D2420" />
+              <Icon name="close" size={18} color="#000000" />
             </TouchableOpacity>
           </View>
 
@@ -274,15 +274,15 @@ export default function MapEventDetailCard({
 }
 
 const C = {
-  accent: '#1F4D3A',
-  accentSoft: '#DDEBE3',
-  featured: '#16392B',
-  text: '#1D2420',
-  textSecondary: '#68756D',
-  textBody: '#68756D',
+  accent: '#111111',
+  accentSoft: '#F2F2F2',
+  featured: '#000000',
+  text: '#000000',
+  textSecondary: '#6B6B6B',
+  textBody: '#6B6B6B',
   border: '#F7F6F1',
-  live: '#2E7D55',
-  liveSoft: '#E7F5EC',
+  live: '#111111',
+  liveSoft: '#F2F2F2',
 };
 
 const serif = Platform.OS === 'ios' ? 'Georgia' : 'serif';
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 4,
     paddingBottom: 16,
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.12,
     shadowRadius: 22,
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
   badgeFeatured: { backgroundColor: palette.primaryLight },
   badgeText: { fontSize: 10.5, fontWeight: '700', color: C.accent, letterSpacing: 0.2 },
   badgeTextLive: { color: C.live },
-  badgeTextSoon: { color: '#16392B' },
+  badgeTextSoon: { color: '#000000' },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
   metaText: { fontSize: 12.5, color: C.textSecondary, flexShrink: 1 },
   description: { fontSize: 12.5, color: C.textBody, marginTop: 5, lineHeight: 18 },

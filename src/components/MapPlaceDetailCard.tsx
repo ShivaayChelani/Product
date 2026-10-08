@@ -187,7 +187,7 @@ export default function MapPlaceDetailCard({
             />
           ) : (
             <TouchableOpacity style={styles.noImageThumbnail} onPress={onAddImage} activeOpacity={0.8}>
-              <Icon name="image-outline" size={32} color="#DDEBE3" />
+              <Icon name="image-outline" size={32} color="#F2F2F2" />
               <View style={styles.placeholderPlus}>
                 <Icon name="add" size={12} color="#FFF" />
               </View>
@@ -208,7 +208,7 @@ export default function MapPlaceDetailCard({
               accessibilityRole="button"
               accessibilityLabel="Close"
             >
-              <Icon name="close" size={18} color="#1D2420" />
+              <Icon name="close" size={18} color="#000000" />
             </TouchableOpacity>
           </View>
 
@@ -243,10 +243,10 @@ export default function MapPlaceDetailCard({
           <TouchableOpacity style={s.reelsBanner} onPress={onReelsPress} activeOpacity={0.85}>
             <View style={s.reelsThumbWrap}>
               <View style={[s.reelsThumbImg, s.reelsThumbFallback]}>
-                <Icon name="film-outline" size={18} color="#68756D" />
+                <Icon name="film-outline" size={18} color="#6B6B6B" />
               </View>
               <View style={s.reelsPlayDisc}>
-                <Icon name="play" size={10} color="#1D2420" style={{ marginLeft: 1 }} />
+                <Icon name="play" size={10} color="#000000" style={{ marginLeft: 1 }} />
               </View>
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -388,7 +388,7 @@ const s = StyleSheet.create({
     borderRadius: 22,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#D9E0DB',
+    backgroundColor: '#E5E5EA',
   },
   reelsThumbImg: {
     width: '100%',
@@ -419,7 +419,7 @@ const s = StyleSheet.create({
   reelsTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1D2420',
+    color: '#000000',
   },
   reelsSub: {
     fontSize: 11,
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     padding: 16,
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.12,
     shadowRadius: 16,
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
     width: 130,
     height: 190,
     borderRadius: 16,
-    backgroundColor: '#D9E0DB',
+    backgroundColor: '#E5E5EA',
   },
   noImageThumbnail: {
     width: 130,
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
   },
   placeholderPlus: {
     position: 'absolute',

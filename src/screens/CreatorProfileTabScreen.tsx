@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     height: 110,
     borderRadius: 55,
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
   },
   avatarFallback: {
     width: 110,
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     borderRadius: 55,
     backgroundColor: '#F7F6F1',
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -151,7 +151,7 @@ export function PrivacySettingsScreen() {
         </View>
 
         <View style={styles.footerContainer}>
-          <Icon name="shield-checkmark-outline" size={24} color="#68756D" />
+          <Icon name="shield-checkmark-outline" size={24} color="#6B6B6B" />
           <View style={styles.footerTextContainer}>
             <Text style={styles.footerText}>Your privacy is important to us.</Text>
             <Text style={styles.footerText}>We never share your data without your permission.</Text>
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: '#68756D',
+    color: '#6B6B6B',
     lineHeight: 18,
   },
 });

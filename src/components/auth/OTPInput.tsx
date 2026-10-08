@@ -2,9 +2,9 @@ import React, { useRef, useEffect } from 'react';
 import { View, TextInput, StyleSheet, Platform } from 'react-native';
 
 const COLORS = {
-  border: '#DDEBE3',
-  borderActive: '#1F4D3A',
-  text: '#1D2420',
+  border: '#F2F2F2',
+  borderActive: '#111111',
+  text: '#000000',
   white: '#FFFFFF',
 };
 

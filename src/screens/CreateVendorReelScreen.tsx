@@ -159,7 +159,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn} disabled={uploading}>
-          <Icon name="arrow-back" size={24} color="#1D2420" />
+          <Icon name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
           <Text style={styles.headerTitle}>Create Promotion Reel</Text>
@@ -198,7 +198,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
               ) : (
                 <TouchableOpacity style={styles.uploadArea} onPress={() => handlePickVideo('gallery')} activeOpacity={0.8}>
                   <View style={styles.uploadIconCircle}>
-                    <Icon name="cloud-upload-outline" size={32} color="#1D2420" />
+                    <Icon name="cloud-upload-outline" size={32} color="#000000" />
                     <View style={styles.playBadge}>
                       <Icon name="play" size={12} color="#FFF" style={{ marginLeft: 2 }} />
                     </View>
@@ -211,12 +211,12 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
 
             <View style={styles.uploadOptionsRow}>
               <TouchableOpacity style={styles.uploadOptionBtn} onPress={() => handlePickVideo('camera')}>
-                <Icon name="camera-outline" size={18} color="#1D2420" />
+                <Icon name="camera-outline" size={18} color="#000000" />
                 <Text style={styles.uploadOptionText}>Camera</Text>
               </TouchableOpacity>
               <View style={styles.optionDivider} />
               <TouchableOpacity style={styles.uploadOptionBtn} onPress={() => handlePickVideo('gallery')}>
-                <Icon name="images-outline" size={18} color="#1D2420" />
+                <Icon name="images-outline" size={18} color="#000000" />
                 <Text style={styles.uploadOptionText}>Gallery</Text>
               </TouchableOpacity>
 
@@ -226,7 +226,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
           {/* Form Fields */}
           <Text style={styles.fieldLabel}>Business / Offer Title <Text style={styles.required}>*</Text></Text>
           <View style={styles.inputContainer}>
-            <Icon name="gift-outline" size={20} color="#68756D" style={styles.inputIcon} />
+            <Icon name="gift-outline" size={20} color="#6B6B6B" style={styles.inputIcon} />
             <TextInput
               style={styles.textInput}
               placeholder="Enter a catchy title for your offer"
@@ -240,7 +240,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
 
           <Text style={styles.fieldLabel}>Caption <Text style={styles.required}>*</Text></Text>
           <View style={styles.captionContainer}>
-            <Icon name="chatbubble-ellipses-outline" size={20} color="#68756D" style={styles.inputIconTop} />
+            <Icon name="chatbubble-ellipses-outline" size={20} color="#6B6B6B" style={styles.inputIconTop} />
             <TextInput
               style={styles.captionInput}
               placeholder="Write a catchy caption for your promotion..."
@@ -252,7 +252,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
             />
             <View style={styles.captionFooter}>
               <Text style={styles.charCount}>{caption.length}/2200</Text>
-              <Icon name="happy-outline" size={20} color="#68756D" style={{ marginLeft: 8 }} />
+              <Icon name="happy-outline" size={20} color="#6B6B6B" style={{ marginLeft: 8 }} />
             </View>
           </View>
 
@@ -269,7 +269,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
                 <Icon
                   name={cat.icon}
                   size={16}
-                  color={selectedCategory === cat.id ? '#1F4D3A' : '#1D2420'}
+                  color={selectedCategory === cat.id ? '#111111' : '#000000'}
                   style={styles.categoryIcon}
                 />
                 <Text style={[styles.categoryText, selectedCategory === cat.id && styles.categoryTextActive]}>
@@ -283,7 +283,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
           <View style={styles.boostCard}>
             <View style={styles.boostHeaderRow}>
               <View style={styles.boostIconWrap}>
-                <Icon name="megaphone-outline" size={22} color="#1F4D3A" />
+                <Icon name="megaphone-outline" size={22} color="#111111" />
               </View>
               <View style={styles.boostHeaderTextWrap}>
                 <Text style={styles.boostTitle}>Boost your promotion</Text>
@@ -291,7 +291,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
               </View>
             </View>
             <View style={styles.boostSettingRow}>
-              <Icon name="planet-outline" size={24} color="#1D2420" style={{ marginRight: 12 }} />
+              <Icon name="planet-outline" size={24} color="#000000" style={{ marginRight: 12 }} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.boostSettingTitle}>Show on PalSafar Home</Text>
                 <Text style={styles.boostSettingSub}>Get more visibility and reach more travelers</Text>
@@ -299,11 +299,11 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
               <Switch
                 value={showOnHome}
                 onValueChange={setShowOnHome}
-                trackColor={{ false: '#D9E0DB', true: '#34C759' }}
+                trackColor={{ false: '#E5E5EA', true: '#111111' }}
                 thumbColor="#FFF"
               />
               <TouchableOpacity style={styles.infoBtn}>
-                <Icon name="information-circle-outline" size={20} color="#1D2420" />
+                <Icon name="information-circle-outline" size={20} color="#000000" />
               </TouchableOpacity>
             </View>
           </View>
@@ -312,24 +312,24 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
           <View style={styles.previewRow}>
             <TouchableOpacity style={styles.previewCard} onPress={() => {}}>
               <View style={[styles.previewIconWrap, { backgroundColor: '#F7F6F1' }]}>
-                <Icon name="eye-outline" size={22} color="#1F4D3A" />
+                <Icon name="eye-outline" size={22} color="#111111" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.previewCardTitle}>Preview Reel</Text>
                 <Text style={styles.previewCardSub}>See how your reel will appear on Map</Text>
               </View>
-              <Icon name="chevron-forward" size={18} color="#1D2420" />
+              <Icon name="chevron-forward" size={18} color="#000000" />
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.previewCard} onPress={() => {}}>
-              <View style={[styles.previewIconWrap, { backgroundColor: '#EBF7EE' }]}>
-                <Icon name="location-outline" size={22} color="#27AE60" />
+              <View style={[styles.previewIconWrap, { backgroundColor: '#F2F2F2' }]}>
+                <Icon name="location-outline" size={22} color="#111111" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.previewCardTitle}>View on Map</Text>
                 <Text style={styles.previewCardSub}>See how your reel will appear in Business Reel on Map</Text>
               </View>
-              <Icon name="chevron-forward" size={18} color="#1D2420" />
+              <Icon name="chevron-forward" size={18} color="#000000" />
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
     backgroundColor: '#FFF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   },
   headerSub: {
     fontSize: 12,
-    color: '#68756D',
+    color: '#6B6B6B',
     marginTop: 2,
   },
   draftsBtn: {
@@ -395,13 +395,13 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
     backgroundColor: '#FFF',
   },
   draftsBtnText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#1F4D3A',
+    color: '#111111',
     marginTop: 2,
   },
   scrollContent: {
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
     padding: 16,
     marginBottom: 24,
     shadowColor: '#000',
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   uploadDashedWrap: {
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#F7F6F1',
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#1F4D3A',
+    backgroundColor: '#111111',
     width: 22,
     height: 22,
     borderRadius: 11,
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
   },
   uploadSubText: {
     fontSize: 12,
-    color: '#68756D',
+    color: '#6B6B6B',
   },
   videoPreviewContainer: {
     width: '100%',
@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
   optionDivider: {
     width: 1,
     height: 24,
-    backgroundColor: '#D9E0DB',
+    backgroundColor: '#E5E5EA',
   },
   fieldLabel: {
     fontSize: 14,
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
   },
   fieldSubLabel: {
     fontSize: 12,
-    color: '#68756D',
+    color: '#6B6B6B',
     marginBottom: 12,
     marginTop: -4,
   },
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFF',
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
     borderRadius: 12,
     paddingHorizontal: 14,
     marginBottom: 20,
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
   captionContainer: {
     backgroundColor: '#FFF',
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
     borderRadius: 12,
     padding: 14,
     marginBottom: 24,
@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFF',
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
     borderRadius: 100,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -602,7 +602,7 @@ const styles = StyleSheet.create({
   },
   categoryBtnActive: {
     backgroundColor: '#F7F6F1',
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
   },
   categoryIcon: {
     // defined inline above
@@ -610,10 +610,10 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1D2420',
+    color: '#000000',
   },
   categoryTextActive: {
-    color: '#1F4D3A',
+    color: '#111111',
   },
   boostCard: {
     backgroundColor: '#F7F6F1',
@@ -645,7 +645,7 @@ const styles = StyleSheet.create({
   },
   boostSub: {
     fontSize: 12,
-    color: '#68756D',
+    color: '#6B6B6B',
     marginTop: 2,
   },
   boostSettingRow: {
@@ -655,7 +655,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
   },
   boostSettingTitle: {
     fontSize: 14,
@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
   },
   boostSettingSub: {
     fontSize: 11,
-    color: '#68756D',
+    color: '#6B6B6B',
     marginTop: 2,
   },
   infoBtn: {
@@ -680,7 +680,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -700,7 +700,7 @@ const styles = StyleSheet.create({
   },
   previewCardSub: {
     fontSize: 10,
-    color: '#68756D',
+    color: '#6B6B6B',
     marginTop: 2,
     paddingRight: 4,
   },
@@ -713,17 +713,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#D9E0DB',
+    borderTopColor: '#E5E5EA',
   },
   publishBtn: {
-    backgroundColor: '#16392B',
+    backgroundColor: '#000000',
     borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 18,
     gap: 8,
-    shadowColor: '#16392B',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,

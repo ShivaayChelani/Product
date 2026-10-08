@@ -384,7 +384,7 @@ describe('event map markers', () => {
     hasCoordinates: true,
     coverImage: null,
     distanceMeters: null,
-    marker: { icon: 'storefront-outline', label: 'Fair / Mela', color: '#1F4D3A' },
+    marker: { icon: 'storefront-outline', label: 'Fair / Mela', color: '#111111' },
   };
 
   it('maps a positioned event into a plotable marker', () => {

@@ -15,7 +15,7 @@ export const PI = {
   chipSelected: palette.background,
   chipSelectedBorder: palette.border,
   verified: palette.success,
-  verifiedBg: '#EAF3ED',
+  verifiedBg: '#F2F2F2',
   divider: palette.border,
 } as const;
 

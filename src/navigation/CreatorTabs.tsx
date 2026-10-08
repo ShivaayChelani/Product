@@ -58,7 +58,7 @@ function CreatorTabBar({ state, navigation }: BottomTabBarProps) {
             >
               <Icon 
                 name={focused ? item.active : item.icon} 
-                color={focused ? '#1F4D3A' : '#A3A3A3'} 
+                color={focused ? '#FFFFFF' : 'rgba(255,255,255,0.65)'}
                 size={22} 
               />
               <Text style={[styles.tabLabel, focused && styles.tabLabelActive]} numberOfLines={1}>
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1E1B18', // Matches Traveller Workspace dark charcoal/brown
+    backgroundColor: '#000000', // Matches Traveller Workspace black bar
     marginHorizontal: 16,
     borderRadius: 32,
     height: 64,
@@ -125,17 +125,17 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 10,
     marginTop: 4,
-    color: '#A3A3A3',
+    color: 'rgba(255,255,255,0.65)',
     fontWeight: '600',
   },
   tabLabelActive: {
-    color: '#1F4D3A', // Muted gold accent
+    color: '#FFFFFF', // Active accent
   },
   activeDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#1F4D3A',
+    backgroundColor: '#FFFFFF',
     position: 'absolute',
     bottom: 6,
   },
@@ -149,11 +149,13 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#1F4D3A',
+    backgroundColor: '#000000',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
     top: -16, // Float above the bar
-    shadowColor: '#1F4D3A',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,

@@ -73,7 +73,7 @@ export default function SettingsScreen({
           />
           <View style={styles.headerContent}>
             <TouchableOpacity onPress={() => nav.goBack()} style={styles.backBtn} hitSlop={12}>
-              <Icon name="arrow-back" size={24} color="#16392B" />
+              <Icon name="arrow-back" size={24} color="#000000" />
             </TouchableOpacity>
             <View style={styles.headerTextWrap}>
               <Text style={styles.title}>Settings</Text>
@@ -95,18 +95,18 @@ export default function SettingsScreen({
                   <Text style={styles.rowTitle}>Change Password</Text>
                   <Text style={styles.rowSubtitle}>Update your account password</Text>
                 </View>
-                <Icon name="chevron-forward" size={18} color="#68756D" />
+                <Icon name="chevron-forward" size={18} color="#6B6B6B" />
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.row} onPress={() => nav.navigate('PrivacySettings')}>
-                <View style={[styles.iconBox, { backgroundColor: '#EAF3ED' }]}>
-                  <Icon name="shield-checkmark-outline" size={20} color="#2E7D55" />
+                <View style={[styles.iconBox, { backgroundColor: '#F2F2F2' }]}>
+                  <Icon name="shield-checkmark-outline" size={20} color="#111111" />
                 </View>
                 <View style={styles.rowContent}>
                   <Text style={styles.rowTitle}>Privacy Settings</Text>
                   <Text style={styles.rowSubtitle}>Manage your privacy preferences</Text>
                 </View>
-                <Icon name="chevron-forward" size={18} color="#68756D" />
+                <Icon name="chevron-forward" size={18} color="#6B6B6B" />
               </TouchableOpacity>
             </>
           ) : null}
@@ -119,7 +119,7 @@ export default function SettingsScreen({
               <Text style={styles.rowTitle}>Notifications</Text>
               <Text style={styles.rowSubtitle}>Manage push, email & alert preferences</Text>
             </View>
-            <Icon name="chevron-forward" size={18} color="#68756D" />
+            <Icon name="chevron-forward" size={18} color="#6B6B6B" />
           </TouchableOpacity>
 
           {!isGuest ? (
@@ -131,7 +131,7 @@ export default function SettingsScreen({
                 <Text style={[styles.rowTitle, { color: '#C94A4A' }]}>Delete Account</Text>
                 <Text style={styles.rowSubtitle}>Permanently delete your account</Text>
               </View>
-              <Icon name="chevron-forward" size={18} color="#68756D" />
+              <Icon name="chevron-forward" size={18} color="#6B6B6B" />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -141,35 +141,35 @@ export default function SettingsScreen({
         <View style={styles.card}>
           <TouchableOpacity style={styles.row} onPress={() => nav.navigate('LegalHub')}>
             <View style={[styles.iconBox, { backgroundColor: '#F7F6F1' }]}>
-              <Icon name="document-text-outline" size={20} color="#1F4D3A" />
+              <Icon name="document-text-outline" size={20} color="#111111" />
             </View>
             <View style={styles.rowContent}>
               <Text style={styles.rowTitle}>Terms & Conditions</Text>
               <Text style={styles.rowSubtitle}>Read our terms and conditions</Text>
             </View>
-            <Icon name="chevron-forward" size={18} color="#68756D" />
+            <Icon name="chevron-forward" size={18} color="#6B6B6B" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL('mailto:shivaay.chelai@gmail.com')}>
-            <View style={[styles.iconBox, { backgroundColor: '#EAF3ED' }]}>
-              <Icon name="headset-outline" size={20} color="#2E7D55" />
+          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL('mailto:shivaay.chelani@gmail.com')}>
+            <View style={[styles.iconBox, { backgroundColor: '#F2F2F2' }]}>
+              <Icon name="headset-outline" size={20} color="#111111" />
             </View>
             <View style={styles.rowContent}>
               <Text style={styles.rowTitle}>Contact Support</Text>
               <Text style={styles.rowSubtitle}>Get help from our support team</Text>
             </View>
-            <Icon name="chevron-forward" size={18} color="#68756D" />
+            <Icon name="chevron-forward" size={18} color="#6B6B6B" />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.row} onPress={() => nav.navigate('Feedback', { category: 'general', title: 'Feedback' })}>
-            <View style={[styles.iconBox, { backgroundColor: '#DDEBE3' }]}>
-              <Icon name="chatbubble-ellipses-outline" size={20} color="#1F4D3A" />
+            <View style={[styles.iconBox, { backgroundColor: '#F2F2F2' }]}>
+              <Icon name="chatbubble-ellipses-outline" size={20} color="#111111" />
             </View>
             <View style={styles.rowContent}>
               <Text style={styles.rowTitle}>Feedback</Text>
               <Text style={styles.rowSubtitle}>Share your feedback with us</Text>
             </View>
-            <Icon name="chevron-forward" size={18} color="#68756D" />
+            <Icon name="chevron-forward" size={18} color="#6B6B6B" />
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]} onPress={() => openLegal('ABOUT_US', 'About PalSafar')}>
@@ -180,7 +180,7 @@ export default function SettingsScreen({
               <Text style={styles.rowTitle}>About PalSafar</Text>
               <Text style={styles.rowSubtitle}>App info, terms & policies</Text>
             </View>
-            <Icon name="chevron-forward" size={18} color="#68756D" />
+            <Icon name="chevron-forward" size={18} color="#6B6B6B" />
           </TouchableOpacity>
         </View>
 
@@ -188,14 +188,14 @@ export default function SettingsScreen({
         {/* SECTION 5: Security Status Card */}
         <View style={styles.securityCard}>
           <View style={styles.securityIconBox}>
-            <Icon name="shield-checkmark-outline" size={20} color="#2E7D55" />
+            <Icon name="shield-checkmark-outline" size={20} color="#111111" />
           </View>
           <View style={styles.securityContent}>
             <Text style={styles.securityTitle}>Your account is secure</Text>
             <Text style={styles.securitySubtitle}>We keep your data safe and protected</Text>
           </View>
           <View style={styles.securityCheckBox}>
-            <Icon name="checkmark" size={16} color="#2E7D55" />
+            <Icon name="checkmark" size={16} color="#111111" />
           </View>
         </View>
 
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -260,13 +260,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: fontScale(26),
     fontWeight: '800',
-    color: '#16392B',
+    color: '#000000',
     letterSpacing: -0.5,
     marginBottom: verticalScale(4),
   },
   subtitle: {
     fontSize: fontScale(14),
-    color: '#1F4D3A',
+    color: '#111111',
     fontWeight: '500',
     lineHeight: fontScale(20),
     paddingRight: scale(30),
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: fontScale(12),
     fontWeight: '800',
-    color: '#16392B',
+    color: '#000000',
     letterSpacing: 1.2,
     marginBottom: verticalScale(10),
     marginTop: verticalScale(8),
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: radiusScale(20),
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.03,
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: scale(16),
     borderBottomWidth: 1,
-    borderBottomColor: '#DDEBE3',
+    borderBottomColor: '#F2F2F2',
     gap: scale(14),
   },
   iconBox: {
@@ -314,17 +314,17 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: fontScale(15),
     fontWeight: '700',
-    color: '#1D2420',
+    color: '#000000',
     marginBottom: verticalScale(2),
   },
   rowSubtitle: {
     fontSize: fontScale(13),
-    color: '#1F4D3A',
+    color: '#111111',
   },
   rowValueText: {
     fontSize: fontScale(13),
     fontWeight: '600',
-    color: '#1F4D3A',
+    color: '#111111',
     marginRight: scale(4),
   },
   promoCard: {
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     marginBottom: 16,
     flexDirection: 'column',
     gap: 16,
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
   },
   promoSparkle1: {
     position: 'absolute',
@@ -369,19 +369,19 @@ const styles = StyleSheet.create({
   promoTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1D2420',
+    color: '#000000',
     marginBottom: 4,
   },
   promoSubtitle: {
     fontSize: 13,
-    color: '#68756D',
+    color: '#6B6B6B',
     lineHeight: 18,
   },
   promoBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 14,
@@ -395,11 +395,11 @@ const styles = StyleSheet.create({
   securityCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAF5',
+    backgroundColor: '#F2F2F2',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E8F3EC',
+    borderColor: '#F2F2F2',
     marginBottom: 32,
     gap: 14,
   },
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#EAF3ED',
+    backgroundColor: '#F2F2F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -417,18 +417,18 @@ const styles = StyleSheet.create({
   securityTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1D2420',
+    color: '#000000',
     marginBottom: 2,
   },
   securitySubtitle: {
     fontSize: 12,
-    color: '#68756D',
+    color: '#6B6B6B',
   },
   securityCheckBox: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#DDEBE3',
+    backgroundColor: '#F2F2F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     height: 58,
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',

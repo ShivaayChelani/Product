@@ -3,7 +3,7 @@ import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndic
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const COLORS = {
-  brown: '#1D2420',
+  brown: '#000000',
   white: '#FFFFFF',
 };
 

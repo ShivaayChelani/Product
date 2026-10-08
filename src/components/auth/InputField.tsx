@@ -3,11 +3,11 @@ import { View, TextInput, StyleSheet, TouchableOpacity, Text, TextInputProps } f
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const COLORS = {
-  border: '#D9E0DB',
+  border: '#E5E5EA',
   text: '#202020',
   placeholder: '#6F6F6F',
   white: '#FFFFFF',
-  gold: '#1F4D3A',
+  gold: '#111111',
 };
 
 interface InputFieldProps extends TextInputProps {

@@ -1,7 +1,7 @@
 import { Platform, ViewStyle } from 'react-native';
 
 /** Soft elevation — ~8% opacity, large blur */
-export function luxurySoftShadow(color = '#1D2420'): ViewStyle {
+export function luxurySoftShadow(color = '#000000'): ViewStyle {
   return Platform.select({
     ios: {
       shadowColor: color,
@@ -15,5 +15,5 @@ export function luxurySoftShadow(color = '#1D2420'): ViewStyle {
 }
 
 export function luxuryCardShadow(): ViewStyle {
-  return luxurySoftShadow('#1F4D3A');
+  return luxurySoftShadow('#111111');
 }

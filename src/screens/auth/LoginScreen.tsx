@@ -114,7 +114,7 @@ export default function LoginScreen({
         >
           <View style={styles.headerWrap}>
             <TouchableOpacity onPress={() => dismissThenNavigate(onBack)} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Icon name="chevron-back" size={24} color="#1D2420" />
+              <Icon name="chevron-back" size={24} color="#000000" />
             </TouchableOpacity>
             <AuthHeader 
               title="Welcome Back" 
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#D9E0DB',
+    backgroundColor: '#E5E5EA',
   },
   dividerText: {
     paddingVertical: 10,

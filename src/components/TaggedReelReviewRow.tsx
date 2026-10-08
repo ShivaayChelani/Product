@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import type { TaggedCreatorReel } from '../services/api/vendors';
+import { normalizeReelCaption } from './reels/reelCaptionUtils';
 
 type Props = {
   reel: TaggedCreatorReel;
@@ -12,7 +13,7 @@ type Props = {
 };
 
 export default function TaggedReelReviewRow({ reel, busy, onAllow, onReject, onOpen }: Props) {
-  const caption = reel.title || reel.description || 'Untitled reel';
+  const caption = reel.title || normalizeReelCaption(reel.description) || 'Untitled reel';
   const thumb = reel.thumbnail || reel.videoUrl;
 
   return (
@@ -67,14 +68,14 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#F7F6F1',
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
   },
   media: { width: 72, height: 96, borderRadius: 12, overflow: 'hidden', backgroundColor: '#F7F6F1' },
   thumb: { width: '100%', height: '100%' },
   thumbFallback: { alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1, minWidth: 0 },
-  kicker: { fontSize: 11, fontWeight: '800', color: '#68756D', textTransform: 'uppercase', letterSpacing: 0.3 },
-  handle: { fontSize: 13, fontWeight: '700', color: '#1D2420', marginTop: 2 },
+  kicker: { fontSize: 11, fontWeight: '800', color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: 0.3 },
+  handle: { fontSize: 13, fontWeight: '700', color: '#000000', marginTop: 2 },
   caption: { fontSize: 12, color: '#8C7B6F', marginTop: 2, fontWeight: '600' },
   actions: { flexDirection: 'row', gap: 8, marginTop: 10 },
   btn: {
@@ -84,7 +85,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  allow: { backgroundColor: '#2E7D55' },
+  allow: { backgroundColor: '#111111' },
   allowText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
   reject: { backgroundColor: '#F7F6F1' },
   rejectText: { color: '#8C3B32', fontSize: 13, fontWeight: '800' },

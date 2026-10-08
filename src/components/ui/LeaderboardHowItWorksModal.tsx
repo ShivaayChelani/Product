@@ -30,7 +30,7 @@ export const LeaderboardHowItWorksModal = ({ visible, onClose }: Props) => {
           <View style={styles.contentRow}>
             <View style={styles.iconWrapper}>
               <View style={styles.iconInner}>
-                <Icon name="trophy-outline" size={42} color="#16392B" />
+                <Icon name="trophy-outline" size={42} color="#000000" />
               </View>
             </View>
 
@@ -59,7 +59,7 @@ export const LeaderboardHowItWorksModal = ({ visible, onClose }: Props) => {
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(29, 36, 32, 0.55)',
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1D2420',
+    color: '#000000',
     marginBottom: 8,
     letterSpacing: -0.2,
   },
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   },
   button: {
     alignSelf: 'flex-end',
-    backgroundColor: '#16392B',
+    backgroundColor: '#000000',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 10,

@@ -54,7 +54,7 @@ export default function RazorpayCheckoutScreen({
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head><body style="font-family:sans-serif;background:#FFFFFF;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
-<p id="status" style="color:#16392B;font-weight:700">Opening secure checkout…</p>
+<p id="status" style="color:#000000;font-weight:700">Opening secure checkout…</p>
 <script>
 var options = {
   key: ${JSON.stringify(keyId)},
@@ -64,7 +64,7 @@ var options = {
   description: ${JSON.stringify(name)},
   order_id: ${JSON.stringify(orderId)},
   prefill: { email: ${JSON.stringify(email)}, name: ${JSON.stringify(displayName)} },
-  theme: { color: '#1F4D3A' },
+  theme: { color: '#111111' },
   handler: function (response) {
     window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'success', response: response }));
   },
@@ -137,19 +137,19 @@ rzp.open();
     <View style={[styles.safe, { paddingBottom: contentPadBottom }]}>
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
         <TouchableOpacity onPress={onBack} style={styles.back}>
-          <Icon name="close" size={22} color="#16392B" />
+          <Icon name="close" size={22} color="#000000" />
         </TouchableOpacity>
         <Text style={styles.title}>Secure checkout</Text>
         <View style={{ width: 40 }} />
       </View>
       {phase === 'verifying' || busy ? (
         <View style={styles.center}>
-          <ActivityIndicator color="#1F4D3A" />
+          <ActivityIndicator color="#111111" />
           <Text style={styles.hint}>Verifying payment with PalSafar…</Text>
         </View>
       ) : phase === 'success' ? (
         <View style={styles.center}>
-          <Icon name="checkmark-circle" size={42} color="#047857" />
+          <Icon name="checkmark-circle" size={42} color="#111111" />
           <Text style={styles.hint}>Payment verified. Your plan is active.</Text>
         </View>
       ) : phase === 'failed' ? (
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10 },
   back: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  title: { flex: 1, textAlign: 'center', fontWeight: '800', color: '#16392B', fontSize: 16 },
+  title: { flex: 1, textAlign: 'center', fontWeight: '800', color: '#000000', fontSize: 16 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  hint: { color: '#68756D', fontWeight: '600' },
+  hint: { color: '#6B6B6B', fontWeight: '600' },
 });

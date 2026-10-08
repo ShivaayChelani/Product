@@ -89,7 +89,7 @@ export default function RelatedPlaceSheet({ visible, selectedId, selectedName, o
               value={search}
               onChangeText={setSearch}
               placeholder="Search temples, ghats, venues…"
-              placeholderTextColor="#68756D"
+              placeholderTextColor="#6B6B6B"
               style={styles.searchInput}
               autoFocus={visible}
               autoCorrect={false}
@@ -168,7 +168,7 @@ export default function RelatedPlaceSheet({ visible, selectedId, selectedName, o
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(29,36,32,0.45)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0, 0, 0,0.45)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 22,

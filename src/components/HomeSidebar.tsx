@@ -261,7 +261,7 @@ export default function HomeSidebar({
                 {workspace.creatorApproved ? (
                   <DrawerItem
                     icon="videocam-outline"
-                    iconColor="#16392B"
+                    iconColor="#000000"
                     iconBg="#F7F6F1"
                     label="Creator Studio"
                     subtitle="Manage reels & profile"
@@ -283,7 +283,7 @@ export default function HomeSidebar({
                 ) : workspace.showCreatorApply ? (
                   <DrawerItem
                     icon="videocam-outline"
-                    iconColor="#16392B"
+                    iconColor="#000000"
                     iconBg="#F7F6F1"
                     label="Become a Creator"
                     subtitle="Share travel stories"
@@ -296,8 +296,8 @@ export default function HomeSidebar({
                     {workspace.vendorApproved ? (
                       <DrawerItem
                         icon="storefront-outline"
-                        iconColor="#16392B"
-                        iconBg="#D9E0DB"
+                        iconColor="#000000"
+                        iconBg="#E5E5EA"
                         label="Vendor Workspace"
                         subtitle="Manage your business"
                         badge={workspace.normalizedMode === 'VENDOR' ? 'Active' : undefined}
@@ -318,7 +318,7 @@ export default function HomeSidebar({
                     ) : workspace.showVendorApply ? (
                       <DrawerItem
                         icon="storefront-outline"
-                        iconColor="#16392B"
+                        iconColor="#000000"
                         iconBg="#F7F6F1"
                         label="Become a Vendor"
                         subtitle="List your business"
@@ -337,7 +337,7 @@ export default function HomeSidebar({
             {!isGuest && onNavigateToSubscription ? (
               <DrawerItem
                 icon="card-outline"
-                iconColor="#16392B"
+                iconColor="#000000"
                 iconBg="#F7F6F1"
                 label="Subscription"
                 subtitle="Plans, billing & upgrades"
@@ -346,7 +346,7 @@ export default function HomeSidebar({
             ) : null}
             <DrawerItem
               icon="settings-outline"
-              iconColor="#1E1B18"
+              iconColor="#000000"
               iconBg="#F7F6F1"
               label="Settings"
               subtitle="App preferences"
@@ -354,7 +354,7 @@ export default function HomeSidebar({
             />
             <DrawerItem
               icon="headset-outline"
-              iconColor="#16392B"
+              iconColor="#000000"
               iconBg="#F7F6F1"
               label="Help & Support"
               subtitle="Get help, FAQs & contact us"
@@ -380,7 +380,7 @@ export default function HomeSidebar({
 
 const styles = StyleSheet.create({
   overlay: {
-    backgroundColor: 'rgba(29, 36, 32, 0.48)',
+    backgroundColor: 'rgba(0, 0, 0, 0.48)',
   },
   panel: {
     position: 'absolute',

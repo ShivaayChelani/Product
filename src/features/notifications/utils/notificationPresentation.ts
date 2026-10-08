@@ -28,36 +28,36 @@ export function notificationVisual(n: InAppNotification): NotificationVisual {
   const t = `${n.type} ${n.title} ${n.body || ''}`.toLowerCase();
 
   if (/points|palpoints|reward.*earn/.test(t)) {
-    return { icon: 'logo-usd', iconColor: '#68756D', iconBg: 'rgba(183,121,31,0.18)' };
+    return { icon: 'logo-usd', iconColor: '#6B6B6B', iconBg: 'rgba(183,121,31,0.18)' };
   }
   if (/offer|discount|coupon|25%/.test(t)) {
-    return { icon: 'pricetag', iconColor: '#2E7D55', iconBg: 'rgba(22,163,74,0.12)' };
+    return { icon: 'pricetag', iconColor: '#111111', iconBg: 'rgba(0, 0, 0, 0.12)' };
   }
   if (/hidden.?gem|place.*approv/.test(t)) {
     return { icon: 'location', iconColor: '#C94A4A', iconBg: 'rgba(220,38,38,0.12)' };
   }
   if (/ai|itinerary.*ready|sparkle/.test(t)) {
-    return { icon: 'sparkles', iconColor: '#1F4D3A', iconBg: 'rgba(31,77,58,0.12)' };
+    return { icon: 'sparkles', iconColor: '#111111', iconBg: 'rgba(0, 0, 0,0.12)' };
   }
   if (/book|hotel|reservation/.test(t)) {
-    return { icon: 'briefcase', iconColor: '#1F4D3A', iconBg: 'rgba(31,77,58,0.12)' };
+    return { icon: 'briefcase', iconColor: '#111111', iconBg: 'rgba(0, 0, 0,0.12)' };
   }
   if (/price drop|alert/.test(t)) {
-    return { icon: 'notifications', iconColor: '#1F4D3A', iconBg: 'rgba(31,77,58,0.12)' };
+    return { icon: 'notifications', iconColor: '#111111', iconBg: 'rgba(0, 0, 0,0.12)' };
   }
   if (/welcome|gift|system/.test(t)) {
-    return { icon: 'gift', iconColor: '#1F4D3A', iconBg: 'rgba(31,77,58,0.12)' };
+    return { icon: 'gift', iconColor: '#111111', iconBg: 'rgba(0, 0, 0,0.12)' };
   }
   if (/payment|billing|invoice|subscription/.test(t)) {
-    return { icon: 'wallet', iconColor: '#1F4D3A', iconBg: 'rgba(22,57,43,0.12)' };
+    return { icon: 'wallet', iconColor: '#111111', iconBg: 'rgba(0, 0, 0, 0.12)' };
   }
   if (/trip|travel|weather|traffic|festival/.test(t)) {
-    return { icon: 'airplane', iconColor: '#16392B', iconBg: 'rgba(22,57,43,0.12)' };
+    return { icon: 'airplane', iconColor: '#000000', iconBg: 'rgba(0, 0, 0, 0.12)' };
   }
   if (/reel|creator|follow|comment|community/.test(t)) {
-    return { icon: 'people', iconColor: '#1F4D3A', iconBg: 'rgba(183,121,31,0.16)' };
+    return { icon: 'people', iconColor: '#111111', iconBg: 'rgba(183,121,31,0.16)' };
   }
-  return { icon: 'notifications-outline', iconColor: '#1F4D3A', iconBg: 'rgba(183,121,31,0.14)' };
+  return { icon: 'notifications-outline', iconColor: '#111111', iconBg: 'rgba(183,121,31,0.14)' };
 }
 
 export function formatNotificationTimestamp(iso: string): string {

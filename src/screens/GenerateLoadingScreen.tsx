@@ -39,16 +39,16 @@ type ScreenState = 'loading' | 'success' | 'error' | 'unauthenticated';
 
 const COLORS = {
   cream: '#F7F6F1',
-  creamPanel: '#D9E0DB',
+  creamPanel: '#E5E5EA',
   gold: '#B7791F',
   goldDark: '#B7791F',
-  brown: '#1D2420',
-  brownDark: '#1D2420',
-  text: '#1D2420',
-  textSecondary: '#68756D',
-  textMuted: '#68756D',
-  checkBg: '#16392B',
-  track: '#DDEBE3',
+  brown: '#000000',
+  brownDark: '#000000',
+  text: '#000000',
+  textSecondary: '#6B6B6B',
+  textMuted: '#6B6B6B',
+  checkBg: '#000000',
+  track: '#F2F2F2',
   card: '#FFFFFF',
 };
 
@@ -381,7 +381,7 @@ export default function GenerateLoadingScreen({ route: propRoute }: { navigation
         <View style={styles.progressTrack}>
           <Animated.View style={[styles.progressFillWrap, { width: progressWidth }]}>
             <LinearGradient
-              colors={['#1D2420', '#B7791F', '#B7791F']}
+              colors={['#000000', '#B7791F', '#B7791F']}
               start={{ x: 0, y: 0.5 }}
               end={{ x: 1, y: 0.5 }}
               style={styles.progressFill}
@@ -402,9 +402,9 @@ export default function GenerateLoadingScreen({ route: propRoute }: { navigation
         <Switch
           value={notifyEnabled}
           onValueChange={setNotifyEnabled}
-          trackColor={{ false: '#D9E0DB', true: '#B7791F' }}
+          trackColor={{ false: '#E5E5EA', true: '#B7791F' }}
           thumbColor="#FFF"
-          ios_backgroundColor="#D9E0DB"
+          ios_backgroundColor="#E5E5EA"
         />
       </View>
 
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(221,235,227,0.95)',
+    borderColor: 'rgba(0,0,0,0.14)',
     zIndex: 20,
   },
   scroll: {
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(221,235,227,0.85)',
+    borderColor: 'rgba(0,0,0,0.12)',
   },
   taskCard: {
     flexDirection: 'row',
@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 10,
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
@@ -684,7 +684,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginBottom: 12,
     gap: 10,
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -721,7 +721,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     gap: 8,
     marginBottom: 4,
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.18,
     shadowRadius: 6,

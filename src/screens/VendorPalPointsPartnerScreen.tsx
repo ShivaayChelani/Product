@@ -74,7 +74,7 @@ export default function VendorPalPointsPartnerScreen({ onBack }: { onBack?: () =
     <SafeAreaView style={[styles.safe, { paddingTop: Math.max(insets.top, 16) }]} edges={['left', 'right']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.iconBtn}>
-          <Icon name="arrow-back" size={22} color="#16392B" />
+          <Icon name="arrow-back" size={22} color="#000000" />
         </TouchableOpacity>
         <View style={styles.headerCopy}>
           <Text style={styles.eyebrow}>DIAMOND BENEFIT</Text>
@@ -83,7 +83,7 @@ export default function VendorPalPointsPartnerScreen({ onBack }: { onBack?: () =
       </View>
 
       {loading ? (
-        <View style={styles.center}><ActivityIndicator color="#1F4D3A" /></View>
+        <View style={styles.center}><ActivityIndicator color="#111111" /></View>
       ) : (
         <ScrollView contentContainerStyle={[styles.content, { paddingBottom: contentPadBottom }]}>
           {!partner?.adminEnabled ? (
@@ -160,24 +160,24 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
   header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 10, gap: 10 },
   headerCopy: { flex: 1 },
-  eyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 1.4, color: '#1F4D3A' },
+  eyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 1.4, color: '#111111' },
   iconBtn: {
     width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#fff', borderWidth: 1, borderColor: '#D9E0DB', marginTop: 2,
+    backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E5EA', marginTop: 2,
   },
-  title: { fontWeight: '800', fontSize: 20, color: '#16392B', marginTop: 4 },
+  title: { fontWeight: '800', fontSize: 20, color: '#000000', marginTop: 4 },
   content: { padding: 16, gap: 12 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  card: { backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#D9E0DB', padding: 16, gap: 8 },
+  card: { backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#E5E5EA', padding: 16, gap: 8 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  label: { fontSize: 14, fontWeight: '700', color: '#16392B' },
-  muted: { fontSize: 13, color: '#68756D', lineHeight: 18 },
-  section: { fontSize: 16, fontWeight: '800', color: '#16392B', marginTop: 8 },
+  label: { fontSize: 14, fontWeight: '700', color: '#000000' },
+  muted: { fontSize: 13, color: '#6B6B6B', lineHeight: 18 },
+  section: { fontSize: 16, fontWeight: '800', color: '#000000', marginTop: 8 },
   input: {
-    borderWidth: 1, borderColor: '#D9E0DB', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,
-    fontSize: 14, color: '#1D2420', backgroundColor: '#F7F6F1',
+    borderWidth: 1, borderColor: '#E5E5EA', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,
+    fontSize: 14, color: '#000000', backgroundColor: '#F7F6F1',
   },
-  btn: { backgroundColor: '#16392B', borderRadius: 20, paddingVertical: 12, alignItems: 'center', marginTop: 4 },
+  btn: { backgroundColor: '#000000', borderRadius: 20, paddingVertical: 12, alignItems: 'center', marginTop: 4 },
   btnText: { color: '#fff', fontWeight: '800' },
-  offerTitle: { fontSize: 15, fontWeight: '800', color: '#16392B' },
+  offerTitle: { fontSize: 15, fontWeight: '800', color: '#000000' },
 });

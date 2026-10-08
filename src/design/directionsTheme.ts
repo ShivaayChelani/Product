@@ -6,7 +6,7 @@ import { palette } from '../config/theme';
  * external maps app, so the polyline colour is a product decision rather than a
  * brand afterthought.
  *
- * Blue distinguishes the active route from PalSafar's bronze and green chrome.
+ * Blue distinguishes the active route from PalSafar's bronze and neutral chrome.
  *
  * Ride booking is deliberately NOT covered here. It hands off to Uber/Ola/
  * Rapido/BluSmart and never draws a polyline, so it can never inherit this.

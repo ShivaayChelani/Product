@@ -20,7 +20,7 @@ export const TripsTitleRow = ({ unreadCount = 0, onNotificationsPress, topInset 
             activeOpacity={0.8}
             onPress={onNotificationsPress}
           >
-            <Icon name="notifications-outline" size={18} color="#1D2420" />
+            <Icon name="notifications-outline" size={18} color="#000000" />
             {unreadCount > 0 ? (
               <View style={styles.notifBadge}>
                 <Text style={styles.notifBadgeText}>
@@ -39,7 +39,7 @@ export const TripsTitleRow = ({ unreadCount = 0, onNotificationsPress, topInset 
           
           <View style={styles.separatorContainer}>
             <View style={styles.separatorLine} />
-            <Icon name="airplane" size={12} color="#1D2420" style={styles.planeIcon} />
+            <Icon name="airplane" size={12} color="#000000" style={styles.planeIcon} />
             <View style={styles.separatorLine} />
           </View>
 
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     fontFamily: SANS,
     fontWeight: '900',
     fontSize: 44,
-    color: '#1D2420',
+    color: '#000000',
     letterSpacing: -1.5,
     textShadowColor: 'rgba(255, 255, 255, 0.9)',
     textShadowOffset: { width: 0, height: 2 },
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   separatorLine: {
     flex: 1,
     height: 1.5,
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     opacity: 0.4,
   },
   planeIcon: {
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     fontFamily: SERIF,
     fontStyle: 'italic',
     fontSize: 16,
-    color: '#1D2420',
+    color: '#000000',
     marginBottom: 6,
     textShadowColor: 'rgba(255, 255, 255, 0.8)',
     textShadowOffset: { width: 0, height: 1 },
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: SANS,
     fontSize: 12,
-    color: '#1D2420',
+    color: '#000000',
     lineHeight: 18,
     fontWeight: '600',
   },

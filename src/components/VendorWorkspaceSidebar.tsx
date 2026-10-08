@@ -22,13 +22,13 @@ import { runAfterDrawerClose } from '../utils/runAfterDrawerClose';
 const C = {
   bg: '#F7F6F1',
   surface: '#FFFFFF',
-  deep: '#1D2420',
-  bronze: '#1F4D3A',
-  muted: '#68756D',
-  border: '#D9E0DB',
+  deep: '#000000',
+  bronze: '#111111',
+  muted: '#6B6B6B',
+  border: '#E5E5EA',
   soft: '#FFFFFF',
   danger: '#C94A4A',
-  primary: '#16392B',
+  primary: '#000000',
 };
 
 type MenuItem = {
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(29, 36, 32, 0.42)',
+    backgroundColor: 'rgba(0, 0, 0, 0.42)',
   },
   panel: {
     position: 'absolute',
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.bg,
     borderTopRightRadius: 28,
     borderBottomRightRadius: 28,
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 6, height: 0 },
     shadowOpacity: 0.18,
     shadowRadius: 20,

@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   continueBtn: {
-    backgroundColor: '#1F4D3A',
+    backgroundColor: '#111111',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',

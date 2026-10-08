@@ -74,7 +74,7 @@ export default function PremiumUpgradeScreen({ onBack }: { onBack?: () => void }
       <View style={styles.header}>
         {onBack ? (
           <TouchableOpacity onPress={onBack} style={styles.back}>
-            <Icon name="chevron-back" size={24} color="#16392B" />
+            <Icon name="chevron-back" size={24} color="#000000" />
           </TouchableOpacity>
         ) : <View style={{ width: 40 }} />}
         <Text style={styles.title}>PalSafar Premium</Text>
@@ -82,7 +82,7 @@ export default function PremiumUpgradeScreen({ onBack }: { onBack?: () => void }
           onPress={() => navigation.navigate('BillingHistory')}
           style={styles.back}
         >
-          <Icon name="receipt-outline" size={22} color="#16392B" />
+          <Icon name="receipt-outline" size={22} color="#000000" />
         </TouchableOpacity>
       </View>
 
@@ -96,16 +96,16 @@ export default function PremiumUpgradeScreen({ onBack }: { onBack?: () => void }
       ) : (
         <ScrollView contentContainerStyle={[styles.list, { paddingBottom: contentPadBottom }]} showsVerticalScrollIndicator={false}>
           {isPremium ? (
-            <View style={{ backgroundColor: '#EAF3ED', borderRadius: 16, borderWidth: 1, borderColor: '#A7F3D0', padding: 16, gap: 4 }}>
-              <Text style={{ fontFamily: SANS_BOLD, fontSize: 16, color: '#047857' }}>Premium active</Text>
-              <Text style={{ fontFamily: SANS, fontSize: 13, color: '#065F46' }}>
+            <View style={{ backgroundColor: '#F2F2F2', borderRadius: 16, borderWidth: 1, borderColor: '#F2F2F2', padding: 16, gap: 4 }}>
+              <Text style={{ fontFamily: SANS_BOLD, fontSize: 16, color: '#111111' }}>Premium active</Text>
+              <Text style={{ fontFamily: SANS, fontSize: 13, color: '#111111' }}>
                 {entitlements?.premiumExpiresAt
                   ? `Valid until ${new Date(entitlements.premiumExpiresAt).toLocaleDateString('en-IN')}`
                   : 'Ad-free while your subscription is active.'}
               </Text>
             </View>
           ) : entitlements?.premiumExpired ? (
-            <View style={{ backgroundColor: '#F8F0E1', borderRadius: 16, borderWidth: 1, borderColor: '#DDEBE3', padding: 16 }}>
+            <View style={{ backgroundColor: '#F8F0E1', borderRadius: 16, borderWidth: 1, borderColor: '#F2F2F2', padding: 16 }}>
               <Text style={{ fontFamily: SANS_BOLD, fontSize: 16, color: '#B7791F' }}>Premium expired</Text>
             </View>
           ) : null}
@@ -145,9 +145,9 @@ export default function PremiumUpgradeScreen({ onBack }: { onBack?: () => void }
 
           {/* Section Divider */}
           <View style={styles.sectionDivider}>
-            <Icon name="diamond" size={8} color="#DDEBE3" />
+            <Icon name="diamond" size={8} color="#F2F2F2" />
             <Text style={styles.sectionDividerText}>Why Go Premium?</Text>
-            <Icon name="diamond" size={8} color="#DDEBE3" />
+            <Icon name="diamond" size={8} color="#F2F2F2" />
           </View>
 
           {/* Features List Card */}
@@ -222,7 +222,7 @@ const FeatureRow = ({ icon, title, subtitle, showDivider }: any) => (
         <Text style={styles.featureTitle}>{title}</Text>
         <Text style={styles.featureSubtitle}>{subtitle}</Text>
       </View>
-      <Icon name="chevron-forward" size={18} color="#DDEBE3" />
+      <Icon name="chevron-forward" size={18} color="#F2F2F2" />
     </View>
     {showDivider && <View style={styles.featureDivider} />}
   </View>
@@ -232,10 +232,10 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F7F6F1' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10 },
   back: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  title: { flex: 1, textAlign: 'center', fontSize: 18, fontFamily: SANS_BOLD, color: '#16392B' },
+  title: { flex: 1, textAlign: 'center', fontSize: 18, fontFamily: SANS_BOLD, color: '#000000' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  error: { color: '#68756D', marginBottom: 12, textAlign: 'center' },
-  btnTry: { backgroundColor: '#1F4D3A', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24, alignItems: 'center' },
+  error: { color: '#6B6B6B', marginBottom: 12, textAlign: 'center' },
+  btnTry: { backgroundColor: '#111111', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24, alignItems: 'center' },
   btnTryText: { color: '#fff', fontFamily: SANS_BOLD },
   list: { padding: 20, paddingTop: 10, gap: 24 },
   
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F6F1',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     overflow: 'hidden',
     padding: 20,
     minHeight: 280,
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   heroTitleMain: {
     fontFamily: SANS_BOLD,
     fontSize: 22,
-    color: '#1D2420',
+    color: '#000000',
     lineHeight: 28,
   },
   heroTitleAccent: {
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   heroSubtitle: {
     fontFamily: SANS,
     fontSize: 12,
-    color: '#16392B',
+    color: '#000000',
     lineHeight: 18,
     paddingRight: 10,
     marginBottom: 20,
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   miniPerkText: {
     fontFamily: SANS,
     fontSize: 9,
-    color: '#16392B',
+    color: '#000000',
     textAlign: 'center',
     lineHeight: 12,
   },
@@ -323,14 +323,14 @@ const styles = StyleSheet.create({
   sectionDividerText: {
     fontFamily: SANS_BOLD,
     fontSize: 14,
-    color: '#1D2420',
+    color: '#000000',
   },
 
   featuresCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontFamily: SANS_BOLD,
     fontSize: 14,
-    color: '#1D2420',
+    color: '#000000',
     marginBottom: 2,
   },
   featureSubtitle: {
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F6F1',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     padding: 20,
     paddingTop: 28,
     position: 'relative',
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
   pricingPlanName: {
     fontFamily: SANS_BOLD,
     fontSize: 16,
-    color: '#1D2420',
+    color: '#000000',
     marginBottom: 2,
   },
   pricingCancelText: {
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
   priceAmount: {
     fontFamily: SANS_BOLD,
     fontSize: 28,
-    color: '#16392B',
+    color: '#000000',
   },
   pricePeriod: {
     fontFamily: SANS,
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
   footerDivider: {
     width: 1,
     height: '100%',
-    backgroundColor: '#DDEBE3',
+    backgroundColor: '#F2F2F2',
     marginHorizontal: 10,
   },
   footerText: {

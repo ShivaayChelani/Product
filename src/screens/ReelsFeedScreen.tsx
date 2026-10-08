@@ -31,7 +31,7 @@ import { openInternalDirections } from '../features/mapExplore/utils/internalDir
 const CATEGORIES = ['BUSINESS', 'TRAVEL', 'Following'] as const;
 type ReelFilterCategory = (typeof CATEGORIES)[number];
 
-const GOLD = '#1F4D3A';
+const GOLD = '#111111';
 
 /** Tune action rail vertical position: increase bottomAdjust to move rail up */
 const REEL_ACTION_RAIL: ReelActionRailPosition = {
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#68756D',
+    color: '#6B6B6B',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     paddingHorizontal: 16,
@@ -454,16 +454,16 @@ const styles = StyleSheet.create({
   sheetRowText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1D2420',
+    color: '#000000',
   },
   sheetRowTextActive: {
-    color: '#16392B',
+    color: '#000000',
     fontWeight: '800',
   },
   sheetTagsTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#68756D',
+    color: '#6B6B6B',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     paddingHorizontal: 16,
@@ -483,19 +483,19 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: '#F7F6F1',
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
   },
   tagChipActive: {
-    backgroundColor: '#D9E0DB',
-    borderColor: '#1F4D3A',
+    backgroundColor: '#E5E5EA',
+    borderColor: '#111111',
   },
   tagChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1D2420',
+    color: '#000000',
   },
   tagChipTextActive: {
-    color: '#16392B',
+    color: '#000000',
     fontWeight: '800',
   },
 });

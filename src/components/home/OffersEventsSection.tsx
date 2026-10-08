@@ -53,7 +53,7 @@ function OffersEventsSectionComponent({ offer, todayEvent, onOfferPress, onEvent
           <View style={[StyleSheet.absoluteFillObject, { backgroundColor: theme.divider }]} />
         )}
           <LinearGradient
-            colors={['rgba(32, 36, 29, 0.15)', 'rgba(32, 36, 29, 0.75)']}
+            colors={['rgba(0, 0, 0, 0.15)', 'rgba(0, 0, 0, 0.75)']}
             style={StyleSheet.absoluteFillObject}
           />
           <View style={styles.offerBadge}>
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     borderRadius: LuxuryRadii.card,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#D9E0DB',
+    borderColor: '#E5E5EA',
   },
   placeholder: {
     backgroundColor: '#FFFFFF',
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     left: 12,
-    backgroundColor: 'rgba(22, 57, 43, 0.92)',
+    backgroundColor: 'rgba(0, 0, 0, 0.92)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: LuxuryRadii.pill,
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#1F4D3A',
+    backgroundColor: '#111111',
     alignItems: 'center',
     justifyContent: 'center',
   },

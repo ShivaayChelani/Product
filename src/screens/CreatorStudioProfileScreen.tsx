@@ -32,14 +32,14 @@ const HERO = require('../assets/settings_cover.png');
 
 const C = {
   bg: '#F7F6F1',
-  ink: '#1D2420',
-  textSub: '#68756D',
-  textMuted: '#68756D',
+  ink: '#000000',
+  textSub: '#6B6B6B',
+  textMuted: '#6B6B6B',
   border: 'rgba(183, 121, 31, 0.12)',
   card: '#FFFFFF',
   danger: '#C94A4A',
   dangerSoft: '#FBEAEA',
-  bronze: '#1F4D3A',
+  bronze: '#111111',
 };
 
 const compact = (value: number) =>
@@ -306,8 +306,8 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
       {
         key: 'privacy',
         icon: 'shield-checkmark-outline',
-        iconColor: '#1F4D3A',
-        iconBg: 'rgba(31,77,58,0.12)',
+        iconColor: '#111111',
+        iconBg: 'rgba(0, 0, 0,0.12)',
         title: 'Privacy Settings',
         subtitle: 'Manage your privacy preferences',
         onPress: () => navigation.navigate('PrivacySettings'),
@@ -325,8 +325,8 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
       {
         key: 'subscription',
         icon: 'card-outline',
-        iconColor: '#1F4D3A',
-        iconBg: 'rgba(31,77,58,0.12)',
+        iconColor: '#111111',
+        iconBg: 'rgba(0, 0, 0,0.12)',
         title: 'Subscription & Billing',
         subtitle: 'Creator plans, upgrades & invoices',
         onPress: () => navigation.navigate('CreatorSubscription'),
@@ -337,8 +337,8 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
       {
         key: 'insights',
         icon: 'bar-chart-outline',
-        iconColor: '#1F4D3A',
-        iconBg: 'rgba(31,77,58,0.12)',
+        iconColor: '#111111',
+        iconBg: 'rgba(0, 0, 0,0.12)',
         title: 'Insights',
         subtitle: 'Detailed analytics and performance',
         onPress: () => navigation.navigate('CreatorAnalytics'),
@@ -355,8 +355,8 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
       {
         key: 'subscription',
         icon: 'card-outline',
-        iconColor: '#1F4D3A',
-        iconBg: 'rgba(31,77,58,0.12)',
+        iconColor: '#111111',
+        iconBg: 'rgba(0, 0, 0,0.12)',
         title: 'Subscription & Billing',
         subtitle: 'Creator plans, upgrades & invoices',
         onPress: () => navigation.navigate('CreatorSubscription'),
@@ -376,8 +376,8 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
       studioItems.push({
         key: 'public',
         icon: 'globe-outline',
-        iconColor: '#2E7D55',
-        iconBg: 'rgba(5,150,105,0.12)',
+        iconColor: '#111111',
+        iconBg: 'rgba(0, 0, 0, 0.12)',
         title: 'Public Creator Page',
         subtitle: 'View how travelers see your profile',
         onPress: () => navigation.navigate('CreatorProfile', { username: p.username }),
@@ -407,8 +407,8 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
           {
             key: 'version',
             icon: 'phone-portrait-outline',
-            iconColor: '#1F4D3A',
-            iconBg: 'rgba(31,77,58,0.12)',
+            iconColor: '#111111',
+            iconBg: 'rgba(0, 0, 0,0.12)',
             title: 'Version',
             rightText: '2.4.0',
           },
@@ -603,7 +603,7 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
 
               <SocialField icon="logo-instagram" color="#E1306C" label="Instagram URL" value={instagram} onChangeText={setInstagram} placeholder="https://instagram.com/yourusername" />
               <SocialField icon="logo-youtube" color="#FF0000" label="YouTube URL" value={youtube} onChangeText={setYoutube} placeholder="https://youtube.com/@yourchannel" />
-              <SocialField icon="logo-facebook" color="#1F4D3A" label="Facebook URL" value={facebook} onChangeText={setFacebook} placeholder="https://facebook.com/yourprofile" />
+              <SocialField icon="logo-facebook" color="#111111" label="Facebook URL" value={facebook} onChangeText={setFacebook} placeholder="https://facebook.com/yourprofile" />
             </ScrollView>
 
             <View style={styles.editFooter}>
@@ -649,7 +649,7 @@ function EditField({ icon, label, value, onChangeText, valid, checking, invalid,
           <ActivityIndicator size="small" color={C.bronze} style={{ marginRight: 8 }} />
         ) : valid ? (
           <View style={styles.validBadge}>
-            <Icon name="checkmark" size={12} color="#10B981" />
+            <Icon name="checkmark" size={12} color="#111111" />
           </View>
         ) : invalid ? (
           <View style={[styles.validBadge, { backgroundColor: '#FBEAEA' }]}>
@@ -662,7 +662,7 @@ function EditField({ icon, label, value, onChangeText, valid, checking, invalid,
           Checking availability...
         </Text>
       ) : showAvailableMessage && valid ? (
-        <Text style={{ fontSize: 12, color: '#2E7D55', marginTop: 4, marginLeft: 16, fontWeight: '600' }}>
+        <Text style={{ fontSize: 12, color: '#111111', marginTop: 4, marginLeft: 16, fontWeight: '600' }}>
           ✓ Username available
         </Text>
       ) : invalid && errorText ? (
@@ -762,7 +762,7 @@ const styles = StyleSheet.create({
     padding: 14,
     ...Platform.select({
       ios: {
-        shadowColor: 'rgba(29,36,32,0.08)',
+        shadowColor: 'rgba(0, 0, 0,0.08)',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 1,
         shadowRadius: 12,
@@ -852,7 +852,7 @@ const styles = StyleSheet.create({
   statDivider: {
     width: StyleSheet.hairlineWidth,
     height: 28,
-    backgroundColor: 'rgba(29,36,32,0.12)',
+    backgroundColor: 'rgba(0, 0, 0,0.12)',
   },
   statValue: {
     fontSize: 15,
@@ -881,7 +881,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...Platform.select({
       ios: {
-        shadowColor: 'rgba(29,36,32,0.08)',
+        shadowColor: 'rgba(0, 0, 0,0.08)',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 1,
         shadowRadius: 12,
@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
   },
   rowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(29,36,32,0.08)',
+    borderBottomColor: 'rgba(0, 0, 0,0.08)',
   },
   iconCircle: {
     width: 44,
@@ -963,16 +963,16 @@ const styles = StyleSheet.create({
   photoTitle: { fontSize: 14, fontWeight: '700', color: C.ink },
   photoSub: { fontSize: 11, color: C.textSub, marginTop: 4, lineHeight: 16 },
   photoActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  changePhotoBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#D9E0DB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  changePhotoBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E5E5EA', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
   changePhotoText: { fontSize: 12, fontWeight: '700', color: C.bronze },
-  deletePhotoBtn: { width: 36, height: 36, borderRadius: 8, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#D9E0DB', alignItems: 'center', justifyContent: 'center' },
+  deletePhotoBtn: { width: 36, height: 36, borderRadius: 8, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E5E5EA', alignItems: 'center', justifyContent: 'center' },
   editFieldCard: { backgroundColor: '#FFF', borderRadius: 12, borderWidth: 1, borderColor: '#F7F6F1', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 },
   editFieldIconWrap: { width: 40, height: 40, borderRadius: 8, backgroundColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   socialIconWrap: { width: 40, height: 40, borderRadius: 8, backgroundColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   editFieldContent: { flex: 1 },
   editFieldLabel: { fontSize: 11, fontWeight: '700', color: C.bronze, marginBottom: 2 },
   editFieldInput: { fontSize: 14, color: C.ink, paddingVertical: 8, paddingHorizontal: 0 },
-  validBadge: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#DDEBE3', alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
+  validBadge: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#F2F2F2', alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
   bioCard: { backgroundColor: '#FFF', borderRadius: 12, borderWidth: 1, borderColor: '#F7F6F1', flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 12, marginBottom: 24 },
   bioIconWrap: { width: 40, height: 40, borderRadius: 8, backgroundColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   bioQuoteIcon: { fontSize: 24, fontWeight: '700', color: C.bronze, fontFamily: 'serif' },
@@ -983,7 +983,7 @@ const styles = StyleSheet.create({
   socialTitle: { fontSize: 15, fontWeight: '700', color: C.ink },
   socialSub: { fontSize: 12, color: C.textSub, marginTop: 2 },
   editFooter: { backgroundColor: '#FFF', padding: 16, borderTopWidth: 1, borderTopColor: '#F7F6F1' },
-  editSaveBtn: { backgroundColor: '#1D2420', borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 },
+  editSaveBtn: { backgroundColor: '#000000', borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 },
   editSaveText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
   editFooterNote: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12 },
   editFooterNoteText: { fontSize: 12, color: C.textSub },

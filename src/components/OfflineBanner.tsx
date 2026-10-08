@@ -63,7 +63,7 @@ export default function OfflineBanner() {
 
 const styles = StyleSheet.create({
   wrap: {
-    backgroundColor: '#16392B',
+    backgroundColor: '#000000',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,

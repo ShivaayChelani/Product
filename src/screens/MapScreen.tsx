@@ -200,7 +200,7 @@ interface MapScreenProps {
 function getCategoryColor(cat?: string) {
   const c = (cat || '').toLowerCase().trim();
   if (c.includes('forest') || c.includes('nature') || c.includes('park') || c.includes('wildlife')) {
-    return { text: '#2E6B38', bg: '#E5F2E5', icon: 'leaf-outline' };
+    return { text: '#111111', bg: '#F2F2F2', icon: 'leaf-outline' };
   }
   if (c.includes('adventure') || c.includes('trek') || c.includes('cable') || c.includes('boating')) {
     return { text: '#B84A14', bg: '#FDEEE5', icon: 'compass-outline' };
@@ -261,7 +261,8 @@ export default function MapScreen({
   const { width: _screenW, height: SCREEN_H } = useWindowDimensions();
   const responsive = useResponsive();
   const tabClearance = getMainTabBarClearance(insets.bottom);
-  const { effectivePosition, requestPermission, requestFreshPosition, hasPermission } = useLocationContext();
+  const { effectivePosition, requestPermission, requestFreshPosition, hasPermission, openLocationSettings } =
+    useLocationContext();
   const { vendors: contextVendors } = useDataContext();
   const { user, setUser, isGuest } = useUserContext();
   const { showSuccess, showError } = useToast();
@@ -366,6 +367,23 @@ export default function MapScreen({
   const [addedPlaceIds, setAddedPlaceIds] = useState<Set<string>>(new Set());
   const [addingPlaceId, setAddingPlaceId] = useState<string | null>(null);
   const pendingItineraryAddsRef = useRef<Set<string>>(new Set());
+
+  // ── Events layer: one-shot live-GPS anchor ─────────────────────────────────
+  /** 'permission' | 'gps' — why the Events layer could not anchor on the device. */
+  const [eventsLocationNotice, setEventsLocationNotice] = useState<'permission' | 'gps' | null>(null);
+  const [eventsGpsRetryTick, setEventsGpsRetryTick] = useState(0);
+  /** Terminal for every settled attempt (anchored, denied, no fix). Retry clears it. */
+  const eventsGpsInitDoneRef = useRef(false);
+  const eventsGpsPendingRef = useRef(false);
+  const eventsGpsSeqRef = useRef(0);
+  /** Bounds changed inside this window came from our own flyTo/restoreView. */
+  const programmaticMoveUntilRef = useRef(0);
+  const activeTabRef = useRef(activeTab);
+  const directionsRef = useRef(directions);
+  const routeRef = useRef(route);
+  activeTabRef.current = activeTab;
+  directionsRef.current = directions;
+  routeRef.current = route;
 
   const postToWebView = useCallback((data: any) => {
     const json = JSON.stringify(data);
@@ -551,6 +569,93 @@ export default function MapScreen({
   const lockMapView = useCallback(() => {
     allowAutoRecenterRef.current = false;
   }, []);
+
+  /** Camera moves we issue ourselves must never read as a user drag. */
+  const markProgrammaticMove = useCallback((windowMs = 2500) => {
+    programmaticMoveUntilRef.current = Date.now() + windowMs;
+  }, []);
+
+  /**
+   * Anchor the Events layer on the device's live position — once per mount.
+   *
+   * The WebView boots at a country-level centre and a saved session restores a
+   * stale one, so neither may decide where Events starts. Permission → fresh
+   * fix → flyTo; every failure becomes a visible notice with an action instead
+   * of a silent fall back to the default country view.
+   */
+  const runEventsGpsInit = useCallback(async () => {
+    const runId = ++eventsGpsSeqRef.current;
+    eventsGpsPendingRef.current = true;
+    // Boot bounds and the first frames settle inside this window; a camera move
+    // later than this counts as the user's and cancels the pending anchor.
+    programmaticMoveUntilRef.current = Date.now() + 4000;
+    let terminal = false;
+    const stale = () =>
+      eventsGpsSeqRef.current !== runId ||
+      !eventsGpsPendingRef.current ||
+      activeTabRef.current !== 'events';
+
+    try {
+      let pos = effectivePositionRef.current;
+      if (!pos) {
+        const granted = hasPermission || (await requestPermission());
+        if (stale()) return;
+        if (!granted) {
+          terminal = true;
+          setEventsLocationNotice('permission');
+          return;
+        }
+        pos = effectivePositionRef.current ?? (await requestFreshPosition());
+        if (stale()) return;
+      }
+      if (!pos) {
+        terminal = true;
+        setEventsLocationNotice('gps');
+        return;
+      }
+      terminal = true;
+      setEventsLocationNotice(null);
+      markProgrammaticMove(3000);
+      hasInitialCenteredRef.current = true;
+      postToWebView({
+        type: 'flyTo',
+        lat: pos.latitude,
+        lng: pos.longitude,
+        zoom: MAP_TAB_ZOOM,
+      });
+      pushUserLocationToMap(pos);
+    } finally {
+      if (eventsGpsSeqRef.current === runId) {
+        eventsGpsPendingRef.current = false;
+        // An attempt abandoned mid-flight (layer switched away) stays retryable.
+        eventsGpsInitDoneRef.current = terminal;
+      }
+    }
+  }, [hasPermission, markProgrammaticMove, postToWebView, pushUserLocationToMap, requestFreshPosition, requestPermission]);
+
+  /**
+   * Fires when the Events layer comes up (first mount or a layer switch) with a
+   * free camera: no directions, no routed place/vendor target, no review mode
+   * and no search/selection lock. A later switch back must not yank a camera
+   * the user has since moved, so the anchor only ever runs once.
+   */
+  useEffect(() => {
+    if (!mapReady || activeTab !== 'events') return;
+    if (eventsGpsInitDoneRef.current) return;
+    if (reviewModeRef.current || directionsRef.current || routeRef.current) return;
+    if (selectedPlaceIdRef.current || selectedVendorIdRef.current) return;
+    if (!allowAutoRecenterRef.current) return;
+    void runEventsGpsInit();
+  }, [mapReady, activeTab, eventsGpsRetryTick, runEventsGpsInit]);
+
+  // Permission granted from the notice (Settings round-trip) resumes the anchor.
+  useEffect(() => {
+    if (!hasPermission || eventsLocationNotice !== 'permission') return;
+    setEventsLocationNotice(null);
+    eventsGpsInitDoneRef.current = false;
+    eventsGpsPendingRef.current = false;
+    setEventsGpsRetryTick(t => t + 1);
+  }, [hasPermission, eventsLocationNotice]);
 
   useEffect(() => {
     effectivePositionRef.current = effectivePosition;
@@ -1135,7 +1240,9 @@ export default function MapScreen({
         return;
       }
 
-      if (!pos && !initialFallbackRef.current) {
+      // The Events layer never falls back to the country-level default view:
+      // `runEventsGpsInit` anchors it on live GPS or explains why it cannot.
+      if (!pos && activeTab !== 'events' && !initialFallbackRef.current) {
         initialFallbackRef.current = true;
         hasInitialCenteredRef.current = true;
         postToWebView({
@@ -1149,7 +1256,7 @@ export default function MapScreen({
       return () => {
         initialFallbackRef.current = false;
       };
-    }, [mapReady, postToWebView, selectedPlaceId, selectedPlaceKey]),
+    }, [mapReady, postToWebView, selectedPlaceId, selectedPlaceKey, activeTab]),
   );
 
   useEffect(() => {
@@ -1431,7 +1538,7 @@ export default function MapScreen({
           type: 'place' as const,
           city: g.city,
           state: g.state,
-          color: '#16392B',
+          color: '#000000',
           emoji: '🏙️',
           sublabel: 'City',
           isCityGroup: true,
@@ -1705,28 +1812,37 @@ export default function MapScreen({
           if (!sessionRestoredRef.current) {
             sessionRestoredRef.current = true;
             void loadMapSession().then(session => {
-              if (
-                session &&
+              if (!session) return;
+              const restoreTab =
                 shouldRestoreSavedMapTab({
                   selectedPlaceId: selectedPlaceIdRef.current,
                   selectedVendorId: selectedVendorIdRef.current,
                   reviewMode: reviewModeRef.current,
                   initialMapTab: initialMapTabRef.current,
-                }) &&
-                !skipSessionTabRestoreRef.current
-              ) {
+                }) && !skipSessionTabRestoreRef.current;
+              // The Events layer re-anchors on live GPS, so a previous session's
+              // camera is stale: restore the tab/category but never its centre.
+              // Directions keep the old restore — the route fit owns the camera
+              // and the GPS anchor is skipped for them anyway.
+              const eventsLayer =
+                !directionsRef.current &&
+                (resolveExplicitMapTab(initialMapTabRef.current, reviewModeRef.current) === 'events' ||
+                  (restoreTab && session.tab === 'events'));
+              if (restoreTab) {
                 if (session.category) setSelectedMapCategory(session.category);
                 if (session.tab) setActiveTab(session.tab);
-                postToWebView({
-                  type: 'restoreView',
-                  lat: session.lat,
-                  lng: session.lng,
-                  zoom: session.zoom,
-                });
+                if (!eventsLayer) {
+                  postToWebView({
+                    type: 'restoreView',
+                    lat: session.lat,
+                    lng: session.lng,
+                    zoom: session.zoom,
+                  });
+                }
                 if (session.selectedMarkerId) {
                   pendingSessionMarkerIdRef.current = session.selectedMarkerId;
                 }
-              } else if (session) {
+              } else if (!eventsLayer) {
                 postToWebView({
                   type: 'restoreView',
                   lat: session.lat,
@@ -1742,6 +1858,16 @@ export default function MapScreen({
           setMapReady(false);
           break;
         case 'mapBoundsChanged': {
+          if (
+            eventsGpsPendingRef.current &&
+            Date.now() > programmaticMoveUntilRef.current
+          ) {
+            // The camera moved outside any programmatic window — the user is
+            // driving now, so drop the pending anchor instead of yanking it.
+            eventsGpsPendingRef.current = false;
+            eventsGpsSeqRef.current += 1;
+            eventsGpsInitDoneRef.current = true;
+          }
           if (data.bounds) {
             const zoom = typeof data.zoom === 'number' ? data.zoom : currentZoomRef.current;
             scheduleMapFetch(data.bounds, zoom);
@@ -2238,13 +2364,15 @@ export default function MapScreen({
   const controlsBottom = selectedMarker
     ? detailBottomInset + Math.min(selectedMarker.type === 'vendor' ? 280 : 340, SCREEN_H * 0.42)
     : tabClearance + 8;
-  const fetchingChipTop = insets.top + (responsive.isSmallPhone ? 72 : 88);
+  const fetchingChipTop = showFilters
+    ? insets.top + (activeTab === 'places' ? 198 : 142)
+    : insets.top + (responsive.isSmallPhone ? 72 : 88);
 
   const bgColor = MapExploreTheme.background;
   const cardBg = '#FFFFFF';
   const borderClr = 'rgba(200, 155, 60, 0.15)';
-  const headerText = '#1D2420';
-  const mutedText = '#68756D';
+  const headerText = '#000000';
+  const mutedText = '#6B6B6B';
 
   return (
     <View style={styles.container}>
@@ -2385,6 +2513,47 @@ export default function MapScreen({
               <MapSegmentControl active={activeTab} onChange={handleMapTabChange} />
             )}
 
+            {activeTab === 'events' && eventsLocationNotice ? (
+              <View style={styles.reviewModeBanner}>
+                <Icon
+                  name={eventsLocationNotice === 'permission' ? 'lock-closed-outline' : 'navigate-outline'}
+                  size={16}
+                  color="#6B6B6B"
+                />
+                <Text style={styles.reviewModeBannerText}>
+                  {eventsLocationNotice === 'permission'
+                    ? 'Allow location access so Events starts at your position.'
+                    : "Location unavailable — Events couldn't centre on you."}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (eventsLocationNotice === 'permission') {
+                      openLocationSettings();
+                      return;
+                    }
+                    setEventsLocationNotice(null);
+                    eventsGpsInitDoneRef.current = false;
+                    eventsGpsPendingRef.current = false;
+                    setEventsGpsRetryTick(t => t + 1);
+                  }}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    eventsLocationNotice === 'permission' ? 'Open location settings' : 'Retry location'
+                  }
+                  testID={
+                    eventsLocationNotice === 'permission'
+                      ? 'events-open-location-settings'
+                      : 'events-retry-location'
+                  }
+                >
+                  <Text style={styles.eventsNoticeAction}>
+                    {eventsLocationNotice === 'permission' ? 'Open settings' : 'Retry'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
             {activeTab === 'places' && (
               <MapCategoryChips
                 selected={selectedMapCategory}
@@ -2395,7 +2564,7 @@ export default function MapScreen({
 
             {reviewMode && activeTab === 'vendors' ? (
               <View style={styles.reviewModeBanner}>
-                <Icon name="create-outline" size={16} color="#68756D" />
+                <Icon name="create-outline" size={16} color="#6B6B6B" />
                 <Text style={styles.reviewModeBannerText}>Choose a business to review.</Text>
               </View>
             ) : null}
@@ -2407,7 +2576,7 @@ export default function MapScreen({
             {/* Subhead Header Row */}
             <View style={styles.resultsHeaderRow}>
               <View style={styles.resultsHeaderLeft}>
-                <Icon name="location-outline" size={14} color="#68756D" />
+                <Icon name="location-outline" size={14} color="#6B6B6B" />
                 <Text style={styles.resultsHeaderCityText} numberOfLines={1}>
                   {searchQuery.trim()
                     ? `Search results for "${searchQuery.trim()}"`
@@ -2468,18 +2637,18 @@ export default function MapScreen({
                       </Text>
 
                       <View style={styles.cardLocationRow}>
-                        <Icon name="location-outline" size={13} color="#68756D" />
+                        <Icon name="location-outline" size={13} color="#6B6B6B" />
                         <Text style={styles.cardLocationText} numberOfLines={1}>
                           {[item.city, item.state].filter(Boolean).join(', ')}
                         </Text>
                         {distStr ? <Text style={styles.cardDistText}>{distStr}</Text> : null}
-                        <Icon name="chevron-forward" size={14} color="#68756D" style={{ marginLeft: 2 }} />
+                        <Icon name="chevron-forward" size={14} color="#6B6B6B" style={{ marginLeft: 2 }} />
                       </View>
 
                       {/* Metadata Pills Row */}
                       <View style={styles.cardPillRow}>
                         <View style={styles.cardPill}>
-                          <Icon name="time-outline" size={11} color="#68756D" />
+                          <Icon name="time-outline" size={11} color="#6B6B6B" />
                           <Text style={styles.cardPillText}>
                             {item.estimatedDuration ? `${item.estimatedDuration} mins` : (item.isCityGroup ? 'City' : '1–2 hrs')}
                           </Text>
@@ -2501,7 +2670,7 @@ export default function MapScreen({
               <View style={styles.addMissingPlaceBanner}>
                 <View style={styles.addMissingLeft}>
                   <View style={styles.addMissingPlusDisc}>
-                    <Icon name="add" size={20} color="#68756D" />
+                    <Icon name="add" size={20} color="#6B6B6B" />
                   </View>
                   <View style={{ marginLeft: 10, flex: 1 }}>
                     <Text style={styles.addMissingTitle}>Can't find what you're looking for?</Text>
@@ -2517,7 +2686,7 @@ export default function MapScreen({
                   }}
                   activeOpacity={0.85}
                 >
-                  <Icon name="create-outline" size={13} color="#68756D" style={{ marginRight: 4 }} />
+                  <Icon name="create-outline" size={13} color="#6B6B6B" style={{ marginRight: 4 }} />
                   <Text style={styles.addMissingBtnText}>Add a Place</Text>
                 </TouchableOpacity>
               </View>
@@ -2689,56 +2858,35 @@ export default function MapScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  map: { flex: 1 },
-  mapLoadingOverlay: {
+  container: { flex: 1 },  map: { flex: 1 },  mapLoadingOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    justifyContent: 'center', alignItems: 'center', zIndex: 10,
-  },
-  loadingIconWrap: {
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: 'rgba(0,168,168,0.1)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  loadingText: { fontSize: 17, fontFamily: 'Inter-SemiBold' },
-  loadingSubtext: { fontSize: 14, fontFamily: 'Inter-Regular', marginTop: 6, textAlign: 'center', paddingHorizontal: 40 },
-  errorIconWrap: {
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: 'rgba(0,168,168,0.1)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  retryBtn: {
+    justifyContent: 'center', alignItems: 'center', zIndex: 30,
+  },  loadingText: { fontSize: 17, fontFamily: 'Inter-SemiBold' },  loadingSubtext: { fontSize: 14, fontFamily: 'Inter-Regular', marginTop: 6, textAlign: 'center', paddingHorizontal: 40 },  retryBtn: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, marginTop: 20,
     backgroundColor: Pal.colors.light.primary,
     shadowColor: Pal.colors.light.primary, shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3, shadowRadius: 12, elevation: 6,
-  },
-  retryBtnText: { color: '#FFF', fontSize: 15, fontFamily: 'Inter-SemiBold', marginLeft: 8 },
-
+  },  retryBtnText: { color: '#FFF', fontSize: 15, fontFamily: 'Inter-SemiBold', marginLeft: 8 },
   tabContainer: {
     position: 'absolute',
     top: 0,
     left: 20,
     right: 20,
     zIndex: 10,
-  },
-  filterSection: {
+  },  filterSection: {
     marginTop: 10,
     backgroundColor: 'transparent',
     paddingHorizontal: 0,
     paddingVertical: 0,
-  },
-  eventsToolbar: {
+  },  eventsToolbar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     marginTop: 12,
-  },
-  segmentWrap: {
+  },  segmentWrap: {
     flex: 1,
-  },
-  addEventBtn: {
+  },  addEventBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2754,13 +2902,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 4,
-  },
-  addEventBtnText: {
+  },  addEventBtnText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
-  },
-  reviewModeBanner: {
+  },  reviewModeBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -2770,233 +2916,26 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#D9E0DB',
-  },
-  reviewModeBannerText: {
+    borderColor: '#E5E5EA',
+  },  reviewModeBannerText: {
     flex: 1,
     fontSize: 13,
     fontFamily: 'Inter-SemiBold',
-    color: '#16392B',
-  },
-  tabRow: {
-    flexDirection: 'row', borderRadius: 14, padding: 4, borderWidth: 1,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
-  },
-  tabChip: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 10, borderRadius: 10, gap: 6,
-  },
-  tabChipActive: {
-    backgroundColor: '#000000',
-  },
-  tabChipText: { fontSize: 13, fontFamily: 'Inter-SemiBold' },
-  searchRow: { flexDirection: 'row', alignItems: 'center', width: '100%' },
-  clearSearchBtn: { paddingHorizontal: 4, marginRight: 4 },
-  searchActionBtn: {
-    backgroundColor: '#16392B',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 10,
-  },
-  searchActionText: { color: '#FFFFFF', fontSize: 13, fontFamily: 'Inter-Bold' },
-  categoryRow: { gap: 8, paddingRight: 16 },
-  categoryChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1,
-    borderColor: 'rgba(200, 155, 60, 0.18)',
-  },
-  categoryChipAllActive: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
-  },
-  filterSettingsBtn: {
-    width: 40,
-    height: 36,
-    borderRadius: 20,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  categoryDot: { width: 8, height: 8, borderRadius: 4 },
-  categoryChipText: { fontSize: 13, fontFamily: 'Inter-SemiBold' },
-  zoomBtn: {
-    width: 44, height: 44, borderRadius: 12, borderWidth: 1,
-    justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 4,
-  },
-  detailCard: {
-    position: 'absolute', left: 16, right: 16, zIndex: 20,
-    maxHeight: '52%',
-    borderRadius: 16, borderWidth: 1,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 8,
-    overflow: 'hidden',
-  },
-  detailClose: {
-    position: 'absolute', top: 10, right: 10, zIndex: 2,
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.12, shadowRadius: 4, elevation: 3,
-  },
-  detailScroll: { flexGrow: 0 },
-  detailImage: { width: '100%', height: 140 },
-  detailImagePlaceholder: { alignItems: 'center', justifyContent: 'center' },
-  detailBody: { padding: 14, paddingTop: 12 },
-  detailTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingRight: 28 },
-  detailTitle: { fontSize: 18, fontFamily: 'Inter-Bold', flex: 1 },
-  detailRating: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#FFD70018', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10,
-  },
-  detailRatingText: { fontSize: 13, fontFamily: 'Inter-Bold', color: '#1F4D3A' },
-  detailMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  detailMetaChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10,
-  },
-  detailMetaText: { fontSize: 12, fontFamily: 'Inter-SemiBold' },
-  detailDescription: { fontSize: 14, fontFamily: 'Inter-Regular', lineHeight: 21, marginTop: 12 },
-  detailActions: { marginTop: 14, gap: 10 },
-  detailActionsFixed: {
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 14,
-    borderTopWidth: 1,
-    gap: 10,
-  },
-  rideBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    backgroundColor: '#1F4D3A', paddingVertical: 12, borderRadius: 12,
-  },
-  rideBtnText: { color: '#FFFFFF', fontSize: 14, fontFamily: 'Inter-Bold' },
-  detailActionsRow: { flexDirection: 'row', gap: 10 },
-  detailActionBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 12, borderRadius: 12, gap: 6,
-  },
-  detailActionPrimary: { backgroundColor: '#16392B' },
-  detailActionPrimaryText: { color: '#FFFFFF', fontSize: 13, fontFamily: 'Inter-SemiBold' },
-  detailActionOutline: { backgroundColor: 'transparent', borderWidth: 1.5 },
-  detailActionOutlineText: { fontSize: 13, fontFamily: 'Inter-SemiBold' },
-
-  mapControls: {
-    position: 'absolute', right: 16, zIndex: 10, alignItems: 'center', gap: 8,
-  },
-  filterBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  filterSheet: {
-    marginHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingVertical: 8,
-    overflow: 'hidden',
-  },
-  filterSheetTitle: {
+    color: '#000000',
+  },  eventsNoticeAction: {
     fontSize: 13,
-    fontWeight: '800',
-    color: '#68756D',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  filterSheetRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  filterSheetRowActive: {
-    backgroundColor: 'rgba(185,131,75,0.1)',
-  },
-  filterSheetRowText: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1D2420',
-  },
-  filterSheetRowTextActive: {
-    color: '#16392B',
-    fontWeight: '800',
-  },
-  backdrop: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 25,
-  },
-  bottomSheet: {
-    position: 'absolute', left: 0, right: 0, height: '100%',
-    bottom: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28, borderWidth: 1,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -12 },
-    shadowOpacity: 0.2, shadowRadius: 32, elevation: 25, zIndex: 30, overflow: 'hidden',
-  },
-  sheetHandle: { alignItems: 'center', paddingVertical: 12, paddingTop: 14 },
-  sheetHandleBar: { width: 40, height: 5, borderRadius: 2.5 },
-  sheetNoImage: {
-    height: 130, justifyContent: 'center', alignItems: 'center',
-  },
-  sheetNoImageIcon: {
-    width: 72, height: 72, borderRadius: 36,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  sheetTitle: { fontSize: 22, fontFamily: 'Inter-Bold', letterSpacing: -0.5 },
-  sheetMetaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 8, flexWrap: 'wrap' },
-  sheetMetaItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10,
-  },
-  sheetMetaText: { fontSize: 12, fontFamily: 'Inter-SemiBold' },
-  sheetDescription: { fontSize: 14, fontFamily: 'Inter-Regular', lineHeight: 22, marginTop: 14 },
-  sheetImage: {
-    width: '100%', height: 130, borderRadius: 12, marginTop: 12,
-  },
-  sheetRideBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    backgroundColor: '#FFD700', marginTop: 14, paddingVertical: 10,
-    borderRadius: 12, width: '100%',
-  },
-  sheetRideBtnText: {
-    color: '#000', fontSize: 13, fontFamily: 'Inter-Bold',
-  },
-  sheetActionsFixed: {
-    paddingHorizontal: 20, paddingTop: 8,
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)',
-    backgroundColor: 'rgba(25,25,35,0.98)',
-  },
-  sheetActionsRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  sheetShareBtn: {
-    width: 40, height: 40, borderRadius: 12,
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  sheetActionBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 12, borderRadius: 12, gap: 6,
-  },
-  sheetActionPrimary: {
-    backgroundColor: Pal.colors.light.primary,
-    shadowColor: Pal.colors.light.primary, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25, shadowRadius: 10, elevation: 4,
-  },
-  sheetActionOutline: {
-    backgroundColor: 'transparent', borderWidth: 1.5,
-  },
-  sheetActionText: { color: '#FFF', fontSize: 14, fontFamily: 'Inter-SemiBold' },
-  navigatingContainer: {
+    fontFamily: 'Inter-SemiBold',
+    color: '#111111',
+    textDecorationLine: 'underline',
+  },  navigatingContainer: {
     position: 'absolute', top: 0, left: 0, right: 0,
     alignItems: 'center', zIndex: 50,
-  },
-  endNavBtn: {
+  },  endNavBtn: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: '#C94A4A',
     paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24, gap: 6,
     shadowColor: '#C94A4A', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
-  },
-  endNavText: { color: '#FFF', fontSize: 14, fontFamily: 'Inter-Bold' },
-  routeSummary: {
+  },  endNavText: { color: '#FFF', fontSize: 14, fontFamily: 'Inter-Bold' },  routeSummary: {
     marginTop: 8,
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.96)',
@@ -3011,101 +2950,55 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.22,
     shadowRadius: 9,
     elevation: 6,
-  },
-  routeSummaryLabel: {
-    color: '#1D2420',
+  },  routeSummaryLabel: {
+    color: '#000000',
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 3,
-  },
-  routeSummaryStats: {
+  },  routeSummaryStats: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-  },
-  routeSummaryText: {
-    color: '#1D2420',
+  },  routeSummaryText: {
+    color: '#000000',
     fontSize: 13,
     fontWeight: '600',
-  },
-  routeSummaryDivider: {
+  },  routeSummaryDivider: {
     color: '#9C8674',
     fontSize: 13,
     fontWeight: '600',
-  },
-  searchBarContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 14,
-    paddingLeft: 12,
-    paddingRight: 8,
-    height: 50,
-    borderWidth: 1,
-    shadowColor: '#16392B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily: 'Inter-Medium',
-    paddingVertical: 0,
-    minHeight: 44,
-  },
-  suggestionsContainer: {
-    borderRadius: 14,
-    borderWidth: 1,
-    marginTop: 8,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  luxurySuggestionsContainer: {
+  },  luxurySuggestionsContainer: {
     marginTop: 8,
     backgroundColor: '#FCFAF7',
     borderRadius: 20,
     padding: 12,
     borderWidth: 1,
     borderColor: '#F2EDE6',
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.14,
     shadowRadius: 18,
     elevation: 10,
-  },
-  resultsHeaderRow: {
+  },  resultsHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 10,
     paddingHorizontal: 4,
-  },
-  resultsHeaderLeft: {
+  },  resultsHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     flex: 1,
-  },
-  resultsHeaderCityText: {
+  },  resultsHeaderCityText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#68756D',
-  },
-  resultsHeaderCountText: {
+    color: '#6B6B6B',
+  },  resultsHeaderCountText: {
     fontSize: 12,
     fontWeight: '700',
     color: '#8A5217',
-  },
-  luxurySearchCard: {
+  },  luxurySearchCard: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
@@ -3118,25 +3011,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
-  },
-  cardImageWrapper: {
+  },  cardImageWrapper: {
     position: 'relative',
     width: 88,
     height: 88,
-  },
-  cardImg: {
+  },  cardImg: {
     width: 88,
     height: 88,
     borderRadius: 16,
-  },
-  cardImgPlaceholder: {
+  },  cardImgPlaceholder: {
     width: 88,
     height: 88,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  categoryPinBadge: {
+  },  categoryPinBadge: {
     position: 'absolute',
     right: -10,
     top: 26,
@@ -3152,48 +3041,40 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
-  cardContent: {
+  },  cardContent: {
     flex: 1,
     marginLeft: 18,
     justifyContent: 'center',
-  },
-  cardTitle: {
+  },  cardTitle: {
     fontSize: 16,
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     fontWeight: '700',
     color: '#1F1A17',
     lineHeight: 20,
-  },
-  cardCategoryText: {
+  },  cardCategoryText: {
     fontSize: 13,
     fontWeight: '600',
     marginTop: 2,
     marginBottom: 3,
-  },
-  cardLocationRow: {
+  },  cardLocationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 6,
-  },
-  cardLocationText: {
+  },  cardLocationText: {
     fontSize: 12,
-    color: '#68756D',
+    color: '#6B6B6B',
     flex: 1,
     marginLeft: 3,
-  },
-  cardDistText: {
+  },  cardDistText: {
     fontSize: 12,
     fontWeight: '600',
     color: '#1F1A17',
     marginLeft: 4,
-  },
-  cardPillRow: {
+  },  cardPillRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  cardPill: {
+  },  cardPill: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FAF6F0',
@@ -3203,13 +3084,11 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 10,
     gap: 3,
-  },
-  cardPillText: {
+  },  cardPillText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#68756D',
-  },
-  addMissingPlaceBanner: {
+    color: '#6B6B6B',
+  },  addMissingPlaceBanner: {
     backgroundColor: '#FFFBF5',
     borderRadius: 18,
     borderWidth: 1,
@@ -3220,62 +3099,37 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 4,
     marginBottom: 6,
-  },
-  addMissingLeft: {
+  },  addMissingLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
     paddingRight: 8,
-  },
-  addMissingPlusDisc: {
+  },  addMissingPlusDisc: {
     width: 34,
     height: 34,
     borderRadius: 17,
     backgroundColor: '#F5EBE0',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  addMissingTitle: {
+  },  addMissingTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1D2420',
-  },
-  addMissingSub: {
+    color: '#000000',
+  },  addMissingSub: {
     fontSize: 11,
     color: '#7C6C60',
     marginTop: 1,
-  },
-  addMissingBtn: {
+  },  addMissingBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#68756D',
+    borderColor: '#6B6B6B',
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 18,
-  },
-  addMissingBtnText: {
+  },  addMissingBtnText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#68756D',
-  },
-  suggestionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    gap: 10,
-  },
-  suggestionIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  suggestionEmoji: { fontSize: 16 },
-  suggestionTextContainer: { flex: 1 },
-  suggestionName: { fontSize: 14, fontFamily: 'Inter-SemiBold' },
-  suggestionLocation: { fontSize: 12, fontFamily: 'Inter-Regular', marginTop: 2 },
-});
+    color: '#6B6B6B',
+  },});

@@ -86,7 +86,7 @@ export default function VendorCustomersScreen({ onBack }: { onBack?: () => void 
       <View style={s.headerTop}>
         {onBack ? (
           <TouchableOpacity onPress={onBack} style={s.backBtn}>
-            <Icon name="arrow-back" size={24} color="#16392B" />
+            <Icon name="arrow-back" size={24} color="#000000" />
           </TouchableOpacity>
         ) : <View style={{ width: 44 }} />}
         
@@ -97,7 +97,7 @@ export default function VendorCustomersScreen({ onBack }: { onBack?: () => void 
         </View>
 
         <TouchableOpacity onPress={exportCsv} style={s.exportBtn}>
-          <Icon name="download-outline" size={20} color="#16392B" />
+          <Icon name="download-outline" size={20} color="#000000" />
           <Text style={s.exportText}>Export</Text>
         </TouchableOpacity>
       </View>
@@ -126,8 +126,8 @@ export default function VendorCustomersScreen({ onBack }: { onBack?: () => void 
         </View>
 
         <View style={s.statCard}>
-          <View style={[s.statIconWrap, { backgroundColor: '#EBF7EE' }]}>
-            <Icon name="gift-outline" size={20} color="#52A772" />
+          <View style={[s.statIconWrap, { backgroundColor: '#F2F2F2' }]}>
+            <Icon name="gift-outline" size={20} color="#111111" />
           </View>
           <View style={s.statValWrap}>
             <Text style={s.statValue}>{formatNumber(summary?.totalVisits || 0)}</Text>
@@ -138,7 +138,7 @@ export default function VendorCustomersScreen({ onBack }: { onBack?: () => void 
 
         <View style={s.statCard}>
           <View style={[s.statIconWrap, { backgroundColor: '#F7F6F1' }]}>
-            <Icon name="star-outline" size={20} color="#1F4D3A" />
+            <Icon name="star-outline" size={20} color="#111111" />
           </View>
           <View style={s.statValWrap}>
             <Text style={s.statValue}>{formatNumber(summary?.totalPalPoints || 0)}</Text>
@@ -149,7 +149,7 @@ export default function VendorCustomersScreen({ onBack }: { onBack?: () => void 
 
         <View style={s.statCard}>
           <View style={[s.statIconWrap, { backgroundColor: '#F7F6F1' }]}>
-            <Icon name="calendar-outline" size={20} color="#1F4D3A" />
+            <Icon name="calendar-outline" size={20} color="#111111" />
           </View>
           <View style={s.statValWrap}>
             <Text style={s.statValue}>{formatNumber(summary?.thisMonthCustomers ?? 0)}</Text>
@@ -169,7 +169,7 @@ export default function VendorCustomersScreen({ onBack }: { onBack?: () => void 
   const renderFooter = () => (
     <View style={s.bottomBanner}>
       <View style={s.bannerIconCircle}>
-        <Icon name="gift" size={24} color="#1F4D3A" />
+        <Icon name="gift" size={24} color="#111111" />
       </View>
       <View style={s.bannerTextWrap}>
         <Text style={s.bannerTitle}>How it works?</Text>
@@ -178,8 +178,8 @@ export default function VendorCustomersScreen({ onBack }: { onBack?: () => void 
         </Text>
       </View>
       <View style={s.bannerGraphicMock}>
-        <Icon name="phone-portrait-outline" size={32} color="#1F4D3A" style={{ opacity: 0.3 }} />
-        <Icon name="person" size={24} color="#1F4D3A" style={{ position: 'absolute', bottom: 5, left: -10, opacity: 0.4 }} />
+        <Icon name="phone-portrait-outline" size={32} color="#111111" style={{ opacity: 0.3 }} />
+        <Icon name="person" size={24} color="#111111" style={{ position: 'absolute', bottom: 5, left: -10, opacity: 0.4 }} />
       </View>
     </View>
   );
@@ -265,17 +265,17 @@ const s = StyleSheet.create({
   headerTop: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 10 },
   backBtn: {
     width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#F7F6F1', borderWidth: 1, borderColor: '#D9E0DB', marginTop: 2,
+    backgroundColor: '#F7F6F1', borderWidth: 1, borderColor: '#E5E5EA', marginTop: 2,
   },
   headerTitleWrap: { flex: 1, minWidth: 0, paddingHorizontal: 16 },
-  headerEyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 1.4, color: '#1F4D3A', textTransform: 'uppercase' },
-  headerTitle: { fontSize: 26, fontWeight: '800', color: '#1D2420', marginTop: 4, letterSpacing: -0.5 },
+  headerEyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 1.4, color: '#111111', textTransform: 'uppercase' },
+  headerTitle: { fontSize: 26, fontWeight: '800', color: '#000000', marginTop: 4, letterSpacing: -0.5 },
   headerSub: { fontSize: 14, color: '#7E7067', marginTop: 4, fontWeight: '500' },
   exportBtn: {
     width: 50, height: 50, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#F7F6F1', borderWidth: 1, borderColor: '#D9E0DB', marginTop: 2,
+    backgroundColor: '#F7F6F1', borderWidth: 1, borderColor: '#E5E5EA', marginTop: 2,
   },
-  exportText: { fontSize: 10, color: '#1D2420', fontWeight: '600', marginTop: 2 },
+  exportText: { fontSize: 10, color: '#000000', fontWeight: '600', marginTop: 2 },
   
   searchWrap: {
     flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 16, marginBottom: 16,
@@ -289,7 +289,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: '#EBEBEB', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
     marginRight: 8, gap: 4
   },
-  filterText: { fontSize: 13, color: '#1D2420', fontWeight: '500' },
+  filterText: { fontSize: 13, color: '#000000', fontWeight: '500' },
   
   statsScroll: { paddingHorizontal: 16, gap: 12, paddingBottom: 16 },
   statCard: {
@@ -302,7 +302,7 @@ const s = StyleSheet.create({
   },
   statValWrap: { gap: 2 },
   statValue: { fontSize: 22, fontWeight: '800', color: '#1C1C1E' },
-  statLabel: { fontSize: 13, color: '#1D2420', fontWeight: '600' },
+  statLabel: { fontSize: 13, color: '#000000', fontWeight: '600' },
   statPeriod: { fontSize: 11, color: '#8E8E93', marginTop: 4 },
   
   listHeaderRow: {
@@ -310,7 +310,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8,
     borderBottomWidth: 1, borderBottomColor: '#F2F2F2',
   },
-  listHeaderLeft: { fontSize: 14, fontWeight: '700', color: '#1D2420' },
+  listHeaderLeft: { fontSize: 14, fontWeight: '700', color: '#000000' },
   listHeaderRight: { fontSize: 12, fontWeight: '500', color: '#8E8E93' },
   
   rowCard: {
@@ -320,8 +320,8 @@ const s = StyleSheet.create({
   separator: { height: 1, backgroundColor: '#F2F2F2', marginLeft: 16 },
   col1: { flex: 2, flexDirection: 'row', alignItems: 'center', paddingRight: 8 },
   avatar: { width: 44, height: 44, borderRadius: 22 },
-  avatarFallback: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#D9E0DB', alignItems: 'center', justifyContent: 'center' },
-  avatarFallbackText: { fontSize: 18, fontWeight: 'bold', color: '#1D2420' },
+  avatarFallback: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#E5E5EA', alignItems: 'center', justifyContent: 'center' },
+  avatarFallbackText: { fontSize: 18, fontWeight: 'bold', color: '#000000' },
   col1Text: { marginLeft: 10, flex: 1 },
   name: { fontSize: 14, fontWeight: '700', color: '#1C1C1E', marginBottom: 2 },
   email: { fontSize: 12, color: '#8E8E93', marginBottom: 4 },
@@ -343,7 +343,7 @@ const s = StyleSheet.create({
   
   center: { padding: 40, alignItems: 'center' },
   error: { color: '#8E8E93', textAlign: 'center', marginBottom: 12 },
-  retry: { backgroundColor: '#1F4D3A', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
+  retry: { backgroundColor: '#111111', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
   retryText: { color: '#FFFFFF', fontWeight: '700' },
   emptyTitle: { fontWeight: '800', color: '#1C1C1E', fontSize: 16 },
   emptySub: { color: '#8E8E93', textAlign: 'center', marginTop: 6 },
@@ -355,7 +355,7 @@ const s = StyleSheet.create({
   },
   bannerIconCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F7F6F1', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
   bannerTextWrap: { flex: 1, paddingRight: 10 },
-  bannerTitle: { fontSize: 14, fontWeight: '700', color: '#1D2420', marginBottom: 4 },
+  bannerTitle: { fontSize: 14, fontWeight: '700', color: '#000000', marginBottom: 4 },
   bannerDesc: { fontSize: 12, color: '#7E7067', lineHeight: 18 },
   bannerGraphicMock: { width: 50, height: 50, alignItems: 'center', justifyContent: 'center', marginLeft: 10 },
 });

@@ -12,12 +12,12 @@ import { resetPassword, verifyResetOtp } from '../../services/authService';
 const C = {
   bg: '#FFFFFF',
   cardBg: '#FFFFFF',
-  gold: '#1F4D3A',
-  goldDark: '#68756D',
-  dark: '#16392B',
-  text: '#1D2420',
-  textSub: '#68756D',
-  textMuted: '#68756D',
+  gold: '#111111',
+  goldDark: '#6B6B6B',
+  dark: '#000000',
+  text: '#000000',
+  textSub: '#6B6B6B',
+  textMuted: '#6B6B6B',
   border: 'rgba(183, 121, 31, 0.15)',
   shadow: 'rgba(183, 121, 31, 0.15)',
   white: '#FFFFFF',
@@ -102,14 +102,14 @@ export default function ForgotPasswordScreen({ onBack, onResetPassword }: Forgot
         <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
         <View style={styles.successContainer}>
           <View style={styles.iconCircle}>
-            <Icon name="checkmark-circle" size={64} color="#2E7D55" />
+            <Icon name="checkmark-circle" size={64} color="#111111" />
           </View>
           <Text style={styles.successTitle}>Success!</Text>
           <Text style={styles.successDesc}>
             Your password has been successfully reset. You can now log in with your new password.
           </Text>
           <TouchableOpacity style={styles.primaryButton} onPress={onBack} activeOpacity={0.85}>
-            <LinearGradient colors={['#16392B', '#1F4D3A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={['#000000', '#111111']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
             <Text style={styles.buttonText}>Back to Sign In</Text>
           </TouchableOpacity>
         </View>
@@ -217,7 +217,7 @@ export default function ForgotPasswordScreen({ onBack, onResetPassword }: Forgot
             disabled={loading}
             activeOpacity={0.85}
           >
-            <LinearGradient colors={['#16392B', '#1F4D3A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={['#000000', '#111111']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
             <Text style={styles.buttonText}>
               {loading ? 'Processing...' : step === 'email' ? 'Send Code' : step === 'code' ? 'Verify Code' : 'Update Password'}
             </Text>
@@ -256,12 +256,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     borderRadius: 14, borderWidth: 1,
     height: 42, overflow: 'hidden',
-    backgroundColor: 'rgba(29, 36, 32, 0.04)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
     paddingLeft: 0, paddingRight: 10,
   },
   inputIconBox: {
     width: 42, height: 42,
-    backgroundColor: 'rgba(29, 36, 32, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
     justifyContent: 'center', alignItems: 'center',
     marginRight: 10,
   },

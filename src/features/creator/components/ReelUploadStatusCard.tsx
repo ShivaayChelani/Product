@@ -9,14 +9,15 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import type { ReelUploadJob } from '../../../services/creator/creatorUploadManager';
+import { normalizeReelCaption } from '../../../components/reels/reelCaptionUtils';
 
 const C = {
   card: '#FFFFFF',
-  border: '#D9E0DB',
+  border: '#E5E5EA',
   text: '#202020',
   textSub: '#6F6F6F',
-  gold: '#1F4D3A',
-  green: '#2E7D55',
+  gold: '#111111',
+  green: '#111111',
   red: '#C62828',
   track: '#F7F6F1',
 };
@@ -61,7 +62,7 @@ export function ReelUploadStatusCard({ job, onRetry, onDismiss, onViewReel }: Pr
         <View style={styles.body}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.caption} numberOfLines={1}>
-            {job.caption || 'Untitled reel'}
+            {normalizeReelCaption(job.caption) || job.title || 'Untitled reel'}
           </Text>
 
           {isActive && (

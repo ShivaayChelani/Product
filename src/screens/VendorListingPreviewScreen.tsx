@@ -10,17 +10,17 @@ import { useBottomSafePadding } from '../design/responsive';
 
 const C = {
   bg: '#F7F6F1',
-  navy: '#1D2420',
-  lagoon: '#16392B',
-  sky: '#16392B',
+  navy: '#000000',
+  lagoon: '#000000',
+  sky: '#000000',
   ice: '#F7F6F1',
   white: '#FFFFFF',
-  text: '#1D2420',
-  muted: '#1F4D3A',
-  border: '#DDEBE3',
-  warn: '#16392B',
+  text: '#000000',
+  muted: '#111111',
+  border: '#F2F2F2',
+  warn: '#000000',
   warnBg: '#F8F0E1',
-  warnBorder: '#DDEBE3',
+  warnBorder: '#F2F2F2',
 };
 
 export default function VendorListingPreviewScreen({ onBack }: { onBack?: () => void }) {

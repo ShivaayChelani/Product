@@ -150,7 +150,7 @@ const CELL = 44;
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(29,36,32,0.45)',
+    backgroundColor: 'rgba(0, 0, 0,0.45)',
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
@@ -186,5 +186,5 @@ const styles = StyleSheet.create({
   cellSelected: { backgroundColor: EVENT_COLORS.accent },
   dayText: { fontSize: 14, fontWeight: '600', color: EVENT_COLORS.text },
   dayTextSelected: { color: '#FFFFFF' },
-  dayTextDisabled: { color: '#D9E0DB' },
+  dayTextDisabled: { color: '#E5E5EA' },
 });

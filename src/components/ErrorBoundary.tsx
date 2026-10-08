@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     padding: 24,
   },
   title: { fontSize: 22, fontWeight: '700', color: '#fff', marginBottom: 8 },
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
   },
   button: {
-    backgroundColor: '#1F4D3A',
+    backgroundColor: '#111111',
     paddingVertical: 14,
     paddingHorizontal: 32,
     borderRadius: 12,

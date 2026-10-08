@@ -56,7 +56,7 @@ const TabButton = ({ label, icon, isActive, onPress }: TabButtonProps) => {
       <Icon 
         name={icon} 
         size={16} 
-        color={isActive ? '#FFFFFF' : '#68756D'} 
+        color={isActive ? '#FFFFFF' : '#6B6B6B'}
         style={styles.icon}
       />
       <Text style={[styles.tabText, isActive ? styles.activeTabText : styles.inactiveTabText]}>
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   divider: {
     width: 1,
     height: 24,
-    backgroundColor: '#D9E0DB',
+    backgroundColor: '#E5E5EA',
   },
   tabBtn: {
     flex: 1,
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   activeTabBtn: {
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
   },
   icon: {
     marginTop: -1,
@@ -115,6 +115,6 @@ const styles = StyleSheet.create({
     fontFamily: SANS_BOLD,
   },
   inactiveTabText: {
-    color: '#68756D',
+    color: '#6B6B6B',
   },
 });

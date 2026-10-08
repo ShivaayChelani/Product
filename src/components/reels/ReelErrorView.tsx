@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   retryBtn: {
-    backgroundColor: '#16392B',
+    backgroundColor: '#000000',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 24,

@@ -37,13 +37,13 @@ const C = {
   bg: '#FFFFFF',
   surface: '#FFFFFF',
   card: '#FFFFFF',
-  ink: '#16392B',
-  gold: '#1F4D3A',
-  text: '#1D2420',
-  textSub: '#68756D',
-  textMuted: '#68756D',
+  ink: '#000000',
+  gold: '#111111',
+  text: '#000000',
+  textSub: '#6B6B6B',
+  textMuted: '#6B6B6B',
   border: 'rgba(183, 121, 31, 0.18)',
-  navy: '#1D2420',
+  navy: '#000000',
   orange: '#B7791F',
 };
 
@@ -54,7 +54,7 @@ const TIER_LABELS = [
   'PalSafar Reward',
 ];
 
-const CLAIM_BTN_COLORS = [C.orange, C.navy, C.gold, '#4C7043'];
+const CLAIM_BTN_COLORS = [C.orange, C.navy, C.gold, '#111111'];
 
 type LeaderboardTab = 'month' | 'all' | 'friends';
 
@@ -69,9 +69,9 @@ function eligibilityLabel(campaign: Campaign): string {
 }
 
 function rankRibbonStyle(index: number) {
-  if (index === 0) return { bg: '#F8F0E1', text: '#16392B', border: '#B7791F' };
-  if (index === 1) return { bg: '#F7F6F1', text: '#68756D', border: '#68756D' };
-  return { bg: '#F7F6F1', text: '#16392B', border: '#1F4D3A' };
+  if (index === 0) return { bg: '#F8F0E1', text: '#000000', border: '#B7791F' };
+  if (index === 1) return { bg: '#F7F6F1', text: '#6B6B6B', border: '#6B6B6B' };
+  return { bg: '#F7F6F1', text: '#000000', border: '#111111' };
 }
 
 export default function LeaderboardScreen() {
@@ -387,7 +387,7 @@ export default function LeaderboardScreen() {
                 <Text style={styles.statsValue}>{myRank ?? '—'}</Text>
                 {pointsToNextRank > 0 && myRank && myRank > 1 ? (
                   <View style={styles.rankUpBadge}>
-                    <Icon name="trending-up" size={12} color="#2E7D55" />
+                    <Icon name="trending-up" size={12} color="#111111" />
                   </View>
                 ) : null}
               </View>
@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 14,
@@ -756,7 +756,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#DDEBE3',
+    backgroundColor: '#F2F2F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -864,7 +864,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
     overflow: 'hidden',
-    shadowColor: '#1D2420',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 10,
@@ -929,7 +929,7 @@ const styles = StyleSheet.create({
   tierPillText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#16392B',
+    color: '#000000',
   },
   eligibilityRow: {
     flexDirection: 'row',
@@ -1076,7 +1076,7 @@ const styles = StyleSheet.create({
   },
   tableRowYou: {
     backgroundColor: '#F8F0E1',
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
   },
   tableRankCol: {
     width: 44,
@@ -1100,7 +1100,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#D9E0DB',
+    backgroundColor: '#E5E5EA',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1166,7 +1166,7 @@ const styles = StyleSheet.create({
   claimModalHandle: {
     width: 40,
     height: 4,
-    backgroundColor: 'rgba(29,36,32,0.18)',
+    backgroundColor: 'rgba(0, 0, 0,0.18)',
     borderRadius: 2,
     alignSelf: 'center',
     marginTop: 12,

@@ -42,23 +42,23 @@ const _BANNER_RADIUS = 24;
 
 const COLORS = {
   // Creator-aligned cream / bronze workspace chrome
-  sky: '#1F4D3A',
-  skyDark: '#68756D',
-  skyDeep: '#16392B',
-  skyMedium: '#DDEBE3',
-  skyLight: '#DDEBE3',
+  sky: '#111111',
+  skyDark: '#6B6B6B',
+  skyDeep: '#000000',
+  skyMedium: '#F2F2F2',
+  skyLight: '#F2F2F2',
   skyPale: '#FFFFFF',
   skyVeryPale: '#FFFFFF',
   white: '#FFFFFF',
   bg: '#FFFFFF',
-  textPrimary: '#1D2420',
-  textSecondary: '#68756D',
-  textMuted: '#68756D',
-  border: '#D9E0DB',
-  shadow: 'rgba(29, 36, 32, 0.16)',
-  success: '#2E7D55',
-  warning: '#1F4D3A',
-  star: '#1F4D3A',
+  textPrimary: '#000000',
+  textSecondary: '#6B6B6B',
+  textMuted: '#6B6B6B',
+  border: '#E5E5EA',
+  shadow: 'rgba(0, 0, 0, 0.16)',
+  success: '#111111',
+  warning: '#111111',
+  star: '#111111',
   cardBg: '#FFFFFF',
 };
 
@@ -80,7 +80,7 @@ function ProfileRing({ percent, size = 72 }: { percent: number; size?: number })
           cx={cx}
           cy={cy}
           r={r}
-          stroke="#1F4D3A"
+          stroke="#111111"
           strokeWidth={stroke}
           fill="none"
           strokeDasharray={`${circ} ${circ}`}
@@ -123,14 +123,14 @@ function ActivityLineChart({
       <Svg width={chartW} height={height}>
         <Defs>
           <LinearGradient id="vendorArea" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#1F4D3A" stopOpacity="0.28" />
-            <Stop offset="1" stopColor="#1F4D3A" stopOpacity="0.02" />
+            <Stop offset="0" stopColor="#111111" stopOpacity="0.28" />
+            <Stop offset="1" stopColor="#111111" stopOpacity="0.02" />
           </LinearGradient>
         </Defs>
         <Path d={areaPath} fill="url(#vendorArea)" />
-        <Path d={linePath} stroke="#1F4D3A" strokeWidth={2.5} fill="none" />
+        <Path d={linePath} stroke="#111111" strokeWidth={2.5} fill="none" />
         {points.map((p, i) => (
-          <Circle key={`pt-${i}`} cx={p.x} cy={p.y} r={3.5} fill="#1F4D3A" stroke="#fff" strokeWidth={1.5} />
+          <Circle key={`pt-${i}`} cx={p.x} cy={p.y} r={3.5} fill="#111111" stroke="#fff" strokeWidth={1.5} />
         ))}
       </Svg>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
@@ -644,17 +644,17 @@ function OffersView({
 
       <View style={s.OvStatsGrid}>
         {[
-          { label: 'Total Offers', sub: 'All time', value: String(totalOffers), icon: 'local-offer' as const, color: '#1F4D3A', active: false },
-          { label: 'Active Offers', sub: 'Live now', value: String(activeOffers), icon: 'check-circle' as const, color: '#2E7D55', active: true },
-          { label: 'Offer Views', sub: 'Last 30 days', value: offerViews >= 1000 ? `${(offerViews / 1000).toFixed(1)}K` : String(offerViews), icon: 'visibility' as const, color: '#68756D', active: false },
-          { label: 'Total Redeems', sub: 'Last 30 days', value: String(totalRedemptions), icon: 'card-giftcard' as const, color: '#1F4D3A', active: false },
+          { label: 'Total Offers', sub: 'All time', value: String(totalOffers), icon: 'local-offer' as const, color: '#111111', active: false },
+          { label: 'Active Offers', sub: 'Live now', value: String(activeOffers), icon: 'check-circle' as const, color: '#111111', active: true },
+          { label: 'Offer Views', sub: 'Last 30 days', value: offerViews >= 1000 ? `${(offerViews / 1000).toFixed(1)}K` : String(offerViews), icon: 'visibility' as const, color: '#6B6B6B', active: false },
+          { label: 'Total Redeems', sub: 'Last 30 days', value: String(totalRedemptions), icon: 'card-giftcard' as const, color: '#111111', active: false },
         ].map((item) => (
           <View key={item.label} style={[s.OvStatCard, item.active && s.OvStatCardActive]}>
             <View style={[s.OvStatIcon, { backgroundColor: item.color + '18' }]}>
               <MaterialIcons name={item.icon} size={16} color={item.color} />
             </View>
-            <Text style={[s.OvStatValue, item.active && { color: '#2E7D55' }]}>{item.value}</Text>
-            <Text style={[s.OvStatLabel, item.active && { color: '#2E7D55' }]}>{item.label}</Text>
+            <Text style={[s.OvStatValue, item.active && { color: '#111111' }]}>{item.value}</Text>
+            <Text style={[s.OvStatLabel, item.active && { color: '#111111' }]}>{item.label}</Text>
             <Text style={s.OvStatSub}>{item.sub}</Text>
           </View>
         ))}
@@ -705,7 +705,7 @@ function OffersView({
 
       {displayCards.map((offer) => {
         const statusColors: Record<string, string> = {
-          Active: '#2E7D55', Scheduled: '#1F4D3A', Expired: '#C94A4A', Draft: COLORS.textMuted,
+          Active: '#111111', Scheduled: '#111111', Expired: '#C94A4A', Draft: COLORS.textMuted,
         };
         const sc = statusColors[offer.status] || COLORS.textMuted;
         const isBusy = busyId === offer.id;
@@ -799,7 +799,7 @@ function OffersView({
                 disabled={isBusy}
                 onPress={() => openStats(offer.id, offer.title)}
               >
-                <MaterialIcons name="equalizer" size={14} color="#1D2420" />
+                <MaterialIcons name="equalizer" size={14} color="#000000" />
                 <Text style={s.OvActionText}>Stats</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -849,7 +849,7 @@ function OffersView({
             onPress={() => setActionMenuOffer(null)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="close" size={18} color="#1D2420" />
+            <Ionicons name="close" size={18} color="#000000" />
           </TouchableOpacity>
 
           {/* Offer Info Header */}
@@ -858,7 +858,7 @@ function OffersView({
               <Image source={{ uri: actionMenuOffer.imageUrl }} style={s.actionModalThumb} />
             ) : (
               <View style={[s.actionModalThumb, s.actionModalThumbFallback]}>
-                <MaterialIcons name="local-offer" size={24} color="#1F4D3A" />
+                <MaterialIcons name="local-offer" size={24} color="#111111" />
               </View>
             )}
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -870,20 +870,20 @@ function OffersView({
                   <View
                     style={[
                       s.actionModalStatusDot,
-                      { backgroundColor: actionMenuOffer?.isActive ? '#2E7D55' : '#1F4D3A' },
+                      { backgroundColor: actionMenuOffer?.isActive ? '#111111' : '#111111' },
                     ]}
                   />
                   <Text
                     style={[
                       s.actionModalStatusText,
-                      { color: actionMenuOffer?.isActive ? '#2E7D55' : '#1F4D3A' },
+                      { color: actionMenuOffer?.isActive ? '#111111' : '#111111' },
                     ]}
                   >
                     {actionMenuOffer?.isActive ? 'Active' : 'Paused'}
                   </Text>
                 </View>
                 <Text style={s.actionModalSubSep}>|</Text>
-                <Ionicons name="calendar-outline" size={12} color="#68756D" />
+                <Ionicons name="calendar-outline" size={12} color="#6B6B6B" />
                 <Text style={s.actionModalSubText}>
                   Valid till: {actionMenuOffer?.validUntil || 'No expiry'}
                 </Text>
@@ -906,13 +906,13 @@ function OffersView({
             }}
           >
             <View style={s.actionIconWrapStats}>
-              <MaterialCommunityIcons name="trending-up" size={22} color="#0F5B37" />
+              <MaterialCommunityIcons name="trending-up" size={22} color="#111111" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.actionCardTitleStats}>View Statistics</Text>
               <Text style={s.actionCardSubStats}>See performance and redemption details</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#0F5B37" />
+            <Ionicons name="chevron-forward" size={18} color="#111111" />
           </TouchableOpacity>
 
           {/* Card 2: Edit Offer */}
@@ -926,13 +926,13 @@ function OffersView({
             }}
           >
             <View style={s.actionIconWrapEdit}>
-              <MaterialCommunityIcons name="square-edit-outline" size={22} color="#1D2420" />
+              <MaterialCommunityIcons name="square-edit-outline" size={22} color="#000000" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.actionCardTitleEdit}>Edit Offer</Text>
               <Text style={s.actionCardSubEdit}>Update offer details, price, validity and more</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#1D2420" />
+            <Ionicons name="chevron-forward" size={18} color="#000000" />
           </TouchableOpacity>
 
           {/* Card 3: Pause / Resume Offer */}
@@ -950,7 +950,7 @@ function OffersView({
                 <Ionicons
                   name={actionMenuOffer?.isActive ? 'pause-outline' : 'play-outline'}
                   size={20}
-                  color="#16392B"
+                  color="#000000"
                 />
               </View>
               <View style={{ flex: 1 }}>
@@ -963,7 +963,7 @@ function OffersView({
                     : 'Make this offer active and visible to users'}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#16392B" />
+              <Ionicons name="chevron-forward" size={18} color="#000000" />
             </TouchableOpacity>
           ) : null}
 
@@ -1526,12 +1526,12 @@ export default function VendorDashboardScreen({
           <View style={s.heroDarkCard}>
             <View style={s.heroTopPillsRow}>
               <View style={s.verifiedPillBadge}>
-                <MaterialIcons name="verified" size={13} color="#34D399" />
+                <MaterialIcons name="verified" size={13} color="#111111" />
                 <Text style={s.verifiedPillText}>Verified Partner</Text>
               </View>
               {currentVendor.showOnMap !== false && isApproved ? (
                 <View style={s.verifiedPillBadge}>
-                  <Ionicons name="location-sharp" size={13} color="#34D399" />
+                  <Ionicons name="location-sharp" size={13} color="#111111" />
                   <Text style={s.verifiedPillText}>On map</Text>
                 </View>
               ) : null}
@@ -1625,7 +1625,7 @@ export default function VendorDashboardScreen({
                   onPress={handleCopyId}
                   hitSlop={8}
                 >
-                  <MaterialIcons name={copiedId ? 'check' : 'content-copy'} size={15} color={copiedId ? '#34D399' : 'rgba(247,246,241,0.85)'} />
+                  <MaterialIcons name={copiedId ? 'check' : 'content-copy'} size={15} color={copiedId ? '#111111' : 'rgba(247,246,241,0.85)'} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -1636,7 +1636,7 @@ export default function VendorDashboardScreen({
               activeOpacity={0.85}
             >
               <Text style={s.viewListingGoldText}>View listing</Text>
-              <Feather name="external-link" size={13} color="#1D2420" />
+              <Feather name="external-link" size={13} color="#000000" />
             </TouchableOpacity>
           </View>
 
@@ -1651,11 +1651,11 @@ export default function VendorDashboardScreen({
               activeOpacity={0.85}
             >
               <View style={[s.statCardIconCircle, { backgroundColor: '#F7F6F1' }]}>
-                <Ionicons name="pricetag-outline" size={18} color="#1F4D3A" />
+                <Ionicons name="pricetag-outline" size={18} color="#111111" />
               </View>
               <Text style={s.statCardLabel}>Active Offers</Text>
               <Text style={s.statCardValue}>{activeOffers.length}</Text>
-              <Text style={[s.statCardLinkText, { color: '#1F4D3A' }]}>View all offers &gt;</Text>
+              <Text style={[s.statCardLinkText, { color: '#111111' }]}>View all offers &gt;</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -1683,16 +1683,16 @@ export default function VendorDashboardScreen({
 
             <View style={s.activityFourColCard}>
               <View style={s.activityColItem}>
-                <View style={[s.activityColIcon, { backgroundColor: 'rgba(5,150,105,0.12)' }]}>
-                  <MaterialCommunityIcons name="gift-outline" size={16} color="#2E7D55" />
+                <View style={[s.activityColIcon, { backgroundColor: 'rgba(0,0,0,0.12)' }]}>
+                  <MaterialCommunityIcons name="gift-outline" size={16} color="#111111" />
                 </View>
                 <Text style={s.activityColValue}>{dashStats?.todayRedemptions ?? todayRedemptions}</Text>
                 <Text style={s.activityColLabel}>PalPoints Redemptions</Text>
               </View>
 
               <View style={s.activityColItem}>
-                <View style={[s.activityColIcon, { backgroundColor: 'rgba(31,77,58,0.12)' }]}>
-                  <Ionicons name="pricetag-outline" size={16} color="#68756D" />
+                <View style={[s.activityColIcon, { backgroundColor: 'rgba(0, 0, 0,0.12)' }]}>
+                  <Ionicons name="pricetag-outline" size={16} color="#6B6B6B" />
                 </View>
                 <Text style={s.activityColValue}>{activeOffers.length}</Text>
                 <Text style={s.activityColLabel}>Active Offers</Text>
@@ -1700,7 +1700,7 @@ export default function VendorDashboardScreen({
 
               <View style={s.activityColItem}>
                 <View style={[s.activityColIcon, { backgroundColor: 'rgba(183,121,31,0.12)' }]}>
-                  <Ionicons name="pause-circle-outline" size={16} color="#1F4D3A" />
+                  <Ionicons name="pause-circle-outline" size={16} color="#111111" />
                 </View>
                 <Text style={s.activityColValue}>{dashStats?.pausedOffers ?? pausedOffersCount}</Text>
                 <Text style={s.activityColLabel}>Paused Offers</Text>
@@ -1730,7 +1730,7 @@ export default function VendorDashboardScreen({
               />
               <View style={s.upgradeBannerHeaderRow}>
                 <View style={s.upgradeBannerIconCircle}>
-                  <MaterialCommunityIcons name="crown" size={20} color="#1F4D3A" />
+                  <MaterialCommunityIcons name="crown" size={20} color="#111111" />
                 </View>
                 <Text style={s.upgradeBannerTitle}>Unlock more features and grow your business</Text>
               </View>
@@ -1769,16 +1769,16 @@ export default function VendorDashboardScreen({
                 {recentActivity.map((item, index) => {
                   const iconWrap =
                     item.kind === 'redemption'
-                      ? { bg: 'rgba(5,150,105,0.12)', color: '#2E7D55', name: 'gift-outline' as const }
+                      ? { bg: 'rgba(0,0,0,0.12)', color: '#111111', name: 'gift-outline' as const }
                       : item.kind === 'offer'
-                        ? { bg: 'rgba(31,77,58,0.12)', color: '#68756D', name: 'pricetag-outline' as const }
+                        ? { bg: 'rgba(0, 0, 0,0.12)', color: '#6B6B6B', name: 'pricetag-outline' as const }
                         : { bg: 'rgba(224,122,154,0.12)', color: '#E07A9A', name: 'film-outline' as const };
                   const badge =
                     item.badge === 'Paused' || item.badge === 'Cancelled'
-                      ? { bg: '#F8F0E1', color: '#16392B' }
+                      ? { bg: '#F8F0E1', color: '#000000' }
                       : item.badge === 'Pending'
-                        ? { bg: '#F7F6F1', color: '#1F4D3A' }
-                        : { bg: '#E6F4EA', color: '#137333' };
+                        ? { bg: '#F7F6F1', color: '#111111' }
+                        : { bg: '#F2F2F2', color: '#111111' };
                   return (
                     <View
                       key={item.id}
@@ -1932,7 +1932,7 @@ const s = StyleSheet.create({
   },
   // Hero Dark Card styles
   heroDarkCard: {
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     borderRadius: 20,
     padding: 16,
     marginHorizontal: 16,
@@ -1953,9 +1953,9 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(5, 150, 105, 0.18)',
+    backgroundColor: 'rgba(0, 0, 0, 0.18)',
     borderWidth: 1,
-    borderColor: 'rgba(5, 150, 105, 0.35)',
+    borderColor: 'rgba(0, 0, 0, 0.35)',
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -1963,7 +1963,7 @@ const s = StyleSheet.create({
   verifiedPillText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#34D399',
+    color: '#111111',
   },
   heroMainBodyRow: {
     flexDirection: 'row',
@@ -1984,7 +1984,7 @@ const s = StyleSheet.create({
     borderRadius: 30,
     borderWidth: 2,
     borderColor: '#B7791F',
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1997,7 +1997,7 @@ const s = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#16392B',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2057,7 +2057,7 @@ const s = StyleSheet.create({
     height: 100,
     borderRadius: 14,
     overflow: 'hidden',
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
   },
   heroCoverImg: {
     width: '100%',
@@ -2066,11 +2066,11 @@ const s = StyleSheet.create({
   heroCoverFallback: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
   },
   heroCoverGradient: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(29, 36, 32, 0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
   editPhotosChipFrosted: {
     position: 'absolute',
@@ -2127,7 +2127,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#DDEBE3',
+    backgroundColor: '#F2F2F2',
     borderRadius: 12,
     paddingVertical: 10,
     marginTop: 12,
@@ -2135,7 +2135,7 @@ const s = StyleSheet.create({
   viewListingGoldText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1D2420',
+    color: '#000000',
   },
 
   // 2-Column Hero Stat Cards
@@ -2151,8 +2151,8 @@ const s = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#DDEBE3',
-    shadowColor: 'rgba(29,36,32,0.06)',
+    borderColor: '#F2F2F2',
+    shadowColor: 'rgba(0, 0, 0,0.06)',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -2169,12 +2169,12 @@ const s = StyleSheet.create({
   statCardLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#68756D',
+    color: '#6B6B6B',
   },
   statCardValue: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#1D2420',
+    color: '#000000',
     marginTop: 2,
     letterSpacing: -0.4,
   },
@@ -2189,7 +2189,7 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1.2,
-    color: '#68756D',
+    color: '#6B6B6B',
   },
   activityFourColCard: {
     flexDirection: 'row',
@@ -2198,7 +2198,7 @@ const s = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 8,
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     marginTop: 8,
   },
   activityColItem: {
@@ -2217,12 +2217,12 @@ const s = StyleSheet.create({
   activityColValue: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#1D2420',
+    color: '#000000',
   },
   activityColLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#68756D',
+    color: '#6B6B6B',
     textAlign: 'center',
     marginTop: 2,
     lineHeight: 13,
@@ -2233,7 +2233,7 @@ const s = StyleSheet.create({
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     overflow: 'hidden',
     position: 'relative',
   },
@@ -2273,19 +2273,19 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
   },
   upgradeBannerTitle: {
     flex: 1,
     fontSize: 15,
     fontWeight: '800',
-    color: '#1D2420',
+    color: '#000000',
     lineHeight: 20,
   },
   upgradeBannerBody: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#68756D',
+    color: '#6B6B6B',
     lineHeight: 18,
     marginTop: 10,
     paddingRight: 56,
@@ -2296,7 +2296,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
     alignSelf: 'flex-start',
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -2330,18 +2330,18 @@ const s = StyleSheet.create({
   palPointsBannerTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#1D2420',
+    color: '#000000',
   },
   palPointsBannerSub: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#68756D',
+    color: '#6B6B6B',
     marginTop: 3,
     lineHeight: 15,
   },
   palPointsBannerBtn: {
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 7,
@@ -2350,7 +2350,7 @@ const s = StyleSheet.create({
   palPointsBannerBtnText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#16392B',
+    color: '#000000',
   },
   headerCopy: {
     flex: 1,
@@ -2363,7 +2363,7 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     paddingHorizontal: 14,
     paddingVertical: 6,
     marginTop: 8,
@@ -2386,12 +2386,12 @@ const s = StyleSheet.create({
   activityItemTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1D2420',
+    color: '#000000',
   },
   activityItemSub: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#68756D',
+    color: '#6B6B6B',
     marginTop: 2,
   },
   activityBadgePill: {
@@ -2406,7 +2406,7 @@ const s = StyleSheet.create({
   activityEmptyText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#68756D',
+    color: '#6B6B6B',
     lineHeight: 19,
     paddingVertical: 16,
     textAlign: 'center',
@@ -2617,17 +2617,17 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#1F4D3A12',
+    backgroundColor: '#11111112',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#1F4D3A28',
+    borderColor: '#11111128',
     alignSelf: 'flex-start',
   },
   verifiedBadgeApproved: {
-    backgroundColor: '#6B8F7112',
-    borderColor: '#6B8F7130',
+    backgroundColor: '#11111112',
+    borderColor: '#11111130',
   },
   verifiedText: {
     fontSize: 10,
@@ -2679,7 +2679,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(29, 36, 32, 0.88)',
+    backgroundColor: 'rgba(0, 0, 0, 0.88)',
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 12,
@@ -3133,7 +3133,7 @@ const s = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(5,150,105,0.12)',
+    backgroundColor: 'rgba(0,0,0,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -3165,7 +3165,7 @@ const s = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
     height: 130,
-    shadowColor: '#1F4D3A',
+    shadowColor: '#111111',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 24,
@@ -3212,7 +3212,7 @@ const s = StyleSheet.create({
   coGiftLid: {
     width: 60,
     height: 14,
-    backgroundColor: '#68756D',
+    backgroundColor: '#6B6B6B',
     borderRadius: 4,
     position: 'relative',
     alignItems: 'center',
@@ -3236,7 +3236,7 @@ const s = StyleSheet.create({
   coGiftBody: {
     width: 60,
     height: 46,
-    backgroundColor: '#1F4D3A',
+    backgroundColor: '#111111',
     borderBottomLeftRadius: 10,
     borderBottomRightRadius: 10,
     alignItems: 'center',
@@ -3262,14 +3262,14 @@ const s = StyleSheet.create({
   coTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#1D2420',
+    color: '#000000',
     letterSpacing: -0.3,
     textAlign: 'center',
   },
   coPlus: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#68756D',
+    color: '#6B6B6B',
     width: 24,
     height: 24,
     borderRadius: 12,
@@ -3281,7 +3281,7 @@ const s = StyleSheet.create({
   },
   coSubtitle: {
     fontSize: 12,
-    color: '#16392B',
+    color: '#000000',
     lineHeight: 16,
     textAlign: 'center',
   },
@@ -3396,7 +3396,7 @@ const s = StyleSheet.create({
   chartYLabel: {
     fontSize: 10,
     fontWeight: '500',
-    color: '#68756D',
+    color: '#6B6B6B',
     textAlign: 'right',
     paddingRight: 8,
   },
@@ -3417,7 +3417,7 @@ const s = StyleSheet.create({
     borderRadius: 50,
     borderWidth: 2,
     borderColor: '#FFFFFF',
-    shadowColor: '#16392B',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -3437,7 +3437,7 @@ const s = StyleSheet.create({
   chartXLabel: {
     fontSize: 9,
     fontWeight: '500',
-    color: '#68756D',
+    color: '#6B6B6B',
   },
   chartLegendRow: {
     flexDirection: 'row',
@@ -3627,7 +3627,7 @@ const s = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(221,235,227,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.06)',
   },
   promoDecoCircle3: {
     position: 'absolute',
@@ -3654,11 +3654,11 @@ const s = StyleSheet.create({
     width: 52,
     height: 88,
     borderRadius: 12,
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#1D2420',
+    borderColor: '#000000',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -3669,13 +3669,13 @@ const s = StyleSheet.create({
     width: 44,
     height: 76,
     borderRadius: 8,
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     overflow: 'hidden',
   },
   promoPhoneNotch: {
     width: 20,
     height: 4,
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     borderRadius: 3,
     alignSelf: 'center',
     marginTop: 4,
@@ -3690,21 +3690,21 @@ const s = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 3,
-    backgroundColor: '#1F4D3A',
+    backgroundColor: '#111111',
     alignSelf: 'center',
     marginBottom: 2,
   },
   promoPhoneReelBar: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#DDEBE3',
+    backgroundColor: '#F2F2F2',
     width: '80%',
     alignSelf: 'center',
   },
   promoPhoneReelBar2: {
     height: 3,
     borderRadius: 2,
-    backgroundColor: '#68756D',
+    backgroundColor: '#6B6B6B',
     width: '60%',
     alignSelf: 'center',
   },
@@ -3797,7 +3797,7 @@ const s = StyleSheet.create({
   promoGlassTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1F4D3A',
+    color: '#111111',
     textAlign: 'center',
     marginBottom: 10,
     marginTop: 4,
@@ -3823,7 +3823,7 @@ const s = StyleSheet.create({
   promoFooter: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#68756D',
+    color: '#6B6B6B',
     textAlign: 'center',
     letterSpacing: 0.3,
     marginTop: 16,
@@ -3871,12 +3871,12 @@ const s = StyleSheet.create({
   OvHeaderLeft: { flex: 1, marginRight: 12 },
   OvTitle: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.3, marginBottom: 2 },
   OvSubtitle: { fontSize: 12, color: COLORS.textSecondary, lineHeight: 16 },
-  usageBar: { marginHorizontal: 16, marginBottom: 10, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#D9E0DB', padding: 12 },
+  usageBar: { marginHorizontal: 16, marginBottom: 10, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#E5E5EA', padding: 12 },
   usageBarInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  usageBarText: { fontSize: 13, fontWeight: '700', color: '#1D2420' },
-  upgradeLink: { fontSize: 12, fontWeight: '800', color: '#1F4D3A' },
+  usageBarText: { fontSize: 13, fontWeight: '700', color: '#000000' },
+  upgradeLink: { fontSize: 12, fontWeight: '800', color: '#111111' },
   usageTrack: { height: 6, backgroundColor: '#FFFFFF', borderRadius: 3, overflow: 'hidden' },
-  usageFill: { height: '100%', backgroundColor: '#1F4D3A', borderRadius: 3 },
+  usageFill: { height: '100%', backgroundColor: '#111111', borderRadius: 3 },
   OvCreateBtn: {
     height: 38, borderRadius: 20, paddingHorizontal: 14,
     flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -3898,8 +3898,8 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   OvStatCardActive: {
-    backgroundColor: 'rgba(5,150,105,0.06)',
-    borderColor: 'rgba(5,150,105,0.22)',
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    borderColor: 'rgba(0,0,0,0.22)',
   },
   OvStatGradient: {
     padding: 12, alignItems: 'center',
@@ -3955,14 +3955,14 @@ const s = StyleSheet.create({
   OvBizCard: {
     marginHorizontal: 16,
     marginBottom: 14,
-    backgroundColor: '#1D2420',
+    backgroundColor: '#000000',
     borderRadius: 16,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  OvBizThumb: { width: 48, height: 48, borderRadius: 10, backgroundColor: '#16392B' },
+  OvBizThumb: { width: 48, height: 48, borderRadius: 10, backgroundColor: '#000000' },
   OvBizThumbFallback: { alignItems: 'center', justifyContent: 'center' },
   OvBizNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   OvBizName: { fontSize: 15, fontWeight: '800', color: '#F7F6F1', flexShrink: 1 },
@@ -4105,7 +4105,7 @@ const s = StyleSheet.create({
   },
   OvBadge: {
     position: 'absolute', top: 6, left: 6,
-    backgroundColor: '#1F4D3A',
+    backgroundColor: '#111111',
     paddingHorizontal: 8, paddingVertical: 3,
     borderRadius: 8,
   },
@@ -4142,13 +4142,13 @@ const s = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     marginTop: 4,
   },
   OvRedeemBarText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#68756D',
+    color: '#6B6B6B',
   },
   OvRedeemBarStrong: {
     fontSize: 12,
@@ -4190,7 +4190,7 @@ const s = StyleSheet.create({
     borderRightWidth: StyleSheet.hairlineWidth,
     borderRightColor: COLORS.border,
   },
-  OvActionText: { fontSize: 11, fontWeight: '700', color: '#1D2420' },
+  OvActionText: { fontSize: 11, fontWeight: '700', color: '#000000' },
 
   // Home dashboard polish
   statusBanner: {
@@ -4198,7 +4198,7 @@ const s = StyleSheet.create({
     borderRadius: 14, padding: 12, flexDirection: 'row', gap: 10, alignItems: 'flex-start',
     borderWidth: 1,
   },
-  statusBannerPending: { backgroundColor: '#1F4D3A12', borderColor: '#1F4D3A40' },
+  statusBannerPending: { backgroundColor: '#11111112', borderColor: '#11111140' },
   statusBannerRejected: { backgroundColor: '#C94A4A12', borderColor: '#C94A4A40' },
   statusBannerTitle: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 2 },
   statusBannerText: { fontSize: 12, color: COLORS.textSecondary, lineHeight: 17 },
@@ -4206,12 +4206,12 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(5, 150, 105, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(5, 150, 105, 0.22)',
+    borderColor: 'rgba(0, 0, 0, 0.22)',
   },
   mapDot: {
     width: 6,
@@ -4307,7 +4307,7 @@ const s = StyleSheet.create({
   actionModalTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#1D2420',
+    color: '#000000',
     letterSpacing: -0.2,
     lineHeight: 22,
   },
@@ -4332,7 +4332,7 @@ const s = StyleSheet.create({
     fontWeight: '700',
   },
   actionModalSubSep: {
-    color: '#DDEBE3',
+    color: '#F2F2F2',
     fontSize: 12,
   },
   actionModalSubText: {
@@ -4357,9 +4357,9 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#F4FBF7',
+    backgroundColor: '#F2F2F2',
     borderWidth: 1,
-    borderColor: '#E1F4E9',
+    borderColor: '#F2F2F2',
     borderRadius: 16,
     padding: 14,
     marginBottom: 10,
@@ -4368,12 +4368,12 @@ const s = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#E2F5EB',
+    backgroundColor: '#F2F2F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionCardTitleStats: { fontSize: 14, fontWeight: '800', color: '#0F5B37' },
-  actionCardSubStats: { fontSize: 11, fontWeight: '500', color: '#526D5E', marginTop: 2 },
+  actionCardTitleStats: { fontSize: 14, fontWeight: '800', color: '#111111' },
+  actionCardSubStats: { fontSize: 11, fontWeight: '500', color: '#111111', marginTop: 2 },
 
   actionCardEdit: {
     flexDirection: 'row',
@@ -4394,8 +4394,8 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionCardTitleEdit: { fontSize: 14, fontWeight: '800', color: '#1D2420' },
-  actionCardSubEdit: { fontSize: 11, fontWeight: '500', color: '#16392B', marginTop: 2 },
+  actionCardTitleEdit: { fontSize: 14, fontWeight: '800', color: '#000000' },
+  actionCardSubEdit: { fontSize: 11, fontWeight: '500', color: '#000000', marginTop: 2 },
 
   actionCardToggle: {
     flexDirection: 'row',
@@ -4416,8 +4416,8 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionCardTitleToggle: { fontSize: 14, fontWeight: '800', color: '#16392B' },
-  actionCardSubToggle: { fontSize: 11, fontWeight: '500', color: '#1F4D3A', marginTop: 2 },
+  actionCardTitleToggle: { fontSize: 14, fontWeight: '800', color: '#000000' },
+  actionCardSubToggle: { fontSize: 11, fontWeight: '500', color: '#111111', marginTop: 2 },
 
   actionCardDelete: {
     flexDirection: 'row',

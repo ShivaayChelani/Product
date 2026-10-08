@@ -60,15 +60,15 @@ interface CreateReelScreenProps {
 const C = {
   bg: '#F7F6F1',
   white: '#FFFFFF',
-  brown: '#1D2420',
-  brownLight: '#68756D',
+  brown: '#000000',
+  brownLight: '#6B6B6B',
   text: '#1F1A17',
   textSub: '#5E544C',
   textMuted: '#A0968C',
-  border: '#D9E0DB',
+  border: '#E5E5EA',
   chipBg: '#F7F6F1',
-  chipActiveBg: '#D9E0DB',
-  green: '#2E7D55',
+  chipActiveBg: '#E5E5EA',
+  green: '#111111',
 };
 
 export default function CreateReelScreen({
@@ -523,7 +523,7 @@ export default function CreateReelScreen({
 
           {revisionNote ? (
             <View style={styles.revisionBanner}>
-              <Icon name="alert-circle" size={20} color="#16392B" />
+              <Icon name="alert-circle" size={20} color="#000000" />
               <View style={{ flex: 1 }}>
                 <Text style={styles.revisionBannerTitle}>Vendor requested changes</Text>
                 <Text style={styles.revisionBannerBody}>{revisionNote}</Text>
@@ -790,7 +790,7 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: '#F8F0E1',
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     borderRadius: 14,
     padding: 14,
     marginBottom: 16,
@@ -985,7 +985,7 @@ const styles = StyleSheet.create({
   },
   tagActive: {
     backgroundColor: C.chipActiveBg,
-    borderColor: '#DDEBE3',
+    borderColor: '#F2F2F2',
     borderWidth: 1,
   },
   tagText: { fontSize: 13, fontWeight: '600', color: C.text },
@@ -1078,7 +1078,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#68756D',
+    backgroundColor: '#6B6B6B',
     paddingVertical: 14,
     borderRadius: 14,
     marginBottom: 20,

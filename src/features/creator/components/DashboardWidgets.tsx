@@ -8,10 +8,10 @@ const COLORS = {
   card: '#FFFFFF',
   textPrimary: '#202020', // Charcoal
   textSecondary: '#6F6F6F',
-  gold: '#1F4D3A',
+  gold: '#111111',
   goldLight: '#F7F6F1',
-  green: '#22C55E',
-  border: '#D9E0DB',
+  green: '#111111',
+  border: '#E5E5EA',
 };
 
 // ==========================================
