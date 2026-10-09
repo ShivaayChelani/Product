@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, StatusBar, Platform,
+  View, Text, StyleSheet, TouchableOpacity, StatusBar,
   ActivityIndicator, FlatList, Image, RefreshControl,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomSafePadding } from '../design/responsive';
 import { vendorsApi } from '../services/api/vendors';
 import { normalizeReelCaption } from '../components/reels/reelCaptionUtils';
@@ -35,7 +36,8 @@ export default function VendorReelsScreen({
   onBack,
   onOpenReel,
 }: VendorReelsScreenProps) {
-  // Stack screen (RootNavigator) — not a VendorTabs child; use safe bottom only
+  // Stack screen (RootNavigator) — pad the header with the real status-bar inset.
+  const insets = useSafeAreaInsets();
   const listPadBottom = useBottomSafePadding(24);
   const [reels, setReels] = useState<VendorReelItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,7 +96,7 @@ export default function VendorReelsScreen({
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) + 12 }]}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
           <Icon name="arrow-back" size={22} color="#000000" />
         </TouchableOpacity>
@@ -168,7 +170,6 @@ export default function VendorReelsScreen({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 54 : 36,
     paddingBottom: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',

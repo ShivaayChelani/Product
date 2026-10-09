@@ -254,7 +254,7 @@ export default function VendorStudioProfileScreen() {
 
   return (
     <View style={[styles.safe, { paddingTop: Math.max(insets.top, 16) }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+      <StatusBar barStyle="dark-content" />
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: contentPadBottom }]}
         showsVerticalScrollIndicator={false}

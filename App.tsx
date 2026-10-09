@@ -60,7 +60,7 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
       try {
         await analytics().logEvent('palsafar_analytics_test', {
           source: 'app_start',
-          app_version: '1.1.2',
+          app_version: '1.1.4',
         });
 
         console.log(

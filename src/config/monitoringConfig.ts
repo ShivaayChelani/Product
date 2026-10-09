@@ -36,13 +36,13 @@ function resolveEnvironment(): 'development' | 'staging' | 'production' {
  * - android/app/build.gradle → versionName / versionCode
  * - ios/PalSafar.xcodeproj → MARKETING_VERSION / CURRENT_PROJECT_VERSION
  */
-export const APP_VERSION = '1.1.2';
+export const APP_VERSION = '1.1.4';
 /**
  * Native build numbers differ per platform; resolve at runtime so Sentry / analytics /
  * token registration report the correct build for each OS.
  * Keep in sync with: Android versionCode (build.gradle) / iOS CURRENT_PROJECT_VERSION.
  */
-const APP_BUILD_ANDROID = '8';
+const APP_BUILD_ANDROID = '10';
 const APP_BUILD_IOS = '6';
 export const APP_BUILD = Platform.OS === 'ios' ? APP_BUILD_IOS : APP_BUILD_ANDROID;
 export const APP_BUNDLE_ID = 'com.palsasafar';

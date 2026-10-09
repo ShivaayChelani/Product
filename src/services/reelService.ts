@@ -4,7 +4,7 @@ import { DEV_FLAGS } from '../config/devFlags';
 import { socialApi, uploadApi } from './api';
 import { API_CONFIG } from '../config/api';
 import { CREATOR_DAILY_REEL_POINTS } from '../utils/reelRewardPoints';
-import { deriveReelPosterFromVideo, isStaticImageUrl } from './reels/reelMediaKind';
+import { deriveReelPosterFromVideo, isStaticImageUrl, withCloudinaryThumbTransform } from './reels/reelMediaKind';
 
 const apiOrigin = API_CONFIG.baseUrl.replace(/\/api\/v1\/?$/, '');
 
@@ -36,20 +36,20 @@ export function getReelThumbnail(reel?: ReelThumbnailSource | Partial<Reel> | nu
     const looksLikeVideo = /\.(mp4|mov|webm|m3u8)(?:[?#]|$)/i.test(raw) && !isStaticImageUrl(raw);
     if (!looksLikeVideo) {
       if (raw.startsWith('/')) {
-        return `${apiOrigin}${raw}`;
+        return withCloudinaryThumbTransform(`${apiOrigin}${raw}`);
       }
-      return raw;
+      return withCloudinaryThumbTransform(raw);
     }
   }
   if (isStaticImageUrl((reel as any)?.videoUrl)) {
-    return (reel as any).videoUrl;
+    return withCloudinaryThumbTransform((reel as any).videoUrl);
   }
   const derivedVideoPoster = deriveReelPosterFromVideo((reel as any)?.videoUrl);
   if (derivedVideoPoster) {
     return derivedVideoPoster;
   }
   if ((reel as any)?.place?.imageUrl) {
-    return (reel as any).place.imageUrl;
+    return withCloudinaryThumbTransform((reel as any).place.imageUrl);
   }
   return '';
 }

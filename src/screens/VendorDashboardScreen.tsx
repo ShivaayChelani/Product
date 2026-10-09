@@ -1377,7 +1377,7 @@ export default function VendorDashboardScreen({
   if (!currentVendor) {
     return (
       <SafeAreaView style={[s.container, { justifyContent: 'center', alignItems: 'center', paddingTop: Math.max(insets.top, 16) }]} edges={['left', 'right']}>
-        <StatusBar barStyle="dark-content" backgroundColor={COLORS.bg} />
+        <StatusBar barStyle="dark-content" />
         <Text style={{ color: COLORS.textMuted, fontSize: 16 }}>Loading vendor data...</Text>
       </SafeAreaView>
     );
@@ -1389,7 +1389,7 @@ export default function VendorDashboardScreen({
 
   return (
     <View style={s.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
+      <StatusBar barStyle="dark-content" />
 
       {/* Header — Creator-style studio chrome (Home only) */}
       {visibleTab === 'Home' ? (

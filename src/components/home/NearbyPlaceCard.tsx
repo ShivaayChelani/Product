@@ -4,7 +4,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { PressableScale } from './PressableScale';
 import ImageComingSoon from '../ui/ImageComingSoon';
-import { hasValidImageUrl } from '../../utils/imageUrl';
+import { hasValidImageUrl, sizedImageSource } from '../../utils/imageUrl';
 import {
   getLuxuryTheme,
   luxuryCardShadow,
@@ -50,7 +50,7 @@ function NearbyPlaceCardComponent({
         <View style={styles.imageWrap}>
           {hasValidImageUrl(item.imageUri) ? (
             <Image
-              source={{ uri: item.imageUri }}
+              source={sizedImageSource(item.imageUri, width * 2, 296)}
               style={styles.image}
               resizeMode="cover"
             />

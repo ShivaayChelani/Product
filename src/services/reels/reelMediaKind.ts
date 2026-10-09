@@ -23,6 +23,23 @@ export function isStaticImageUrl(url?: string | null): boolean {
   return /\.(jpe?g|png|webp|gif|bmp)(\?|$)/i.test(value);
 }
 
+/** Decode-size transform for feed/grid posters. Does not change video playback URLs. */
+export const CLOUDINARY_THUMB_TRANSFORM = 'so_0,w_640,c_fill,q_auto,f_auto';
+
+/** Insert a bounded Cloudinary transform when the URL is unsized. */
+export function withCloudinaryThumbTransform(url: string): string {
+  const value = String(url || '').trim();
+  if (!value.includes('res.cloudinary.com') || !value.includes('/upload/')) return value;
+  if (/\/upload\/[^/]*\bw_\d+/.test(value)) return value;
+  if (value.includes('/video/upload/so_0,q_auto/')) {
+    return value.replace('/video/upload/so_0,q_auto/', `/video/upload/${CLOUDINARY_THUMB_TRANSFORM}/`);
+  }
+  if (value.includes('/image/upload/')) {
+    return value.replace(/(\/image\/upload\/)/, `$1w_640,c_fill,q_auto,f_auto/`);
+  }
+  return value;
+}
+
 /** Derive a lazy Cloudinary poster (a video frame served as a JPG) from a
  *  Cloudinary video URL. Mirrors the server helper so reels whose thumbnail was
  *  never persisted still get a real poster image everywhere they render.
@@ -37,5 +54,5 @@ export function deriveReelPosterFromVideo(videoUrl?: string | null): string | un
   if (!match) return undefined;
   const [, base, segment, path] = match;
   const rest = segment && !/^v\d+/i.test(segment) ? `${segment}/${path}` : path;
-  return `${base}so_0,q_auto/${rest}.jpg`;
+  return `${base}${CLOUDINARY_THUMB_TRANSFORM}/${rest}.jpg`;
 }

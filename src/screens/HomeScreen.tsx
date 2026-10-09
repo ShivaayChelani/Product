@@ -46,7 +46,7 @@ import { isReliableUserPosition, isValidLatLng } from '../services/location/dist
 import { getRoutedDistanceFields } from '../services/location/routedDistance';
 import { resolveCityFromGps } from '../services/location/reverseGeocode';
 import { walletApi } from '../services/api';
-import { hasValidImageUrl } from '../utils/imageUrl';
+import { hasValidImageUrl, sizedImageSource } from '../utils/imageUrl';
 import { buildNearbyVendorOffers } from '../utils/homeVendorOffers';
 import { HomeEventsStrip } from '../features/events/HomeEventsStrip';
 import { eventKeys } from '../features/events/queryKeys';
@@ -713,7 +713,7 @@ export default function HomeScreen({
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F6F2" translucent={false} />
+      <StatusBar barStyle="dark-content" />
 
       <ScrollView
         style={{ marginBottom: bottomNavViewportClearance }}
@@ -857,7 +857,7 @@ export default function HomeScreen({
               <View style={[styles.tabletGridContainer, { paddingRight: 0 }]}>
                 {nearbyPlaces.slice(0, placesCols === 3 ? 6 : 4).map((place, idx) => (
                   <TouchableOpacity key={place.id || idx} style={[styles.trendingCard, { width: placesCardWidth }]} onPress={() => handleSelectNearby(place.id)}>
-                    <Image source={{ uri: place.imageUri || 'https://images.unsplash.com/photo-1596423735880-5c2921568e64?q=80&w=600' }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+                    <Image source={sizedImageSource(place.imageUri || 'https://images.unsplash.com/photo-1596423735880-5c2921568e64?q=80&w=600', placesCardWidth * 2, verticalScale(180) * 2)} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
                     <View style={styles.trendingCardOverlay} />
                     <TouchableOpacity style={styles.heartButton} onPress={() => handleToggleWishlist(place.id)}>
                       <Icon name={wishlistIds.includes(place.id) ? "heart" : "heart-outline"} size={20} color="#FFFFFF" />
@@ -879,7 +879,7 @@ export default function HomeScreen({
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trendingScroll}>
                 {nearbyPlaces.slice(0, 3).map((place, idx) => (
                   <TouchableOpacity key={place.id || idx} style={styles.trendingCard} onPress={() => handleSelectNearby(place.id)}>
-                    <Image source={{ uri: place.imageUri || 'https://images.unsplash.com/photo-1596423735880-5c2921568e64?q=80&w=600' }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+                    <Image source={sizedImageSource(place.imageUri || 'https://images.unsplash.com/photo-1596423735880-5c2921568e64?q=80&w=600', scale(140) * 2, verticalScale(180) * 2)} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
                     <View style={styles.trendingCardOverlay} />
                     <TouchableOpacity style={styles.heartButton} onPress={() => handleToggleWishlist(place.id)}>
                       <Icon name={wishlistIds.includes(place.id) ? "heart" : "heart-outline"} size={20} color="#FFFFFF" />
@@ -939,7 +939,7 @@ export default function HomeScreen({
               <View style={[styles.tabletGridContainer, { paddingRight: 0 }]}>
                 {nearbyVendorOffers.slice(0, vendorCols === 3 ? 6 : 4).map((offer, idx) => (
                   <TouchableOpacity key={offer.id || idx} style={[styles.vendorOfferCard, { width: vendorCardWidth }]} onPress={() => openOfferDetail(offer.id)} activeOpacity={0.9}>
-                    <Image source={{ uri: offer.imageUri || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=400' }} style={styles.vendorOfferImage} />
+                    <Image source={sizedImageSource(offer.imageUri || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=400', vendorCardWidth * 2, verticalScale(160) * 1.2)} style={styles.vendorOfferImage} />
                     <View style={styles.vendorOfferDiscountBadge}>
                       <Text style={styles.vendorOfferDiscountText}>{offer.headline}</Text>
                     </View>
@@ -960,7 +960,7 @@ export default function HomeScreen({
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trendingScroll}>
                 {nearbyVendorOffers.slice(0, 6).map((offer, idx) => (
                   <TouchableOpacity key={offer.id || idx} style={styles.vendorOfferCard} onPress={() => openOfferDetail(offer.id)} activeOpacity={0.9}>
-                    <Image source={{ uri: offer.imageUri || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=400' }} style={styles.vendorOfferImage} />
+                    <Image source={sizedImageSource(offer.imageUri || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=400', scale(140) * 2, verticalScale(160) * 1.2)} style={styles.vendorOfferImage} />
                     <View style={styles.vendorOfferDiscountBadge}>
                       <Text style={styles.vendorOfferDiscountText}>{offer.headline}</Text>
                     </View>

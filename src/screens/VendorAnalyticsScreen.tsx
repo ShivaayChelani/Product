@@ -411,7 +411,7 @@ export default function VendorAnalyticsScreen({ onBack: _onBack, vendorId, vendo
 
   return (
     <View style={[styles.container, { paddingTop: Math.max(insets.top, 16) }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+      <StatusBar barStyle="dark-content" />
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}

@@ -476,7 +476,7 @@ export default function GenerateLoadingScreen({ route: propRoute }: { navigation
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.cream} translucent />
+      <StatusBar barStyle="dark-content" />
 
       <TouchableOpacity
         style={[styles.backBtn, { top: insets.top + 8 }]}

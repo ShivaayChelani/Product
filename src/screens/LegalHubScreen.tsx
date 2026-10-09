@@ -41,7 +41,7 @@ export default function LegalHubScreen({ onBack, onSelect }: LegalHubScreenProps
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle="dark-content" />
       
       <ScrollView 
         showsVerticalScrollIndicator={false} 

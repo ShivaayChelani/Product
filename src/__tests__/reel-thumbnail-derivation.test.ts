@@ -2,18 +2,19 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
-import { deriveReelPosterFromVideo, isStaticImageUrl } from '../services/reels/reelMediaKind';
+import { deriveReelPosterFromVideo, isStaticImageUrl, withCloudinaryThumbTransform } from '../services/reels/reelMediaKind';
 import { getReelThumbnail, mapReelUrls } from '../services/reelService';
+import { sizedImageSource } from '../utils/imageUrl';
 import { Reel } from '../types';
 
 describe('Issue 10 reel thumbnail derivation', () => {
   it('derives a lazy Cloudinary poster from a video URL', () => {
     expect(
       deriveReelPosterFromVideo('https://res.cloudinary.com/palsasafar/video/upload/v9/palsasafar/reels/a.mp4'),
-    ).toBe('https://res.cloudinary.com/palsasafar/video/upload/so_0,q_auto/palsasafar/reels/a.jpg');
+    ).toBe('https://res.cloudinary.com/palsasafar/video/upload/so_0,w_640,c_fill,q_auto,f_auto/palsasafar/reels/a.jpg');
     expect(
       deriveReelPosterFromVideo('https://res.cloudinary.com/palsasafar/video/upload/palsasafar/reels/b.mov'),
-    ).toBe('https://res.cloudinary.com/palsasafar/video/upload/so_0,q_auto/palsasafar/reels/b.jpg');
+    ).toBe('https://res.cloudinary.com/palsasafar/video/upload/so_0,w_640,c_fill,q_auto,f_auto/palsasafar/reels/b.jpg');
     expect(deriveReelPosterFromVideo('https://cdn.example.com/video.mp4')).toBeUndefined();
     expect(deriveReelPosterFromVideo(null)).toBeUndefined();
     expect(deriveReelPosterFromVideo(undefined)).toBeUndefined();
@@ -24,7 +25,7 @@ describe('Issue 10 reel thumbnail derivation', () => {
       deriveReelPosterFromVideo(
         'https://res.cloudinary.com/palsasafar/video/upload/q_auto,vc_h264/palsasafar/reels/t.mp4',
       ),
-    ).toBe('https://res.cloudinary.com/palsasafar/video/upload/so_0,q_auto/q_auto,vc_h264/palsasafar/reels/t.jpg');
+      ).toBe('https://res.cloudinary.com/palsasafar/video/upload/so_0,w_640,c_fill,q_auto,f_auto/q_auto,vc_h264/palsasafar/reels/t.jpg');
   });
 
   it('classifies the derived poster as an image, not a video', () => {
@@ -40,7 +41,7 @@ describe('Issue 10 reel thumbnail derivation', () => {
       videoUrl: 'https://res.cloudinary.com/palsasafar/video/upload/v1/palsasafar/reels/d.mp4',
     } as Partial<Reel>;
     expect(getReelThumbnail(reel)).toBe(
-      'https://res.cloudinary.com/palsasafar/video/upload/so_0,q_auto/palsasafar/reels/d.jpg',
+      'https://res.cloudinary.com/palsasafar/video/upload/so_0,w_640,c_fill,q_auto,f_auto/palsasafar/reels/d.jpg',
     );
   });
 
@@ -73,7 +74,7 @@ describe('Issue 10 reel thumbnail derivation', () => {
         thumbnail: null,
         videoUrl: 'https://res.cloudinary.com/palsasafar/image/upload/v1/palsasafar/reels/photo.jpg',
       } as any),
-    ).toBe('https://res.cloudinary.com/palsasafar/image/upload/v1/palsasafar/reels/photo.jpg');
+    ).toBe('https://res.cloudinary.com/palsasafar/image/upload/w_640,c_fill,q_auto,f_auto/v1/palsasafar/reels/photo.jpg');
   });
 
   it('mapReelUrls fills the thumbnail field for a poster-less cloudinary video', () => {
@@ -97,7 +98,7 @@ describe('Issue 10 reel thumbnail derivation', () => {
       creator: { id: 'c1', username: 'u', avatar: null, verified: false, userId: 'u' },
     } as Reel);
     expect(out.thumbnail).toBe(
-      'https://res.cloudinary.com/palsasafar/video/upload/so_0,q_auto/palsasafar/reels/f.jpg',
+      'https://res.cloudinary.com/palsasafar/video/upload/so_0,w_640,c_fill,q_auto,f_auto/palsasafar/reels/f.jpg',
     );
     expect(out.videoUrl).toContain('/upload/q_auto,vc_h264/');
     expect(out.videoUrl.startsWith('http://')).toBe(false);
@@ -109,9 +110,32 @@ describe('Issue 10 reel thumbnail derivation', () => {
       videoUrl: 'https://res.cloudinary.com/palsasafar/video/upload/v1/palsasafar/reels/g.mp4',
     } as Partial<Reel>);
     expect(poster).toBe(
-      'https://res.cloudinary.com/palsasafar/video/upload/so_0,q_auto/palsasafar/reels/g.jpg',
+      'https://res.cloudinary.com/palsasafar/video/upload/so_0,w_640,c_fill,q_auto,f_auto/palsasafar/reels/g.jpg',
     );
     expect(poster.toLowerCase().endsWith('.mp4')).toBe(false);
+  });
+
+  it('upgrades legacy Cloudinary posters and skips already-sized URLs', () => {
+    expect(
+      withCloudinaryThumbTransform(
+        'https://res.cloudinary.com/palsasafar/video/upload/so_0,q_auto/palsasafar/reels/legacy.jpg',
+      ),
+    ).toBe(
+      'https://res.cloudinary.com/palsasafar/video/upload/so_0,w_640,c_fill,q_auto,f_auto/palsasafar/reels/legacy.jpg',
+    );
+    expect(
+      withCloudinaryThumbTransform(
+        'https://res.cloudinary.com/palsasafar/image/upload/w_320,c_fill/v1/palsasafar/reels/keep.jpg',
+      ),
+    ).toBe('https://res.cloudinary.com/palsasafar/image/upload/w_320,c_fill/v1/palsasafar/reels/keep.jpg');
+  });
+
+  it('passes decode dimensions for known-size remote images', () => {
+    expect(sizedImageSource('https://cdn.example.com/a.jpg', 272.4, 168.2)).toEqual({
+      uri: 'https://cdn.example.com/a.jpg',
+      width: 272,
+      height: 168,
+    });
   });
 
   it('returns empty when no poster can be derived from a non-Cloudinary video', () => {

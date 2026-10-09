@@ -2,7 +2,6 @@ import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react'
 import {
   View,
   StyleSheet,
-  ViewToken,
   ActivityIndicator,
   Text,
   Image,
@@ -17,6 +16,12 @@ import { ReelCard } from './ReelCard';
 import { ReelErrorView } from './ReelErrorView';
 import { ReelSkeleton } from './ReelSkeleton';
 import { ReelLayoutMode, ReelActionRailPosition } from './reelLayout';
+import { sizedImageSource } from '../../utils/imageUrl';
+import {
+  isReelNearActive,
+  selectSettledReelIndex,
+  shouldMountReelVideo,
+} from './reelFeedPlayback';
 
 interface ReelFeedProps {
   reels: Reel[];
@@ -81,42 +86,40 @@ export const ReelFeed: React.FC<ReelFeedProps> = React.memo(({
     isTabFocused,
     likedReelIds,
     followingCreatorIds,
-    likeFlags: reels.map(r => `${r.id}:${r.isLiked ? 1 : 0}:${r.likes}`).join('|'),
-  }), [activeIndex, isTabFocused, likedReelIds, followingCreatorIds, reels]);
-
-  const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 60,
-  }).current;
+  }), [activeIndex, isTabFocused, likedReelIds, followingCreatorIds]);
 
   const onReelViewedRef = useRef(onReelViewed);
   onReelViewedRef.current = onReelViewed;
+  const onActiveIndexChangeRef = useRef(onActiveIndexChange);
+  onActiveIndexChangeRef.current = onActiveIndexChange;
 
+  const activeReelId = reels[activeIndex]?.id;
   useEffect(() => {
-    if (!isTabFocused) return;
-    const reelId = reels[activeIndex]?.id;
-    if (reelId) onReelViewedRef.current?.(reelId);
-  }, [activeIndex, isTabFocused, reels]);
+    if (!isTabFocused || !activeReelId) return;
+    onReelViewedRef.current?.(activeReelId);
+  }, [activeIndex, isTabFocused, activeReelId]);
 
-  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
-    if (viewableItems.length > 0 && viewableItems[0].index != null) {
-      const idx = viewableItems[0].index;
-      setActiveIndex(idx);
-      onActiveIndexChange?.(idx);
-    }
-  }).current;
+  // Play/pause and Video mount follow the *settled* page only. Updating the
+  // active index from viewability mid-fling remounts ExoPlayer during the
+  // swipe and is the feed's main jank source.
+  const commitSettledIndex = useCallback((offsetY: number) => {
+    const idx = selectSettledReelIndex(offsetY, viewportHeight, reels.length);
+    if (idx == null) return;
+    setActiveIndex(prev => {
+      if (prev === idx) return prev;
+      onActiveIndexChangeRef.current?.(idx);
+      return idx;
+    });
+  }, [viewportHeight, reels.length]);
 
-  // Authoritative page index: rounded from the settled scroll offset. While a
-  // fling is in flight, `onViewableItemsChanged` (60% visibility) can report a
-  // neighbour page or lag a fast two-page swipe, so this is applied on the
-  // momentum end so the playing card always matches the page that lands.
   const onMomentumScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const y = e.nativeEvent.contentOffset.y;
-    if (viewportHeight > 0 && reels.length > 0) {
-      const idx = Math.max(0, Math.min(reels.length - 1, Math.round(y / viewportHeight)));
-      setActiveIndex(idx);
-      onActiveIndexChange?.(idx);
-    }
-  }, [viewportHeight, reels.length, onActiveIndexChange]);
+    commitSettledIndex(e.nativeEvent.contentOffset.y);
+  }, [commitSettledIndex]);
+
+  const onScrollEndDrag = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (Math.abs(e.nativeEvent.velocity?.y ?? 0) > 0.08) return;
+    commitSettledIndex(e.nativeEvent.contentOffset.y);
+  }, [commitSettledIndex]);
 
   const onLayout = useCallback((e: LayoutChangeEvent) => {
     const next = Math.round(e.nativeEvent.layout.height);
@@ -124,12 +127,16 @@ export const ReelFeed: React.FC<ReelFeedProps> = React.memo(({
   }, []);
 
   const renderItem = useCallback(({ item, index }: { item: Reel; index: number }) => {
-    const isNearbyWindow = Math.abs(index - activeIndex) <= 1;
+    const isNearbyWindow = isReelNearActive(index, activeIndex);
     if (!isNearbyWindow) {
       return (
         <View style={{ height: viewportHeight, width: '100%', backgroundColor: '#000', overflow: 'hidden' }}>
           {item.thumbnail ? (
-            <Image source={{ uri: item.thumbnail }} style={StyleSheet.absoluteFillObject} resizeMode="contain" />
+            <Image
+              source={sizedImageSource(item.thumbnail, 720, Math.round(viewportHeight * 0.6))}
+              style={StyleSheet.absoluteFillObject}
+              resizeMode="contain"
+            />
           ) : null}
         </View>
       );
@@ -147,7 +154,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = React.memo(({
           itemHeight={viewportHeight}
           layoutMode={layoutMode}
           actionRailPosition={actionRailPosition}
-          isActive={index === activeIndex && isTabFocused}
+          isActive={shouldMountReelVideo(index, activeIndex, isTabFocused)}
           isLiked={likedReelIds.includes(item.id) || !!item.isLiked}
           isFollowingCreator={isFollowingCreator}
           currentUserId={currentUserId}
@@ -166,6 +173,10 @@ export const ReelFeed: React.FC<ReelFeedProps> = React.memo(({
     currentUserId, layoutMode, actionRailPosition, onLike, onComment, onShare, onFollow,
     onPressAuthor, onReport, onVendorDirections,
   ]);
+
+  const getItemType = useCallback((_: Reel, index: number) => (
+    isReelNearActive(index, activeIndex) ? 'card' : 'poster'
+  ), [activeIndex]);
 
   const keyExtractor = useCallback((item: Reel, index: number) => item.id || `reel-${index}`, []);
 
@@ -210,19 +221,19 @@ export const ReelFeed: React.FC<ReelFeedProps> = React.memo(({
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         extraData={listExtraData}
+        getItemType={getItemType}
         estimatedItemSize={viewportHeight}
         overrideItemLayout={(layout) => {
           layout.size = viewportHeight;
         }}
         initialScrollIndex={initialScrollIndex > 0 ? initialScrollIndex : undefined}
         estimatedFirstItemOffset={initialScrollIndex > 0 ? viewportHeight * initialScrollIndex : undefined}
-        drawDistance={viewportHeight * 2}
+        drawDistance={viewportHeight}
         pagingEnabled
         showsVerticalScrollIndicator={false}
         decelerationRate="fast"
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
         onMomentumScrollEnd={onMomentumScrollEnd}
+        onScrollEndDrag={onScrollEndDrag}
         onEndReached={hasMore && !loading ? onLoadMore : undefined}
         onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}

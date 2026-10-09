@@ -32,7 +32,7 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
 
   return (
     <TouchableOpacity style={styles.root} activeOpacity={1} onPress={onFinish}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle="light-content" />
       
       <ImageBackground
         source={require('../assets/splash.png')}

@@ -631,7 +631,7 @@ export default function ProfileScreen({
 
   return (
     <View style={[styles.container, { backgroundColor: ProfileColors.bg }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={ProfileColors.bg} translucent />
+      <StatusBar barStyle="dark-content" />
       <ScrollView
         contentContainerStyle={{
           paddingTop: insets.top + 8,

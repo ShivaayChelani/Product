@@ -304,7 +304,7 @@ export default function VendorRegisterScreen({ onBack, onCheckStatus }: VendorRe
 
   return (
     <SafeAreaView style={styles.root} edges={['left', 'right']}>
-      <StatusBar barStyle="dark-content" backgroundColor={VF.bg} />
+      <StatusBar barStyle="dark-content" />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

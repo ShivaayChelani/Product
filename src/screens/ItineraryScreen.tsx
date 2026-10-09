@@ -233,7 +233,7 @@ export default function ItineraryScreen(props: ItineraryScreenProps) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle="light-content" />
       
       <View style={styles.vpHeader}>
         <ImageBackground source={require('../assets/generate_plan_bg.jpg')} style={StyleSheet.absoluteFill} resizeMode="cover">

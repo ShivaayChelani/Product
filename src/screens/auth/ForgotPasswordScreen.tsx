@@ -99,7 +99,7 @@ export default function ForgotPasswordScreen({ onBack, onResetPassword }: Forgot
   if (step === 'success') {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+        <StatusBar barStyle="dark-content" />
         <View style={styles.successContainer}>
           <View style={styles.iconCircle}>
             <Icon name="checkmark-circle" size={64} color="#111111" />
@@ -119,7 +119,7 @@ export default function ForgotPasswordScreen({ onBack, onResetPassword }: Forgot
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => {
           Keyboard.dismiss();

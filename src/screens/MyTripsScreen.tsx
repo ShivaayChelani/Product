@@ -236,7 +236,7 @@ export default function MyTripsScreen({
       showsVerticalScrollIndicator={false}
       bounces={false}
     >
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle="dark-content" />
 
       <TripsTitleRow 
         topInset={insets.top} 

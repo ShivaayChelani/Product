@@ -460,7 +460,7 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle="dark-content" />
 
       <ScrollView
         showsVerticalScrollIndicator={false}

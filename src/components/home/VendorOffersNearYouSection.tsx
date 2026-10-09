@@ -11,6 +11,7 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import { palette } from '../../config/theme';
+import { sizedImageSource } from '../../utils/imageUrl';
 
 export type NearbyVendorOfferItem = {
   id: string;
@@ -47,7 +48,7 @@ function VendorOfferCard({
   return (
     <TouchableOpacity style={styles.offerCard} activeOpacity={0.92} onPress={onPress}>
       <View style={styles.offerLeft}>
-        <Image source={{ uri: imageUri }} style={styles.offerImage} resizeMode="cover" />
+        <Image source={sizedImageSource(imageUri, 196, 264)} style={styles.offerImage} resizeMode="cover" />
         <View style={styles.vendorBadge}>
           <Text style={styles.vendorBadgeText} numberOfLines={2}>
             {item.vendorName}

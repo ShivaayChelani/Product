@@ -172,7 +172,7 @@ export const ReelPlayer = React.memo(React.forwardRef<ReelPlayerRef, ReelPlayerP
 
       {showImage ? (
         <Image source={{ uri: resolvedInitial }} style={styles.video} resizeMode="contain" />
-      ) : showVideo ? (
+      ) : showVideo && isActive ? (
         <View style={styles.video} pointerEvents="none">
           <Video
           ref={videoRef}
@@ -216,13 +216,15 @@ export const ReelPlayer = React.memo(React.forwardRef<ReelPlayerRef, ReelPlayerP
             setIsBuffering(false);
           }}
           bufferConfig={{
-            minBufferMs: 2500,
-            maxBufferMs: 10000,
-            bufferForPlaybackMs: 1000,
-            bufferForPlaybackAfterRebufferMs: 1500,
+            minBufferMs: 1500,
+            maxBufferMs: 5000,
+            bufferForPlaybackMs: 750,
+            bufferForPlaybackAfterRebufferMs: 1250,
           }}
         />
         </View>
+      ) : showVideo ? (
+        <View style={styles.video} pointerEvents="none" />
       ) : (
         <View style={styles.errorContainer}>
           <Ionicons name="videocam-off-outline" size={48} color="rgba(255,255,255,0.5)" />

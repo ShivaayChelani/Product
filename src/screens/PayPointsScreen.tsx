@@ -65,7 +65,7 @@ export default function PayPointsScreen({ onBack, initialVendorCode }: PayPoints
   if (receipt) {
     return (
       <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        <StatusBar barStyle="dark-content" />
         <View style={styles.receiptContainer}>
           <View style={styles.receiptCard}>
             <MaterialIcons name="check-circle" size={64} color={colors.success} />
@@ -104,7 +104,7 @@ export default function PayPointsScreen({ onBack, initialVendorCode }: PayPoints
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+      <StatusBar barStyle="dark-content" />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

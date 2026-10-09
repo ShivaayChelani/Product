@@ -23,6 +23,7 @@ import {
   formatEventTimeRange,
 } from './eventFormat';
 import { palette } from '../../config/theme';
+import { sizedImageSource } from '../../utils/imageUrl';
 
 export const EVENT_COLORS = {
   accent: palette.primary,
@@ -80,7 +81,7 @@ function EventCardComponent({ event, onPress, layout = 'feed', style }: Props) {
         <View style={styles.stripMedia}>
           {imageUri && !imageFailed ? (
             <Image
-              source={{ uri: imageUri }}
+              source={sizedImageSource(imageUri, EVENT_STRIP_CARD_WIDTH * 2, 336)}
               style={styles.image}
               resizeMode="cover"
               onError={() => setImageFailed(true)}
@@ -111,7 +112,7 @@ function EventCardComponent({ event, onPress, layout = 'feed', style }: Props) {
       <View style={isStrip ? styles.stripMedia : styles.media}>
         {imageUri && !imageFailed ? (
           <Image
-            source={{ uri: imageUri }}
+            source={sizedImageSource(imageUri, 800, 376)}
             style={styles.image}
             resizeMode="cover"
             onError={() => setImageFailed(true)}

@@ -543,7 +543,7 @@ export default function VendorProfileScreen({
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', gap: 12, paddingTop: Math.max(insets.top, 16) }}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <StatusBar barStyle="dark-content" />
         <ActivityIndicator size="large" color={Pal.colors.light.primary} />
         <Text style={{ color: Pal.colors.light.textMuted, fontSize: 13 }}>Loading vendor...</Text>
       </View>
@@ -553,7 +553,7 @@ export default function VendorProfileScreen({
   if (!vendor) {
     return (
       <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', gap: 16, padding: 40, paddingTop: Math.max(insets.top, 16) }}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <StatusBar barStyle="dark-content" />
         <Text style={{ fontSize: 56 }}>🏪</Text>
         <Text style={{ fontFamily: Pal.typography.fontFamily.semibold, fontSize: 18, color: Pal.colors.light.text, textAlign: 'center' }}>
           {loadError || 'Vendor not found'}
@@ -580,7 +580,7 @@ export default function VendorProfileScreen({
 
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 16) }]}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" />
       {switchableModes.length > 1 ? (
         <ProfileModeSwitcher
           withTopInset

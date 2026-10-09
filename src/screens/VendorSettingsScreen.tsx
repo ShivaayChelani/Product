@@ -196,7 +196,7 @@ export default function VendorSettingsScreen() {
   if (!currentVendor) {
     return (
       <View style={[styles.container, { paddingTop: Math.max(insets.top, 16) }]}>
-        <StatusBar barStyle="dark-content" backgroundColor={VendorUI.colors.bg} />
+        <StatusBar barStyle="dark-content" />
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={12}>
             <Icon name="arrow-back" size={22} color={VendorUI.colors.primaryDark} />
@@ -213,7 +213,7 @@ export default function VendorSettingsScreen() {
   return (
     <View style={[styles.container, { paddingTop: Math.max(insets.top, 16) }]}>
       <View style={{ flex: 1 }}>
-        <StatusBar barStyle="dark-content" backgroundColor={VendorUI.colors.bg} />
+        <StatusBar barStyle="dark-content" />
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={12}>
             <Icon name="arrow-back" size={22} color={VendorUI.colors.primaryDark} />

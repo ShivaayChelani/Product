@@ -151,7 +151,7 @@ export default function NotificationsScreen({ onBack }: { onBack?: () => void })
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor={T.bg} />
+      <StatusBar barStyle="dark-content" />
       <NotificationsHeader
         onBack={onBack}
         topInset={insets.top}

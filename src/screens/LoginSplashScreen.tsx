@@ -38,7 +38,7 @@ export default function LoginSplashScreen({ navigation, onGoogleLogin, onAppleLo
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" />
       <View style={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: contentPadBottom }]}>
         <View style={styles.topSection}>
           <AuthHeader

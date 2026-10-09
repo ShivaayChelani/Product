@@ -344,7 +344,7 @@ export default function BecomeCreatorScreen({ onBack }: { onBack: () => void }) 
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <StatusBar barStyle="light-content" />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         
         <TouchableOpacity style={[styles.backBtn, { top: insets.top + 10 }]} onPress={onBack}>

@@ -1323,7 +1323,7 @@ export default function RootNavigator() {
   if (!bootReady) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: theme.background }]}>
-        <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
+        <StatusBar barStyle="dark-content" />
         <ActivityIndicator size="large" color="#111111" />
       </View>
     );
@@ -1332,7 +1332,7 @@ export default function RootNavigator() {
   if (isLoggingOut) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: theme.background }]}>
-        <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
+        <StatusBar barStyle="dark-content" />
         <ActivityIndicator size="large" color="#111111" />
       </View>
     );
@@ -1341,7 +1341,7 @@ export default function RootNavigator() {
   if (isAuthenticated) {
     return (
       <MonitoredNavigation linkingConfig={linking}>
-        <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
+        <StatusBar barStyle="dark-content" />
         <View style={{ flex: 1, backgroundColor: '#000000' }}>
           <OfflineBanner />
           <AuthenticatedStack mode={shellMode} />
@@ -1364,7 +1364,7 @@ export default function RootNavigator() {
 
   return (
     <MonitoredNavigation linkingConfig={linking}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
+      <StatusBar barStyle="dark-content" />
       <UnauthenticatedRoot />
     </MonitoredNavigation>
   );

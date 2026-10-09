@@ -304,7 +304,7 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle="light-content" />
 
       <ReelsTopBar
         paddingTop={topPad}

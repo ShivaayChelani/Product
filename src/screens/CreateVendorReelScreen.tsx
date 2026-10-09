@@ -161,7 +161,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
 
   return (
     <View style={[styles.safe, { paddingTop: Math.max(insets.top, 16) }]}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F6F1" />
+      <StatusBar barStyle="dark-content" />
       
       {/* Header */}
       <View style={styles.header}>

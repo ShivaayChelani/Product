@@ -95,7 +95,7 @@ export default function CreatorAnalyticsScreen({ onBack }: { onBack?: () => void
 
   return (
     <View style={[styles.safe, { paddingTop: Math.max(safeAreaInsets.top, 16) }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+      <StatusBar barStyle="dark-content" />
       <FlatList
         data={data?.topReels || []}
         keyExtractor={(r) => r.id}

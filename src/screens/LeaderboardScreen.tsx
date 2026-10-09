@@ -344,7 +344,7 @@ export default function LeaderboardScreen() {
   return (
     <>
       <View style={styles.screen}>
-        <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+        <StatusBar barStyle="dark-content" />
 
         <ScrollView
           showsVerticalScrollIndicator={false}

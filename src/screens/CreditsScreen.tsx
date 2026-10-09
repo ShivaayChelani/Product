@@ -23,7 +23,7 @@ export default function CreditsScreen({ onBack }: CreditsScreenProps) {
   const contentPadBottom = useBottomSafePadding(24);
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+      <StatusBar barStyle="light-content" />
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>

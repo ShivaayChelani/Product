@@ -186,7 +186,7 @@ export default function VendorCustomersScreen({ onBack }: { onBack?: () => void 
 
   return (
     <View style={[s.safe, { paddingTop: Math.max(insets.top, 16) }]}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F6F1" />
+      <StatusBar barStyle="dark-content" />
       
       {loading && !customers.length ? (
         <View style={[s.center, { flex: 1 }]}>

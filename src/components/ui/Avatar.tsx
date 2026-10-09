@@ -45,7 +45,12 @@ export const Avatar = React.memo(({
     <TouchableOpacity onPress={onPress} activeOpacity={0.9} disabled={!onPress} style={[{ width: s.width, height: s.height }, style]}>
       <View style={styles.container}>
         {source?.uri ? (
-          <Image source={source} style={[styles.image, { width: s.width, height: s.height, borderRadius: radius }]} resizeMode="cover" fadeDuration={0} />
+          <Image
+            source={source.uri ? { ...source, width: Math.round(s.width * 2), height: Math.round(s.height * 2) } : source}
+            style={[styles.image, { width: s.width, height: s.height, borderRadius: radius }]}
+            resizeMode="cover"
+            fadeDuration={0}
+          />
         ) : (
           <View style={[styles.placeholder, { width: s.width, height: s.height, borderRadius: radius, backgroundColor: colors.primary + '15' }]}>
             <Text style={{ fontSize: s.fontSize }}>{emoji}</Text>
