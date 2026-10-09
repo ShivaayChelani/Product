@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 /**
- * Generate Android + iOS launcher icons from src/assets/logo1.png
+ * Generate Android + iOS launcher icons and the Play listing icon
+ * from src/assets/logo1.png (gold artwork, transparent source).
+ *
+ * All shipped icons are flattened onto solid #FFFFFF so the mark stays
+ * visible on dark launchers and Play Store dark theme.
+ *
  * Usage: node scripts/generate-app-icons.js
  */
 const fs = require('fs');
@@ -11,6 +16,10 @@ const ROOT = path.resolve(__dirname, '..');
 const SOURCE = path.join(ROOT, 'src', 'assets', 'logo1.png');
 const ANDROID_RES = path.join(ROOT, 'android', 'app', 'src', 'main', 'res');
 const IOS_ICON_DIR = path.join(ROOT, 'ios', 'PalSafar', 'Images.xcassets', 'AppIcon.appiconset');
+const PLAY_ICON_DIR = path.join(ROOT, 'store', 'google-play');
+const PLAY_ICON = path.join(PLAY_ICON_DIR, 'icon-512.png');
+
+const WHITE = { r: 255, g: 255, b: 255, alpha: 1 };
 
 const ANDROID_LAUNCHER = {
   'mipmap-mdpi': 48,
@@ -40,29 +49,26 @@ const IOS_ICONS = [
   { name: 'Icon-App-1024x1024@1x.png', size: 1024 },
 ];
 
-async function resizeIcon(size, outPath, transparent = false) {
-  const bg = transparent 
-    ? { r: 0, g: 0, b: 0, alpha: 0 }
-    : { r: 248, g: 244, b: 236, alpha: 1 };
+/** Flatten the gold logo onto an opaque white square. padRatio keeps a safe margin. */
+async function flattenLogoOnWhite(size, outPath, padRatio = 0.08) {
+  const inner = Math.max(1, Math.round(size * (1 - padRatio * 2)));
+  const pad = Math.round((size - inner) / 2);
 
-  await sharp(SOURCE)
-    .resize(size, size, { fit: 'contain', background: bg })
-    .png()
-    .toFile(outPath);
-}
-
-async function resizeAdaptiveForeground(size, outPath) {
-  // Adaptive icons safe zone is roughly 66/108 (61%). We pad it so the logo fits inside.
-  const innerSize = Math.round(size * 0.6);
-  const pad = Math.round((size - innerSize) / 2);
-  
-  await sharp(SOURCE)
-    .resize(innerSize, innerSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .extend({
-      top: pad, bottom: pad, left: pad, right: pad,
-      background: { r: 0, g: 0, b: 0, alpha: 0 }
-    })
-    .resize(size, size) // Ensure exact target size
+  await sharp({
+    create: { width: size, height: size, channels: 4, background: WHITE },
+  })
+    .composite([
+      {
+        input: await sharp(SOURCE)
+          .resize(inner, inner, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+          .png()
+          .toBuffer(),
+        top: pad,
+        left: pad,
+      },
+    ])
+    .flatten({ background: WHITE })
+    .removeAlpha()
     .png()
     .toFile(outPath);
 }
@@ -71,29 +77,23 @@ async function generateAndroid() {
   for (const [folder, size] of Object.entries(ANDROID_LAUNCHER)) {
     const dir = path.join(ANDROID_RES, folder);
     fs.mkdirSync(dir, { recursive: true });
-    // Legacy icons: transparent background
-    await resizeIcon(size, path.join(dir, 'ic_launcher.png'), true);
-    // Round icons: we can use padded adaptive foreground style but with a cream background circle
-    const pad = Math.round(size * 0.15); // Add some padding so it's not cropped by the circle
-    const inner = size - pad * 2;
-    await sharp(SOURCE)
-      .resize(inner, inner, { fit: 'contain', background: { r: 248, g: 244, b: 236, alpha: 1 } })
-      .extend({ top: pad, bottom: pad, left: pad, right: pad, background: { r: 248, g: 244, b: 236, alpha: 1 } })
-      .png()
-      .toFile(path.join(dir, 'ic_launcher_round.png'));
+    await flattenLogoOnWhite(size, path.join(dir, 'ic_launcher.png'), 0.08);
+    await flattenLogoOnWhite(size, path.join(dir, 'ic_launcher_round.png'), 0.16);
   }
 
   for (const [folder, size] of Object.entries(ANDROID_FOREGROUND)) {
     const dir = path.join(ANDROID_RES, folder);
     fs.mkdirSync(dir, { recursive: true });
-    await resizeAdaptiveForeground(size, path.join(dir, 'ic_launcher_foreground.png'));
+    // Adaptive safe zone is ~66/108. Keep the mark inside that circle.
+    await flattenLogoOnWhite(size, path.join(dir, 'ic_launcher_foreground.png'), 0.2);
   }
 }
 
 async function generateIos() {
   fs.mkdirSync(IOS_ICON_DIR, { recursive: true });
   for (const icon of IOS_ICONS) {
-    await resizeIcon(icon.size, path.join(IOS_ICON_DIR, icon.name));
+    const pad = icon.size >= 1024 ? 0.08 : 0.06;
+    await flattenLogoOnWhite(icon.size, path.join(IOS_ICON_DIR, icon.name), pad);
   }
 
   const contents = {
@@ -114,16 +114,22 @@ async function generateIos() {
   fs.writeFileSync(path.join(IOS_ICON_DIR, 'Contents.json'), JSON.stringify(contents, null, 2));
 }
 
+async function generatePlayListing() {
+  fs.mkdirSync(PLAY_ICON_DIR, { recursive: true });
+  await flattenLogoOnWhite(512, PLAY_ICON, 0.1);
+}
+
 async function main() {
   if (!fs.existsSync(SOURCE)) {
     console.error(`Source icon not found: ${SOURCE}`);
     process.exit(1);
   }
 
-  console.log(`Generating app icons from ${SOURCE}`);
+  console.log(`Generating app icons from ${SOURCE} on #FFFFFF`);
   await generateAndroid();
   await generateIos();
-  console.log('Done — Android mipmaps + iOS AppIcon.appiconset updated.');
+  await generatePlayListing();
+  console.log(`Done — Android mipmaps, iOS AppIcon, and ${path.relative(ROOT, PLAY_ICON)}.`);
 }
 
 main().catch((err) => {
