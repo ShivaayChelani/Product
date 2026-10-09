@@ -36,7 +36,7 @@ function displayValue(value: ReactNode): ReactNode {
 
 function FieldRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[150px_1fr] gap-2 border-b border-border py-2.5 last:border-0">
+    <div className="grid grid-cols-1 gap-1 border-b border-border py-2.5 last:border-0 sm:grid-cols-[150px_1fr] sm:gap-2">
       <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
       <dd className="text-sm text-foreground break-words">{displayValue(children)}</dd>
     </div>
@@ -129,17 +129,14 @@ function CreatorApplicationReview({ creator }: { creator: UserCreatorApplication
         <FieldRow label="Languages">
           {creator.languages?.length ? creator.languages.join(", ") : null}
         </FieldRow>
-        <FieldRow label="Instagram">
-          {creator.instagramUrl ? <ExternalLink href={creator.instagramUrl} /> : null}
-        </FieldRow>
         <FieldRow label="YouTube">
           {creator.youtubeUrl ? <ExternalLink href={creator.youtubeUrl} /> : null}
         </FieldRow>
         <FieldRow label="Facebook">
           {creator.facebookUrl ? <ExternalLink href={creator.facebookUrl} /> : null}
         </FieldRow>
-        <FieldRow label="Sample reel">
-          {creator.sampleReelUrl ? <ExternalLink href={creator.sampleReelUrl} label="Open reel" /> : null}
+        <FieldRow label="Sample Moment">
+          {creator.sampleReelUrl ? <ExternalLink href={creator.sampleReelUrl} label="Open Moment" /> : null}
         </FieldRow>
         <FieldRow label="Government ID">
           {creator.governmentIdUrl ? <ExternalLink href={creator.governmentIdUrl} label="Open document" /> : null}
@@ -254,13 +251,20 @@ export default function UsersPage() {
   // Server gates: user role/delete = requirePlatformOps (ADMIN/SUPER_ADMIN/OPS_ADMIN);
   // subscription grant = requireFinanceOps (+FINANCE_MANAGER). Mirrored here so the
   // UI hides controls the backend will 403 on.
-  const [viewerCapabilities, setViewerCapabilities] = useState({ platformOps: false, financeOps: false });
+  const [viewerCapabilities, setViewerCapabilities] = useState({
+    platformOps: false,
+    financeOps: false,
+    canGrantAdmin: false,
+    superAdmin: false,
+  });
 
   useEffect(() => {
     const role = getAdminRoleFromStorage();
     setViewerCapabilities({
       platformOps: role === "ADMIN" || role === "SUPER_ADMIN" || role === "OPS_ADMIN",
       financeOps: role === "ADMIN" || role === "SUPER_ADMIN" || role === "OPS_ADMIN" || role === "FINANCE_MANAGER",
+      canGrantAdmin: role === "ADMIN" || role === "SUPER_ADMIN",
+      superAdmin: role === "SUPER_ADMIN",
     });
   }, []);
 
@@ -519,6 +523,49 @@ export default function UsersPage() {
       },
     });
   }, [isSelf, selectedGrant, notify, fetchUsers]);
+
+  const handleDashboardRole = useCallback((user: User, next: "USER" | "ADMIN" | "SUPER_ADMIN") => {
+    if (isSelf(user)) {
+      notify("error", "You cannot change your own role.");
+      return;
+    }
+    if (next === "SUPER_ADMIN" && !viewerCapabilities.superAdmin) {
+      notify("error", "Only a Super Admin can grant Super Admin access.");
+      return;
+    }
+    if ((next === "ADMIN" || next === "USER") && !viewerCapabilities.canGrantAdmin) {
+      notify("error", "Only Admin or Super Admin can change dashboard roles.");
+      return;
+    }
+    if (user.permission === "SUPER_ADMIN" && !viewerCapabilities.superAdmin) {
+      notify("error", "Only a Super Admin can change another Super Admin.");
+      return;
+    }
+    if (user.permission === next) {
+      notify("error", `This account already has the ${next.replace("_", " ")} role.`);
+      return;
+    }
+
+    setConfirmDialog({
+      open: true,
+      title: `Set role to ${next.replace("_", " ")}`,
+      message: `Change ${user.name || user.email} from ${user.permission || "USER"} to ${next}? This is enforced on the server and written to the audit log.`,
+      variant: next === "USER" ? "danger" : "primary",
+      action: async () => {
+        setBusyId(user.id);
+        try {
+          const updated = await updateUserRole(user.id, next);
+          notify("success", `Role updated to ${updated.permission}`);
+          setDetailUser(updated);
+          fetchUsers();
+        } catch (err) {
+          notify("error", err instanceof Error ? err.message : "Failed to update role");
+        } finally {
+          setBusyId(null);
+        }
+      },
+    });
+  }, [isSelf, notify, fetchUsers, viewerCapabilities.canGrantAdmin, viewerCapabilities.superAdmin]);
 
   const handleBulkDelete = () => {
     const ids = Array.from(selectedIds).filter((id) => {
@@ -860,6 +907,47 @@ export default function UsersPage() {
                 </Link>
               </div>
             </div>
+
+            {viewerCapabilities.canGrantAdmin && !isSelf(detailUser) ? (
+              <div className="admin-card p-4">
+                <h3 className="mb-2 text-sm font-semibold">Dashboard role</h3>
+                <p className="mb-3 text-xs text-muted-foreground">
+                  USER ↔ ADMIN is enforced on the server. Super Admin can also assign SUPER_ADMIN. You cannot change your own role.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {detailUser.permission !== "USER" ? (
+                    <button
+                      type="button"
+                      disabled={busyId === detailUser.id}
+                      onClick={() => handleDashboardRole(detailUser, "USER")}
+                      className="admin-btn-secondary text-xs"
+                    >
+                      Set User
+                    </button>
+                  ) : null}
+                  {detailUser.permission !== "ADMIN" ? (
+                    <button
+                      type="button"
+                      disabled={busyId === detailUser.id}
+                      onClick={() => handleDashboardRole(detailUser, "ADMIN")}
+                      className="admin-btn-secondary text-xs"
+                    >
+                      Set Admin
+                    </button>
+                  ) : null}
+                  {viewerCapabilities.superAdmin && detailUser.permission !== "SUPER_ADMIN" ? (
+                    <button
+                      type="button"
+                      disabled={busyId === detailUser.id}
+                      onClick={() => handleDashboardRole(detailUser, "SUPER_ADMIN")}
+                      className="admin-btn-primary text-xs"
+                    >
+                      Set Super Admin
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
 
             {detailLoading ? (
               <p className="py-8 text-center text-sm text-muted-foreground">Loading application details…</p>

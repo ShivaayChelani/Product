@@ -29,7 +29,7 @@ export const EVENT_INCLUDE = {
     },
   },
   vendor: { select: { id: true, businessName: true, status: true } },
-  _count: { select: { reels: true, reports: true } },
+  _count: { select: { reels: { where: { status: 'APPROVED' } }, reports: true } },
 } satisfies Prisma.EventInclude;
 
 export type EventWithRelations = Prisma.EventGetPayload<{ include: typeof EVENT_INCLUDE }>;

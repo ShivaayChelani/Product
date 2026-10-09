@@ -26,6 +26,16 @@ export const legalController = {
     sendSuccess(res, result);
   }),
 
+  getAcceptanceStatus: catchAsync(async (req: any, res: Response) => {
+    const result = await legalService.getAcceptanceStatus(req.user.id);
+    sendSuccess(res, result);
+  }),
+
+  acceptCurrent: catchAsync(async (req: any, res: Response) => {
+    const result = await legalService.acceptCurrent(req.user.id, req.body);
+    sendSuccess(res, result, { message: 'Legal acceptance recorded' });
+  }),
+
   // ── Admin ──
   listDocuments: catchAsync(async (req: any, res: Response) => {
     const locale = (req.query.locale as string) || 'en';

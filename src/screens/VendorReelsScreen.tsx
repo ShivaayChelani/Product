@@ -7,6 +7,9 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { useBottomSafePadding } from '../design/responsive';
 import { vendorsApi } from '../services/api/vendors';
 import { normalizeReelCaption } from '../components/reels/reelCaptionUtils';
+import { creatorAtHandle } from '../utils/creatorHandle';
+import { getReelThumbnail } from '../services/reelService';
+import { hasValidImageUrl } from '../utils/imageUrl';
 
 interface VendorReelItem {
   id: string;
@@ -53,7 +56,7 @@ export default function VendorReelsScreen({
       const promoItems: VendorReelItem[] = (Array.isArray(vendorReels) ? vendorReels : []).map((r) => ({
         id: r.id,
         videoUrl: r.videoUrl,
-        thumbnail: r.thumbnail,
+        thumbnail: getReelThumbnail(r) || r.thumbnail,
         title: r.title,
         description: r.description,
         likes: r.likes,
@@ -63,8 +66,8 @@ export default function VendorReelsScreen({
       const taggedItems: VendorReelItem[] = (tagged.reels || []).map((r) => ({
         id: r.id,
         videoUrl: r.videoUrl,
-        thumbnail: r.thumbnail,
-        title: r.title || `@${r.creator.username}`,
+        thumbnail: getReelThumbnail(r) || r.thumbnail,
+        title: r.title || creatorAtHandle(r.creator.username, 'Creator'),
         description: r.description,
         createdAt: r.createdAt,
       }));
@@ -76,7 +79,7 @@ export default function VendorReelsScreen({
       });
       setReels(combined);
     } catch {
-      setError('Failed to load vendor reels');
+      setError('Failed to load vendor Moments');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -129,8 +132,8 @@ export default function VendorReelsScreen({
           ListEmptyComponent={
             <View style={styles.centered}>
               <Icon name="videocam-outline" size={48} color="#6B6B6B" />
-              <Text style={styles.emptyTitle}>No reels yet</Text>
-              <Text style={styles.emptyText}>Published business reels and allowed creator reels will show up here.</Text>
+              <Text style={styles.emptyTitle}>No Moments yet</Text>
+              <Text style={styles.emptyText}>Published business Moments and allowed creator Moments will show up here.</Text>
             </View>
           }
           renderItem={({ item, index }) => (
@@ -139,8 +142,8 @@ export default function VendorReelsScreen({
               activeOpacity={0.85}
               onPress={() => onOpenReel?.(item.id, { reels: reels as any, initialIndex: index })}
             >
-              {item.thumbnail ? (
-                <Image source={{ uri: item.thumbnail }} style={styles.thumb} />
+              {hasValidImageUrl(getReelThumbnail(item)) ? (
+                <Image source={{ uri: getReelThumbnail(item) }} style={styles.thumb} />
               ) : (
                 <View style={[styles.thumb, styles.thumbPlaceholder]}>
                   <Icon name="play-circle" size={36} color="#111111" />
@@ -148,7 +151,7 @@ export default function VendorReelsScreen({
               )}
               <View style={styles.cardBody}>
                 <Text style={styles.cardTitle} numberOfLines={2}>
-                  {item.title || normalizeReelCaption(item.description) || 'Vendor reel'}
+                  {item.title || normalizeReelCaption(item.description) || 'Vendor Moment'}
                 </Text>
                 <Text style={styles.cardMeta}>
                   {(item.views || 0).toLocaleString()} views · {(item.likes || 0).toLocaleString()} likes

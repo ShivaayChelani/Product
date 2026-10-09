@@ -102,48 +102,48 @@ export default function GrantSubscriptionModal({ open, userId, userName, onClose
   const durationLabel = GRANT_DURATION_OPTIONS.find((d) => d.months === durationMonths)?.label || `${durationMonths} months`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-          <h2 className="text-lg font-bold text-gray-900">Grant Vendor Subscription</h2>
-          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100" disabled={submitting}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+      <div className="flex max-h-[min(90vh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-xl">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <h2 className="text-lg font-bold text-foreground">Grant Vendor Subscription</h2>
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground" disabled={submitting} aria-label="Close">
             <X size={18} />
           </button>
         </div>
 
-        <div className="space-y-4 px-6 py-5">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
           {loading ? (
             <div className="flex items-center justify-center py-10">
-              <Loader2 size={20} className="animate-spin text-gray-400" />
+              <Loader2 size={20} className="animate-spin text-muted-foreground" />
             </div>
           ) : (
             <>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                <p className="text-slate-500">Vendor</p>
-                <p className="font-semibold text-slate-900">{displayName}</p>
-                {vendor?.email ? <p className="text-xs text-slate-500">{vendor.email}</p> : null}
-                <p className="mt-2 text-slate-500">Current subscription</p>
+              <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm">
+                <p className="text-muted-foreground">Vendor</p>
+                <p className="font-semibold text-foreground">{displayName}</p>
+                {vendor?.email ? <p className="text-xs text-muted-foreground">{vendor.email}</p> : null}
+                <p className="mt-2 text-muted-foreground">Current subscription</p>
                 {current ? (
-                  <p className="font-medium text-slate-900">
+                  <p className="font-medium text-foreground">
                     {current.planName} · {current.status} · expires{" "}
                     {new Date(current.currentPeriodEnd).toLocaleDateString()}
                   </p>
                 ) : (
-                  <p className="font-medium text-slate-900">{vendor?.subscriptionStatus || "NONE"}</p>
+                  <p className="font-medium text-foreground">{vendor?.subscriptionStatus || "NONE"}</p>
                 )}
               </div>
 
               {step === "form" ? (
                 <>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-600">Plan</label>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Plan</label>
                     {plans.length === 0 ? (
                       <p className="text-sm text-amber-600">No active vendor plans found in the catalog.</p>
                     ) : (
                       <select
                         value={planId}
                         onChange={(e) => setPlanId(e.target.value)}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                        className="admin-input"
                       >
                         {plans.map((p) => (
                           <option key={p.id} value={p.id}>
@@ -155,11 +155,11 @@ export default function GrantSubscriptionModal({ open, userId, userName, onClose
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-600">Duration</label>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Duration</label>
                     <select
                       value={durationMonths}
                       onChange={(e) => setDurationMonths(Number(e.target.value) as 1 | 3 | 6 | 12)}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                      className="admin-input"
                     >
                       {GRANT_DURATION_OPTIONS.map((d) => (
                         <option key={d.months} value={d.months}>
@@ -170,8 +170,8 @@ export default function GrantSubscriptionModal({ open, userId, userName, onClose
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-600">
-                      Admin note <span className="text-gray-400">— optional</span>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                      Admin note <span className="text-muted-foreground/80">— optional</span>
                     </label>
                     <textarea
                       value={reason}
@@ -179,7 +179,7 @@ export default function GrantSubscriptionModal({ open, userId, userName, onClose
                       maxLength={1000}
                       rows={3}
                       placeholder="Reason for this grant"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                      className="admin-input"
                     />
                   </div>
                 </>
@@ -203,13 +203,13 @@ export default function GrantSubscriptionModal({ open, userId, userName, onClose
           )}
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-gray-100 px-6 py-4">
+        <div className="flex justify-end gap-2 border-t border-border px-6 py-4">
           {step === "confirm" ? (
             <button
               type="button"
               onClick={() => setStep("form")}
               disabled={submitting}
-              className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-200 disabled:opacity-50"
+              className="admin-btn-secondary"
             >
               Back
             </button>
@@ -218,7 +218,7 @@ export default function GrantSubscriptionModal({ open, userId, userName, onClose
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-200 disabled:opacity-50"
+              className="admin-btn-secondary"
             >
               Cancel
             </button>

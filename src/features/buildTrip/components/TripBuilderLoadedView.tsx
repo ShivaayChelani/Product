@@ -433,7 +433,7 @@ export function TripBuilderLoadedView({ trip, onTripChange }: Props) {
         </PressableScale>
       </View>
 
-      <Modal visible={!!durationModal} transparent animationType="fade">
+      <Modal visible={!!durationModal} transparent animationType="fade" onRequestClose={() => setDurationModal(null)}>
         <View style={styles.modalBg}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Visit duration (minutes)</Text>

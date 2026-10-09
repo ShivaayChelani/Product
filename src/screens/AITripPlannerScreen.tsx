@@ -747,10 +747,10 @@ export default function AITripPlannerScreen({
               {[0, 1, 2, 3, 4, 5, 6].map(i => (
                 <View key={i} style={[styles.generateDot, { left: `${12 + i * 10}%` }]} />
               ))}
-              <Icon name="airplane" size={13} color={COLORS.gold} style={styles.generatePlane} />
+              <Icon name="airplane" size={13} color="#FFFFFF" style={styles.generatePlane} />
             </View>
             {generating ? (
-              <ActivityIndicator color={COLORS.gold} />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text style={styles.generateBtnText}>
                 Generate My AI Trip <Text style={styles.sparkle}>✨</Text>
@@ -1308,7 +1308,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   generateBtnText: {
-    color: COLORS.gold,
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
     fontFamily: serif,

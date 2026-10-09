@@ -46,6 +46,7 @@ vi.mock('../shared/utils/userEmailLookup', () => ({
 vi.mock('../modules/legal/legal.service', () => ({
   legalService: {
     getCurrentVersions: vi.fn().mockResolvedValue({ termsVersion: 3, privacyVersion: 4 }),
+    recordUserAcceptance: vi.fn().mockResolvedValue(undefined),
   },
 }));
 

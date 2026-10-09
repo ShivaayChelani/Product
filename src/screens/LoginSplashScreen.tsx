@@ -87,11 +87,11 @@ export default function LoginSplashScreen({ navigation, onGoogleLogin, onAppleLo
         <View style={styles.footer}>
           <Text style={styles.footerText}>
             By continuing, you agree to our{' '}
-            <Text style={styles.footerLink} onPress={() => navigation.navigate('LegalHub')}>
+            <Text style={styles.footerLink} onPress={() => navigation.navigate('AuthLegalDocument', { type: 'TERMS_CONDITIONS', title: 'Terms & Conditions' })}>
               Terms & Conditions
             </Text>
             {' '}and{' '}
-            <Text style={styles.footerLink} onPress={() => navigation.navigate('LegalHub')}>
+            <Text style={styles.footerLink} onPress={() => navigation.navigate('AuthLegalDocument', { type: 'PRIVACY_POLICY', title: 'Privacy Policy' })}>
               Privacy Policy
             </Text>
           </Text>

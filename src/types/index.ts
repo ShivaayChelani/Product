@@ -415,8 +415,8 @@ export interface Reel {
   thumbnail: string | null;
   title: string | null;
   description: string | null;
-  /** PENDING | APPROVED | REJECTED | HIDDEN — HIDDEN used as studio "Drafts" */
-  status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'HIDDEN' | string;
+  /** PENDING | APPROVED | REJECTED | HIDDEN | DRAFT | ARCHIVED | SCHEDULED — HIDDEN is treated as studio Drafts */
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'HIDDEN' | 'DRAFT' | 'ARCHIVED' | 'SCHEDULED' | string;
   likes: number;
   views: number;
   shares: number;

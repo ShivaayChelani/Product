@@ -1,8 +1,8 @@
+// Apply TEST_DATABASE_URL/DIRECT_URL before Prisma binds its datasource URL.
+// This import MUST stay first among the imports below.
+import './apply-test-env';
 import { prisma } from '../../config/database';
-import { applyTestDatabaseEnv } from '../../config/test-database';
 import { withRetry } from '../../utils/retry';
-
-applyTestDatabaseEnv();
 
 beforeAll(async () => {
   await withRetry(() => prisma.$connect(), { maxRetries: 5, baseDelayMs: 500 });

@@ -9,6 +9,7 @@ import {
   createVersionSchema,
   updateVersionSchema,
   rollbackVersionSchema,
+  acceptCurrentSchema,
 } from './legal.validation';
 
 // ── Public: mobile app reads only the latest published version, never raw drafts ──
@@ -17,6 +18,8 @@ const router = Router();
 router.get('/types', legalController.listTypes);
 // Must be registered BEFORE /:type to avoid the wildcard swallowing it
 router.get('/current-versions', legalController.getCurrentVersions);
+router.get('/acceptance-status', authenticate, legalController.getAcceptanceStatus);
+router.post('/accept', authenticate, validate(acceptCurrentSchema), legalController.acceptCurrent);
 router.get('/:type', validate(legalTypeParamSchema, 'params'), legalController.getPublished);
 
 export default router;

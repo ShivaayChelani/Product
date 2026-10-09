@@ -25,6 +25,8 @@ export async function resolveCityFromGps(lat: number, lng: number): Promise<Reso
       addr.city ||
       addr.town ||
       addr.village ||
+      addr.municipality ||
+      addr.suburb ||
       addr.county ||
       addr.state_district ||
       '';

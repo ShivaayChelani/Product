@@ -8,7 +8,6 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
-  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useForm, Controller } from 'react-hook-form';
@@ -44,8 +43,6 @@ const schema = z
   });
 
 type FormValues = z.infer<typeof schema>;
-
-const LOCK_ART = require('../assets/splash.png');
 
 export default function ChangePasswordScreen({ navigation }: { navigation?: any }) {
   const insets = useSafeAreaInsets();
@@ -103,9 +100,6 @@ export default function ChangePasswordScreen({ navigation }: { navigation?: any 
           topInset={insets.top}
           compact
         />
-        <View style={styles.illustrationWrap}>
-          <Image source={LOCK_ART} style={styles.illustration} resizeMode="contain" />
-        </View>
         <View style={styles.form}>
           <Controller
             control={control}
@@ -171,15 +165,9 @@ export default function ChangePasswordScreen({ navigation }: { navigation?: any 
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
-  illustrationWrap: {
-    alignItems: 'center',
-    marginTop: -8,
-    marginBottom: 8,
-    height: 120,
-  },
-  illustration: { width: 160, height: 120, opacity: 0.92 },
   form: {
     paddingHorizontal: 20,
+    paddingTop: 16,
     gap: 18,
   },
   tipCard: {

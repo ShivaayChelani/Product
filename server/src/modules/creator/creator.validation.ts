@@ -25,6 +25,10 @@ export const createDraftSchema = z.object({
   tags: z.array(z.enum(REEL_TAGS)).max(REEL_TAGS.length).optional(),
 });
 
+export const reelArchiveSchema = z.object({
+  archived: z.boolean(),
+});
+
 export const updateCreatorProfileSchema = z.object({
   username: z.string().min(3).max(30).optional(),
   fullName: z.string().max(100).optional(),

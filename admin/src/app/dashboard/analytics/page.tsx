@@ -283,9 +283,9 @@ const topCities = useMemo(
             <p className="mt-1 text-sm text-muted-foreground">Verified tourist destinations in database</p>
           </div>
           <div className="admin-card p-5">
-            <h2 className="mb-4 text-sm font-bold">Reel & Content Uploads</h2>
+            <h2 className="mb-4 text-sm font-bold">Moment & Content Uploads</h2>
             <p className="text-2xl font-bold tabular-nums">{overview?.kpis?.reelsUploaded?.value?.toLocaleString() ?? "—"}</p>
-            <p className="text-sm text-muted-foreground">Total reels uploaded (30-day trend in dashboard)</p>
+            <p className="text-sm text-muted-foreground">Total Moments uploaded (30-day trend in dashboard)</p>
           </div>
           {topCities.length > 0 && (
             <div className="admin-card p-5 lg:col-span-2">

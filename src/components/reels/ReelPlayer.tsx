@@ -3,6 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated, Image, ActivityIndi
 import Video, { VideoRef } from 'react-native-video';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { isStaticImageUrl } from '../../services/reels/reelMediaKind';
+import {
+  clampReelProgress,
+  percentToSeekTime,
+  seekVideoToPercent,
+  shouldAcceptProgressAfterSeek,
+} from './reelSeek';
 
 interface ReelPlayerProps {
   videoUrl: string;
@@ -51,13 +57,25 @@ export const ReelPlayer = React.memo(React.forwardRef<ReelPlayerRef, ReelPlayerP
   const playIconOpacity = useRef(new Animated.Value(0)).current;
   const videoRef = useRef<VideoRef>(null);
   const durationRef = useRef(0);
+  const isActiveRef = useRef(isActive);
+  const onProgressRef = useRef(onProgress);
+  const seekTargetTimeRef = useRef<number | null>(null);
+  const suppressProgressUntilRef = useRef(0);
+  isActiveRef.current = isActive;
+  onProgressRef.current = onProgress;
 
   React.useImperativeHandle(ref, () => ({
     seekToPercent: (pct: number) => {
-      if (videoRef.current && durationRef.current > 0) {
-        videoRef.current.seek(pct * durationRef.current);
-      }
-    }
+      if (!isActiveRef.current) return;
+      const player = videoRef.current;
+      if (!player) return;
+      const time = percentToSeekTime(durationRef.current, pct);
+      if (time == null) return;
+      seekVideoToPercent(player, durationRef.current, pct);
+      seekTargetTimeRef.current = time;
+      suppressProgressUntilRef.current = Date.now() + 450;
+      onProgressRef.current?.(clampReelProgress(pct));
+    },
   }));
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -67,6 +85,8 @@ export const ReelPlayer = React.memo(React.forwardRef<ReelPlayerRef, ReelPlayerP
   useEffect(() => {
     setIsError(!resolvedInitial);
     setIsBuffering(!!resolvedInitial);
+    durationRef.current = 0;
+    seekTargetTimeRef.current = null;
   }, [resolvedInitial]);
 
   useEffect(() => {
@@ -147,38 +167,48 @@ export const ReelPlayer = React.memo(React.forwardRef<ReelPlayerRef, ReelPlayerP
       disabled={!showVideo && !showImage && !posterUrl}
     >
       {posterUrl ? (
-        <Image source={{ uri: posterUrl }} style={styles.poster} resizeMode="cover" />
+        <Image source={{ uri: posterUrl }} style={styles.poster} resizeMode="contain" />
       ) : null}
 
       {showImage ? (
-        <Image source={{ uri: resolvedInitial }} style={styles.video} resizeMode="cover" />
+        <Image source={{ uri: resolvedInitial }} style={styles.video} resizeMode="contain" />
       ) : showVideo ? (
         <View style={styles.video} pointerEvents="none">
           <Video
           ref={videoRef}
           source={{ uri: resolvedInitial }}
           style={styles.video}
-          resizeMode="cover"
+          resizeMode="contain"
           repeat
           paused={actuallyPaused}
           muted={muted}
           poster={posterUrl || undefined}
-          posterResizeMode="cover"
+          posterResizeMode="contain"
           playInBackground={false}
           playWhenInactive={false}
           ignoreSilentSwitch="ignore"
           onLoadStart={() => setIsBuffering(true)}
           onLoad={(data) => {
             setIsBuffering(false);
-            if (data?.duration) durationRef.current = data.duration;
+            if (Number.isFinite(data?.duration) && data.duration > 0) {
+              durationRef.current = data.duration;
+            }
           }}
           onReadyForDisplay={() => setIsBuffering(false)}
           onBuffer={({ isBuffering: buffering }) => setIsBuffering(!!buffering)}
-          onProgress={({ currentTime, seekableDuration }) => {
-            if (seekableDuration > 0) durationRef.current = seekableDuration;
-            if (isActive && durationRef.current > 0) {
-              onProgress?.(currentTime / durationRef.current);
+          onProgress={({ currentTime }) => {
+            if (!isActive || durationRef.current <= 0) return;
+            if (!shouldAcceptProgressAfterSeek({
+              now: Date.now(),
+              suppressUntil: suppressProgressUntilRef.current,
+              currentTime,
+              seekTargetTime: seekTargetTimeRef.current,
+            })) {
+              return;
             }
+            seekTargetTimeRef.current = null;
+            const progress = currentTime / durationRef.current;
+            onProgress?.(clampReelProgress(progress));
           }}
           progressUpdateInterval={250}
           onError={() => {

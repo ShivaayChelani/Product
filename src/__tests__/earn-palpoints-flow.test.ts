@@ -12,7 +12,7 @@ describe('Earn PalPoints option wiring', () => {
 
   it('Wallet earn cards navigate to real actions and do not credit on tap', () => {
     const wallet = read('screens/WalletScreen.tsx');
-    expect(wallet).toMatch(/First creator reel of the day/);
+    expect(wallet).toMatch(/First creator Moment of the day/);
     expect(wallet).toMatch(/navigation\.navigate\("CreateReel"\)/);
     expect(wallet).toMatch(/Earn by submitting hidden gem/);
     expect(wallet).toMatch(/navigation\.navigate\("AddHiddenGem"\)/);

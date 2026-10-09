@@ -113,7 +113,7 @@ export default function VendorCodeRedeemModal({
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color={COLORS.text} />
+              <ActivityIndicator color="#6B6B6B" />
             ) : (
               <Text style={styles.submitText}>Confirm Redemption</Text>
             )}
@@ -209,11 +209,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   submitBtnDisabled: {
-    opacity: 0.7,
+    backgroundColor: '#E8E8ED',
   },
   submitText: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text,
+    color: '#FFFFFF',
   },
 });

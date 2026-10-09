@@ -70,7 +70,7 @@ const FEATURE_CATALOG: Array<{
   { key: 'event_promotion', name: 'Premium Event Promotion', audience: FeatureAudience.VENDOR, sortOrder: 18 },
   { key: 'diamond_badge', name: 'Exclusive Diamond Badge', audience: FeatureAudience.VENDOR, sortOrder: 19 },
   { key: 'creator_profile', name: 'Creator Profile', audience: FeatureAudience.CREATOR, sortOrder: 1 },
-  { key: 'unlimited_reels', name: 'Unlimited Reel Uploads', audience: FeatureAudience.CREATOR, sortOrder: 2 },
+  { key: 'unlimited_reels', name: 'Unlimited Moment Uploads', audience: FeatureAudience.CREATOR, sortOrder: 2 },
   { key: 'campaign_opportunities', name: 'Campaign Opportunities', audience: FeatureAudience.CREATOR, sortOrder: 3 },
   { key: 'creator_analytics', name: 'Creator Analytics', audience: FeatureAudience.CREATOR, sortOrder: 4 },
   { key: 'audience_insights', name: 'Audience Insights', audience: FeatureAudience.CREATOR, sortOrder: 5 },
@@ -304,7 +304,7 @@ export function defaultPlansSpec(): Array<{
         slug: CANONICAL_PLAN_SLUGS.vendorStarter,
         audience: PlanAudience.VENDOR,
         name: 'Starter',
-        description: 'Get discovered on the PalSafar map with a business listing, 1 offer, and 2 reels per month.',
+        description: 'Get discovered on the PalSafar map with a business listing, 1 offer, and 2 Moments per month.',
         badge: 'Starter',
         color: '#0E7490',
         sortOrder: 20,
@@ -317,7 +317,7 @@ export function defaultPlansSpec(): Array<{
           ],
           limits: [
             { limitKey: 'maxOffers', limitValue: 1, displayLabel: limitDisplay(1, 'active offer') },
-            { limitKey: 'maxReels', limitValue: 2, displayLabel: limitDisplay(2, 'reels / month') },
+            { limitKey: 'maxReels', limitValue: 2, displayLabel: limitDisplay(2, 'Moments / month') },
           ],
           permissions: [
             { permissionKey: 'canCreateOffer', enabled: true },
@@ -331,7 +331,7 @@ export function defaultPlansSpec(): Array<{
         slug: CANONICAL_PLAN_SLUGS.vendorGrowth,
         audience: PlanAudience.VENDOR,
         name: 'Growth',
-        description: 'Grow with 5 active offers and 7 reels per month, plus a live map listing.',
+        description: 'Grow with 5 active offers and 7 Moments per month, plus a live map listing.',
         badge: 'Growth',
         color: '#0284C7',
         sortOrder: 21,
@@ -346,7 +346,7 @@ export function defaultPlansSpec(): Array<{
           ],
           limits: [
             { limitKey: 'maxOffers', limitValue: 5, displayLabel: limitDisplay(5, 'active offers') },
-            { limitKey: 'maxReels', limitValue: 7, displayLabel: limitDisplay(7, 'reels / month') },
+            { limitKey: 'maxReels', limitValue: 7, displayLabel: limitDisplay(7, 'Moments / month') },
           ],
           permissions: [
             { permissionKey: 'canCreateOffer', enabled: true },
@@ -362,7 +362,7 @@ export function defaultPlansSpec(): Array<{
         slug: CANONICAL_PLAN_SLUGS.vendorUnlimited,
         audience: PlanAudience.VENDOR,
         name: 'Unlimited',
-        description: 'Unlimited offers and reels, with a live PalSafar map listing.',
+        description: 'Unlimited offers and Moments, with a live PalSafar map listing.',
         badge: 'Unlimited',
         color: '#0B1F3A',
         sortOrder: 22,
@@ -378,7 +378,7 @@ export function defaultPlansSpec(): Array<{
           ],
           limits: [
             { limitKey: 'maxOffers', limitValue: UNLIMITED, displayLabel: 'Unlimited offers' },
-            { limitKey: 'maxReels', limitValue: UNLIMITED, displayLabel: 'Unlimited reels' },
+            { limitKey: 'maxReels', limitValue: UNLIMITED, displayLabel: 'Unlimited Moments' },
           ],
           permissions: [
             { permissionKey: 'canCreateOffer', enabled: true },
@@ -395,7 +395,7 @@ export function defaultPlansSpec(): Array<{
         slug: CANONICAL_PLAN_SLUGS.creatorPro,
         audience: PlanAudience.CREATOR,
         name: 'Creator Pro',
-        description: 'Unlimited reels, campaign opportunities, and creator analytics.',
+        description: 'Unlimited Moments, campaign opportunities, and creator analytics.',
         badge: 'Pro',
         color: '#7C3AED',
         sortOrder: 30,

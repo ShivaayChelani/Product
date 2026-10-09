@@ -545,13 +545,13 @@ function CreateReelWrapper({ navigation, route }: any) {
       onProgress?.(100);
       const { Alert } = require('react-native');
       Alert.alert('Submitted', collaborationId && route.params?.revisionNote
-        ? 'Your updated reel was sent to the vendor for review.'
-        : 'Your collaboration reel was sent to the vendor for review.', [
+        ? 'Your updated Moment was sent to the vendor for review.'
+        : 'Your collaboration Moment was sent to the vendor for review.', [
         { text: 'OK', onPress: () => navigation.replace('CollaborationDetail', { collaborationId }) },
       ]);
     } catch (err: any) {
       const { Alert } = require('react-native');
-      Alert.alert('Upload failed', err?.message || 'Could not submit collaboration reel.');
+      Alert.alert('Upload failed', err?.message || 'Could not submit collaboration Moment.');
       throw err;
     }
   }, [collaborationId, handleCreateReel, navigation, editReel?.id, route.params?.revisionNote]);
@@ -567,6 +567,7 @@ function CreateReelWrapper({ navigation, route }: any) {
       prefillPlaceId={route.params?.prefillPlaceId}
       prefillPlaceName={route.params?.prefillPlaceName}
       editReel={editReel}
+      editorMode={route.params?.editorMode}
       collaborationId={collaborationId}
       revisionNote={route.params?.revisionNote}
       prefillMediaUri={route.params?.prefillMediaUri}
@@ -673,10 +674,10 @@ function ReelDetailWrapper({ route, navigation }: { route: RouteProp<RootStackPa
 
   if (!reel) return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000', padding: 24 }}>
-      <Text style={{ color: '#fff', marginBottom: 16 }}>Reel not found</Text>
+      <Text style={{ color: '#fff', marginBottom: 16 }}>Moment not found</Text>
       <TouchableOpacity
         onPress={closeReel}
-        accessibilityLabel="Close reel"
+        accessibilityLabel="Close Moment"
         style={{ paddingHorizontal: 16, paddingVertical: 10 }}
       >
         <Text style={{ color: '#fff', fontWeight: '700' }}>Close</Text>
@@ -896,10 +897,7 @@ function TreasureHuntSuccessWrapper({ route }: any) {
   return <Screen huntId={route.params?.huntId} rewardCoins={route.params?.rewardCoins} completed={route.params?.completed} city={route.params?.city} />;
 }
 
-function BlockListWrapper() {
-  const { BlockListScreen } = require('../screens/settings/BlockListScreen');
-  return <BlockListScreen />;
-}
+
 
 function LicensesWrapper() {
   const { LicensesScreen } = require('../screens/settings/MiscSettingsScreens');
@@ -1190,7 +1188,7 @@ const sharedStackScreens = (
     <Stack.Screen name="ActiveSessions" component={ActiveSessionsWrapper} />
     <Stack.Screen name="StorageSettings" component={StorageSettingsWrapper} />
     <Stack.Screen name="OfflineSettings" component={OfflineSettingsWrapper} />
-    <Stack.Screen name="BlockList" component={BlockListWrapper} />
+
     <Stack.Screen name="Licenses" component={LicensesWrapper} />
     <Stack.Screen name="Feedback" component={FeedbackWrapper} />
     <Stack.Screen name="Notifications" component={NotificationsWrapper} />

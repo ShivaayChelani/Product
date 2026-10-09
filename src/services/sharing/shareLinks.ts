@@ -9,6 +9,9 @@
  * - Digital Asset Links at https://palsafar.in/.well-known/assetlinks.json
  * - iOS associated domain applinks:palsafar.in
  */
+import { isValidPalSafarUsername } from '../../utils/creatorHandle';
+import { reelUserFacingCaption } from '../../components/reels/reelCaptionUtils';
+
 export const PALSAFAR_WEB_ORIGIN = 'https://palsafar.in';
 
 const CUID_OR_UUID =
@@ -46,18 +49,12 @@ export function buildEventShareUrl(idOrSlug: string): string | null {
 }
 
 /**
- * Mirrors the server's username rule (social.validation.ts: 3-30 chars of
- * `[a-zA-Z0-9_.]`) narrowed to what is safe as a single path segment.
- */
-const PUBLIC_CREATOR_USERNAME = /^[a-zA-Z0-9_.]{3,30}$/;
-
-/**
  * Public creator profile URL: https://palsafar.in/creator/:identifier
  *
  * Prefers the stable `CreatorProfile.id`. Legacy rows can hold a pasted
- * Instagram URL in `username`, and deriving a handle from that would mint a
- * link that does not resolve, so the username is only used when it already
- * satisfies the app's own username rule. The server accepts either identifier.
+ * Instagram URL in `username`, and minting a link from such a value would leak
+ * social content, so the username is only used when it is a genuine PalSafar
+ * username (never a URL or social handle). The server accepts either identifier.
  */
 export function buildCreatorShareUrl(creator: {
   id?: string | null;
@@ -67,7 +64,7 @@ export function buildCreatorShareUrl(creator: {
     return `${PALSAFAR_WEB_ORIGIN}/creator/${encodeURIComponent(creator.id!.trim())}`;
   }
   const username = typeof creator.username === 'string' ? creator.username.trim() : '';
-  if (!PUBLIC_CREATOR_USERNAME.test(username)) return null;
+  if (!isValidPalSafarUsername(username)) return null;
   return `${PALSAFAR_WEB_ORIGIN}/creator/${encodeURIComponent(username)}`;
 }
 
@@ -98,17 +95,21 @@ export function isPublicShareableReel(reel: {
 export function buildReelShareMessage(reel: {
   id: string;
   status?: string | null;
-  title?: string | null;
-  description?: string | null;
+  title?: unknown;
+  description?: unknown;
 }): string | null {
   if (!isPublicShareableReel(reel)) return null;
   const url = buildReelShareUrl(reel.id);
   if (!url) return null;
-  const caption = (reel.description || reel.title || '').trim();
-  if (caption) {
-    return `Check out this reel on PalSafar! 🎬\n${caption}\n${url}`;
+  const intro = 'Check out this Moment on PalSafar! 🎬';
+  const caption = reelUserFacingCaption(reel.description, reel.title);
+  if (caption && caption !== url) {
+    if (caption.includes(url)) {
+      return `${intro}\n\n${caption}`;
+    }
+    return `${intro}\n\n${caption}\n\n${url}`;
   }
-  return `Check out this reel on PalSafar! 🎬\n${url}`;
+  return `${intro}\n\n${url}`;
 }
 
 /**

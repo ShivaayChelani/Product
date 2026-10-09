@@ -189,6 +189,10 @@ export const palPointsPartnerService = {
     if (!config.enabled) throw new ApiError(403, 'Pal Points Partner program is currently disabled.');
 
     return prisma.$transaction(async (tx) => {
+      // Serialize concurrent redemptions from the same traveller so the
+      // daily/monthly limit checks and the debit cannot race.
+      await tx.$queryRaw`SELECT id FROM wallets WHERE user_id = ${userId} FOR UPDATE`;
+
       const offer = await tx.vendorPalPointsPartnerOffer.findUnique({
         where: { id: partnerOfferId },
         include: {
@@ -296,6 +300,35 @@ export const palPointsPartnerService = {
             amount: -pointsRequired,
             type: 'SPEND',
             reason: `partner_redeem:${offer.title}`,
+            referenceId: redemption.id,
+            referenceType: 'PAL_POINTS_PARTNER',
+          },
+        });
+      }
+
+      // Vendor credit — mirror the offer-redemption model (1:1 points).
+      await tx.wallet.upsert({
+        where: { userId: vendor.userId },
+        create: {
+          userId: vendor.userId,
+          palPoints: pointsRequired,
+          lifetimeEarned: pointsRequired,
+          lifetimeSpent: 0,
+        },
+        update: {
+          palPoints: { increment: pointsRequired },
+          lifetimeEarned: { increment: pointsRequired },
+        },
+      });
+      const vendorWallet = await tx.wallet.findUnique({ where: { userId: vendor.userId } });
+      if (vendorWallet) {
+        await tx.walletTransaction.create({
+          data: {
+            walletId: vendorWallet.id,
+            userId: vendor.userId,
+            amount: pointsRequired,
+            type: 'EARN',
+            reason: `partner_offer_redeem:${offer.title}`,
             referenceId: redemption.id,
             referenceType: 'PAL_POINTS_PARTNER',
           },

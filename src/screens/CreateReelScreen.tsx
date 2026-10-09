@@ -17,15 +17,23 @@ import {
 import Geolocation from 'react-native-geolocation-service';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Video from 'react-native-video';
-import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
+import { launchImageLibrary } from 'react-native-image-picker';
+import { captureReelMedia } from '../services/media/reelCamera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUserContext } from '../context/UserContext';
 import { useDataContext } from '../context/DataContext';
-import { placesApi, vendorsApi } from '../services/api';
+import { useQueryClient } from '@tanstack/react-query';
+import { placesApi, socialApi, vendorsApi } from '../services/api';
 import { creatorApi } from '../features/creator/api/creatorApi';
 import { caughtErrorMessage } from '../utils/caughtError';
 import { useNavigation } from '@react-navigation/native';
 import { creatorUploadManager } from '../services/creator/creatorUploadManager';
+import {
+  reelEditorActions,
+  resolveReelEditorMode,
+  type ReelEditorMode,
+} from '../features/creator/utils/reelEditorMode';
+import { invalidateReelSurfaces } from '../features/creator/utils/invalidateReelSurfaces';
 import { detectReelMediaKind, isStaticImageUrl } from '../services/reels/reelMediaKind';
 import { navigateToWorkspaceHome } from '../navigation/workspaceHome';
 import { closeReelScreen } from '../features/travelSocial/utils/closeReelScreen';
@@ -49,6 +57,7 @@ interface CreateReelScreenProps {
   prefillPlaceId?: string;
   prefillPlaceName?: string;
   editReel?: any;
+  editorMode?: ReelEditorMode;
   collaborationId?: string;
   useBackgroundUpload?: boolean;
   /** Vendor feedback when resubmitting a collaboration reel. */
@@ -81,6 +90,7 @@ export default function CreateReelScreen({
   prefillPlaceId,
   prefillPlaceName,
   editReel,
+  editorMode: editorModeProp,
   collaborationId,
   useBackgroundUpload = true,
   revisionNote,
@@ -90,9 +100,17 @@ export default function CreateReelScreen({
   const { currentVendor: _currentVendor } = useDataContext();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
-  const isDraftEdit = String(editReel?.status || '').toUpperCase() === 'DRAFT';
+  const queryClient = useQueryClient();
+  const editorMode = resolveReelEditorMode({
+    editReel,
+    editorMode: editorModeProp,
+    collaborationId,
+    revisionNote,
+  });
+  const editorActions = reelEditorActions(editorMode);
+  const isDraftEdit = editorMode === 'draft';
+  const isPublishedEdit = editorMode === 'published';
 
-  const isCollabRevision = Boolean(collaborationId && revisionNote);
   const [videoUri, setVideoUri] = useState<string | null>(editReel?.videoUrl || prefillMediaUri || null);
   const [_videoThumbnail, setVideoThumbnail] = useState<string | null>(editReel?.thumbnail || null);
   const [videoMime, setVideoMime] = useState<string | null>(null);
@@ -114,7 +132,7 @@ export default function CreateReelScreen({
   const [allowRemix, setAllowRemix] = useState(true);
 
   const handleAudiencePress = () => {
-    Alert.alert('Audience', 'Who can see this reel?', [
+    Alert.alert('Audience', 'Who can see this Moment?', [
       { text: 'Everyone', onPress: () => setAudience('Everyone') },
       { text: 'Followers', onPress: () => setAudience('Followers') },
       { text: 'Only Me', onPress: () => setAudience('Only Me') },
@@ -210,17 +228,14 @@ export default function CreateReelScreen({
 
   const handlePickFromCamera = useCallback(async () => {
     try {
-      const result = await launchCamera({
-        mediaType: 'mixed',
-        cameraType: 'back',
-        durationLimit: 60,
-      });
-      if (result.assets && result.assets[0]) {
-        const asset = result.assets[0];
-        setVideoUri(asset.uri || null);
-        setVideoMime(asset.type || null);
-        setVideoFileName(asset.fileName || null);
+      const result = await captureReelMedia('video');
+      if (result.status === 'captured') {
+        setVideoUri(result.uri);
+        setVideoMime(result.type);
+        setVideoFileName(result.fileName);
         setVideoThumbnail(null);
+      } else if (result.status === 'error') {
+        Alert.alert('Error', result.message);
       }
     } catch (err: unknown) {
       Alert.alert('Error', caughtErrorMessage(err, 'Failed to capture media.'));
@@ -280,9 +295,14 @@ export default function CreateReelScreen({
         } catch {}
       }
 
-      const isNonDraftEdit = Boolean(editReel && !isDraftEdit);
+      const alreadyRemote = /^https?:\/\//i.test(videoUri);
+      const needsMediaUpload = !alreadyRemote;
       const shouldBackgroundUpload =
-        useBackgroundUpload && !collaborationId && !isNonDraftEdit && user?.uid;
+        useBackgroundUpload &&
+        !collaborationId &&
+        !isPublishedEdit &&
+        needsMediaUpload &&
+        Boolean(user?.uid);
 
       if (shouldBackgroundUpload) {
         await creatorUploadManager.startReelUpload({
@@ -301,7 +321,34 @@ export default function CreateReelScreen({
           editReelId: isDraftEdit && editReel?.id ? String(editReel.id) : undefined,
           publishDraft: isDraftEdit && Boolean(editReel?.id),
         });
+        invalidateReelSurfaces(queryClient);
         navigateToWorkspaceHome(navigation, 'CREATOR');
+        return;
+      }
+
+      if ((isDraftEdit || isPublishedEdit) && editReel?.id) {
+        await socialApi.updateReel(editReel.id, {
+          title: caption.trim().slice(0, 200) || undefined,
+          description: caption.trim() || undefined,
+          placeId: finalSpotId || null,
+          vendorId: vendorId || null,
+          tags: selectedTags,
+        });
+        if (isDraftEdit) {
+          await creatorApi.publishDraft(String(editReel.id));
+        }
+        invalidateReelSurfaces(queryClient);
+        if (!suppressSuccessAlert) {
+          Alert.alert(
+            'Success',
+            isDraftEdit
+              ? 'Your draft was saved and published.'
+              : 'Moment updated successfully!',
+            [{ text: 'OK', onPress: () => onBack() }],
+          );
+        } else {
+          onBack();
+        }
         return;
       }
 
@@ -312,17 +359,15 @@ export default function CreateReelScreen({
         spotName: locationName,
         tags: selectedTags,
       }, (_progress) => {});
-      if (isDraftEdit && editReel?.id) {
-        await creatorApi.publishDraft(String(editReel.id));
-      }
+      invalidateReelSurfaces(queryClient);
       if (!suppressSuccessAlert) {
-        Alert.alert('Success', editReel ? 'Reel updated successfully!' : 'Reel posted successfully!');
+        Alert.alert('Success', 'Moment posted successfully!');
         onBack();
       }
     } catch (err: unknown) {
       submitLockRef.current = false;
       setUploading(false);
-      Alert.alert('Error', caughtErrorMessage(err, 'Failed to post reel. Please try again.'));
+      Alert.alert('Error', caughtErrorMessage(err, 'Failed to post Moment. Please try again.'));
     }
   }, [
     videoUri,
@@ -336,12 +381,14 @@ export default function CreateReelScreen({
     suppressSuccessAlert,
     editReel,
     isDraftEdit,
+    isPublishedEdit,
     collaborationId,
     useBackgroundUpload,
     user,
     navigation,
     videoMime,
     videoFileName,
+    queryClient,
   ]);
 
   const handleOpenDrafts = useCallback(() => {
@@ -368,8 +415,15 @@ export default function CreateReelScreen({
         } catch { /* optional place binding */ }
       }
 
+      if (isPublishedEdit || editorMode === 'collab') {
+        Alert.alert(
+          'Cannot save as draft',
+          'This Moment is already live. Use Save Changes to update it without hiding it from the feed.',
+        );
+        return;
+      }
+
       if (isDraftEdit && editReel?.id) {
-        const { socialApi } = require('../services/api');
         await socialApi.updateReel(editReel.id, {
           title: caption.trim().slice(0, 200) || undefined,
           description: caption.trim() || undefined,
@@ -377,7 +431,8 @@ export default function CreateReelScreen({
           vendorId: vendorId || null,
           tags: selectedTags,
         });
-        Alert.alert('Draft saved', 'Your draft was updated.', [{ text: 'OK', onPress: () => onBack() }]);
+        invalidateReelSurfaces(queryClient);
+        Alert.alert('Draft saved', 'Your draft was updated. It is not public.', [{ text: 'OK', onPress: () => onBack() }]);
         return;
       }
 
@@ -385,7 +440,7 @@ export default function CreateReelScreen({
       if (!alreadyRemote) {
         Alert.alert(
           'Draft saved on device',
-          'Photos and videos are uploaded to the cloud only when you publish. Tap Post Reel to go live — you can keep editing here until then.',
+          'Photos and videos are uploaded to the cloud only when you publish. Tap Post Moment to go live — you can keep editing here until then.',
         );
         return;
       }
@@ -397,7 +452,8 @@ export default function CreateReelScreen({
         vendorId: vendorId || undefined,
         tags: selectedTags,
       });
-      Alert.alert('Draft saved', 'Find it under Creator → Reels → Drafts. It is not public.', [
+      invalidateReelSurfaces(queryClient);
+      Alert.alert('Draft saved', 'Find it under Creator → Moments → Drafts. It is not public.', [
         { text: 'OK', onPress: () => onBack() },
       ]);
     } catch (err: unknown) {
@@ -406,7 +462,7 @@ export default function CreateReelScreen({
       submitLockRef.current = false;
       setUploading(false);
     }
-  }, [videoUri, caption, spotId, vendorId, locationName, selectedTags, isDraftEdit, editReel, onBack, videoMime, videoFileName]);
+  }, [videoUri, caption, spotId, vendorId, locationName, selectedTags, isDraftEdit, isPublishedEdit, editorMode, editReel, onBack, videoMime, videoFileName, queryClient]);
 
   if (!canUpload) {
     return (
@@ -416,8 +472,8 @@ export default function CreateReelScreen({
             <Icon name="chevron-back" size={24} color={C.text} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>{editReel ? 'Edit Reel' : isCollabRevision ? 'Revise Reel' : 'Create Reel'}</Text>
-            <Text style={styles.headerSub}>{editReel ? 'Update your reel details' : isCollabRevision ? 'Update your reel and resubmit to the vendor' : 'Share your moments with PalSafar'}</Text>
+            <Text style={styles.headerTitle}>{editorActions.title}</Text>
+            <Text style={styles.headerSub}>{editorActions.subtitle}</Text>
           </View>
           <View style={{ width: 44 }} />
         </View>
@@ -425,7 +481,7 @@ export default function CreateReelScreen({
           <Icon name="lock-closed" size={64} color={C.textMuted} />
           <Text style={styles.unauthorizedTitle}>Creators Only</Text>
           <Text style={styles.unauthorizedText}>
-            Only approved Content Creators can upload reels.
+            Only approved Content Creators can upload Moments.
           </Text>
         </View>
       </View>
@@ -440,20 +496,24 @@ export default function CreateReelScreen({
           <Icon name="chevron-back" size={24} color={C.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>{editReel ? 'Edit Reel' : isCollabRevision ? 'Revise Reel' : 'Create Reel'}</Text>
-          <Text style={styles.headerSub}>{editReel ? 'Update your reel details' : isCollabRevision ? 'Update your reel and resubmit to the vendor' : 'Share your moments with PalSafar'}</Text>
+          <Text style={styles.headerTitle}>{editorActions.title}</Text>
+          <Text style={styles.headerSub}>{editorActions.subtitle}</Text>
         </View>
-        <TouchableOpacity
-          onPress={handlePost}
-          disabled={uploading || !videoUri}
-          style={[styles.headerPostBtn, (!videoUri || uploading) && { opacity: 0.5 }]}
-        >
-          {uploading ? (
-            <ActivityIndicator size="small" color={C.white} />
-          ) : (
-            <Text style={styles.headerPostBtnText}>{isCollabRevision ? 'Resubmit' : 'Post'}</Text>
-          )}
-        </TouchableOpacity>
+        {editorActions.showHeaderPost ? (
+          <TouchableOpacity
+            onPress={handlePost}
+            disabled={uploading || !videoUri}
+            style={[styles.headerPostBtn, (!videoUri || uploading) && { opacity: 0.5 }]}
+          >
+            {uploading ? (
+              <ActivityIndicator size="small" color={C.white} />
+            ) : (
+              <Text style={styles.headerPostBtnText}>{editorActions.headerActionLabel}</Text>
+            )}
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 44 }} />
+        )}
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -656,17 +716,23 @@ export default function CreateReelScreen({
 
         {/* Sticky Bottom Bar */}
         <View style={[styles.stickyBottom, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <TouchableOpacity style={styles.draftBtn} onPress={() => { void handleSaveDraft(); }} disabled={uploading}>
-            <Icon name="bookmark-outline" size={20} color={C.brown} style={{ marginRight: 8 }} />
-            <Text style={styles.draftBtnText}>Save as Draft</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.primaryPostBtn} onPress={handlePost} disabled={uploading || !videoUri}>
+          {editorActions.showSaveAsDraft ? (
+            <TouchableOpacity style={styles.draftBtn} onPress={() => { void handleSaveDraft(); }} disabled={uploading}>
+              <Icon name="bookmark-outline" size={20} color={C.brown} style={{ marginRight: 8 }} />
+              <Text style={styles.draftBtnText}>Save as Draft</Text>
+            </TouchableOpacity>
+          ) : null}
+          <TouchableOpacity
+            style={[styles.primaryPostBtn, !editorActions.showSaveAsDraft && styles.primaryPostBtnSolo]}
+            onPress={handlePost}
+            disabled={uploading || !videoUri}
+          >
             {uploading ? (
               <ActivityIndicator color={C.white} />
             ) : (
               <>
                 <Icon name="paper-plane-outline" size={20} color={C.white} style={{ marginRight: 8 }} />
-                <Text style={styles.primaryPostBtnText}>{editReel ? 'Save Changes' : isCollabRevision ? 'Resubmit to Vendor' : 'Post Reel'}</Text>
+                <Text style={styles.primaryPostBtnText}>{editorActions.primaryActionLabel}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -1052,6 +1118,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   primaryPostBtnText: { color: C.white, fontWeight: '700', fontSize: 16 },
+  primaryPostBtnSolo: { flex: 1 },
 
   // Location Modal Styles
   modalOverlay: {

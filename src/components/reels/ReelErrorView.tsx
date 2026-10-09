@@ -7,7 +7,7 @@ interface ReelErrorViewProps {
 }
 
 export const ReelErrorView: React.FC<ReelErrorViewProps> = React.memo(({
-  message = 'Failed to load reel',
+  message = 'Failed to load Moment',
   onRetry
 }) => {
   return (

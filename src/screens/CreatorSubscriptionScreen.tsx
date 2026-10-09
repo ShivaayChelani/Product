@@ -34,7 +34,7 @@ const C = {
 };
 
 const CREATOR_PERKS = [
-  'Unlimited reel uploads',
+  'Unlimited Moment uploads',
   'Brand campaigns & collaborations',
   'Creator analytics',
   'Verified creator badge',
@@ -244,7 +244,7 @@ function CreatorPlanCard({
       ) : null}
       <PlanFeatureList bullets={plan.featureBullets ?? []} />
       {isCurrent ? (
-        <View style={[styles.btn, styles.btnDisabled]}><Text style={styles.btnText}>Current plan</Text></View>
+        <View style={[styles.btn, styles.btnDisabled]}><Text style={[styles.btnText, styles.btnTextDisabled]}>Current plan</Text></View>
       ) : price ? (
         <TouchableOpacity
           disabled={busy}
@@ -252,7 +252,7 @@ function CreatorPlanCard({
           onPress={() => onCheckout(plan, period)}
         >
           {busy ? (
-            <ActivityIndicator color={C.white} />
+            <ActivityIndicator color={busy ? '#6B6B6B' : C.white} />
           ) : (
             <Text style={styles.btnText}>Subscribe · {formatInr(price.amountPaise)}</Text>
           )}
@@ -344,8 +344,9 @@ const styles = StyleSheet.create({
     minHeight: 48,
     justifyContent: 'center',
   },
-  btnDisabled: { backgroundColor: '#F2F2F2' },
+  btnDisabled: { backgroundColor: '#E8E8ED' },
   btnText: { color: C.white, fontWeight: '800', fontSize: 15 },
+  btnTextDisabled: { color: '#6B6B6B' },
   usageRow: { flexDirection: 'row', gap: 8 },
   usage: {
     flex: 1,

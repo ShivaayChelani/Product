@@ -136,15 +136,15 @@ export default function CreatorAnalyticsScreen({ onBack }: { onBack?: () => void
             <View style={styles.chartEmptyCard}>
               <Icon name="bar-chart-outline" size={32} color={C.textMuted} />
               <Text style={styles.chartEmptyTitle}>Not enough data yet</Text>
-              <Text style={styles.chartEmptySub}>Publish more Reels to see your performance insights.</Text>
+              <Text style={styles.chartEmptySub}>Publish more Moments to see your performance insights.</Text>
             </View>
 
             <View style={styles.grid}>
               {[
-                { l: 'Views', v: compact(kpis?.views || 0), i: 'eye-outline', bg: C.surface, hint: 'Total reel views across your content.' },
-                { l: 'Likes', v: compact(kpis?.likes || 0), i: 'heart-outline', bg: C.surface, hint: 'Hearts received on your reels.' },
-                { l: 'Comments', v: compact(kpis?.comments || 0), i: 'chatbubble-outline', bg: C.surface, hint: 'Comments left on your reels.' },
-                { l: 'Saves', v: compact(kpis?.saves || 0), i: 'bookmark-outline', bg: C.surface, hint: 'Times travelers saved your reels.' },
+                { l: 'Views', v: compact(kpis?.views || 0), i: 'eye-outline', bg: C.surface, hint: 'Total Moment views across your content.' },
+                { l: 'Likes', v: compact(kpis?.likes || 0), i: 'heart-outline', bg: C.surface, hint: 'Hearts received on your Moments.' },
+                { l: 'Comments', v: compact(kpis?.comments || 0), i: 'chatbubble-outline', bg: C.surface, hint: 'Comments left on your Moments.' },
+                { l: 'Saves', v: compact(kpis?.saves || 0), i: 'bookmark-outline', bg: C.surface, hint: 'Times travelers saved your Moments.' },
               ].map((x) => (
                 <TouchableOpacity
                   key={x.l}
@@ -180,7 +180,7 @@ export default function CreatorAnalyticsScreen({ onBack }: { onBack?: () => void
             </TouchableOpacity>
 
             {data?.note ? <Text style={styles.note}>{data.note}</Text> : null}
-            <Text style={styles.section}>Top Performing Reels</Text>
+            <Text style={styles.section}>Top Performing Moments</Text>
           </>
         }
         renderItem={({ item, index }) => (
@@ -195,7 +195,7 @@ export default function CreatorAnalyticsScreen({ onBack }: { onBack?: () => void
             </View>
             <View style={{ flex: 1 }}>
               <Text numberOfLines={1} style={styles.reelTitleItem}>
-                {item.title?.trim() || item.description?.trim() || 'Untitled reel'}
+                {item.title?.trim() || item.description?.trim() || 'Untitled Moment'}
               </Text>
               <Text style={styles.meta}>
                 {compact(item.views || 0)} views · {compact(item.likes || 0)} likes
@@ -207,12 +207,12 @@ export default function CreatorAnalyticsScreen({ onBack }: { onBack?: () => void
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
             <Icon name="videocam-outline" size={40} color={C.textMuted} />
-            <Text style={styles.empty}>Publish reels to see your best performers.</Text>
+            <Text style={styles.empty}>Publish Moments to see your best performers.</Text>
             <TouchableOpacity
               style={styles.emptyCta}
               onPress={() => navigation.navigate('CreateReel')}
             >
-              <Text style={styles.emptyCtaText}>Create a reel</Text>
+              <Text style={styles.emptyCtaText}>Create a Moment</Text>
             </TouchableOpacity>
           </View>
         }

@@ -2,6 +2,7 @@ import { ReelStatus, VendorListingStatus } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/ApiError';
 import { notificationService } from '../notifications/notification.service';
+import { resolveStoredReelPoster } from '../../config/upload';
 
 export { isTaggedReelPublicOnVendorCard } from './vendor-tagged-reel-visibility';
 
@@ -48,7 +49,7 @@ export function serializeTaggedCreatorReel(row: {
   return {
     id: row.id,
     videoUrl: row.videoUrl,
-    thumbnail: row.thumbnail,
+    thumbnail: resolveStoredReelPoster(row.thumbnail, row.videoUrl) || row.thumbnail,
     title: row.title,
     description: row.description,
     vendorListingStatus: row.vendorListingStatus ?? VendorListingStatus.PENDING,
@@ -133,7 +134,7 @@ export async function notifyVendorOfTaggedReel(input: {
   await notificationService.sendToUser(
     vendor.userId,
     'A creator tagged your business',
-    `${input.creatorName} posted a reel at ${vendor.businessName}. Allow it on your map profile?`,
+    `${input.creatorName} posted a Moment at ${vendor.businessName}. Allow it on your map profile?`,
     {
       type: 'vendor_tagged_reel',
       entityId: vendor.id,
@@ -170,7 +171,7 @@ export async function reviewTaggedCreatorReel(
     data: { vendorListingStatus: nextStatus },
   });
   if (marked.count === 0) {
-    throw new ApiError(404, 'No pending tagged reel to review.');
+    throw new ApiError(404, 'No pending tagged Moment to review.');
   }
 
   const reel = await prisma.reel.findUniqueOrThrow({
@@ -183,8 +184,8 @@ export async function reviewTaggedCreatorReel(
     if (action === 'allow') {
       await notificationService.sendToUser(
         creatorUserId,
-        'Your reel is on the map',
-        `${vendor.businessName} allowed your reel on their map profile.`,
+        'Your Moment is on the map',
+        `${vendor.businessName} allowed your Moment on their map profile.`,
         {
           type: 'vendor_tagged_reel_allowed',
           entityId: reel.id,
@@ -197,8 +198,8 @@ export async function reviewTaggedCreatorReel(
     } else {
       await notificationService.sendToUser(
         creatorUserId,
-        'Reel not featured',
-        `${vendor.businessName} declined to feature your reel on their map profile.`,
+        'Moment not featured',
+        `${vendor.businessName} declined to feature your Moment on their map profile.`,
         {
           type: 'vendor_tagged_reel_rejected',
           entityId: reel.id,

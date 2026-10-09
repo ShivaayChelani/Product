@@ -13,7 +13,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,33 +26,12 @@ import {
 } from '../services/notifications/notificationBadgeStore';
 import { useVendorScreenInsets } from '../design/vendorLayout';
 import { normalizeReelCaption } from '../components/reels/reelCaptionUtils';
+import { getReelThumbnail } from '../services/reelService';
+import { hasValidImageUrl } from '../utils/imageUrl';
 
 const GRID_GAP = 10;
 const GRID_H_PAD = 16;
 const gridCellWidth = (Dimensions.get('window').width - GRID_H_PAD * 2 - GRID_GAP) / 2;
-
-function archiveStorageKey(vendorId: string) {
-  return `vendor_reels_archived_${vendorId}`;
-}
-
-async function loadArchivedIds(vendorId: string): Promise<Set<string>> {
-  try {
-    const raw = await AsyncStorage.getItem(archiveStorageKey(vendorId));
-    if (!raw) return new Set();
-    const parsed = JSON.parse(raw);
-    return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
-  } catch {
-    return new Set();
-  }
-}
-
-async function persistArchivedIds(vendorId: string, ids: Set<string>) {
-  try {
-    await AsyncStorage.setItem(archiveStorageKey(vendorId), JSON.stringify([...ids]));
-  } catch {
-    /* best-effort local persistence */
-  }
-}
 
 const C = {
   bg: '#FFFFFF',
@@ -95,8 +73,10 @@ function formatDuration(seconds?: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function getReelStatus(reel: any, archivedIds: Set<string>): StatusTab {
-  if (archivedIds.has(String(reel.id))) return 'archived';
+function getReelStatus(reel: any): StatusTab {
+  // Server-persisted archive state is the single source of truth (survives app
+  // restarts and is shared across the owner's devices).
+  if (reel?.archivedAt) return 'archived';
   const status = String(reel.status || reel.moderationStatus || 'published').toLowerCase();
   if (status.includes('draft')) return 'drafts';
   if (reel.isActive === false) return 'drafts';
@@ -142,7 +122,6 @@ export default function VendorReelsManagementScreen({
   const [sort, setSort] = useState<SortKey>('latest');
   const [tab, setTab] = useState<StatusTab>('published');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [archivedIds, setArchivedIds] = useState<Set<string>>(new Set());
   const [unreadCount, setUnreadCount] = useState(getUnreadBadgeCount());
 
   const vendorId = currentVendor?.id;
@@ -152,13 +131,13 @@ export default function VendorReelsManagementScreen({
 
   const counts = useMemo(() => {
     const c = { published: 0, drafts: 0, archived: 0 };
-    reels.forEach((r) => { c[getReelStatus(r, archivedIds)] += 1; });
+    reels.forEach((r) => { c[getReelStatus(r)] += 1; });
     return c;
-  }, [reels, archivedIds]);
+  }, [reels]);
 
   const filtered = useMemo(
-    () => sortReels(reels.filter((r) => getReelStatus(r, archivedIds) === tab), sort),
-    [reels, sort, tab, archivedIds],
+    () => sortReels(reels.filter((r) => getReelStatus(r) === tab), sort),
+    [reels, sort, tab],
   );
 
   useEffect(() => subscribeUnreadBadge(setUnreadCount), []);
@@ -168,14 +147,6 @@ export default function VendorReelsManagementScreen({
       setUnreadCount(getUnreadBadgeCount());
     }, []),
   );
-
-  useEffect(() => {
-    if (!vendorId) {
-      setArchivedIds(new Set());
-      return;
-    }
-    loadArchivedIds(vendorId).then(setArchivedIds);
-  }, [vendorId]);
 
   const load = useCallback(async (refresh = false) => {
     if (!vendorId) { setLoading(false); return; }
@@ -188,7 +159,7 @@ export default function VendorReelsManagementScreen({
       setError('');
     } catch {
       setReels([]);
-      setError('Failed to load reels.');
+      setError('Failed to load Moments.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -215,38 +186,31 @@ export default function VendorReelsManagementScreen({
       ));
       setSelected(null);
     } catch {
-      Alert.alert('Error', 'Could not update reel.');
+      Alert.alert('Error', 'Could not update Moment.');
     }
   };
 
-  const updateArchivedIds = useCallback(
-    (updater: (prev: Set<string>) => Set<string>) => {
-      if (!vendorId) return;
-      setArchivedIds((prev) => {
-        const next = updater(prev);
-        void persistArchivedIds(vendorId, next);
-        return next;
-      });
-    },
-    [vendorId],
-  );
-
   const toggleArchive = useCallback(
-    (reel: any) => {
+    async (reel: any) => {
       const id = String(reel.id);
-      const isArchived = archivedIds.has(id);
-      updateArchivedIds((prev) => {
-        const next = new Set(prev);
-        if (isArchived) next.delete(id);
-        else next.add(id);
-        return next;
-      });
+      const isArchived = Boolean(reel.archivedAt);
+      const nextArchivedAt = isArchived ? null : new Date().toISOString();
+      // Optimistic flip; the server response is authoritative on success.
+      setReels((prev) => prev.map((r) => (r.id === id ? { ...r, archivedAt: nextArchivedAt } : r)));
+      try {
+        const updated = await vendorsApi.setVendorReelArchived(id, !isArchived);
+        const serverArchivedAt = (updated as any)?.archivedAt ?? nextArchivedAt;
+        setReels((prev) => prev.map((r) => (r.id === id ? { ...r, archivedAt: serverArchivedAt } : r)));
+      } catch {
+        setReels((prev) => prev.map((r) => (r.id === id ? { ...r, archivedAt: reel.archivedAt ?? null } : r)));
+        Alert.alert('Error', isArchived ? 'Could not unarchive Moment.' : 'Could not archive Moment.');
+      }
     },
-    [archivedIds, updateArchivedIds],
+    [],
   );
 
   const remove = (reel: any) =>
-    Alert.alert('Delete reel?', 'This cannot be undone.', [
+    Alert.alert('Delete Moment?', 'This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive',
@@ -254,21 +218,16 @@ export default function VendorReelsManagementScreen({
           try {
             await vendorsApi.deleteVendorReel(reel.id);
             setReels((prev) => prev.filter((r) => r.id !== reel.id));
-            updateArchivedIds((prev) => {
-              const next = new Set(prev);
-              next.delete(String(reel.id));
-              return next;
-            });
           } catch {
-            Alert.alert('Error', 'Could not delete reel.');
+            Alert.alert('Error', 'Could not delete Moment.');
           }
         },
       },
     ]);
 
   const onReelMenu = (reel: any) => {
-    const isArchived = archivedIds.has(String(reel.id));
-    Alert.alert(reel.title || 'Vendor reel', 'Choose an action', [
+    const isArchived = Boolean(reel.archivedAt);
+    Alert.alert(reel.title || 'Vendor Moment', 'Choose an action', [
       { text: 'Edit', onPress: () => openEdit(reel) },
       {
         text: isArchived ? 'Unarchive' : 'Archive',
@@ -280,7 +239,7 @@ export default function VendorReelsManagementScreen({
   };
 
   const openSortMenu = () => {
-    Alert.alert('Sort reels', undefined, [
+    Alert.alert('Sort Moments', undefined, [
       ...(Object.keys(SORT_LABELS) as SortKey[]).map((key) => ({
         text: SORT_LABELS[key],
         onPress: () => setSort(key),
@@ -290,17 +249,17 @@ export default function VendorReelsManagementScreen({
   };
 
   const sectionLabel =
-    tab === 'published' ? 'All Published Reels'
-      : tab === 'drafts' ? 'All Draft Reels'
-        : 'All Archived Reels';
+    tab === 'published' ? 'All Published Moments'
+      : tab === 'drafts' ? 'All Draft Moments'
+        : 'All Archived Moments';
 
   const renderThumb = (item: any, size: 'list' | 'grid') => {
-    const thumbUri = item.thumbnail || null;
+    const thumbUri = getReelThumbnail(item);
     const thumbStyle = size === 'grid' ? styles.gridThumb : styles.thumb;
     const wrapStyle = size === 'grid' ? styles.gridThumbWrap : styles.thumbWrap;
     return (
       <View style={wrapStyle}>
-        {thumbUri ? (
+        {hasValidImageUrl(thumbUri) ? (
           <Image source={{ uri: thumbUri }} style={thumbStyle} resizeMode="cover" />
         ) : (
           <View style={[thumbStyle, styles.thumbFallback]}>
@@ -331,7 +290,7 @@ export default function VendorReelsManagementScreen({
   };
 
   const renderListCard = ({ item }: { item: any }) => {
-    const status = getReelStatus(item, archivedIds);
+    const status = getReelStatus(item);
     const statusLabel = status === 'published' ? 'Published' : status === 'drafts' ? 'Draft' : 'Archived';
     const reelCaption = normalizeReelCaption(item.description);
     return (
@@ -347,7 +306,7 @@ export default function VendorReelsManagementScreen({
           <View style={styles.cardBody}>
             <View style={styles.titleRow}>
               <Text style={styles.cardTitle} numberOfLines={2}>
-                {item.title || reelCaption || 'Promotional reel'}
+                {item.title || reelCaption || 'Promotional Moment'}
               </Text>
               <TouchableOpacity hitSlop={8} onPress={() => onReelMenu(item)}>
                 <Icon name="ellipsis-vertical" size={16} color={C.muted} />
@@ -424,7 +383,7 @@ export default function VendorReelsManagementScreen({
         </TouchableOpacity>
       </View>
       <Text style={styles.gridTitle} numberOfLines={2}>
-        {item.title || normalizeReelCaption(item.description) || 'Promotional reel'}
+        {item.title || normalizeReelCaption(item.description) || 'Promotional Moment'}
       </Text>
     </TouchableOpacity>
   );
@@ -436,13 +395,13 @@ export default function VendorReelsManagementScreen({
           <Icon name="arrow-back" size={22} color={C.deep} />
         </TouchableOpacity>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.title}>My Reels</Text>
-          <Text style={styles.subtitle}>Manage and track all your promotional reels</Text>
+          <Text style={styles.title}>My Moments</Text>
+          <Text style={styles.subtitle}>Manage and track all your promotional Moments</Text>
         </View>
 
         <TouchableOpacity style={styles.uploadBtn} onPress={onCreateReel} activeOpacity={0.88}>
           <Icon name="add" size={16} color="#fff" />
-          <Text style={styles.uploadBtnText}>Upload Reel</Text>
+          <Text style={styles.uploadBtnText}>Upload Moment</Text>
         </TouchableOpacity>
       </View>
 
@@ -474,7 +433,7 @@ export default function VendorReelsManagementScreen({
           <MaterialCommunityIcons name="bullhorn-outline" size={16} color={C.bronze} />
         </View>
         <Text style={styles.ctaText}>
-          Engaging reels bring more customers! Keep sharing your food, offers, ambience & more.
+          Engaging Moments bring more customers! Keep sharing your food, offers, ambience & more.
         </Text>
         <Icon name="chevron-forward" size={16} color={C.muted} />
       </TouchableOpacity>
@@ -510,7 +469,7 @@ export default function VendorReelsManagementScreen({
       <View style={[styles.center, { paddingTop: Math.max(insets.top, 16) }]}>
         <Icon name="storefront-outline" size={48} color={C.muted} />
         <Text style={styles.emptyTitle}>No vendor profile</Text>
-        <Text style={styles.emptyText}>Complete your vendor setup to create reels.</Text>
+        <Text style={styles.emptyText}>Complete your vendor setup to create Moments.</Text>
       </View>
     );
   }
@@ -541,16 +500,16 @@ export default function VendorReelsManagementScreen({
             ) : (
               <>
                 <Icon name="videocam-outline" size={40} color={C.bronze} />
-                <Text style={styles.emptyTitle}>No {tab} reels yet</Text>
+                <Text style={styles.emptyTitle}>No {tab} Moments yet</Text>
                 <Text style={styles.emptyText}>
                   {tab === 'published'
-                    ? 'Upload your first promotional reel to showcase your business.'
+                    ? 'Upload your first promotional Moment to showcase your business.'
                     : tab === 'drafts'
-                      ? 'Save reels as drafts while you finish editing them.'
-                      : 'Archived reels will appear here when you archive them from your library.'}
+                      ? 'Save Moments as drafts while you finish editing them.'
+                      : 'Archived Moments will appear here when you archive them from your library.'}
                 </Text>
                 <TouchableOpacity style={styles.emptyCta} onPress={onCreateReel}>
-                  <Text style={styles.emptyCtaText}>+ Upload Reel</Text>
+                  <Text style={styles.emptyCtaText}>+ Upload Moment</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -561,7 +520,7 @@ export default function VendorReelsManagementScreen({
       <Modal visible={!!selected} transparent animationType="fade" onRequestClose={() => setSelected(null)}>
         <View style={styles.backdrop}>
           <View style={styles.modal}>
-            <Text style={styles.modalTitle}>Edit reel</Text>
+            <Text style={styles.modalTitle}>Edit Moment</Text>
             <TextInput
               value={editTitle}
               onChangeText={setEditTitle}

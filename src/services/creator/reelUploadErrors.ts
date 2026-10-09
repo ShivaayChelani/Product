@@ -5,13 +5,13 @@ export function mapReelUploadError(err: unknown): string {
   const message = extractMessage(err);
 
   if (status === 400) {
-    return message || 'Invalid reel details. Please check your caption and try again.';
+    return message || 'Invalid Moment details. Please check your caption and try again.';
   }
   if (status === 401) {
-    return 'Please sign in again to post your reel.';
+    return 'Please sign in again to post your Moment.';
   }
   if (status === 403) {
-    return message || 'You do not have permission to post reels.';
+    return message || 'You do not have permission to post Moments.';
   }
   if (status === 413) {
     return 'Video is too large. Please choose a smaller video.';
@@ -23,10 +23,10 @@ export function mapReelUploadError(err: unknown): string {
     return 'Too many uploads right now. Please wait a moment and try again.';
   }
   if (status === 502 || status === 503) {
-    return 'Server could not process your reel. Please try again.';
+    return 'Server could not process your Moment. Please try again.';
   }
   if (status && status >= 500) {
-    return 'Server could not process your reel. Please try again.';
+    return 'Server could not process your Moment. Please try again.';
   }
   if ((err as Error)?.name === 'AbortError') {
     return 'Upload interrupted. Check your connection and tap Retry.';
@@ -37,7 +37,7 @@ export function mapReelUploadError(err: unknown): string {
   if (code === 'UNSUPPORTED_VIDEO') {
     return 'This video format is not supported.';
   }
-  return message || 'Reel upload failed. Tap to retry.';
+  return message || 'Moment upload failed. Tap to retry.';
 }
 
 function extractMessage(err: unknown): string {

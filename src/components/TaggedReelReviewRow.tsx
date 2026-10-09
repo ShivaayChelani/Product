@@ -3,6 +3,9 @@ import { View, Text, Image, TouchableOpacity, StyleSheet, ActivityIndicator } fr
 import Icon from 'react-native-vector-icons/Ionicons';
 import type { TaggedCreatorReel } from '../services/api/vendors';
 import { normalizeReelCaption } from './reels/reelCaptionUtils';
+import { getReelThumbnail } from '../services/reelService';
+import { hasValidImageUrl } from '../utils/imageUrl';
+import { creatorAtHandle } from '../utils/creatorHandle';
 
 type Props = {
   reel: TaggedCreatorReel;
@@ -13,13 +16,13 @@ type Props = {
 };
 
 export default function TaggedReelReviewRow({ reel, busy, onAllow, onReject, onOpen }: Props) {
-  const caption = reel.title || normalizeReelCaption(reel.description) || 'Untitled reel';
-  const thumb = reel.thumbnail || reel.videoUrl;
+  const caption = reel.title || normalizeReelCaption(reel.description) || 'Untitled Moment';
+  const thumb = getReelThumbnail(reel);
 
   return (
     <View style={styles.wrap}>
       <TouchableOpacity style={styles.media} onPress={onOpen} activeOpacity={onOpen ? 0.8 : 1} disabled={!onOpen}>
-        {thumb ? (
+        {hasValidImageUrl(thumb) ? (
           <Image source={{ uri: thumb }} style={styles.thumb} />
         ) : (
           <View style={[styles.thumb, styles.thumbFallback]}>
@@ -29,7 +32,7 @@ export default function TaggedReelReviewRow({ reel, busy, onAllow, onReject, onO
       </TouchableOpacity>
       <View style={styles.body}>
         <Text style={styles.kicker}>Creator tagged your business</Text>
-        <Text style={styles.handle} numberOfLines={1}>@{reel.creator.username}</Text>
+        <Text style={styles.handle} numberOfLines={1}>{creatorAtHandle(reel.creator?.username, 'Creator')}</Text>
         <Text style={styles.caption} numberOfLines={2}>{caption}</Text>
         <View style={styles.actions}>
           <TouchableOpacity
@@ -37,7 +40,7 @@ export default function TaggedReelReviewRow({ reel, busy, onAllow, onReject, onO
             onPress={onAllow}
             disabled={busy}
             accessibilityRole="button"
-            accessibilityLabel="Allow reel on map profile"
+            accessibilityLabel="Allow Moment on map profile"
           >
             {busy ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
@@ -50,7 +53,7 @@ export default function TaggedReelReviewRow({ reel, busy, onAllow, onReject, onO
             onPress={onReject}
             disabled={busy}
             accessibilityRole="button"
-            accessibilityLabel="Reject reel from map profile"
+            accessibilityLabel="Reject Moment from map profile"
           >
             <Text style={styles.rejectText}>Reject</Text>
           </TouchableOpacity>

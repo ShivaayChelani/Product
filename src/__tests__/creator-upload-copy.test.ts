@@ -15,7 +15,9 @@ describe('Creator upload copy and draft wiring', () => {
     expect(src).toMatch(/remoteUrl/);
     expect(src).toMatch(/maxWidth: 1920/);
     expect(src).toMatch(/deriveCreatorUsername/);
-    expect(src).toMatch(/normalizeInstagramUrl/);
+    expect(src).not.toMatch(/Instagram Handle/);
+    expect(src).not.toMatch(/logo-instagram/);
+    expect(src).not.toMatch(/normalizeInstagramUrl/);
     expect(src).toMatch(/languages,/);
     expect(src).toMatch(/bio\.trim\(\)\.length < 20/);
   });

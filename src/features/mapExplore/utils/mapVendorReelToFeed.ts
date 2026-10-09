@@ -1,5 +1,6 @@
 import type { Reel } from '../../../types';
 import type { VendorPublicDetails, VendorReel } from '../../../services/api/vendors';
+import { getReelThumbnail } from '../../../services/reelService';
 
 /** Map a vendor-uploaded promo reel into the social Reel feed shape for playback. */
 export function mapVendorReelToFeed(
@@ -10,7 +11,7 @@ export function mapVendorReelToFeed(
     id: reel.id,
     creatorId: vendor.id,
     videoUrl: reel.videoUrl,
-    thumbnail: reel.thumbnail,
+    thumbnail: getReelThumbnail(reel) || reel.thumbnail,
     title: reel.title,
     description: reel.description,
     likes: reel.likes ?? 0,

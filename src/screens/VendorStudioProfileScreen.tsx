@@ -339,7 +339,7 @@ export default function VendorStudioProfileScreen() {
             },
             {
               key: 'reels',
-              label: 'Promotion Reels',
+              label: 'Promotion Moments',
               value: String(reelCount),
               link: 'View All →',
               color: C.pink,

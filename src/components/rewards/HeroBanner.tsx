@@ -21,7 +21,7 @@ export const HeroBanner = () => {
           <Text style={styles.subtitle}>Save up to 50% on top experiences</Text>
           <TouchableOpacity style={styles.button} activeOpacity={0.8}>
             <Text style={styles.buttonText}>Explore Offers</Text>
-            <Icon name="arrow-forward" size={16} color={COLORS.text} style={styles.icon} />
+            <Icon name="arrow-forward" size={16} color={COLORS.white} style={styles.icon} />
           </TouchableOpacity>
         </View>
       </ImageBackground>
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text,
+    color: COLORS.white,
   },
   icon: {
     marginLeft: 4,

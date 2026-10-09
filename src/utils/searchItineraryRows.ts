@@ -123,7 +123,7 @@ export function buildUniversalRenderableRows(
   const sections: Array<[string, unknown[] | undefined]> = [
     ['Place', results.places],
     ['Hidden Gem', results.hiddenGems],
-    ['Reel', results.reels],
+    ['Moment', results.reels],
     ['Vendor', results.vendors],
     ['Offer', results.offers],
     ['Event', results.events],

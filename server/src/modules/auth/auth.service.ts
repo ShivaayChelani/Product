@@ -28,6 +28,7 @@ import {
   listApprovedRoles,
 } from '../../shared/utils/specialtyRoles';
 import { roleTransitionService } from '../../shared/services/roleTransition.service';
+import { defaultJwtRoles } from '../users/roleChangeGuards';
 import { findUserByEmail, normalizeEmail } from '../../shared/utils/userEmailLookup';
 import { ADMIN_ROLES } from '../../middleware/auth';
 import {
@@ -259,82 +260,66 @@ async function finalizeSocialLogin(
   providerLabel: string,
   signinWindowMs: number,
 ) {
-  // Already legally accepted (registered or accepted in a prior Phase 2 session).
+  const currentVersions = await legalService.getCurrentVersions();
   const existingAcceptance = await prisma.legalAcceptance.findUnique({ where: { userId } });
-  if (existingAcceptance) {
+  const acceptanceIsCurrent =
+    !!existingAcceptance &&
+    existingAcceptance.termsVersion === currentVersions.termsVersion &&
+    existingAcceptance.privacyVersion === currentVersions.privacyVersion;
+
+  if (acceptanceIsCurrent) {
     return createLoginSession(userId);
   }
 
   // A provider-created account (password:null) younger than this window is an
-  // in-flight registration — a Phase 1 shell, or a concurrent request for the same
-  // new identity — and MUST pass the legal gate before it can receive a session.
-  // Pre-existing accounts (grandfathered: a link or email/password created before
-  // the required-acceptance feature) keep logging in without any gate.
+  // in-flight registration — a Phase 1 shell — and is rolled back if legal
+  // acceptance is missing so we never leave a zombie user. Existing accounts
+  // (including those missing or holding a stale acceptance) are never deleted.
   const freshShell = await prisma.user.findUnique({
     where: { id: userId },
     select: { password: true, createdAt: true },
   });
   if (!freshShell) {
-    // A concurrent request for the same new identity already rolled back the user
-    // shell. Require the legal gate again instead of issuing a session for a
-    // deleted account.
     return { requiresLegalAcceptance: true as const };
   }
   const createdDuringSignIn =
     freshShell.password === null &&
     freshShell.createdAt.getTime() > Date.now() - signinWindowMs;
+  // Only Phase 1 shells are rolled back. A completed social account already has a
+  // wallet; never delete it just because legal acceptance is missing or stale.
+  const wallet = await prisma.wallet.findUnique({ where: { userId }, select: { userId: true } });
+  const isEphemeralShell = created || (createdDuringSignIn && !wallet);
 
-  if (created || createdDuringSignIn) {
-    const termsVersion = legal?.termsVersion;
-    const privacyVersion = legal?.privacyVersion;
+  const termsVersion = legal?.termsVersion;
+  const privacyVersion = legal?.privacyVersion;
+  const hasLegalFlags =
+    legal?.termsAccepted === true &&
+    legal?.privacyAccepted === true &&
+    typeof termsVersion === 'number' &&
+    typeof privacyVersion === 'number';
 
-    // Brand-new account: legal acceptance is REQUIRED before issuing tokens.
-    const hasLegalAcceptance =
-      legal?.termsAccepted === true &&
-      legal?.privacyAccepted === true &&
-      typeof termsVersion === 'number' &&
-      typeof privacyVersion === 'number';
+  if (hasLegalFlags && (termsVersion !== currentVersions.termsVersion || privacyVersion !== currentVersions.privacyVersion)) {
+    if (isEphemeralShell) {
+      await prisma.user.delete({ where: { id: userId } }).catch(() => {});
+    }
+    throw new ApiError(
+      400,
+      'The legal document versions you accepted are out of date. Please reload the app and accept the current Terms & Conditions and Privacy Policy.',
+    );
+  }
 
-    if (!hasLegalAcceptance) {
-      // Roll back the newly created user shell to avoid zombie records. The
-      // resolver created User + AuthAccount in a transaction; deleting the user
-      // cascades the AuthAccount row.
+  if (!hasLegalFlags) {
+    if (isEphemeralShell) {
       await prisma.user.delete({ where: { id: userId } }).catch((err: unknown) => {
         logger.warn({ err, userId }, `Failed to rollback new ${providerLabel} user after legal rejection`);
       });
-
-      return { requiresLegalAcceptance: true as const };
     }
+    return { requiresLegalAcceptance: true as const };
+  }
 
-    // Validate that the accepted versions match the currently published documents.
-    const currentVersions = await legalService.getCurrentVersions();
-    if (
-      termsVersion !== currentVersions.termsVersion ||
-      privacyVersion !== currentVersions.privacyVersion
-    ) {
-      // Roll back the user shell.
-      await prisma.user.delete({ where: { id: userId } }).catch(() => {});
-      throw new ApiError(
-        400,
-        'The legal document versions you accepted are out of date. Please reload the app and accept the current Terms & Conditions and Privacy Policy.',
-      );
-    }
+  await legalService.recordUserAcceptance(userId, currentVersions, legal?.platform ?? null);
 
-    // Record legal acceptance with a server-authoritative timestamp. A concurrent
-    // request may have already recorded it — tolerate the unique conflict.
-    await prisma.legalAcceptance
-      .create({
-        data: {
-          userId,
-          termsVersion,
-          privacyVersion,
-          platform: legal?.platform ?? null,
-        },
-      })
-      .catch((err: unknown) => {
-        if ((err as { code?: string } | null)?.code !== 'P2002') throw err;
-      });
-
+  if (isEphemeralShell) {
     try {
       await prisma.wallet.upsert({
         where: { userId },
@@ -392,22 +377,7 @@ export const authService = {
         select: { email: true, name: true },
       });
 
-      // Update legal acceptance for the resumed-unverified user
-      await prisma.legalAcceptance.upsert({
-        where: { userId: existing.id },
-        update: {
-          termsVersion: input.termsVersion,
-          privacyVersion: input.privacyVersion,
-          acceptedAt: new Date(),
-          platform: input.platform ?? null,
-        },
-        create: {
-          userId: existing.id,
-          termsVersion: input.termsVersion,
-          privacyVersion: input.privacyVersion,
-          platform: input.platform ?? null,
-        },
-      });
+      await legalService.recordUserAcceptance(existing.id, currentVersions, input.platform ?? null);
 
       if (process.env.NODE_ENV === 'test') {
         await prisma.user.update({ where: { id: existing.id }, data: { emailVerified: true } });
@@ -456,15 +426,7 @@ export const authService = {
       logger.warn({ err, userId: user.id }, 'Failed to create wallet at registration — will be created lazily');
     }
 
-    // Record legal acceptance with server-authoritative timestamp
-    await prisma.legalAcceptance.create({
-      data: {
-        userId: user.id,
-        termsVersion: input.termsVersion,
-        privacyVersion: input.privacyVersion,
-        platform: input.platform ?? null,
-      },
-    });
+    await legalService.recordUserAcceptance(user.id, currentVersions, input.platform ?? null);
 
     if (process.env.NODE_ENV === 'test') {
       await prisma.user.update({ where: { id: user.id }, data: { emailVerified: true } });
@@ -1251,13 +1213,7 @@ export function generateAccessToken(user: {
   roles?: Role[];
   approvedRoles?: Role[];
 }): string {
-  const roles = user.approvedRoles ?? user.roles ?? (
-    user.permission === Role.ADMIN
-      ? [Role.ADMIN]
-      : user.permission === Role.USER
-        ? [Role.USER]
-        : [Role.USER, user.permission]
-  );
+  const roles = user.approvedRoles ?? user.roles ?? defaultJwtRoles(user.permission);
 
   return jwt.sign(
     {

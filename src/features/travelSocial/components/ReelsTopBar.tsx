@@ -21,7 +21,7 @@ type Props = {
 
 function ReelsTopBarComponent({
   paddingTop,
-  title = 'Reels',
+  title = 'Moments',
   variant = 'default',
   onBack,
   onTitlePress,
@@ -67,7 +67,7 @@ function ReelsTopBarComponent({
       </View>
 
       <View style={styles.right}>
-        <TouchableOpacity onPress={onCamera} style={styles.hit} accessibilityLabel="Create reel">
+        <TouchableOpacity onPress={onCamera} style={styles.hit} accessibilityLabel="Create Moment">
           <Icon name="camera-outline" size={24} color="#fff" />
         </TouchableOpacity>
         <TouchableOpacity onPress={onNotifications} style={styles.hit} accessibilityLabel="Notifications">

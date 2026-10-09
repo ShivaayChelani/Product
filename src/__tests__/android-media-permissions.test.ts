@@ -48,6 +48,24 @@ describe('Android photo/video permissions', () => {
     expect(reel).not.toMatch(/PermissionsAndroid/);
   });
 
+  it('Reel camera records video through the shared permission-aware helper', () => {
+    const helper = read('src/services/media/reelCamera.ts');
+    expect(helper).toMatch(/export async function captureReelMedia/);
+    expect(helper).toMatch(/PermissionsAndroid\.request\(/);
+    expect(helper).toMatch(/PermissionsAndroid\.PERMISSIONS\.CAMERA/);
+    expect(helper).toMatch(/mediaType,?/);
+    expect(helper).toMatch(/durationLimit: 60/);
+
+    const creatorReel = read('src/screens/CreateReelScreen.tsx');
+    expect(creatorReel).toMatch(/captureReelMedia\('video'\)/);
+    expect(creatorReel).not.toMatch(/launchCamera/);
+    expect(creatorReel).not.toMatch(/mediaType: 'mixed'/);
+
+    const vendorReel = read('src/screens/CreateVendorReelScreen.tsx');
+    expect(vendorReel).toMatch(/captureReelMedia\('video'\)/);
+    expect(vendorReel).not.toMatch(/launchCamera/);
+  });
+
   it('react-native-image-picker launches PickVisualMedia, not a storage-permission gallery', () => {
     const impl = read(
       'node_modules/react-native-image-picker/android/src/main/java/com/imagepicker/ImagePickerModuleImpl.java',

@@ -16,7 +16,9 @@ import {
   eventLifecycle,
   eventTypeIcon,
   eventTypeLabel,
+  formatEventAddress,
   formatEventDateRange,
+  formatEventFullSchedule,
   formatEventLocation,
   formatEventTimeRange,
 } from './eventFormat';
@@ -39,21 +41,64 @@ export const EVENT_COLORS = {
 
 export type EventCardLayout = 'feed' | 'strip';
 
+/** Home strip card width; keep in sync with HomeEventsStrip snap interval. */
+export const EVENT_STRIP_CARD_WIDTH = 272;
+export const EVENT_STRIP_CARD_GAP = 12;
+
 type Props = {
   event: CommunityEvent;
   onPress: (event: CommunityEvent) => void;
   layout?: EventCardLayout;
-  /** Only for the Home strip: shows the event's position in the list. */
   style?: StyleProp<ViewStyle>;
 };
 
 function EventCardComponent({ event, onPress, layout = 'feed', style }: Props) {
   const image = eventImage(event);
+  const imageUri = image || undefined;
+  const [imageFailed, setImageFailed] = React.useState(false);
   const when = formatEventDateRange(event.startDate, event.endDate);
   const timeRange = formatEventTimeRange(event.startTime, event.endTime);
+  const schedule = formatEventFullSchedule(event);
+  const scheduleSub = timeRange ? `${when} · ${timeRange}` : when;
   const location = formatEventLocation(event) || 'Location to be announced';
+  const address = formatEventAddress(event);
+  const locationTitle = address || location;
+  const locationSub = location && location !== locationTitle ? location : null;
+  const teaser = (event.shortDescription || '').trim();
   const lifecycle = eventLifecycle(event);
   const isStrip = layout === 'strip';
+
+  if (isStrip) {
+    return (
+      <TouchableOpacity
+        style={[styles.strip, style]}
+        onPress={() => onPress(event)}
+        activeOpacity={0.9}
+        accessibilityRole="button"
+        accessibilityLabel={event.title}
+      >
+        <View style={styles.stripMedia}>
+          {imageUri && !imageFailed ? (
+            <Image
+              source={{ uri: imageUri }}
+              style={styles.image}
+              resizeMode="cover"
+              onError={() => setImageFailed(true)}
+            />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <Icon name="image-outline" size={22} color={EVENT_COLORS.accent} />
+            </View>
+          )}
+          <View style={styles.stripNameScrim}>
+            <Text style={styles.stripName} numberOfLines={2}>
+              {event.title}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <TouchableOpacity
@@ -63,99 +108,111 @@ function EventCardComponent({ event, onPress, layout = 'feed', style }: Props) {
       accessibilityRole="button"
       accessibilityLabel={`${event.title}, ${when}`}
     >
-      {isStrip ? (
-        <>
-          <View style={styles.stripMedia}>
-            {image ? (
-              <Image source={{ uri: image }} style={styles.stripImage} resizeMode="cover" />
-            ) : (
-              <View style={styles.stripImagePlaceholder}>
-                <Icon name={eventTypeIcon(event.eventType)} size={22} color={EVENT_COLORS.accent} />
-              </View>
-            )}
-            <EventBadges lifecycle={lifecycle} isFeatured={event.isFeatured} compact />
+      <View style={isStrip ? styles.stripMedia : styles.media}>
+        {imageUri && !imageFailed ? (
+          <Image
+            source={{ uri: imageUri }}
+            style={styles.image}
+            resizeMode="cover"
+            onError={() => setImageFailed(true)}
+          />
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <Icon name={eventTypeIcon(event.eventType)} size={isStrip ? 22 : 26} color={EVENT_COLORS.accent} />
           </View>
-          <Text style={styles.stripTitle} numberOfLines={2}>
-            {event.title}
+        )}
+        <EventBadges
+          lifecycle={lifecycle}
+          eventType={event.eventType}
+          isFeatured={event.isFeatured}
+          compact={isStrip}
+        />
+      </View>
+
+      <View style={isStrip ? styles.stripBody : styles.body}>
+        <Text style={isStrip ? styles.stripTitle : styles.title} numberOfLines={2}>
+          {event.title}
+        </Text>
+        {teaser ? (
+          <Text style={isStrip ? styles.stripTeaser : styles.teaser} numberOfLines={isStrip ? 2 : 3}>
+            {teaser}
           </Text>
-          <Text style={styles.stripMeta} numberOfLines={1}>
-            {when}
-          </Text>
-          <Text style={styles.stripLocation} numberOfLines={1}>
-            {location}
-          </Text>
-        </>
-      ) : (
-        <>
-          <View style={styles.media}>
-            {image ? (
-              <Image source={{ uri: image }} style={styles.image} resizeMode="cover" />
-            ) : (
-              <View style={styles.imagePlaceholder}>
-                <Icon name={eventTypeIcon(event.eventType)} size={26} color={EVENT_COLORS.accent} />
-              </View>
-            )}
-            <EventBadges lifecycle={lifecycle} isFeatured={event.isFeatured} />
-          </View>
+        ) : null}
 
-          <View style={styles.body}>
-            <Text style={styles.title} numberOfLines={2}>
-              {event.title}
-            </Text>
-
-            <View style={styles.metaRow}>
-              <Icon name="calendar-outline" size={13} color={EVENT_COLORS.textSecondary} />
-              <Text style={styles.metaText} numberOfLines={1}>
-                {timeRange ? `${when} · ${timeRange}` : when}
-              </Text>
-            </View>
-
-            <View style={styles.metaRow}>
-              <Icon name="location-outline" size={13} color={EVENT_COLORS.textSecondary} />
-              <Text style={styles.metaText} numberOfLines={1}>
-                {location}
-              </Text>
-            </View>
-
-            <View style={styles.footer}>
-              <View style={styles.typeChip}>
-                <Icon name={eventTypeIcon(event.eventType)} size={12} color={EVENT_COLORS.accent} />
-                <Text style={styles.typeChipText}>{eventTypeLabel(event.eventType)}</Text>
-              </View>
-              <Text style={styles.cityText} numberOfLines={1}>
-                {event.city || event.state || 'India'}
-              </Text>
-            </View>
-          </View>
-        </>
-      )}
+        <EventFactRow
+          icon="calendar-outline"
+          title={schedule}
+          subtitle={scheduleSub !== schedule ? scheduleSub : null}
+          compact={isStrip}
+        />
+        <EventFactRow
+          icon="location-outline"
+          title={locationTitle}
+          subtitle={locationSub}
+          compact={isStrip}
+        />
+      </View>
     </TouchableOpacity>
   );
 }
 
 function EventBadges({
   lifecycle,
+  eventType,
   isFeatured,
   compact,
 }: {
   lifecycle: 'LIVE' | 'UPCOMING' | 'ENDED';
+  eventType: CommunityEvent['eventType'];
   isFeatured: boolean;
   compact?: boolean;
 }) {
-  if (lifecycle === 'ENDED' && !isFeatured) return null;
+  const label = lifecycle === 'LIVE' ? 'LIVE' : lifecycle === 'ENDED' ? 'ENDED' : 'UPCOMING';
   return (
     <View style={styles.badgeStack}>
-      {lifecycle === 'LIVE' ? (
-        <View style={[styles.badge, styles.badgeLive]}>
-          <Text style={[styles.badgeText, styles.badgeTextLive]}>LIVE</Text>
-        </View>
-      ) : null}
+      <View style={[styles.badge, lifecycle === 'LIVE' ? styles.badgeLive : styles.badgeDark]}>
+        <Text style={styles.badgeTextOnDark}>{label}</Text>
+      </View>
+      <View style={styles.badgeDark}>
+        <Icon name={eventTypeIcon(eventType)} size={compact ? 10 : 11} color="#FFFFFF" />
+        <Text style={styles.badgeTextOnDark}>{eventTypeLabel(eventType)}</Text>
+      </View>
       {isFeatured ? (
-        <View style={[styles.badge, styles.badgeFeatured]}>
-          <Icon name="star" size={compact ? 9 : 11} color={EVENT_COLORS.soon} />
-          <Text style={[styles.badgeText, { color: EVENT_COLORS.soon }]}>Featured</Text>
+        <View style={styles.badgeDark}>
+          <Icon name="star" size={compact ? 9 : 11} color="#FFFFFF" />
+          <Text style={styles.badgeTextOnDark}>Featured</Text>
         </View>
       ) : null}
+    </View>
+  );
+}
+
+function EventFactRow({
+  icon,
+  title,
+  subtitle,
+  compact,
+}: {
+  icon: string;
+  title: string;
+  subtitle?: string | null;
+  compact?: boolean;
+}) {
+  return (
+    <View style={[styles.factRow, compact && styles.factRowCompact]}>
+      <View style={[styles.factIcon, compact && styles.factIconCompact]}>
+        <Icon name={icon} size={compact ? 14 : 16} color={EVENT_COLORS.accent} />
+      </View>
+      <View style={styles.factText}>
+        <Text style={[styles.factTitle, compact && styles.factTitleCompact]} numberOfLines={2}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text style={[styles.factSub, compact && styles.factSubCompact]} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -174,67 +231,103 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     elevation: 3,
   },
-  media: { width: '100%', height: 168, backgroundColor: EVENT_COLORS.accentSoft },
+  media: { width: '100%', height: 188, backgroundColor: EVENT_COLORS.accentSoft },
   image: { width: '100%', height: '100%' },
   imagePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  badgeStack: { position: 'absolute', top: 10, left: 10, gap: 6, alignItems: 'flex-start' },
+  badgeStack: {
+    position: 'absolute',
+    left: 12,
+    bottom: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    alignItems: 'flex-start',
+  },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.96)',
-    borderWidth: 1,
-    borderColor: EVENT_COLORS.accentBorder,
   },
-  badgeLive: { backgroundColor: '#111111', borderColor: '#111111' },
-  badgeFeatured: { backgroundColor: '#F0EFEB', borderColor: EVENT_COLORS.border },
-  badgeText: { fontSize: 10.5, fontWeight: '700', color: EVENT_COLORS.accent, letterSpacing: 0.2 },
-  badgeTextLive: { color: '#FFFFFF' },
-  body: { padding: 14, gap: 6 },
-  title: { fontSize: 16, fontWeight: '700', color: EVENT_COLORS.text, lineHeight: 21 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  metaText: { fontSize: 12.5, color: EVENT_COLORS.textSecondary, flexShrink: 1 },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 6,
-    gap: 8,
-  },
-  typeChip: {
+  badgeLive: { backgroundColor: '#111111' },
+  badgeDark: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 8,
+    paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: EVENT_COLORS.accentSoft,
+    backgroundColor: 'rgba(0,0,0,0.62)',
   },
-  typeChipText: { fontSize: 11, fontWeight: '700', color: EVENT_COLORS.accent },
-  cityText: { fontSize: 11.5, color: EVENT_COLORS.textSecondary, flexShrink: 1 },
+  badgeTextOnDark: { fontSize: 10.5, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.3 },
+  body: { padding: 16, gap: 10 },
+  title: { fontSize: 20, fontWeight: '800', color: EVENT_COLORS.text, lineHeight: 26 },
+  teaser: { fontSize: 13.5, color: EVENT_COLORS.textSecondary, lineHeight: 19, marginTop: -2 },
+  factRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: 16,
+    backgroundColor: EVENT_COLORS.accentSoft,
+    borderWidth: 1,
+    borderColor: EVENT_COLORS.accentBorder,
+  },
+  factRowCompact: { padding: 8, gap: 8, borderRadius: 12 },
+  factIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  factIconCompact: { width: 28, height: 28, borderRadius: 8 },
+  factText: { flex: 1, minWidth: 0 },
+  factTitle: { fontSize: 13.5, fontWeight: '700', color: EVENT_COLORS.text },
+  factTitleCompact: { fontSize: 12, fontWeight: '700' },
+  factSub: { fontSize: 12, color: EVENT_COLORS.textSecondary, marginTop: 2 },
+  factSubCompact: { fontSize: 11, marginTop: 1 },
 
-  strip: { width: 168 },
+  strip: {
+    width: EVENT_STRIP_CARD_WIDTH,
+    backgroundColor: EVENT_COLORS.card,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: EVENT_COLORS.border,
+    overflow: 'hidden',
+  },
   stripMedia: {
     width: '100%',
-    height: 108,
-    borderRadius: 16,
-    overflow: 'hidden',
+    height: 168,
     backgroundColor: EVENT_COLORS.accentSoft,
   },
-  stripImage: { width: '100%', height: '100%' },
-  stripImagePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  stripTitle: {
-    fontSize: 13.5,
-    fontWeight: '700',
-    color: EVENT_COLORS.text,
-    marginTop: 8,
-    lineHeight: 18,
+  stripNameScrim: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 12,
+    paddingTop: 28,
+    paddingBottom: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
-  stripMeta: { fontSize: 11.5, color: EVENT_COLORS.accent, fontWeight: '600', marginTop: 3 },
-  stripLocation: { fontSize: 11, color: EVENT_COLORS.textSecondary, marginTop: 1 },
+  stripName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    lineHeight: 20,
+  },
+  stripBody: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 12, gap: 8 },
+  stripTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: EVENT_COLORS.text,
+    lineHeight: 20,
+  },
+  stripTeaser: { fontSize: 12, color: EVENT_COLORS.textSecondary, lineHeight: 16, marginTop: -2 },
 });
 
 export const EventCard = memo(EventCardComponent);

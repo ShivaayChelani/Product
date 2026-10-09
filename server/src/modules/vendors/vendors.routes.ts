@@ -7,7 +7,7 @@ import { validate } from '../../middleware/validate';
 import {
   registerVendorSchema, updateVendorSchema, verifyVendorSchema,
   createOfferSchema, updateOfferSchema, adminUpdateVendorSchema,
-  createVendorReelSchema, updateVendorReelSchema,
+  createVendorReelSchema, updateVendorReelSchema, vendorReelArchiveSchema,
   adminFeatureOfferSchema, adminModerateOfferSchema,
   vendorReviewSchema,
   vendorMapQuerySchema,
@@ -45,6 +45,7 @@ router.patch('/me', authenticate, validate(updateVendorSchema), vendorsControlle
 // Vendor reels
 router.post('/reels', authenticate, requireVendorRole, validate(createVendorReelSchema), vendorsController.createVendorReel);
 router.patch('/reels/:reelId', authenticate, requireVendorRole, validate(updateVendorReelSchema), vendorsController.updateVendorReel);
+router.patch('/reels/:reelId/archive', authenticate, requireVendorRole, validate(vendorReelArchiveSchema), vendorsController.setVendorReelArchived);
 router.delete('/reels/:reelId', authenticate, requireVendorRole, vendorsController.deleteVendorReel);
 
 // Vendor offers CRUD

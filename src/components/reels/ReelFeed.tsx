@@ -7,6 +7,8 @@ import {
   Text,
   Image,
   LayoutChangeEvent,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
   useWindowDimensions,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
@@ -103,6 +105,19 @@ export const ReelFeed: React.FC<ReelFeedProps> = React.memo(({
     }
   }).current;
 
+  // Authoritative page index: rounded from the settled scroll offset. While a
+  // fling is in flight, `onViewableItemsChanged` (60% visibility) can report a
+  // neighbour page or lag a fast two-page swipe, so this is applied on the
+  // momentum end so the playing card always matches the page that lands.
+  const onMomentumScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const y = e.nativeEvent.contentOffset.y;
+    if (viewportHeight > 0 && reels.length > 0) {
+      const idx = Math.max(0, Math.min(reels.length - 1, Math.round(y / viewportHeight)));
+      setActiveIndex(idx);
+      onActiveIndexChange?.(idx);
+    }
+  }, [viewportHeight, reels.length, onActiveIndexChange]);
+
   const onLayout = useCallback((e: LayoutChangeEvent) => {
     const next = Math.round(e.nativeEvent.layout.height);
     if (next > 0) setViewportHeight(next);
@@ -114,7 +129,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = React.memo(({
       return (
         <View style={{ height: viewportHeight, width: '100%', backgroundColor: '#000', overflow: 'hidden' }}>
           {item.thumbnail ? (
-            <Image source={{ uri: item.thumbnail }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+            <Image source={{ uri: item.thumbnail }} style={StyleSheet.absoluteFillObject} resizeMode="contain" />
           ) : null}
         </View>
       );
@@ -177,7 +192,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = React.memo(({
   if (!loading && reels.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyTitle}>No reels yet</Text>
+        <Text style={styles.emptyTitle}>No Moments yet</Text>
         <Text style={styles.emptyMessage}>Check back soon for travel stories and adventures.</Text>
       </View>
     );
@@ -207,6 +222,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = React.memo(({
         decelerationRate="fast"
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
+        onMomentumScrollEnd={onMomentumScrollEnd}
         onEndReached={hasMore && !loading ? onLoadMore : undefined}
         onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}

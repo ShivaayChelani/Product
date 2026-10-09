@@ -132,7 +132,7 @@ describe('renderReelLandingPage', () => {
 
   it('still renders a usable page when the Reel is missing or private', () => {
     const html = renderReelLandingPage({ ...base, meta: null });
-    expect(html).toMatch(/Watch this reel on PalSafar/);
+    expect(html).toMatch(/Watch this Moment on PalSafar/);
     expect(html).toMatch(/Open in PalSafar/);
     expect(html).not.toMatch(/<video/);
   });

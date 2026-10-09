@@ -8,8 +8,10 @@ import path from 'path';
 import { settingsService } from '../modules/settings/settings.service';
 import { pointRulesService } from '../modules/point-rules/pointRules.service';
 import { seedStreetStory } from './seed-data';
-import { ensureBaseUserRole, upsertRoleStatus, syncUserPermissionFromRoles } from '../shared/utils/specialtyRoles';
+import { ensureBaseUserRole, upsertRoleStatus, syncUserPermissionFromRoles, listApprovedRoles } from '../shared/utils/specialtyRoles';
 import { findUserByEmail } from '../shared/utils/userEmailLookup';
+import { shouldPreserveSuperAdmin } from '../modules/users/roleChangeGuards';
+import { assertDestructivePruneAllowed, assertNullIslandCleanupAllowed, assertSyntheticSeedAllowed } from './seedSafety';
 
 function slugify(name: string): string {
   return name
@@ -153,16 +155,25 @@ export async function ensureAdminUsers(): Promise<void> {
     }
 
     await ensureBaseUserRole(existing.id);
-    await upsertRoleStatus({
-      userId: existing.id,
-      role: Role.ADMIN,
-      status: RoleAssignmentStatus.APPROVED,
-    });
-    await prisma.user.update({
-      where: { id: existing.id },
-      data: { permission: Role.ADMIN, activeMode: Role.ADMIN, name: profile.name },
-    });
-    await syncUserPermissionFromRoles(existing.id);
+    const approvedRoles = await listApprovedRoles(existing.id);
+    if (shouldPreserveSuperAdmin(approvedRoles)) {
+      await prisma.user.update({
+        where: { id: existing.id },
+        data: { name: profile.name },
+      });
+      await syncUserPermissionFromRoles(existing.id);
+    } else {
+      await upsertRoleStatus({
+        userId: existing.id,
+        role: Role.ADMIN,
+        status: RoleAssignmentStatus.APPROVED,
+      });
+      await prisma.user.update({
+        where: { id: existing.id },
+        data: { permission: Role.ADMIN, activeMode: Role.ADMIN, name: profile.name },
+      });
+      await syncUserPermissionFromRoles(existing.id);
+    }
     await prisma.wallet.upsert({
       where: { userId: existing.id },
       update: {},
@@ -192,6 +203,7 @@ async function syncCanonicalCredentials(): Promise<void> {
     logger.info('Canonical credential sync skipped in production (set SYNC_CANONICAL_CREDENTIALS=true only on disposable demo DBs)');
     return;
   }
+  assertSyntheticSeedAllowed();
 
   for (const acct of REQUIRED_USERS) {
     await upsertCanonicalUser(acct.email, acct.password, acct.name, acct.permission, acct.activeMode);
@@ -248,6 +260,7 @@ export async function syncQaCredentials(): Promise<void> {
  * Cleans dependent rows first — production DB has RESTRICT FKs on redemptions.offer_id.
  */
 export async function pruneExtraUsers(): Promise<{ deleted: number; kept: string[] }> {
+  assertDestructivePruneAllowed();
   const keep = [...CANONICAL_KEEP_EMAILS];
   const toDelete = await prisma.user.findMany({
     where: { email: { notIn: keep } },
@@ -386,6 +399,7 @@ export async function ensureSeedData(): Promise<void> {
 
     // Destructive null-island cleanup is OPT-IN only (bad imports / unfinished geocodes).
     if (process.env.CLEANUP_NULL_ISLAND_PLACES === '1' || process.env.CLEANUP_NULL_ISLAND_PLACES === 'true') {
+      assertNullIslandCleanupAllowed();
       const deleted = await prisma.place.deleteMany({
         where: { latitude: 0, longitude: 0 },
       });
@@ -474,6 +488,7 @@ export async function ensureSeedData(): Promise<void> {
     const seedDemoStreetStory =
       !isProduction || process.env.SEED_STREET_STORY === 'true';
     if (seedDemoStreetStory) {
+      if (!isProduction) assertSyntheticSeedAllowed();
       await seedStreetStory(prisma);
     } else {
       logger.info('Demo Street Story / Rahul Chelani seed skipped in production');
@@ -483,6 +498,7 @@ export async function ensureSeedData(): Promise<void> {
     // Set PRUNE_EXTRA_USERS=true only on disposable demo DBs that must stay at 4 accounts.
     if (process.env.PRUNE_EXTRA_USERS === 'true') {
       try {
+        assertDestructivePruneAllowed();
         await pruneExtraUsers();
       } catch (pruneErr) {
         logger.error({ err: pruneErr }, 'Failed to prune extra users (server will continue)');

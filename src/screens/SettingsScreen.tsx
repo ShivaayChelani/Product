@@ -18,6 +18,7 @@ import { useUserContext } from '../context/UserContext';
 import { useUserAppSettings } from '../features/settings/hooks/useUserAppSettings';
 import { clearAppCaches } from '../features/settings/utils/storageManager';
 import { scale, verticalScale, fontScale, radiusScale } from '../design/responsive';
+import { SUPPORT_EMAIL } from '../config/supportEmail';
 
 export default function SettingsScreen({
   navigation: navigationProp,
@@ -150,7 +151,7 @@ export default function SettingsScreen({
             <Icon name="chevron-forward" size={18} color="#6B6B6B" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL('mailto:shivaay.chelani@gmail.com')}>
+          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}>
             <View style={[styles.iconBox, { backgroundColor: '#F2F2F2' }]}>
               <Icon name="headset-outline" size={20} color="#111111" />
             </View>

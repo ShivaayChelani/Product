@@ -83,7 +83,7 @@ export default function MediaLibraryPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Media Library</h1>
-        <p className="mt-1 text-sm text-gray-500">Place images, user submissions, and reels</p>
+        <p className="mt-1 text-sm text-gray-500">Place images, user submissions, and Moments</p>
       </div>
       <div className="mb-4 flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-md">
@@ -94,7 +94,7 @@ export default function MediaLibraryPage() {
           <option value="">All Types</option>
           <option value="PLACE_IMAGE">Place Images</option>
           <option value="USER_PLACE_IMAGE">User Submissions</option>
-          <option value="REEL">Reels</option>
+          <option value="REEL">Moments</option>
         </select>
       </div>
       <DataTable columns={columns} data={items as (MediaAsset & Record<string, unknown>)[]} loading={loading} page={page} totalPages={totalPages} totalRecords={totalRecords} hasNext={hasNext} hasPrev={hasPrev} onPageChange={setPage} emptyMessage="No media found" exportFilename="media-library" pageSize={20} />

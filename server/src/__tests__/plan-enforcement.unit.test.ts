@@ -72,7 +72,7 @@ describe('vendor plan enforcement', () => {
     reelCount.mockResolvedValue(2);
     await expect(planEnforcementService.assertVendorCanCreateReel('u1')).rejects.toMatchObject({
       statusCode: 403,
-      message: expect.stringMatching(/2 reels per month/i),
+      message: expect.stringMatching(/2 Moments per month/i),
     });
     expect(reelCount.mock.calls[0][0].where.createdAt.gte).toBeInstanceOf(Date);
   });

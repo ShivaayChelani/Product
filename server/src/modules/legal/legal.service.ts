@@ -4,6 +4,7 @@ import { ApiError } from '../../shared/utils/ApiError';
 import { auditService } from '../audit/audit.service';
 import { LEGAL_DOCUMENT_TYPES } from './legal.validation';
 import type { CreateDocumentInput, CreateVersionInput, UpdateVersionInput } from './legal.validation';
+import { normalizeSupportEmailTypo } from '../../shared/utils/supportEmail';
 
 const DEFAULT_LOCALE = 'en';
 
@@ -59,7 +60,7 @@ export const legalService = {
       locale,
       versionNumber: version.versionNumber,
       title: version.title,
-      content: version.content,
+      content: normalizeSupportEmailTypo(version.content),
       format: version.format,
       effectiveDate: version.effectiveDate,
       publishedAt: version.publishedAt,
@@ -137,6 +138,78 @@ export const legalService = {
     }
 
     return { termsVersion: terms.versionNumber, privacyVersion: privacy.versionNumber };
+  },
+
+  /**
+   * Persist current published versions for a user. Timestamps always come from
+   * the server clock — the client may only send version numbers + boolean flags.
+   */
+  async recordUserAcceptance(
+    userId: string,
+    versions: { termsVersion: number; privacyVersion: number },
+    platform?: string | null,
+  ) {
+    const now = new Date();
+    return prisma.legalAcceptance.upsert({
+      where: { userId },
+      update: {
+        termsVersion: versions.termsVersion,
+        privacyVersion: versions.privacyVersion,
+        acceptedAt: now,
+        termsAcceptedAt: now,
+        privacyAcceptedAt: now,
+        platform: platform ?? null,
+      },
+      create: {
+        userId,
+        termsVersion: versions.termsVersion,
+        privacyVersion: versions.privacyVersion,
+        acceptedAt: now,
+        termsAcceptedAt: now,
+        privacyAcceptedAt: now,
+        platform: platform ?? null,
+      },
+    });
+  },
+
+  async getAcceptanceStatus(userId: string) {
+    const current = await this.getCurrentVersions();
+    const existing = await prisma.legalAcceptance.findUnique({ where: { userId } });
+    const requiresAcceptance =
+      !existing ||
+      existing.termsVersion !== current.termsVersion ||
+      existing.privacyVersion !== current.privacyVersion;
+
+    return {
+      termsVersion: current.termsVersion,
+      privacyVersion: current.privacyVersion,
+      acceptedTermsVersion: existing?.termsVersion ?? null,
+      acceptedPrivacyVersion: existing?.privacyVersion ?? null,
+      termsAcceptedAt: existing?.termsAcceptedAt ?? null,
+      privacyAcceptedAt: existing?.privacyAcceptedAt ?? null,
+      requiresAcceptance,
+    };
+  },
+
+  async acceptCurrent(
+    userId: string,
+    input: {
+      termsVersion: number;
+      privacyVersion: number;
+      platform?: string | null;
+    },
+  ) {
+    const current = await this.getCurrentVersions();
+    if (
+      input.termsVersion !== current.termsVersion ||
+      input.privacyVersion !== current.privacyVersion
+    ) {
+      throw new ApiError(
+        400,
+        'The legal document versions you accepted are out of date. Please reload the app and accept the current Terms & Conditions and Privacy Policy.',
+      );
+    }
+    return this.recordUserAcceptance(userId, current, input.platform);
   },
 
   // ── Admin ──
@@ -311,6 +384,12 @@ export const legalService = {
     if (!version) throw new ApiError(404, 'Version not found.');
     if (version.status === LegalVersionStatus.ARCHIVED) {
       throw new ApiError(400, 'This version is already archived.');
+    }
+    if (version.status === LegalVersionStatus.PUBLISHED) {
+      throw new ApiError(
+        400,
+        'The currently published legal document cannot be archived. Publish a new version first — that archives this one automatically.',
+      );
     }
 
     const archived = await prisma.legalDocumentVersion.update({

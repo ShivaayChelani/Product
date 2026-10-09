@@ -140,7 +140,7 @@ export type ReelShareMeta = {
   likes: number;
 };
 
-const DEFAULT_TITLE = 'Watch this reel on PalSafar';
+const DEFAULT_TITLE = 'Watch this Moment on PalSafar';
 
 /**
  * Browser fallback for a shared Reel. Renders real Open Graph / Twitter card

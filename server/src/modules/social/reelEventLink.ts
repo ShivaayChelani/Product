@@ -27,8 +27,8 @@ import { canPublicViewPlace } from '../places/services/places-public-visibility'
 /** Stable messages so the client can branch on them if it ever needs to. */
 export const EVENT_LINK_ERRORS = {
   notFound: 'Event not found.',
-  notVisible: 'That event is not available to link a reel to.',
-  notOwner: 'You can only link a reel to your own unpublished event.',
+  notVisible: 'That event is not available to link a Moment to.',
+  notOwner: 'You can only link a Moment to your own unpublished event.',
 } as const;
 
 /** The slice of `Event` the authorization rule needs. */

@@ -28,7 +28,7 @@ import {
   openVendorWhatsApp,
 } from '../utils/vendorContactActions';
 import { openInternalDirections } from '../features/mapExplore/utils/internalDirections';
-import { loadSavedOfferIds, toggleSavedOfferId } from '../utils/savedOffers';
+import { ON_DARK } from '../design/contrast';
 
 const COLORS = {
   background: '#FFFFFF',
@@ -54,7 +54,6 @@ export default function VendorOfferDetailScreen() {
   const [redeemOpen, setRedeemOpen] = useState(false);
   const [redeemLoading, setRedeemLoading] = useState(false);
   const [walletPoints, setWalletPoints] = useState<number | null>(null);
-  const [isSaved, setIsSaved] = useState(false);
   const { handleRedeemOffer } = useDataContext();
   const { user, setUser, isGuest } = useUserContext();
 
@@ -75,17 +74,6 @@ export default function VendorOfferDetailScreen() {
   useEffect(() => {
     void refreshWalletPoints();
   }, [refreshWalletPoints]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const ids = await loadSavedOfferIds();
-      if (!cancelled) setIsSaved(ids.includes(offerId));
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [offerId]);
 
   const loadData = useCallback(async () => {
     if (!offerId) {
@@ -125,12 +113,6 @@ export default function VendorOfferDetailScreen() {
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  const onSaveOffer = useCallback(async () => {
-    if (!offerId) return;
-    const next = await toggleSavedOfferId(offerId);
-    setIsSaved(next.includes(offerId));
-  }, [offerId]);
 
   const onRedeemSubmit = useCallback(async (vendorCode: string) => {
     if (!offerId) return;
@@ -329,12 +311,12 @@ export default function VendorOfferDetailScreen() {
                 <Text style={styles.contactBtnText}>Website</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.contactBtn, { backgroundColor: COLORS.gold }]}
+                style={[styles.contactBtn, styles.contactBtnPrimary]}
                 onPress={openDirections}
                 activeOpacity={0.7}
               >
-                <Icon name="navigate-outline" size={20} color={COLORS.text} />
-                <Text style={styles.contactBtnText}>Directions</Text>
+                <Icon name="navigate-outline" size={20} color={ON_DARK} />
+                <Text style={[styles.contactBtnText, styles.contactBtnPrimaryText]}>Directions</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -358,12 +340,11 @@ export default function VendorOfferDetailScreen() {
       </ScrollView>
 
       {/* Sticky Bottom Actions */}
-      <StickyActionBar 
-        onSave={() => { void onSaveOffer(); }}
-        isSaved={isSaved}
+      <StickyActionBar
         onPrimaryAction={onRedeemPress}
         primaryActionLabel={canRedeem ? 'Redeem Offer' : `Need ${Math.max(0, offer.pointsRequired - userPoints)} pts`}
         primaryActionIcon="gift-outline"
+        loading={redeemLoading}
       />
 
       <VendorCodeRedeemModal
@@ -504,7 +485,7 @@ const styles = StyleSheet.create({
   offerBadgeText: {
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.text,
+    color: ON_DARK,
   },
   contentPadding: {
     paddingHorizontal: 20,
@@ -624,6 +605,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: COLORS.text,
+  },
+  contactBtnPrimary: {
+    backgroundColor: COLORS.gold,
+    borderColor: COLORS.gold,
+  },
+  contactBtnPrimaryText: {
+    color: ON_DARK,
   },
   similarSection: {
     marginTop: 8,

@@ -342,13 +342,8 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
           </View>
 
           <View style={styles.badgeRow}>
-            <View style={[styles.badge, lifecycle === 'LIVE' ? styles.badgeLive : styles.badgeSoon]}>
-              <Text
-                style={[
-                  styles.badgeText,
-                  lifecycle === 'LIVE' ? styles.badgeTextLive : styles.badgeTextSoon,
-                ]}
-              >
+            <View style={styles.badgeGlass}>
+              <Text style={styles.badgeTextGlass}>
                 {lifecycle === 'LIVE' ? 'LIVE NOW' : lifecycle === 'ENDED' ? 'ENDED' : 'UPCOMING'}
               </Text>
             </View>
@@ -358,7 +353,7 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
             </View>
             {event.isFeatured ? (
               <View style={styles.badgeGlass}>
-                <Icon name="star" size={11} color="#B7791F" />
+                <Icon name="star" size={11} color="#FFFFFF" />
                 <Text style={styles.badgeTextGlass}>Featured</Text>
               </View>
             ) : null}
@@ -373,7 +368,9 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
           ) : null}
 
           <View style={styles.scheduleCard}>
-            <Icon name="calendar-outline" size={18} color={EVENT_COLORS.accent} />
+            <View style={styles.factIcon}>
+              <Icon name="calendar-outline" size={18} color={EVENT_COLORS.accent} />
+            </View>
             <View style={styles.scheduleText}>
               <Text style={styles.scheduleTitle}>
                 {formatEventFullSchedule(event)}
@@ -386,21 +383,27 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
           </View>
 
           {address || location ? (
-            <View style={styles.infoRow}>
-              <Icon name="location-outline" size={18} color={EVENT_COLORS.textSecondary} />
-              <View style={styles.infoText}>
-                {address ? <Text style={styles.infoTitle}>{address}</Text> : null}
+            <View style={styles.scheduleCard}>
+              <View style={styles.factIcon}>
+                <Icon name="location-outline" size={18} color={EVENT_COLORS.accent} />
+              </View>
+              <View style={styles.scheduleText}>
+                {address ? <Text style={styles.scheduleTitle}>{address}</Text> : null}
                 {location && location !== address ? (
-                  <Text style={styles.infoSub}>{location}</Text>
-                ) : null}
+                  <Text style={styles.scheduleSub}>{location}</Text>
+                ) : address ? null : (
+                  <Text style={styles.scheduleTitle}>{location}</Text>
+                )}
               </View>
               {canLocate ? (
                 <Pressable
                   onPress={openOnMapAtEvent}
+                  style={styles.mapChip}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   accessibilityRole="button"
                   accessibilityLabel="Show on map"
                 >
+                  <Icon name="map-outline" size={14} color={EVENT_COLORS.accent} />
                   <Text style={styles.linkText}>Map</Text>
                 </Pressable>
               ) : null}
@@ -409,7 +412,7 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
 
           {description ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>About this event</Text>
+              <Text style={styles.sectionTitle}>About event</Text>
               <Text style={styles.description}>{description}</Text>
             </View>
           ) : null}
@@ -572,7 +575,7 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
             testID="event-add-to-itinerary"
           >
             <Icon
-              name={inItinerary ? 'checkmark-circle' : addingToTrip ? 'sync' : 'add-circle-outline'}
+              name={inItinerary ? 'checkmark-circle' : addingToTrip ? 'sync' : 'add'}
               size={18}
               color={inItinerary ? '#111111' : '#FFFFFF'}
             />
@@ -584,9 +587,9 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
           <View style={styles.actions}>
             {canLocate ? (
               <>
-                <Pressable style={styles.primaryBtn} onPress={openOnMap} accessibilityRole="button">
-                  <Icon name="navigate-outline" size={16} color="#FFFFFF" />
-                  <Text style={styles.primaryBtnText}>View on map</Text>
+                <Pressable style={styles.secondaryBtn} onPress={openOnMap} accessibilityRole="button">
+                  <Icon name="navigate-outline" size={16} color={EVENT_COLORS.accent} />
+                  <Text style={styles.secondaryBtnText}>View on map</Text>
                 </Pressable>
                 <Pressable style={styles.secondaryBtn} onPress={openDirections} accessibilityRole="button">
                   <Icon name="navigate" size={16} color={EVENT_COLORS.accent} />
@@ -601,10 +604,6 @@ export default function EventDetailScreen({ eventIdOrSlug }: Props) {
                 </Text>
               </View>
             )}
-            <Pressable style={styles.secondaryBtn} onPress={() => void onShare()} accessibilityRole="button">
-              <Icon name="share-outline" size={16} color={EVENT_COLORS.accent} />
-              <Text style={styles.secondaryBtnText}>Share</Text>
-            </Pressable>
           </View>
         </View>
       </ScrollView>
@@ -745,20 +744,25 @@ const styles = StyleSheet.create({
   scheduleCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     padding: 14,
     borderRadius: 16,
     backgroundColor: EVENT_COLORS.accentSoft,
     borderWidth: 1,
     borderColor: EVENT_COLORS.accentBorder,
   },
-  scheduleText: { flex: 1 },
+  factIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scheduleText: { flex: 1, minWidth: 0 },
   scheduleTitle: { fontSize: 14.5, fontWeight: '700', color: EVENT_COLORS.text },
   scheduleSub: { fontSize: 12.5, color: EVENT_COLORS.textSecondary, marginTop: 2 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  infoText: { flex: 1 },
-  infoTitle: { fontSize: 14, fontWeight: '600', color: EVENT_COLORS.text },
-  infoSub: { fontSize: 12.5, color: EVENT_COLORS.textSecondary, marginTop: 1 },
+  mapChip: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   linkText: { fontSize: 13, fontWeight: '700', color: EVENT_COLORS.accent },
   section: { gap: 8 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: EVENT_COLORS.text },
@@ -776,25 +780,14 @@ const styles = StyleSheet.create({
     borderColor: EVENT_COLORS.border,
   },
   linkRowText: { flex: 1, fontSize: 14, fontWeight: '600', color: EVENT_COLORS.text },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 },
-  primaryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    flexGrow: 1,
-    minWidth: 150,
-    height: 46,
-    borderRadius: 14,
-    backgroundColor: EVENT_COLORS.accent,
-  },
-  primaryBtnText: { color: '#FFFFFF', fontSize: 14.5, fontWeight: '700' },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   secondaryBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    paddingHorizontal: 18,
+    paddingHorizontal: 12,
     height: 46,
     borderRadius: 14,
     borderWidth: 1,

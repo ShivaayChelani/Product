@@ -82,6 +82,10 @@ src/config/monitoring.local.ts
 *.hprof
 
 # ── Android ──
+/*.apk
+/PalSafar-*.apk
+/PalSafar-*.aab
+server/.headcheck/
 android/app/build/
 android/build/
 android/.gradle/

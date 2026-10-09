@@ -10,6 +10,7 @@ const styles: Record<string, string> = {
   PROCESSING: "bg-blue-100 text-blue-800",
   ACTIVE: "bg-emerald-100 text-emerald-800",
   INACTIVE: "bg-gray-100 text-gray-600",
+  SUPERADMIN: "bg-violet-100 text-violet-900 dark:bg-violet-950 dark:text-violet-100",
   ADMIN: "bg-purple-100 text-purple-800",
   USER: "bg-blue-100 text-blue-800",
   VENDOR: "bg-cyan-100 text-cyan-800",

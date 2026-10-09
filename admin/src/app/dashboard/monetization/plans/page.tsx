@@ -43,7 +43,7 @@ const emptyForm = {
   audience: "VENDOR" as PlanAudience,
   name: "Starter",
   slug: "vendor-starter",
-  description: "Business map listing, 1 active offer, and 2 reels per month.",
+  description: "Business map listing, 1 active offer, and 2 Moments per month.",
   badge: "Starter",
   color: "#0E7490",
   status: "ACTIVE" as PlanStatus,
@@ -408,7 +408,7 @@ export default function MonetizationPlansPage() {
                 <label className="text-sm">Max Offers
                   <input className="mt-1 w-full rounded border px-3 py-2" type="number" value={form.maxOffers} onChange={(e) => setForm({ ...form, maxOffers: e.target.value })} />
                 </label>
-                <label className="text-sm">Max Reels
+                <label className="text-sm">Max Moments
                   <input className="mt-1 w-full rounded border px-3 py-2" type="number" value={form.maxReels} onChange={(e) => setForm({ ...form, maxReels: e.target.value })} />
                 </label>
                 <label className="text-sm">Analytics Level
@@ -426,7 +426,7 @@ export default function MonetizationPlansPage() {
             )}
             {form.audience === "CREATOR" && (
               <>
-                <label className="text-sm">Upload Limit (Reels)
+                <label className="text-sm">Upload Limit (Moments)
                   <input className="mt-1 w-full rounded border px-3 py-2" type="number" value={form.uploadLimit} onChange={(e) => setForm({ ...form, uploadLimit: e.target.value })} />
                 </label>
                 <label className="text-sm">Analytics Level

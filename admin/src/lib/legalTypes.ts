@@ -12,7 +12,7 @@ export const LEGAL_TYPE_META: LegalTypeMeta[] = [
   { type: "PRIVACY_POLICY", slug: "privacy-policy", label: "Privacy Policy", description: "Data collection, storage, and third-party sharing disclosures.", group: "Legal & Policies" },
   { type: "TERMS_CONDITIONS", slug: "terms-conditions", label: "Terms & Conditions", description: "Platform-wide rules, eligibility, and user responsibilities.", group: "Legal & Policies" },
   { type: "REWARDS_POLICY", slug: "rewards-policy", label: "Rewards Policy", description: "PalPoints, redemptions, and reward program disclaimers.", group: "Legal & Policies" },
-  { type: "COMMUNITY_GUIDELINES", slug: "community-guidelines", label: "Community Guidelines", description: "Content standards for reviews, reels, and hidden gem submissions.", group: "Legal & Policies" },
+  { type: "COMMUNITY_GUIDELINES", slug: "community-guidelines", label: "Community Guidelines", description: "Content standards for reviews, Moments, and hidden gem submissions.", group: "Legal & Policies" },
   { type: "REFUND_POLICY", slug: "refund-policy", label: "Refund Policy", description: "Refund and cancellation rules for paid offers and subscriptions.", group: "Legal & Policies" },
   { type: "VENDOR_TERMS", slug: "vendor-terms", label: "Vendor Terms", description: "Obligations and terms specific to Vendor accounts.", group: "For Vendors & Creators" },
   { type: "CREATOR_TERMS", slug: "creator-terms", label: "Creator Terms", description: "Obligations and terms specific to Content Creator accounts.", group: "For Vendors & Creators" },

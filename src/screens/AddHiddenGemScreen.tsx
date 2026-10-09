@@ -491,7 +491,7 @@ export default function AddHiddenGemScreen({ onBack, onSubmit, userId, userName 
       </View>
 
       {/* Category Modal */}
-      <Modal visible={categoryModalVisible} transparent animationType="slide">
+      <Modal visible={categoryModalVisible} transparent animationType="slide" onRequestClose={() => setCategoryModalVisible(false)}>
         <View style={styles.modalBg}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -513,7 +513,7 @@ export default function AddHiddenGemScreen({ onBack, onSubmit, userId, userName 
       </Modal>
 
       {/* Time Modal */}
-      <Modal visible={timeModalVisible} transparent animationType="slide">
+      <Modal visible={timeModalVisible} transparent animationType="slide" onRequestClose={() => setTimeModalVisible(false)}>
         <View style={styles.modalBg}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>

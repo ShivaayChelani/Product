@@ -117,6 +117,6 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>PalSafar uses your location to show nearby travel spots, places of interest, and vendors on the map.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>PalSafar uses your location to show nearby travel spots and places of interest. Location is only accessed while the app is in use.</string>
+	<string>PalSafar uses your location to show nearby places, personalize travel discovery, and support location-based travel features while you are using the app. PalSafar does not track your location in the background.</string>
 </dict>
 </plist>

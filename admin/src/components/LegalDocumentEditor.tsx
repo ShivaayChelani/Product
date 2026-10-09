@@ -182,10 +182,17 @@ export default function LegalDocumentEditor({
   };
 
   const handleArchive = (v: LegalVersionDetail) => {
+    if (v.status === "PUBLISHED") {
+      notify(
+        "error",
+        "The live published document cannot be archived. Publish a new version instead — that archives this one automatically.",
+      );
+      return;
+    }
     setConfirmDialog({
       open: true,
-      title: "Archive published version?",
-      message: `Version ${v.versionNumber} will be archived. Users will see no published version for ${label} until a new one is published.`,
+      title: "Archive this draft?",
+      message: `Version ${v.versionNumber} will be archived and can no longer be edited.`,
       confirmLabel: "Archive",
       variant: "danger",
       action: async () => {
@@ -394,9 +401,7 @@ export default function LegalDocumentEditor({
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-bold text-gray-900">Live Preview</h3>
-            <button onClick={() => handleArchive(publishedVersion)} className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700">
-              <Archive size={13} /> Archive
-            </button>
+            <p className="text-xs text-gray-400">Publish a new draft to replace this version.</p>
           </div>
           <div className="prose prose-sm max-w-none max-h-96 overflow-auto rounded-lg border border-gray-100 bg-gray-50 p-4">
             <ReactMarkdown>{publishedVersion.content}</ReactMarkdown>
@@ -429,7 +434,12 @@ export default function LegalDocumentEditor({
                 <div className="flex items-center gap-3 text-xs">
                   <button onClick={() => setViewVersion(v)} className="text-gray-500 hover:text-blue-600">View</button>
                   {v.status === "DRAFT" && (
-                    <button onClick={() => editDraft(v)} className="text-blue-600 hover:underline">Edit</button>
+                    <>
+                      <button onClick={() => editDraft(v)} className="text-blue-600 hover:underline">Edit</button>
+                      <button onClick={() => handleArchive(v)} className="flex items-center gap-1 text-red-500 hover:text-red-700">
+                        <Archive size={12} /> Archive draft
+                      </button>
+                    </>
                   )}
                   {v.status !== "PUBLISHED" && (
                     <>

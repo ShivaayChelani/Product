@@ -54,6 +54,17 @@ describe('Answer matching — Treasure Hunt', () => {
     it('single char typo in first word', () => expect(isAnswerMatch('Madon Mahal', expected)).toBe(true));
   });
 
+  describe('Bhedaghat aliases and spacing', () => {
+    const expected = 'Bhedaghat';
+
+    it('exact match', () => expect(isAnswerMatch(expected, expected)).toBe(true));
+    it('case variation', () => expect(isAnswerMatch('bhedaghat', expected)).toBe(true));
+    it('spacing variation', () => expect(isAnswerMatch('Bheda Ghat', expected)).toBe(true));
+    it('leading/trailing space', () => expect(isAnswerMatch('  Bhedaghat  ', expected)).toBe(true));
+    it('rejects an unrelated nearby place', () => expect(isAnswerMatch('Dhuandhar', expected)).toBe(false));
+    it('rejects a truncated token', () => expect(isAnswerMatch('Bheda', expected)).toBe(false));
+  });
+
   describe('rejected answers', () => {
     const expected = 'Madan Mahal';
 

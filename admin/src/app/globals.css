@@ -114,6 +114,21 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+.admin-table-scroll table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.admin-table-scroll td {
+  vertical-align: middle;
+  word-break: break-word;
+}
+
+.admin-page {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -415,4 +430,31 @@ tbody tr[data-state="selected"]:hover .admin-sticky-col {
 :focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/* Dark-mode compatibility for pages still using Tailwind gray/white utilities */
+.dark .bg-white {
+  background-color: var(--card);
+}
+.dark .text-gray-900,
+.dark .text-gray-800 {
+  color: var(--foreground);
+}
+.dark .text-gray-700,
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-gray-400 {
+  color: var(--muted-foreground);
+}
+.dark .bg-gray-50,
+.dark .bg-gray-100 {
+  background-color: var(--muted);
+}
+.dark .border-gray-100,
+.dark .border-gray-200 {
+  border-color: var(--border);
+}
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-gray-100:hover {
+  background-color: var(--muted);
 }

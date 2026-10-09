@@ -16,8 +16,10 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserContext } from '../context/UserContext';
 import CreatorStudioSidebar from '../components/CreatorStudioSidebar';
+import { extractCreatorHandle } from '../utils/creatorHandle';
 import { applyWalletPalPoints } from '../utils/syncPalPoints';
 import { useCreatorDashboard, creatorDashboardKey } from '../features/creator/hooks/useCreatorDashboard';
+import { invalidateReelSurfaces } from '../features/creator/utils/invalidateReelSurfaces';
 import { useCreatorAnalytics } from '../features/creator/hooks/useCreatorAnalytics';
 import { compactNumber } from '../features/creator/utils/format';
 import { collaborationsApi, type CollaborationItem } from '../services/api/collaborations';
@@ -124,7 +126,7 @@ export default function CreatorDashboardScreen() {
     void creatorUploadManager.init();
     const unsubJobs = creatorUploadManager.subscribe(setUploadJobs);
     const unsubPosted = creatorUploadManager.onPosted(() => {
-      void queryClient.invalidateQueries({ queryKey: creatorDashboardKey });
+      invalidateReelSurfaces(queryClient);
     });
     return () => {
       unsubJobs();
@@ -264,7 +266,7 @@ export default function CreatorDashboardScreen() {
 
         {visibleUploadJobs.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Uploading Reels</Text>
+            <Text style={styles.sectionTitle}>Uploading Moments</Text>
             {visibleUploadJobs.map((job) => (
               <ReelUploadStatusCard
                 key={job.localUploadId}
@@ -374,7 +376,7 @@ export default function CreatorDashboardScreen() {
         visible={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         user={user!}
-        creatorName={dashboard.profile.fullName || dashboard.profile.username || 'Creator'}
+        creatorName={dashboard.profile.fullName || extractCreatorHandle(dashboard.profile.username) || 'Creator'}
         creatorHandle={dashboard.profile.username || user?.creatorProfile?.username || ''}
         creatorAvatar={dashboard.profile.avatar || null}
         verified={dashboard.profile.verified}

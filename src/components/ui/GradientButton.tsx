@@ -1,5 +1,6 @@
 import { TouchableOpacity, Text, View, type ViewStyle, type TextStyle } from 'react-native';
 import { Pal } from '../../design/DesignSystem';
+import { DISABLED_BUTTON_BG, DISABLED_BUTTON_FG, ON_DARK } from '../../design/contrast';
 
 interface GradientButtonProps {
   title: string;
@@ -18,10 +19,10 @@ interface GradientButtonProps {
 import { scale, verticalScale, fontScale } from '../../design/responsive';
 
 const variantMap: Record<string, { colors: string[]; textColor: string }> = {
-  primary: { colors: ['#000000', '#000000'], textColor: '#FFFFFF' },
-  secondary: { colors: ['#000000', '#1C1C1E'], textColor: '#FFFFFF' },
-  accent: { colors: ['#000000', '#1C1C1E'], textColor: '#FFFFFF' },
-  danger: { colors: ['#C94A4A', '#FF7B7F'], textColor: '#FFFFFF' },
+  primary: { colors: ['#000000', '#000000'], textColor: ON_DARK },
+  secondary: { colors: ['#000000', '#1C1C1E'], textColor: ON_DARK },
+  accent: { colors: ['#000000', '#1C1C1E'], textColor: ON_DARK },
+  danger: { colors: ['#C94A4A', '#FF7B7F'], textColor: ON_DARK },
   outline: { colors: ['transparent', 'transparent'], textColor: '#111111' },
   ghost: { colors: ['transparent', 'transparent'], textColor: '#6B6B6B' },
 };
@@ -40,6 +41,15 @@ export function GradientButton({
   const dims = sizeMap[size];
   const isOutline = variant === 'outline';
   const isGhost = variant === 'ghost';
+  const isDisabled = !!disabled;
+  const filledDisabled = isDisabled && !isOutline && !isGhost;
+  const labelColor = filledDisabled
+    ? DISABLED_BUTTON_FG
+    : isOutline
+      ? Pal.colors.light.primary
+      : isGhost
+        ? Pal.colors.light.textSecondary
+        : config.textColor;
 
   return (
     <TouchableOpacity
@@ -50,24 +60,28 @@ export function GradientButton({
         height: dims.height,
         paddingHorizontal: dims.paddingHorizontal,
         borderRadius: Pal.borderRadius.xl,
-        backgroundColor: isOutline || isGhost ? 'transparent' : config.colors[0],
+        backgroundColor: isOutline || isGhost
+          ? 'transparent'
+          : filledDisabled
+            ? DISABLED_BUTTON_BG
+            : config.colors[0],
         borderWidth: isOutline ? 1.5 : 0,
         borderColor: isOutline ? Pal.colors.light.primary : 'transparent',
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
         gap: 8,
-        opacity: disabled ? 0.5 : 1,
+        opacity: isOutline && isDisabled ? 0.5 : 1,
         ...Pal.shadows.md,
       }, fullWidth ? { width: '100%' } : {}, style as ViewStyle]}
     >
       {icon && <View style={{ marginRight: 4 }}>{icon}</View>}
       {loading ? (
-        <Text style={[{ color: config.textColor, fontSize: dims.fontSize, fontFamily: Pal.typography.fontFamily.semibold }, textStyle as TextStyle]}>
+        <Text style={[{ color: labelColor, fontSize: dims.fontSize, fontFamily: Pal.typography.fontFamily.semibold }, textStyle as TextStyle]}>
           Loading...
         </Text>
       ) : (
-        <Text style={[{ color: isOutline ? Pal.colors.light.primary : isGhost ? Pal.colors.light.textSecondary : config.textColor, fontSize: dims.fontSize, fontFamily: Pal.typography.fontFamily.semibold }, textStyle as TextStyle]}>
+        <Text style={[{ color: labelColor, fontSize: dims.fontSize, fontFamily: Pal.typography.fontFamily.semibold }, textStyle as TextStyle]}>
           {title}
         </Text>
       )}

@@ -52,6 +52,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   const cancelledRef = useRef(false);
   const hasPermissionRef = useRef(false);
   const requestPromiseRef = useRef<Promise<boolean> | null>(null);
+  const appStateCheckIdRef = useRef(0);
 
   useEffect(() => {
     hasPermissionRef.current = hasPermission;
@@ -206,12 +207,44 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', nextAppState => {
-      if (nextAppState === 'active' && hasPermissionRef.current) {
-        stopTracking();
-        startTracking();
-      }
+      if (nextAppState !== 'active') return;
+      const checkId = ++appStateCheckIdRef.current;
+      void (async () => {
+        try {
+          let granted = false;
+          if (Platform.OS === 'android') {
+            granted = await PermissionsAndroid.check(FINE_LOCATION);
+          } else if (Platform.OS === 'ios') {
+            const { check, PERMISSIONS, RESULTS } = require('react-native-permissions');
+            const status = await check(PERMISSIONS.IOS.LOCATION_WHEN_IN_USE);
+            granted = status === RESULTS.GRANTED || status === RESULTS.LIMITED;
+          }
+          if (checkId !== appStateCheckIdRef.current) return;
+
+          hasPermissionRef.current = granted;
+          setHasPermission(granted);
+          stopTracking();
+          if (granted) {
+            startTracking();
+          } else {
+            setGpsEnabled(false);
+            setPosition(null);
+          }
+        } catch {
+          if (checkId !== appStateCheckIdRef.current) return;
+          logGps('permission_refresh_error', { platform: Platform.OS });
+          hasPermissionRef.current = false;
+          setHasPermission(false);
+          stopTracking();
+          setGpsEnabled(false);
+          setPosition(null);
+        }
+      })();
     });
-    return () => subscription.remove();
+    return () => {
+      appStateCheckIdRef.current += 1;
+      subscription.remove();
+    };
   }, [startTracking, stopTracking]);
 
   const requestPermissionAndroid = useCallback(async (): Promise<boolean> => {

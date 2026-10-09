@@ -8,12 +8,14 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Reel } from '../../types';
-import { ReelPlayer } from './ReelPlayer';
+import { ReelPlayer, type ReelPlayerRef } from './ReelPlayer';
+import { clampReelProgress } from './reelSeek';
 import { ReelActions, showReelMenu } from './ReelActions';
 import { ReelBottomPanel } from './ReelBottomPanel';
 import { resolveReelVendorActions } from './reelVendorActions';
 import LinearGradient from 'react-native-linear-gradient';
 import { HeartBurstOverlay } from '../../features/travelSocial/components/HeartBurstOverlay';
+import { extractCreatorHandle } from '../../utils/creatorHandle';
 import {
   getReelOverlayInsets,
   getReelActionRailPosition,
@@ -109,7 +111,10 @@ export const ReelCard: React.FC<ReelCardProps> = React.memo(({
     ? (reel.collaboration?.vendor?.businessName || reel.vendor?.businessName || null)
     : null;
   const collabCreatorName = reel.isCollaboration
-    ? (reel.collaboration?.creator?.fullName || reel.collaboration?.creator?.username || reel.creator?.username || null)
+    ? (reel.collaboration?.creator?.fullName
+        || extractCreatorHandle(reel.collaboration?.creator?.username)
+        || extractCreatorHandle(reel.creator?.username)
+        || null)
     : null;
 
   const creator = reel.creator;
@@ -130,16 +135,8 @@ export const ReelCard: React.FC<ReelCardProps> = React.memo(({
     [reel, isLiked, onVendorDirections, handleLike, handleShare],
   );
 
-  // Fix for bad scraped usernames that were Instagram URLs stripped of punctuation
-  let cleanUsername = creator?.username;
-  if (cleanUsername && cleanUsername.includes('instagram')) {
-    cleanUsername = cleanUsername
-      .replace(/^httpswwwinstagramcom/, '')
-      .replace(/^httpwwwinstagramcom/, '')
-      .replace(/^httpsinstagramcom/, '')
-      .replace(/^httpinstagramcom/, '')
-      .replace(/^wwwinstagramcom/, '');
-  }
+  // Never render a URL-derived handle: only a genuine PalSafar username counts.
+  const cleanUsername = extractCreatorHandle(creator?.username);
 
   const vendorName = reel.vendor?.businessName || reel.collaboration?.vendor?.businessName || null;
   const authorDisplayName = vendorName || (cleanUsername ? `@${cleanUsername}` : 'Creator');
@@ -155,14 +152,13 @@ export const ReelCard: React.FC<ReelCardProps> = React.memo(({
     onPressAuthor?.(reel);
   }, [onPressAuthor, reel]);
 
-  const playerRef = React.useRef<any>(null);
+  const playerRef = React.useRef<ReelPlayerRef | null>(null);
 
   const handleSeek = useCallback((pct: number) => {
-    if (playerRef.current) {
-      playerRef.current.seekToPercent(pct);
-    }
-    setProgress(pct);
-  }, []);
+    if (!isActive) return;
+    playerRef.current?.seekToPercent(pct);
+    setProgress(clampReelProgress(pct));
+  }, [isActive]);
 
   return (
     <View style={[styles.container, { height, width: windowWidth }]}>

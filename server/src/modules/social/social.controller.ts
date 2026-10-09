@@ -90,7 +90,7 @@ export const socialController = {
     const userId = req.user?.id;
     if (!userId) throw new ApiError(401, 'Unauthorized');
     const reel = await socialService.createReel(userId, req.body);
-    sendCreated(res, reel, 'Reel published successfully.');
+    sendCreated(res, reel, 'Moment published successfully.');
   }),
 
   listReels: catchAsync(async (req: any, res: Response) => {
@@ -121,7 +121,7 @@ export const socialController = {
     if (!userId) throw new ApiError(401, 'Unauthorized');
     const { id: reelId } = req.params;
     const like = await socialService.likeReel(userId, reelId);
-    sendSuccess(res, like, { message: 'Reel liked.' });
+    sendSuccess(res, like, { message: 'Moment liked.' });
   }),
 
   unlikeReel: catchAsync(async (req: any, res: Response) => {
@@ -129,7 +129,7 @@ export const socialController = {
     if (!userId) throw new ApiError(401, 'Unauthorized');
     const { id: reelId } = req.params;
     await socialService.unlikeReel(userId, reelId);
-    sendSuccess(res, null, { message: 'Reel unliked.' });
+    sendSuccess(res, null, { message: 'Moment unliked.' });
   }),
 
   saveReel: catchAsync(async (req: any, res: Response) => {
@@ -137,7 +137,7 @@ export const socialController = {
     if (!userId) throw new ApiError(401, 'Unauthorized');
     const { id: reelId } = req.params;
     const save = await socialService.saveReel(userId, reelId);
-    sendSuccess(res, save, { message: 'Reel saved.' });
+    sendSuccess(res, save, { message: 'Moment saved.' });
   }),
 
   unsaveReel: catchAsync(async (req: any, res: Response) => {
@@ -145,7 +145,7 @@ export const socialController = {
     if (!userId) throw new ApiError(401, 'Unauthorized');
     const { id: reelId } = req.params;
     await socialService.unsaveReel(userId, reelId);
-    sendSuccess(res, null, { message: 'Reel unsaved.' });
+    sendSuccess(res, null, { message: 'Moment unsaved.' });
   }),
 
   addComment: catchAsync(async (req: any, res: Response) => {
@@ -159,7 +159,7 @@ export const socialController = {
 
   listComments: catchAsync(async (req: any, res: Response) => {
     const { id: reelId } = req.params;
-    const comments = await socialService.listComments(reelId);
+    const comments = await socialService.listComments(reelId, req.user?.id);
     sendSuccess(res, comments);
   }),
 
@@ -184,24 +184,24 @@ export const socialController = {
 
   incrementViews: catchAsync(async (req: any, res: Response) => {
     const { id: reelId } = req.params;
-    const data = await socialService.incrementViews(reelId, metricActorKey(req));
+    const data = await socialService.incrementViews(reelId, metricActorKey(req), req.user?.id);
     sendSuccess(res, data, { message: 'View count updated.' });
   }),
 
   incrementShares: catchAsync(async (req: any, res: Response) => {
     const { id: reelId } = req.params;
-    const data = await socialService.incrementShares(reelId, metricActorKey(req));
+    const data = await socialService.incrementShares(reelId, metricActorKey(req), req.user?.id);
     sendSuccess(res, data, { message: 'Share count updated.' });
   }),
 
   updateReel: catchAsync(async (req: any, res: Response) => {
     const reel = await socialService.updateOwnReel(req.user.id, req.params.id, req.body);
-    sendSuccess(res, reel, { message: 'Reel updated successfully.' });
+    sendSuccess(res, reel, { message: 'Moment updated successfully.' });
   }),
 
   deleteOwnReel: catchAsync(async (req: any, res: Response) => {
     await socialService.deleteOwnReel(req.user.id, req.params.id);
-    sendSuccess(res, null, { message: 'Reel deleted.' });
+    sendSuccess(res, null, { message: 'Moment deleted.' });
   }),
 
   // ── Admin Moderation Handlers ──
@@ -217,14 +217,14 @@ export const socialController = {
   deleteReel: catchAsync(async (req: any, res: Response) => {
     const { id } = req.params;
     await socialService.deleteReel(id);
-    sendSuccess(res, null, { message: 'Reel deleted.' });
+    sendSuccess(res, null, { message: 'Moment deleted.' });
   }),
 
   toggleFeatureReel: catchAsync(async (req: any, res: Response) => {
     const { id } = req.params;
     const { featured } = req.body;
     const updated = await socialService.toggleFeatureReel(id, featured);
-    sendSuccess(res, updated, { message: featured ? 'Reel featured.' : 'Reel unfeatured.' });
+    sendSuccess(res, updated, { message: featured ? 'Moment featured.' : 'Moment unfeatured.' });
   }),
 
   createCollection: catchAsync(async (req: any, res: Response) => {

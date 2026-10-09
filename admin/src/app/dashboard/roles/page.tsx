@@ -7,6 +7,7 @@ import { getRoles, type Role } from "@/services/roles";
 import { useNotification } from "@/components/Notification";
 import DataTable from "@/components/DataTable";
 import type { Column } from "@/components/DataTable";
+import PageHeader from "@/components/ui/PageHeader";
 
 export default function RolesPermissionsPage() {
   const { notify } = useNotification();
@@ -33,7 +34,7 @@ export default function RolesPermissionsPage() {
       key: "actions",
       header: "Manage",
       render: (item) => (
-        <Link href={`/dashboard/users?permission=${item.id}`} className="text-sm font-medium text-emerald-600 hover:underline">
+        <Link href={`/dashboard/users?permission=${item.id}`} className="text-sm font-medium text-primary hover:underline">
           View users
         </Link>
       ),
@@ -41,17 +42,18 @@ export default function RolesPermissionsPage() {
   ];
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Roles & Permissions</h1>
-        <p className="mt-1 text-sm text-gray-500">PalSafar admin roles. Assign roles via the Users module.</p>
-      </div>
+    <div className="admin-page">
+      <PageHeader
+        title="Roles & Permissions"
+        description="PalSafar admin roles. Assign roles via the Users module. Server-side guards enforce every change."
+        icon={ShieldCheck}
+      />
 
-      <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50 p-4 flex gap-3">
-        <ShieldCheck className="text-blue-600 shrink-0" size={20} />
-        <p className="text-sm text-blue-800">
+      <div className="mb-6 flex gap-3 rounded-xl border border-border bg-muted/40 p-4">
+        <ShieldCheck className="shrink-0 text-primary" size={20} />
+        <p className="text-sm text-foreground">
           Roles are enforced via JWT permissions and sidebar access. To change a user&apos;s role, open{" "}
-          <Link href="/dashboard/users" className="font-semibold underline">Users</Link> and update their permission.
+          <Link href="/dashboard/users" className="font-semibold text-primary underline">Users</Link> and update their permission.
         </p>
       </div>
 

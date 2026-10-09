@@ -255,6 +255,9 @@ describe('creatorUploadManager', () => {
     socialApi.getReelById.mockResolvedValue({
       data: { id: 'draft_1', videoUrl: 'https://cdn.example/draft.mp4' },
     });
+    socialApi.updateReel.mockResolvedValue({
+      data: { id: 'draft_1', videoUrl: 'https://cdn.example/draft.mp4' },
+    });
 
     await creatorUploadManager.startReelUpload({
       videoUri: 'file:///tmp/video.mp4',
@@ -267,6 +270,10 @@ describe('creatorUploadManager', () => {
     });
 
     await wait(80);
+    expect(socialApi.updateReel).toHaveBeenCalledWith(
+      'draft_1',
+      expect.objectContaining({ videoUrl: 'https://cdn.example/draft.mp4' }),
+    );
     expect(creatorApi.publishDraft).toHaveBeenCalledWith('draft_1');
     expect(socialApi.createReel).not.toHaveBeenCalled();
     expect(creatorUploadManager.getJobs()[0]?.rewardPoints).toBe(50);

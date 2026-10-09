@@ -18,7 +18,7 @@ const Tab = createBottomTabNavigator<CreatorTabParamList>();
 
 const ICONS: Record<string, { icon: string; active: string; label: string }> = {
   Dashboard: { icon: 'grid-outline', active: 'grid', label: 'Dashboard' },
-  Reels: { icon: 'play-outline', active: 'play', label: 'Reels' },
+  Reels: { icon: 'play-outline', active: 'play', label: 'Moments' },
   Create: { icon: 'add', active: 'add', label: 'Create' },
   Collaboration: { icon: 'hand-right-outline', active: 'hand-right', label: 'Collabs' },
   Profile: { icon: 'person-outline', active: 'person', label: 'Profile' },

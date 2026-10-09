@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isAnswerMatch, normalizeAnswerText, levenshteinDistance } from '../../src/shared/utils/answerMatch';
+import { isAnswerMatch, isAnswerMatchAny, normalizeAnswerText, levenshteinDistance } from '../../src/shared/utils/answerMatch';
 
 describe('answerMatch — conservative Treasure Hunt answer matching', () => {
   it('normalizes case, whitespace and punctuation (Unicode aware)', () => {
@@ -59,5 +59,46 @@ describe('answerMatch — conservative Treasure Hunt answer matching', () => {
     expect(levenshteinDistance('kitten', 'sitting')).toBe(3);
     expect(levenshteinDistance('howrah', 'hoorah')).toBe(1);
     expect(levenshteinDistance('madam', 'madam')).toBe(0);
+  });
+});
+
+describe('answerMatch — Bhedaghat word-boundary variants', () => {
+  it('accepts the same letters with different word boundaries', () => {
+    expect(isAnswerMatch('Bheda Ghat', 'Bhedaghat')).toBe(true);
+    expect(isAnswerMatch('Bheda-Ghat', 'Bhedaghat')).toBe(true);
+    expect(isAnswerMatch('Bhedaghat', 'Bheda Ghat')).toBe(true);
+  });
+
+  it('still accepts a single-token transposition typo', () => {
+    expect(isAnswerMatch('Bedhaghat', 'Bhedaghat')).toBe(true);
+  });
+
+  it('does not accept a different place for the bare name', () => {
+    expect(isAnswerMatch('Dhuandhar Falls', 'Bhedaghat')).toBe(false);
+    expect(isAnswerMatch('Marble Rocks', 'Bhedaghat')).toBe(false);
+  });
+
+  it('also accepts the boundary variant in Hindi', () => {
+    expect(isAnswerMatch('भेड़ा घाट', 'भेड़ाघाट')).toBe(true);
+  });
+});
+
+describe('answerMatch — curated alias acceptance', () => {
+  const bhedaghatAliases = ['Bhedaghat', 'Marble Rocks', 'Dhuandhar Falls', 'Bheda Ghat'];
+
+  it('accepts any curated alias of the expected place', () => {
+    expect(isAnswerMatchAny('Marble Rocks', bhedaghatAliases)).toBe(true);
+    expect(isAnswerMatchAny('Dhuandhar Falls', bhedaghatAliases)).toBe(true);
+    expect(isAnswerMatchAny('bheda ghat', bhedaghatAliases)).toBe(true);
+  });
+
+  it('rejects unrelated answers even with aliases present', () => {
+    expect(isAnswerMatchAny('Gateway of India', bhedaghatAliases)).toBe(false);
+    expect(isAnswerMatchAny('Bhopal', bhedaghatAliases)).toBe(false);
+  });
+
+  it('ignores null/empty candidates', () => {
+    expect(isAnswerMatchAny('Marble Rocks', [null, undefined, '  ', 'Marble Rocks'])).toBe(true);
+    expect(isAnswerMatchAny('Marble Rocks', [null, undefined, ''])).toBe(false);
   });
 });

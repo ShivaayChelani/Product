@@ -30,7 +30,7 @@ type TestCase = {
 const DEEP_LINK_CASES: TestCase[] = [
   { label: 'Reward', type: 'points_earned', screen: 'Rewards' },
   { label: 'Offer', type: 'offer_nearby', screen: 'Rewards', entityId: 'offer-demo' },
-  { label: 'Comment → Reel', type: 'reel_comment', screen: 'ReelDetail', entityId: 'reel-demo' },
+  { label: 'Comment → Moment', type: 'reel_comment', screen: 'ReelDetail', entityId: 'reel-demo' },
   { label: 'Vendor Dashboard', type: 'vendor_redemption', screen: 'VendorTabs' },
   { label: 'Creator Dashboard', type: 'creator_update', screen: 'CreatorTabs' },
   { label: 'Trip Detail', type: 'trip_ready', screen: 'TripDetail', entityId: 'trip-demo' },

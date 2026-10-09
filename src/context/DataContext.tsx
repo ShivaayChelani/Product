@@ -191,7 +191,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (rewardPoints > 0) {
           Alert.alert(
             'PalPoints earned',
-            `+${rewardPoints} PalPoints for your first reel today. Extra reels today won't add more.`,
+            `+${rewardPoints} PalPoints for your first Moment today. Extra Moments today won't add more.`,
           );
         }
       }
@@ -963,16 +963,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }));
       setReelsUploadProgress(0);
       Alert.alert(
-        'Reel Posted!',
+        'Moment Posted!',
         rewardPoints > 0
-          ? `You earned ${rewardPoints} PalPoints for your first reel today. Extra reels today won't add more.`
+          ? `You earned ${rewardPoints} PalPoints for your first Moment today. Extra Moments today won't add more.`
           : vendorId
-            ? 'Your vendor reel is live on your business profile.'
-            : 'Your reel is live.',
+            ? 'Your vendor Moment is live on your business profile.'
+            : 'Your Moment is live.',
       );
     } catch (err: any) {
       setReelsUploadProgress(0);
-      Alert.alert('Upload Failed', err?.message || 'Could not upload your reel. Please try again.');
+      Alert.alert('Upload Failed', err?.message || 'Could not upload your Moment. Please try again.');
       throw err;
     } finally {
       createReelLockRef.current = false;

@@ -110,9 +110,9 @@ describe('creator share links', () => {
     expect(url).not.toContain('instagram');
   });
 
-  it('passes a stored username through verbatim rather than deriving a handle from it', () => {
-    expect(buildCreatorShareUrl({ username: 'httpswwwinstagramcompalsafarin' }))
-      .toBe('https://palsafar.in/creator/httpswwwinstagramcompalsafarin');
+  it('never mints a link from a URL-like or Instagram-derived stored username', () => {
+    expect(buildCreatorShareUrl({ username: 'httpswwwinstagramcompalsafarin' })).toBeNull();
+    expect(buildCreatorShareUrl({ username: 'https://instagram.com/palsafarin' })).toBeNull();
   });
 
   it('rejects empty and unsafe identifiers', () => {

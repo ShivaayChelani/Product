@@ -46,7 +46,7 @@ export function CreatorReelMenuModal({
                 </View>
                 <View style={styles.headerText}>
                   <Text style={styles.title} numberOfLines={1}>{displayTitle}</Text>
-                  <Text style={styles.subtitle}>Choose an action for this reel</Text>
+                  <Text style={styles.subtitle}>Choose an action for this Moment</Text>
                 </View>
                 <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
                   <Icon name="close" size={20} color={CreatorUI.colors.text} />
@@ -59,8 +59,8 @@ export function CreatorReelMenuModal({
                     <Icon name="pencil-outline" size={20} color="#111111" />
                   </View>
                   <View style={styles.rowTextWrap}>
-                    <Text style={[styles.rowTitle, { color: '#111111' }]}>{isDraft ? 'Continue Editing' : 'Edit Reel'}</Text>
-                    <Text style={styles.rowSub}>{isDraft ? 'Finish your draft' : 'Update your reel details'}</Text>
+                    <Text style={[styles.rowTitle, { color: '#111111' }]}>{isDraft ? 'Continue Editing' : 'Edit Moment'}</Text>
+                    <Text style={styles.rowSub}>{isDraft ? 'Finish your draft' : 'Update your Moment details'}</Text>
                   </View>
                   <Icon name="chevron-forward" size={20} color="#111111" />
                 </TouchableOpacity>
@@ -85,8 +85,8 @@ export function CreatorReelMenuModal({
                     <Icon name="archive-outline" size={20} color="#B7791F" />
                   </View>
                   <View style={styles.rowTextWrap}>
-                    <Text style={[styles.rowTitle, { color: '#B7791F' }]}>{isArchived ? 'Restore Reel' : 'Archive Reel'}</Text>
-                    <Text style={styles.rowSub}>{isArchived ? 'Restore reel to public view' : 'Hide reel from public view'}</Text>
+                    <Text style={[styles.rowTitle, { color: '#B7791F' }]}>{isArchived ? 'Restore Moment' : 'Archive Moment'}</Text>
+                    <Text style={styles.rowSub}>{isArchived ? 'Restore Moment to public view' : 'Hide Moment from public view'}</Text>
                   </View>
                   <Icon name="chevron-forward" size={20} color="#B7791F" />
                 </TouchableOpacity>
@@ -97,8 +97,8 @@ export function CreatorReelMenuModal({
                   <Icon name="trash-outline" size={20} color="#C62828" />
                 </View>
                 <View style={styles.rowTextWrap}>
-                  <Text style={[styles.rowTitle, { color: '#C62828' }]}>Delete Reel</Text>
-                  <Text style={styles.rowSub}>Permanently delete this reel</Text>
+                  <Text style={[styles.rowTitle, { color: '#C62828' }]}>Delete Moment</Text>
+                  <Text style={styles.rowSub}>Permanently delete this Moment</Text>
                 </View>
                 <Icon name="chevron-forward" size={20} color="#C62828" />
               </TouchableOpacity>

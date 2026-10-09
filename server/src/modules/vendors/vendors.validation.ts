@@ -195,6 +195,10 @@ export const updateVendorReelSchema = z.object({
   description: z.string().max(1000).optional(),
 });
 
+export const vendorReelArchiveSchema = z.object({
+  archived: z.boolean(),
+});
+
 export const vendorReviewSchema = z.object({
   rating: z.coerce.number().int().min(1).max(5),
   content: z.string().trim().min(1, 'Review text is required').max(5000),

@@ -41,7 +41,7 @@ describe('Creator reel tagged to a business', () => {
     const api = read('services/api/vendors.ts');
     const routes = read('../server/src/modules/vendors/vendors.routes.ts');
 
-    expect(dash).toMatch(/Creator reels to review/);
+    expect(dash).toMatch(/Creator Moments to review/);
     expect(dash).toMatch(/allowTaggedCreatorReel/);
     expect(dash).toMatch(/rejectTaggedCreatorReel/);
     expect(api).toMatch(/allowTaggedCreatorReel/);
@@ -60,11 +60,11 @@ describe('Creator reel tagged to a business', () => {
     expect(hook).toMatch(/vendorReels/);
     expect(hook).toMatch(/assembleVendorMapDetail/);
     expect(assembled).toMatch(/reelCount: visibleVendorReels.length \+ taggedApproved.length/);
-    expect(card).toMatch(/Business reels/);
+    expect(card).toMatch(/Business Moments/);
     expect(card).toMatch(/vendorPromoReels/);
     expect(card).toMatch(/mapVendorReelsToFeed/);
     expect(profile).toMatch(/getTaggedCreatorReels/);
-    expect(profile).not.toMatch(/getVendorReels/);
+    expect(profile).toMatch(/getVendorReels/);
     expect(publicList).toMatch(/getTaggedCreatorReels/);
     expect(publicList).toMatch(/getVendorReels/);
   });

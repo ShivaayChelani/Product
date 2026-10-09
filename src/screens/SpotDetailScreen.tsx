@@ -27,12 +27,14 @@ import { useTravelTime } from '../services/location/useTravelTime';
 import { formatDriveDistanceLabel } from '../services/location/travelTime';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { placesApi } from '../services/api/places';
+import { creatorAtHandle } from '../utils/creatorHandle';
 
 import { getPlaces } from '../services/placesService';
 import { cacheItineraryPlace } from '../utils/itineraryPlacesCache';
 import { quickAddPlaceToTrip } from '../utils/quickAddPlace';
 import ImageComingSoon from '../components/ui/ImageComingSoon';
 import { hasValidImageUrl } from '../utils/imageUrl';
+import { getReelThumbnail } from '../services/reelService';
 import RideOptionsSheet from '../components/RideOptionsSheet';
 import { useNavigation } from '@react-navigation/native';
 import { useToast } from '../context/ToastContext';
@@ -566,7 +568,7 @@ export default function SpotDetailScreen({
                 <Icon name="play-circle" size={22} color="#B7791F" />
               </View>
               <Text style={styles.actionStripText}>
-                {spotReels?.filter((r: any) => r.status === 'APPROVED').length > 0 ? `Reels · ${spotReels.filter((r: any) => r.status === 'APPROVED').length}` : 'Reels'}
+                {spotReels?.filter((r: any) => r.status === 'APPROVED').length > 0 ? `Moments · ${spotReels.filter((r: any) => r.status === 'APPROVED').length}` : 'Moments'}
               </Text>
             </TouchableOpacity>
 
@@ -712,13 +714,15 @@ export default function SpotDetailScreen({
                   style={[styles.vendorCard, { width: 130, backgroundColor: colors.surface }]}
                   onPress={() => _navigation.navigate('ReelDetail', { reelId: reel.id, reels: spotReels.filter((r: any) => r.status === 'APPROVED') })}
                 >
-                  {reel.thumbnail || reel.thumbnailUrl ? (
-                    <Image source={{ uri: reel.thumbnail || reel.thumbnailUrl }} style={[styles.vendorImg, { height: 160 }]} />
+                  {hasValidImageUrl(getReelThumbnail(reel)) ? (
+                    <Image source={{ uri: getReelThumbnail(reel) }} style={[styles.vendorImg, { height: 160 }]} />
                   ) : (
-                    <ImageComingSoon style={[styles.vendorImg, { height: 160 }]} compact />
+                    <View style={[styles.vendorImg, { height: 160, alignItems: 'center', justifyContent: 'center' }]}>
+                      <Icon name="play-circle" size={36} color={colors.primary} />
+                    </View>
                   )}
                   <View style={styles.vendorInfo}>
-                    <Text style={styles.vendorName} numberOfLines={1}>@{reel.creator?.username || 'Creator'}</Text>
+                    <Text style={styles.vendorName} numberOfLines={1}>{creatorAtHandle(reel.creator?.username, 'Creator')}</Text>
                     <Text style={styles.vendorType} numberOfLines={1}>
                       {reel.views >= 1000 ? (reel.views / 1000).toFixed(1) + 'K' : (reel.views || 0)} views
                     </Text>
@@ -758,13 +762,19 @@ export default function SpotDetailScreen({
         {spotReels.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Discover Reels</Text>
+              <Text style={styles.sectionTitle}>Discover Moments</Text>
               <TouchableOpacity><Text style={[styles.seeAllText, { color: colors.primary }]}>See All</Text></TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reelsList}>
               {spotReels.map((reel, idx) => (
                 <TouchableOpacity key={idx} style={styles.reelThumbCard}>
-                  <Image source={{ uri: reel.thumbnailUrl }} style={styles.reelThumbImg} />
+                  {hasValidImageUrl(getReelThumbnail(reel)) ? (
+                    <Image source={{ uri: getReelThumbnail(reel) }} style={styles.reelThumbImg} />
+                  ) : (
+                    <View style={[styles.reelThumbImg, { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface }]}>
+                      <Icon name="play-circle" size={32} color={colors.primary} />
+                    </View>
+                  )}
                   <View style={styles.reelOverlay}>
                     <Icon name="play-circle" size={32} color="#fff" />
                     <Text style={styles.reelViews}>{reel.views} views</Text>

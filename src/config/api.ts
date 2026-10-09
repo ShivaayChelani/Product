@@ -139,6 +139,7 @@ export const API_CONFIG = {
       reels: (id: string) => `/vendors/${id}/reels`,
       deleteReel: (reelId: string) => `/vendors/reels/${reelId}`,
       updateReel: (reelId: string) => `/vendors/reels/${reelId}`,
+      archiveReel: (reelId: string) => `/vendors/reels/${reelId}/archive`,
       verify: (id: string) => `/vendors/${id}/verify`,
       location: (id: string) => `/vendors/${id}/location`,
       offers: {

@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { legalApi, LegalDocumentPayload, LegalDocumentType } from './api/legal';
 import { isPlainObject, parseJsonObject } from '../utils/safeJson';
+import { normalizeSupportEmailTypo } from '../config/supportEmail';
 
 const CACHE_PREFIX = 'PALSAFAR_LEGAL_DOC_';
 
@@ -19,7 +20,14 @@ async function readCache(type: LegalDocumentType, locale: string): Promise<Cache
     if (!raw) return null;
     const parsed = parseJsonObject(raw);
     if (!parsed || !isPlainObject(parsed.payload) || typeof parsed.cachedAt !== 'number') return null;
-    return parsed as unknown as CachedLegalDocument;
+    const cached = parsed as unknown as CachedLegalDocument;
+    if (typeof cached.payload.content === 'string') {
+      cached.payload = {
+        ...cached.payload,
+        content: normalizeSupportEmailTypo(cached.payload.content),
+      };
+    }
+    return cached;
   } catch {
     return null;
   }
@@ -55,8 +63,12 @@ export async function getLegalDocument(type: LegalDocumentType, locale = 'en'): 
   try {
     const res = await legalApi.getDocument(type, locale);
     if (res.success && res.data) {
-      await writeCache(type, locale, res.data);
-      return { document: res.data, source: 'network', cachedAt: Date.now(), notPublished: false, failure: 'none' };
+      const payload = {
+        ...res.data,
+        content: normalizeSupportEmailTypo(res.data.content),
+      };
+      await writeCache(type, locale, payload);
+      return { document: payload, source: 'network', cachedAt: Date.now(), notPublished: false, failure: 'none' };
     }
   } catch (err: any) {
     // 404 means the CMS genuinely has nothing published yet — don't mask that with a stale cache lie,

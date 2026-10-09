@@ -137,7 +137,7 @@ export const socialApi = {
 
   async updateReel(
     reelId: string,
-    data: { title?: string; description?: string; thumbnail?: string; placeId?: string; vendorId?: string; tags?: string[] }
+    data: { title?: string; description?: string; thumbnail?: string; videoUrl?: string; placeId?: string | null; vendorId?: string | null; tags?: string[] }
   ) {
     return apiClient.patch<Reel>(`/social/reels/${reelId}`, data);
   },

@@ -1,23 +1,22 @@
 /**
- * Home — Live Events hero card.
+ * Home — compact live events strip.
  *
- * Uses the same real event data layer as the rest of the events experience and
- * keeps the entry point focused on the existing Events and Map routes.
+ * The first card is intentionally not a tall hero feature; Home keeps a dense
+ * horizontal carousel that matches the nearby places pattern and leaves room for
+ * the surrounding content.
  */
 import React, { memo, useCallback } from 'react';
 import {
   ActivityIndicator,
-  Image,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
 import type { CommunityEvent } from '../../services/api/events';
 import { useFeaturedEvents } from './hooks';
-import { eventImage, eventLifecycle, eventTypeIcon, eventTypeLabel, formatEventDateRange, formatEventLocation, formatEventTimeRange } from './eventFormat';
-import { EVENT_COLORS } from './EventCard';
+import { EventCard, EVENT_COLORS, EVENT_STRIP_CARD_GAP, EVENT_STRIP_CARD_WIDTH } from './EventCard';
 
 const STRIP_LIMIT = 6;
 
@@ -35,7 +34,7 @@ type Props = {
 function HomeEventsStripComponent({
   onOpenEvent,
   onViewAll,
-  onViewMap,
+  onViewMap: _onViewMap,
   edgePadding = 20,
   latitude,
   longitude,
@@ -45,13 +44,10 @@ function HomeEventsStripComponent({
     longitude,
   });
 
-  const primaryEvent = events[0];
-
   const openEvent = useCallback(
     (event: CommunityEvent) => onOpenEvent(event.slug || event.id),
     [onOpenEvent],
   );
-
   const onRetry = useCallback(() => {
     void refresh();
   }, [refresh]);
@@ -80,7 +76,7 @@ function HomeEventsStripComponent({
     );
   }
 
-  if (!primaryEvent) {
+  if (!events.length) {
     return (
       <View style={[styles.section, { paddingHorizontal: edgePadding }]}>
         <View style={styles.emptyNotification}>
@@ -93,12 +89,6 @@ function HomeEventsStripComponent({
     );
   }
 
-  const image = eventImage(primaryEvent);
-  const when = formatEventDateRange(primaryEvent.startDate, primaryEvent.endDate);
-  const timeRange = formatEventTimeRange(primaryEvent.startTime, primaryEvent.endTime);
-  const location = formatEventLocation(primaryEvent) || 'Location to be announced';
-  const lifecycle = eventLifecycle(primaryEvent);
-
   return (
     <View style={[styles.section, { paddingHorizontal: edgePadding }]}>
       <View style={styles.headerRow}>
@@ -110,67 +100,36 @@ function HomeEventsStripComponent({
           onPress={onViewAll}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           accessibilityRole="button"
-          accessibilityLabel="Explore live events"
+          accessibilityLabel="Explore events"
         >
           <Text style={styles.viewAll}>Explore Events</Text>
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity
-        style={styles.featuredCard}
-        onPress={() => openEvent(primaryEvent)}
-        activeOpacity={0.95}
-        accessibilityRole="button"
-        accessibilityLabel={`Explore live event ${primaryEvent.title}`}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={EVENT_STRIP_CARD_WIDTH + EVENT_STRIP_CARD_GAP}
+        decelerationRate="fast"
+        contentContainerStyle={styles.stripScrollContent}
+        accessibilityLabel="Events near you"
       >
-        <Image
-          source={{
-            uri: image || 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1200&q=80',
-          }}
-          style={styles.image}
-          resizeMode="cover"
-        />
-        <View style={styles.overlay} />
-        <View style={styles.cardContent}>
-          <View style={styles.cardMetaRow}>
-            {lifecycle === 'LIVE' ? <View style={styles.livePill}><Text style={styles.livePillText}>LIVE</Text></View> : null}
-            <View style={styles.typePill}>
-              <Icon name={eventTypeIcon(primaryEvent.eventType)} size={11} color="#FFFFFF" />
-              <Text style={styles.typePillText}>{eventTypeLabel(primaryEvent.eventType)}</Text>
-            </View>
-          </View>
-          <Text style={styles.eventTitle} numberOfLines={2}>{primaryEvent.title}</Text>
-          <Text style={styles.eventMeta}>{when}{timeRange ? ` • ${timeRange}` : ''}</Text>
-          <Text style={styles.eventMeta}>{location}</Text>
-          <View style={styles.footerRow}>
-            <TouchableOpacity
-              onPress={() => openEvent(primaryEvent)}
-              activeOpacity={0.9}
-              style={styles.primaryAction}
-              accessibilityRole="button"
-              accessibilityLabel="Explore live events"
-            >
-              <Text style={styles.primaryActionText}>Explore Events</Text>
-              <Icon name="arrow-forward" size={16} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={onViewMap}
-              activeOpacity={0.85}
-              style={styles.secondaryAction}
-              accessibilityRole="button"
-              accessibilityLabel="View events on map"
-            >
-              <Text style={styles.secondaryActionText}>View on Map</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableOpacity>
+        {events.map((event) => (
+          <EventCard
+            key={event.id || event.slug}
+            event={event}
+            onPress={openEvent}
+            layout="strip"
+          />
+        ))}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   section: { marginTop: 20, marginBottom: 24 },
+  stripScrollContent: { gap: EVENT_STRIP_CARD_GAP, paddingBottom: 2 },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -187,80 +146,6 @@ const styles = StyleSheet.create({
   liveBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
   title: { fontSize: 17, fontWeight: '700', color: EVENT_COLORS.text },
   viewAll: { fontSize: 13, fontWeight: '700', color: EVENT_COLORS.accent },
-  featuredCard: {
-    position: 'relative',
-    height: 290,
-    borderRadius: 24,
-    overflow: 'hidden',
-    backgroundColor: '#111111',
-    borderWidth: 1,
-    borderColor: '#E2E0DB',
-    shadowColor: '#111111',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.12,
-    shadowRadius: 22,
-    elevation: 7,
-  },
-  image: { width: '100%', height: '100%' },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(10,10,10,0.42)',
-  },
-  cardContent: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
-  },
-  cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  livePill: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  livePillText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
-  typePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  typePillText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
-  eventTitle: { color: '#FFFFFF', fontSize: 24, fontWeight: '800', lineHeight: 30, marginBottom: 6 },
-  eventMeta: { color: '#F2F1ED', fontSize: 13, marginBottom: 3 },
-  footerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 },
-  primaryAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#111111',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.32)',
-  },
-  primaryActionText: { color: '#FFFFFF', fontWeight: '700', fontSize: 12 },
-  secondaryAction: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.24)',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  secondaryActionText: { color: '#FFFFFF', fontWeight: '700', fontSize: 12 },
   loadingState: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 },
   statusText: { color: EVENT_COLORS.textSecondary, fontSize: 13 },
   retryText: { color: EVENT_COLORS.accent, fontSize: 13, fontWeight: '700' },

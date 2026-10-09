@@ -146,7 +146,7 @@ export default function VendorSubscriptionScreen({ onBack }: { onBack?: () => vo
             <Text style={styles.sectionLabel}>Includes</Text>
             <ConfirmRow text="Map listing" />
             <ConfirmRow text={offers.unlimited ? 'Unlimited offers' : `${offers.value} offer${offers.value === 1 ? '' : 's'}`} />
-            <ConfirmRow text={reels.unlimited ? 'Unlimited reels' : `${reels.value} reel${reels.value === 1 ? '' : 's'} / month`} />
+            <ConfirmRow text={reels.unlimited ? 'Unlimited Moments' : `${reels.value} Moment${reels.value === 1 ? '' : 's'} / month`} />
             <TouchableOpacity
               style={[styles.cta, busy && styles.ctaDisabled]}
               disabled={busy}
@@ -201,7 +201,7 @@ export default function VendorSubscriptionScreen({ onBack }: { onBack?: () => vo
               <UsageRow label="PLAN" value={listing.planName || 'None'} />
               <UsageRow label="MAP LISTING" value={listing.mapListing === 'Active' ? '● Active' : '○ Hidden'} />
               <UsageRow label="OFFERS" value={usageLabel(listing.offersUsed, listing.offersLimit)} />
-              <UsageRow label="REELS" value={
+              <UsageRow label="MOMENTS" value={
                 listing.reelsLimit != null && listing.reelsLimit < 0
                   ? 'Unlimited'
                   : usageLabel(listing.reelsUsedThisMonth, listing.reelsLimit)
@@ -238,7 +238,7 @@ export default function VendorSubscriptionScreen({ onBack }: { onBack?: () => vo
                 ) : null}
                 <ConfirmRow text="Business map listing" />
                 <ConfirmRow text={offers.unlimited ? 'Unlimited offers' : `${offers.value} active offer${offers.value === 1 ? '' : 's'}`} />
-                <ConfirmRow text={reels.unlimited ? 'Unlimited reels' : `${reels.value} reel${reels.value === 1 ? '' : 's'} / month`} />
+                <ConfirmRow text={reels.unlimited ? 'Unlimited Moments' : `${reels.value} Moment${reels.value === 1 ? '' : 's'} / month`} />
                 {isCurrent ? (
                   <View style={[styles.cta, styles.ctaDisabled]}><Text style={styles.ctaText}>Current Plan</Text></View>
                 ) : (

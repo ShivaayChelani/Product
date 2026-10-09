@@ -35,15 +35,15 @@ export default function HowItWorksScreen({ navigation, onBack }: HowItWorksScree
   const headerPadTop = useHeaderSafePadding(12);
 
   const earnActivities = [
-    { id: 'checkin', icon: 'location-sharp', iconColor: '#111111', iconBg: '#F2F2F2', title: 'Check-in\nat Places', points: '+10 to +50 P', pointsColor: '#111111' },
-    { id: 'gem', icon: 'diamond', iconColor: '#111111', iconBg: '#F7F6F1', title: 'Submit\nHidden Gem', points: '+20 to +200 P', pointsColor: '#111111' },
-    { id: 'review', icon: 'star', iconColor: '#B7791F', iconBg: '#F8F0E1', title: 'Write\na Review', points: '+5 to +50 P', pointsColor: '#B7791F' },
+    { id: 'checkin', icon: 'map-marker', iconColor: '#3B82F6', iconBg: '#EFF6FF', title: 'Check-in\nat Places', points: '+10 to +50 P', pointsColor: '#3B82F6' },
+    { id: 'gem', icon: 'diamond-stone', iconColor: '#8B5CF6', iconBg: '#F5F3FF', title: 'Submit\nHidden Gem', points: '+20 to +200 P', pointsColor: '#8B5CF6' },
+    { id: 'review', icon: 'star-outline', iconColor: '#F59E0B', iconBg: '#FFFBEB', title: 'Write\na Review', points: '+5 to +50 P', pointsColor: '#F59E0B' },
   ];
 
   const redeemSteps = [
-    { id: '1', icon: 'storefront', iconBg: '#111111', title: 'Find a\nPartner Vendor', desc: 'Browse vendors\nnear you' },
-    { id: '2', icon: 'cellphone', iconBg: '#000000', title: 'Show Your\nPal ID', desc: 'Share your Pal ID\nor QR code' },
-    { id: '3', icon: 'wallet', iconBg: '#B7791F', title: 'Confirm &\nRedeem', desc: 'Pay with PalPoints\nat the vendor' },
+    { id: '1', icon: 'storefront', iconBg: '#3B82F6', title: 'Find a\nPartner Vendor', desc: 'Browse vendors\nnear you' },
+    { id: '2', icon: 'cellphone', iconBg: '#1E3A8A', title: 'Show Your\nPal ID', desc: 'Share your Pal ID\nor QR code' },
+    { id: '3', icon: 'wallet', iconBg: '#F59E0B', title: 'Confirm &\nRedeem', desc: 'Pay with PalPoints\nat the vendor' },
     { id: '4', icon: 'gift', iconBg: '#111111', title: 'Enjoy Offer\nor Service', desc: 'Get discounts,\ndeals & more' },
     { id: '5', icon: 'tag', iconBg: '#C94A4A', title: 'Earn More\nPalPoints', desc: 'Keep exploring\n& earning' },
   ];
@@ -110,7 +110,7 @@ export default function HowItWorksScreen({ navigation, onBack }: HowItWorksScree
             {earnActivities.map((item) => (
               <View key={item.id} style={styles.earnCard}>
                 <View style={[styles.earnIconWrap, { backgroundColor: item.iconBg }]}>
-                  <Ionicons name={item.icon} size={28} color={item.iconColor} />
+                  <MaterialCommunityIcons name={item.icon as any} size={28} color={item.iconColor} />
                 </View>
                 <Text style={styles.earnCardTitle}>{item.title}</Text>
                 <View style={styles.dotsRow}>

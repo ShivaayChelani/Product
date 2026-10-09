@@ -14,7 +14,9 @@
  *     trim. A normalized exact match is a correct answer.
  *  2. Tokenize on whitespace. The token count must be identical — missing
  *     words, extra words and partial answers are rejected outright
- *     ("Madan" is NOT accepted for "Madan Mahal").
+ *     ("Madan" is NOT accepted for "Madan Mahal"). An exception is a pure
+ *     word-boundary variant: when the letters are identical after removing all
+ *     spaces ("Bheda Ghat" ≡ "Bhedaghat"), the answer is accepted.
  *  3. At most ONE token may differ, and only when it is a small typo:
  *     Levenshtein distance <= 1, or distance <= 2 when the longer token is at
  *     least MIN_LONG_TYPO_LEN characters (allows a single transposition in a
@@ -88,6 +90,13 @@ export function isAnswerMatch(userAnswer: string, expectedAnswer: string): boole
   const expected = normalizeAnswerText(expectedAnswer);
   if (user === expected) return true;
 
+  // Word-boundary variant: "Bheda Ghat" / "Bheda-Ghat" / "Bhedaghat" are the
+  // same answer. Letters and order must still match exactly, so this cannot
+  // turn an unrelated multi-word answer into a match.
+  const userCompact = user.replace(/\s+/g, '');
+  const expectedCompact = expected.replace(/\s+/g, '');
+  if (userCompact.length > 0 && userCompact === expectedCompact) return true;
+
   const userTokens = user.split(' ');
   const expectedTokens = expected.split(' ').filter((t) => t.length > 0);
   const userFiltered = userTokens.filter((t) => t.length > 0);
@@ -100,4 +109,14 @@ export function isAnswerMatch(userAnswer: string, expectedAnswer: string): boole
     differingTokens++;
   }
   return differingTokens <= 1;
+}
+
+/**
+ * Accept the answer if it matches the primary expected answer or any curated
+ * alias (e.g. a riddle whose answer is "Bhedaghat" also accepts the official
+ * alias "Marble Rocks"). Each candidate is checked with the same conservative
+ * rule, so weak/unrelated candidates never widen the match.
+ */
+export function isAnswerMatchAny(userAnswer: string, candidates: Array<string | null | undefined>): boolean {
+  return candidates.some((candidate) => typeof candidate === 'string' && candidate.trim() !== '' && isAnswerMatch(userAnswer, candidate));
 }

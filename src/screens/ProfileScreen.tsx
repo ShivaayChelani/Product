@@ -18,6 +18,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { UserProfile, TouristSpot, VendorBusiness, VendorOffer } from '../types';
 import { DEV_FLAGS } from '../config/devFlags';
 import { updateUserProfile } from '../services/authService';
+import { extractCreatorHandle } from '../utils/creatorHandle';
 import { uploadApi } from '../services/api';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import ProfileModeSwitcher from '../components/ProfileModeSwitcher';
@@ -370,6 +371,7 @@ export default function ProfileScreen({
   const roles = (contextUser.roles || user.roles || []).map(String);
   const creatorStatus = contextUser.creatorProfile?.status || user.creatorProfile?.status;
   const creatorPending = creatorStatus === 'PENDING';
+  const creatorPendingHandle = extractCreatorHandle(user.creatorProfile?.username);
   const authVendorStatus = String(
     (contextUser as any)?.vendor?.status || (user as any)?.vendor?.status || '',
   ).toUpperCase();
@@ -509,8 +511,8 @@ export default function ProfileScreen({
         <View style={styles.noticeCard}>
           <Text style={styles.noticeTitle}>Creator application pending</Text>
           <Text style={styles.noticeSub}>
-            {user.creatorProfile?.username
-              ? `@${user.creatorProfile.username} is under review.`
+            {creatorPendingHandle
+              ? `@${creatorPendingHandle} is under review.`
               : 'Your application is under review.'}
           </Text>
         </View>
@@ -587,8 +589,8 @@ export default function ProfileScreen({
               <Icon name="videocam-outline" size={22} color={COLORS.primary} />
             </View>
             <View style={styles.adminInfo}>
-              <Text style={[styles.adminTitle, { color: theme.text }]}>All Reels</Text>
-              <Text style={[styles.adminDesc, { color: theme.textSecondary }]}>View, feature or delete creator reels</Text>
+              <Text style={[styles.adminTitle, { color: theme.text }]}>All Moments</Text>
+              <Text style={[styles.adminDesc, { color: theme.textSecondary }]}>View, feature or delete creator Moments</Text>
             </View>
             <Icon name="chevron-forward" size={20} color={theme.textMuted} />
           </TouchableOpacity>

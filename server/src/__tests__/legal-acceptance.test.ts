@@ -144,6 +144,48 @@ describe('Legal acceptance enforcement', () => {
     });
   });
 
+  describe('Authenticated legal acceptance status', () => {
+    it('reports requiresAcceptance when the record is missing and records server timestamps on POST /legal/accept', async () => {
+      const email = uniqueEmail('status');
+      const reg = await request(app)
+        .post('/api/v1/auth/register')
+        .send({
+          email,
+          name: 'Status User',
+          password: 'LegalTest@123',
+          ...legalAcceptancePayload(versions),
+        });
+      expect(reg.status).toBe(201);
+      const userId = reg.body.data.user.id as string;
+      createdUserIds.push(userId);
+      const token = reg.body.data.accessToken as string;
+
+      await prisma.legalAcceptance.delete({ where: { userId } });
+
+      const status = await request(app)
+        .get('/api/v1/legal/acceptance-status')
+        .set('Authorization', `Bearer ${token}`);
+      expect(status.status).toBe(200);
+      expect(status.body.data.requiresAcceptance).toBe(true);
+
+      const forbidden = await request(app)
+        .post('/api/v1/legal/accept')
+        .send(legalAcceptancePayload(versions));
+      expect(forbidden.status).toBe(401);
+
+      const accept = await request(app)
+        .post('/api/v1/legal/accept')
+        .set('Authorization', `Bearer ${token}`)
+        .send(legalAcceptancePayload(versions));
+      expect(accept.status).toBe(200);
+
+      const after = await request(app)
+        .get('/api/v1/legal/acceptance-status')
+        .set('Authorization', `Bearer ${token}`);
+      expect(after.body.data.requiresAcceptance).toBe(false);
+    });
+  });
+
   describe('GET /api/v1/legal/current-versions', () => {
     it('returns the published version numbers used by the auth flows', async () => {
       const res = await request(app).get('/api/v1/legal/current-versions');
@@ -176,6 +218,74 @@ describe('Legal acceptance enforcement', () => {
       expect(res.status).toBe(400);
       expect(res.body.message).toMatch(/out of date/i);
       expect(await prisma.user.findUnique({ where: { email: identity.email } })).toBeNull();
+    });
+
+    it('requires legal acceptance for an existing Google user with no acceptance record and does not duplicate the account', async () => {
+      const identity = {
+        sub: `legal-sub-existing-${Date.now()}`,
+        email: uniqueEmail('google-existing'),
+        emailVerified: true as const,
+        name: 'Google Existing',
+        picture: 'https://example.test/pic.png',
+      };
+      verifyGoogleIdToken.mockResolvedValueOnce(identity);
+      const created = await request(app)
+        .post('/api/v1/auth/google')
+        .send({ idToken: 'existing-create', ...legalAcceptancePayload(versions) });
+      expect(created.status).toBe(200);
+      const userId = created.body.data.user.id as string;
+      createdUserIds.push(userId);
+
+      await prisma.legalAcceptance.delete({ where: { userId } });
+
+      verifyGoogleIdToken.mockResolvedValueOnce(identity);
+      const gated = await request(app).post('/api/v1/auth/google').send({ idToken: 'existing-gate' });
+      expect(gated.status).toBe(200);
+      expect(gated.body.data.requiresLegalAcceptance).toBe(true);
+      expect(gated.body.data.accessToken).toBeUndefined();
+      expect(await prisma.user.count({ where: { email: identity.email } })).toBe(1);
+
+      verifyGoogleIdToken.mockResolvedValueOnce(identity);
+      const accepted = await request(app)
+        .post('/api/v1/auth/google')
+        .send({ idToken: 'existing-accept', ...legalAcceptancePayload(versions) });
+      expect(accepted.status).toBe(200);
+      expect(accepted.body.data.user.id).toBe(userId);
+      expect(accepted.body.data.accessToken).toBeDefined();
+      expect(await prisma.user.count({ where: { email: identity.email } })).toBe(1);
+      const acceptance = await prisma.legalAcceptance.findUnique({ where: { userId } });
+      expect(acceptance?.termsVersion).toBe(versions.termsVersion);
+      expect(acceptance?.privacyVersion).toBe(versions.privacyVersion);
+      expect(acceptance?.termsAcceptedAt).toBeTruthy();
+      expect(acceptance?.privacyAcceptedAt).toBeTruthy();
+    });
+
+    it('requires re-acceptance when published legal versions change', async () => {
+      const identity = {
+        sub: `legal-sub-reaccept-${Date.now()}`,
+        email: uniqueEmail('google-reaccept'),
+        emailVerified: true as const,
+        name: 'Google Reaccept',
+        picture: 'https://example.test/pic.png',
+      };
+      verifyGoogleIdToken.mockResolvedValueOnce(identity);
+      const created = await request(app)
+        .post('/api/v1/auth/google')
+        .send({ idToken: 'reaccept-create', ...legalAcceptancePayload(versions) });
+      expect(created.status).toBe(200);
+      const userId = created.body.data.user.id as string;
+      createdUserIds.push(userId);
+
+      await prisma.legalAcceptance.update({
+        where: { userId },
+        data: { termsVersion: 0 },
+      });
+
+      verifyGoogleIdToken.mockResolvedValueOnce(identity);
+      const gated = await request(app).post('/api/v1/auth/google').send({ idToken: 'reaccept-gate' });
+      expect(gated.status).toBe(200);
+      expect(gated.body.data.requiresLegalAcceptance).toBe(true);
+      expect(await prisma.user.findUnique({ where: { id: userId } })).not.toBeNull();
     });
 
     it('records a LegalAcceptance row for a Phase 2 account', async () => {

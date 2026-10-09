@@ -268,15 +268,20 @@ describe('Home strip wiring', () => {
     expect(strip).toMatch(/longitude\?: number \| null;/);
   });
 
-  it('renders the event card from the first event instead of the empty state', () => {
+  it('uses a compact horizontal carousel instead of a oversized featured card', () => {
     const strip = read('features/events/HomeEventsStrip.tsx');
-    // The empty state is gated on there being no primary event at all…
-    expect(strip).toMatch(/if \(!primaryEvent\) \{/);
-    expect(strip).toMatch(/const primaryEvent = events\[0\];/);
-    // …and the populated card renders the real title/date/location.
-    expect(strip).toMatch(/primaryEvent\.title/);
-    expect(strip).toMatch(/formatEventDateRange\(primaryEvent\.startDate, primaryEvent\.endDate\)/);
-    expect(strip).toMatch(/formatEventLocation\(primaryEvent\)/);
+    expect(strip).toMatch(/horizontal/);
+    expect(strip).toMatch(/layout=\"strip\"/);
+    expect(strip).not.toMatch(/featuredCard/);
+    expect(strip).not.toMatch(/Explore live event/);
+  });
+
+  it('renders a compact horizontal carousel for all eligible events', () => {
+    const strip = read('features/events/HomeEventsStrip.tsx');
+    expect(strip).toMatch(/if \(!events\.length\) \{/);
+    expect(strip).toMatch(/ScrollView\s*\n\s*horizontal/);
+    expect(strip).toMatch(/events\.map\(\(event\) => \(/);
+    expect(strip).toMatch(/layout=\"strip\"/);
   });
 
   it('hands Home a real approved eligible event through the fallback chain', () => {

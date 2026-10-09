@@ -82,11 +82,33 @@ export default function PickEventLocationScreen() {
   const readyRef = useRef(false);
   /** Center reported before `mapReady` — the map's boot position. */
   const pendingCenterRef = useRef<Center | null>(null);
+  /** Ensures the first-open GPS init fires at most once per screen mount. */
+  const gpsInitRef = useRef(false);
 
   const applyCenter = useCallback((next: Center) => {
     if (!isValidLatLng(next.latitude, next.longitude)) return;
     setCenter(next);
   }, []);
+
+  const locateMe = useCallback((silent = false) => {
+    Geolocation.getCurrentPosition(
+      position => {
+        const next = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+        if (!isValidLatLng(next.latitude, next.longitude)) return;
+        post(webRef, { type: 'flyTo', lat: next.latitude, lng: next.longitude, zoom: 16 });
+        applyCenter(next);
+      },
+      () => {
+        if (!silent) {
+          Alert.alert('Location unavailable', 'Could not read your current location.');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
+    );
+  }, [applyCenter]);
 
   const handleWebMessage = useCallback(
     (event: { nativeEvent: { data: string } }) => {
@@ -103,6 +125,12 @@ export default function PickEventLocationScreen() {
         setReady(true);
         if (initial) {
           post(webRef, { type: 'flyTo', lat: initial.latitude, lng: initial.longitude, zoom: INITIAL_ZOOM });
+        } else if (!gpsInitRef.current) {
+          // First open with no already-picked coordinate: start from live GPS.
+          // Silent — the manual locate button still surfaces failures. An
+          // existing picked coordinate is preserved by the `initial` branch.
+          gpsInitRef.current = true;
+          locateMe(true);
         } else if (pendingCenterRef.current) {
           applyCenter(pendingCenterRef.current);
         }
@@ -123,7 +151,7 @@ export default function PickEventLocationScreen() {
         applyCenter(next);
       }
     },
-    [applyCenter, initial],
+    [applyCenter, initial, locateMe],
   );
 
   // Reverse geocode the settled point; debounced so a fling does not spam Nominatim.
@@ -142,24 +170,6 @@ export default function PickEventLocationScreen() {
       clearTimeout(timer);
     };
   }, [center]);
-
-  const useMyLocation = useCallback(() => {
-    Geolocation.getCurrentPosition(
-      position => {
-        const next = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        };
-        if (!isValidLatLng(next.latitude, next.longitude)) return;
-        post(webRef, { type: 'flyTo', lat: next.latitude, lng: next.longitude, zoom: 16 });
-        applyCenter(next);
-      },
-      () => {
-        Alert.alert('Location unavailable', 'Could not read your current location.');
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
-    );
-  }, [applyCenter]);
 
   const confirm = useCallback(() => {
     if (!center || !isValidLatLng(center.latitude, center.longitude)) {
@@ -224,7 +234,7 @@ export default function PickEventLocationScreen() {
         />
 
         <Pressable
-          onPress={useMyLocation}
+          onPress={() => locateMe()}
           style={styles.gpsBtn}
           accessibilityRole="button"
           accessibilityLabel="Use my current location"

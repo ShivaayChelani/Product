@@ -31,7 +31,7 @@ describe('reel close / back navigation', () => {
       'utf8',
     );
     expect(src).toMatch(/BackHandler\.addEventListener\('hardwareBackPress'/);
-    expect(src).toMatch(/accessibilityLabel="Close reel"/);
+    expect(src).toMatch(/accessibilityLabel="Close Moment"/);
     expect(src).toMatch(/onPress=\{onBack\}/);
   });
 });
@@ -54,5 +54,60 @@ describe('reel download option', () => {
     expect(card).not.toMatch(/onDownload/);
     expect(card).not.toMatch(/Downloading Reel/);
     expect(feed).not.toMatch(/onDownload/);
+  });
+});
+
+describe('reel seek controls', () => {
+  it('claims horizontal seeking without capturing vertical reel paging', () => {
+    const progressBar = fs.readFileSync(
+      path.join(__dirname, '../components/reels/ReelProgressBar.tsx'),
+      'utf8',
+    );
+    expect(progressBar).toMatch(/onStartShouldSetPanResponderCapture:\s*\(\)\s*=>\s*false/);
+    expect(progressBar).toMatch(/shouldClaimHorizontalScrub/);
+    expect(progressBar).toMatch(/shouldYieldToVerticalPaging/);
+    expect(progressBar).toMatch(/locationX/);
+    expect(progressBar).toMatch(/onPanResponderGrant/);
+    expect(progressBar).toMatch(/onPanResponderMove/);
+    expect(progressBar).toMatch(/onPanResponderRelease/);
+    expect(progressBar).toMatch(/emitSeek\(next/);
+    expect(progressBar).toMatch(/height:\s*44/);
+  });
+
+  it('routes the progress percentage through ReelPlayer to native video seek', () => {
+    const card = fs.readFileSync(
+      path.join(__dirname, '../components/reels/ReelCard.tsx'),
+      'utf8',
+    );
+    const player = fs.readFileSync(
+      path.join(__dirname, '../components/reels/ReelPlayer.tsx'),
+      'utf8',
+    );
+    expect(card).toMatch(/if \(!isActive\) return/);
+    expect(card).toMatch(/playerRef\.current\?\.seekToPercent\(pct\)/);
+    expect(player).toMatch(/if \(!isActiveRef\.current\) return/);
+    expect(player).toMatch(/percentToSeekTime\(durationRef\.current, pct\)/);
+    expect(player).toMatch(/seekVideoToPercent\(player, durationRef\.current, pct\)/);
+    expect(player).toMatch(/durationRef\.current = data\.duration/);
+    expect(player).toMatch(/onProgress\?\.\(clampReelProgress\(progress\)\)/);
+    expect(player).toMatch(/durationRef\.current = 0/);
+  });
+
+  it('uses canonical PalSafar handles for creator profile navigation', () => {
+    const feed = fs.readFileSync(
+      path.join(__dirname, '../screens/ReelsFeedScreen.tsx'),
+      'utf8',
+    );
+    const detail = fs.readFileSync(
+      path.join(__dirname, '../screens/ReelDetailScreen.tsx'),
+      'utf8',
+    );
+    const card = fs.readFileSync(
+      path.join(__dirname, '../components/reels/ReelCard.tsx'),
+      'utf8',
+    );
+    expect(feed).toMatch(/extractCreatorHandle\(creator\?\.username\)/);
+    expect(detail).toMatch(/extractCreatorHandle\(creator\?\.username\)/);
+    expect(card).toMatch(/authorVerified=\{!!creator\?\.verified\}/);
   });
 });

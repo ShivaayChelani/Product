@@ -49,8 +49,8 @@ export default function ReelsPage() {
       setHasPrev(res.pagination.hasPrev);
     } catch (err) {
       setReels([]);
-      setLoadError(err instanceof Error ? err.message : "Failed to load reels. Check API connection and try again.");
-      notify("error", "Failed to load reels. Check API connection and try again.");
+      setLoadError(err instanceof Error ? err.message : "Failed to load Moments. Check API connection and try again.");
+      notify("error", "Failed to load Moments. Check API connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -64,10 +64,10 @@ export default function ReelsPage() {
     setActionLoading(id);
     try {
       await deleteReel(id);
-      notify("success", "Reel deleted successfully");
+      notify("success", "Moment deleted successfully");
       fetchReels();
     } catch {
-      notify("error", "Failed to delete reel");
+      notify("error", "Failed to delete Moment");
     } finally {
       setActionLoading(null);
     }
@@ -77,10 +77,10 @@ export default function ReelsPage() {
     setActionLoading(id);
     try {
       await toggleFeatureReel(id, !currentFeatured);
-      notify("success", currentFeatured ? "Reel unfeatured" : "Reel featured successfully");
+      notify("success", currentFeatured ? "Moment unfeatured" : "Moment featured successfully");
       fetchReels();
     } catch {
-      notify("error", "Failed to update reel feature status");
+      notify("error", "Failed to update Moment feature status");
     } finally {
       setActionLoading(null);
     }
@@ -89,8 +89,8 @@ export default function ReelsPage() {
   const confirmDelete = (id: string) => {
     setConfirmDialog({
       open: true,
-      title: "Delete Reel",
-      message: "Are you sure you want to delete this reel? This action is permanent and cannot be undone.",
+      title: "Delete Moment",
+      message: "Are you sure you want to delete this Moment? This action is permanent and cannot be undone.",
       variant: "danger",
       action: () => handleDelete(id),
     });
@@ -119,7 +119,7 @@ export default function ReelsPage() {
             </div>
           )}
           <div>
-            <p className="font-semibold text-gray-900 line-clamp-1">{item.title || "Untitled Reel"}</p>
+            <p className="font-semibold text-gray-900 line-clamp-1">{item.title || "Untitled Moment"}</p>
             <p className="text-xs text-gray-500 line-clamp-2 mt-0.5 max-w-xs">{item.description || "No caption description."}</p>
           </div>
         </div>
@@ -181,7 +181,7 @@ export default function ReelsPage() {
           className={`rounded-full p-1 transition ${
             item.featured ? "text-amber-500 hover:bg-amber-50" : "text-gray-300 hover:bg-gray-100"
           } disabled:cursor-not-allowed disabled:opacity-40`}
-          title={item.featured ? "Unfeature Reel" : "Feature Reel"}
+          title={item.featured ? "Unfeature Moment" : "Feature Moment"}
         >
           <Star size={16} className={item.featured ? "fill-amber-500" : ""} />
         </button>
@@ -196,7 +196,7 @@ export default function ReelsPage() {
             onClick={() => confirmDelete(item.id)}
             disabled={actionLoading === item.id}
             className="rounded-lg p-1.5 text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-            title="Delete Reel"
+            title="Delete Moment"
           >
             <Trash2 size={16} />
           </button>
@@ -210,10 +210,10 @@ export default function ReelsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Video className="text-emerald-600" />
-            Reels Moderation
+            Moments Moderation
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Moderate and feature travel video reels to showcase high-quality travel guides.
+            Moderate and feature PalSafar Moments to showcase high-quality travel guides.
           </p>
         </div>
       </div>
@@ -237,7 +237,7 @@ export default function ReelsPage() {
         hasNext={hasNext}
         hasPrev={hasPrev}
         onPageChange={setPage}
-        emptyMessage="No reels found in the database"
+        emptyMessage="No Moments found in the database"
       />
 
       <ConfirmDialog

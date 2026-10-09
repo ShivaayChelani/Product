@@ -33,7 +33,7 @@ export const walletService = {
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
 
-    const [recentTransactions, monthEarnAgg, monthSpendAgg] = await Promise.all([
+    const [recentTransactions, monthEarnAgg, monthSpendAgg, lifetimeEarnAgg, lifetimeSpendAgg] = await Promise.all([
       prisma.walletTransaction.findMany({
         where: { walletId: wallet.id },
         orderBy: { createdAt: 'desc' },
@@ -55,15 +55,32 @@ export const walletService = {
         },
         _sum: { amount: true },
       }),
+      prisma.walletTransaction.aggregate({
+        where: {
+          walletId: wallet.id,
+          type: 'EARN',
+        },
+        _sum: { amount: true },
+      }),
+      prisma.walletTransaction.aggregate({
+        where: {
+          walletId: wallet.id,
+          type: 'SPEND',
+        },
+        _sum: { amount: true },
+      }),
     ]);
 
     const monthEarned = Math.abs(monthEarnAgg._sum.amount || 0);
     const monthRedeemed = Math.abs(monthSpendAgg._sum.amount || 0);
+    const ledgerLifetimeEarned = Math.abs(lifetimeEarnAgg._sum.amount || 0);
+    const ledgerLifetimeSpent = Math.abs(lifetimeSpendAgg._sum.amount || 0);
 
     return {
       palPoints: wallet.palPoints,
-      lifetimeEarned: wallet.lifetimeEarned,
-      lifetimeSpent: wallet.lifetimeSpent,
+      // Reconcile older stored counters without ever reducing their recorded total.
+      lifetimeEarned: Math.max(wallet.lifetimeEarned, ledgerLifetimeEarned),
+      lifetimeSpent: Math.max(wallet.lifetimeSpent, ledgerLifetimeSpent),
       recentTransactions,
       thisMonthEarned: monthEarned,
       thisMonthRedeemed: monthRedeemed,

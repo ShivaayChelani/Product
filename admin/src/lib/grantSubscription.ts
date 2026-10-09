@@ -43,11 +43,11 @@ export function formatInrFromPaise(amountPaise: number): string {
   return `₹${Math.round(amountPaise / 100).toLocaleString("en-IN")}`;
 }
 
-/** Server-driven label, e.g. "Starter: ₹99/mo · 1 offer · 2 reels" */
+/** Server-driven label, e.g. "Starter: ₹99/mo · 1 offer · 2 Moments" */
 export function formatVendorPlanOption(plan: GrantablePlan): string {
   const paise = monthlyPaise(plan);
   const price = paise == null ? "Price on request" : `${formatInrFromPaise(paise)}/mo`;
   const offers = formatLimit(plan, "maxOffers", "offer", "offers");
-  const reels = formatLimit(plan, "maxReels", "reel", "reels");
+  const reels = formatLimit(plan, "maxReels", "Moment", "Moments");
   return `${plan.name}: ${price} · ${offers} · ${reels}`;
 }

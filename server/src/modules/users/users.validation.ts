@@ -30,8 +30,8 @@ export const listUsersSchema = z.object({
 });
 
 export const updateRoleSchema = z.object({
-  permission: z.enum(['USER', 'ADMIN', 'VENDOR', 'CONTENT_CREATOR'], {
-    message: 'Permission must be USER, ADMIN, VENDOR, or CONTENT_CREATOR',
+  permission: z.enum(['USER', 'ADMIN', 'SUPER_ADMIN', 'VENDOR', 'CONTENT_CREATOR'], {
+    message: 'Permission must be USER, ADMIN, SUPER_ADMIN, VENDOR, or CONTENT_CREATOR',
   }),
   // Set when the admin has already been warned that this grant will retire the user's other professional role.
   confirmSwitch: z.boolean().optional(),

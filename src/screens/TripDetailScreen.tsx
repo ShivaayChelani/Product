@@ -713,7 +713,7 @@ export default function TripDetailScreen({
         renderMapTab={() => mapTabContent}
       />
 
-      <Modal visible={!!noteModal} transparent animationType="slide">
+      <Modal visible={!!noteModal} transparent animationType="slide" onRequestClose={() => setNoteModal(null)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}>
           <View style={{ backgroundColor: Pal.colors.light.surface, borderTopLeftRadius: Pal.borderRadius['2xl'], borderTopRightRadius: Pal.borderRadius['2xl'], padding: Pal.spacing[5], paddingBottom: Pal.spacing[10], gap: Pal.spacing[4] }}>
             <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: Pal.colors.light.border, alignSelf: 'center', marginBottom: 4 }} />

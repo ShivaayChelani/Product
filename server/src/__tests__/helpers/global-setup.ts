@@ -1,14 +1,15 @@
 process.env.NODE_ENV = 'test';
 
+// Apply TEST_DATABASE_URL/DIRECT_URL before Prisma binds its datasource URL.
+// This import MUST stay first among the imports below.
+import './apply-test-env';
 import { ensureDbExtensions } from '../../config/db-extensions';
 import { ensureSeedData } from '../../config/db-seed';
 import { prisma } from '../../config/database';
-import { applyTestDatabaseEnv } from '../../config/test-database';
 import { withRetry } from '../../utils/retry';
 import { ensurePublishedLegalDocs } from './legal';
 
 export async function setup() {
-  applyTestDatabaseEnv();
   await withRetry(() => ensureDbExtensions(), { maxRetries: 5, baseDelayMs: 500 });
   await withRetry(() => ensureSeedData(), { maxRetries: 5, baseDelayMs: 500 });
   await withRetry(() => ensurePublishedLegalDocs(), { maxRetries: 5, baseDelayMs: 500 });

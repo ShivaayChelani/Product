@@ -14,7 +14,7 @@ describe("formatVendorPlanOption", () => {
           { limitKey: "maxReels", limitValue: 2 },
         ],
       }),
-    ).toBe("Starter: ₹99/mo · 1 offer · 2 reels");
+    ).toBe("Starter: ₹99/mo · 1 offer · 2 Moments");
 
     expect(
       formatVendorPlanOption({
@@ -27,7 +27,7 @@ describe("formatVendorPlanOption", () => {
           { limitKey: "maxReels", limitValue: 7 },
         ],
       }),
-    ).toBe("Growth: ₹399/mo · 5 offers · 7 reels");
+    ).toBe("Growth: ₹399/mo · 5 offers · 7 Moments");
 
     expect(
       formatVendorPlanOption({
@@ -40,6 +40,6 @@ describe("formatVendorPlanOption", () => {
           { limitKey: "maxReels", limitValue: -1 },
         ],
       }),
-    ).toBe("Unlimited: ₹1,999/mo · Unlimited offers · Unlimited reels");
+    ).toBe("Unlimited: ₹1,999/mo · Unlimited offers · Unlimited Moments");
   });
 });

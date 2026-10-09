@@ -7,6 +7,9 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { Badge } from '../components/ui/Badge';
 import { GradientButton } from '../components/ui/GradientButton';
 import { vendorsApi, VendorPublicDetails, VendorPublicOffer, TaggedCreatorReel, VendorReview } from '../services/api/vendors';
+import { getReelThumbnail } from '../services/reelService';
+import { hasValidImageUrl } from '../utils/imageUrl';
+import { creatorAtHandle } from '../utils/creatorHandle';
 import { walletApi } from '../services/api/wallet';
 import { VENDOR_CATEGORY_EMOJI } from '../data/vendors';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -150,11 +153,42 @@ export default function VendorProfileScreen({
     }
   }, []);
 
-  const fetchReelsOnce = useCallback(async (id: string) => {
+  const fetchReelsOnce = useCallback(async (id: string, vendorName?: string) => {
     if (!id || reelsLoadedForRef.current === id) return;
     try {
-      const tagged = await vendorsApi.getTaggedCreatorReels(id);
-      setReels(tagged.reels || []);
+      const [promo, tagged] = await Promise.all([
+        vendorsApi.getVendorReels(id).catch(() => []),
+        vendorsApi.getTaggedCreatorReels(id).catch(() => ({
+          reels: [] as TaggedCreatorReel[],
+          pending: [] as TaggedCreatorReel[],
+          isOwner: false,
+        })),
+      ]);
+      const promoItems: TaggedCreatorReel[] = (Array.isArray(promo) ? promo : []).map((r) => ({
+        id: r.id,
+        videoUrl: r.videoUrl,
+        thumbnail: getReelThumbnail(r) || r.thumbnail,
+        title: r.title,
+        description: r.description,
+        vendorListingStatus: 'APPROVED',
+        createdAt: r.createdAt,
+        creator: {
+          id,
+          username: vendorName || 'Business',
+          avatar: null,
+        },
+      }));
+      const taggedItems: TaggedCreatorReel[] = (tagged.reels || []).map((r) => ({
+        ...r,
+        thumbnail: getReelThumbnail(r) || r.thumbnail,
+      }));
+      const seen = new Set<string>();
+      const combined = [...promoItems, ...taggedItems].filter((item) => {
+        if (!item.id || seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      });
+      setReels(combined);
       reelsLoadedForRef.current = id;
     } catch {
       setReels([]);
@@ -202,12 +236,36 @@ export default function VendorProfileScreen({
         }
         fetchReviews(me.id).catch(() => {});
       } else {
-        const [v, tagged] = await Promise.all([
+        const [v, tagged, promo] = await Promise.all([
           vendorsApi.getVendorDetails(vendorId),
           vendorsApi.getTaggedCreatorReels(vendorId).catch(() => ({ reels: [], pending: [], isOwner: false })),
+          vendorsApi.getVendorReels(vendorId).catch(() => []),
         ]);
         setVendor(v.data);
-        setReels(tagged.reels || []);
+        const promoItems: TaggedCreatorReel[] = (Array.isArray(promo) ? promo : []).map((r) => ({
+          id: r.id,
+          videoUrl: r.videoUrl,
+          thumbnail: getReelThumbnail(r) || r.thumbnail,
+          title: r.title,
+          description: r.description,
+          vendorListingStatus: 'APPROVED' as const,
+          createdAt: r.createdAt,
+          creator: {
+            id: vendorId,
+            username: v.data?.businessName || 'Business',
+            avatar: v.data?.imageUrl || null,
+          },
+        }));
+        const taggedItems: TaggedCreatorReel[] = (tagged.reels || []).map((r) => ({
+          ...r,
+          thumbnail: getReelThumbnail(r) || r.thumbnail,
+        }));
+        const seen = new Set<string>();
+        setReels([...promoItems, ...taggedItems].filter((item) => {
+          if (!item.id || seen.has(item.id)) return false;
+          seen.add(item.id);
+          return true;
+        }));
         reelsLoadedForRef.current = vendorId;
         setStatus('APPROVED');
         lastFetchAtRef.current = Date.now();
@@ -801,7 +859,7 @@ export default function VendorProfileScreen({
                   onPress={() => setActiveTab('reels')}
                   style={[styles.segmentBtn, activeTab === 'reels' && styles.segmentBtnActive]}
                 >
-                  <Text style={[styles.segmentText, activeTab === 'reels' && styles.segmentTextActive]}>Reels</Text>
+                  <Text style={[styles.segmentText, activeTab === 'reels' && styles.segmentTextActive]}>Moments</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -858,14 +916,14 @@ export default function VendorProfileScreen({
                 <TouchableOpacity key={reel.id} onPress={() => onNavigate?.('ReelDetail', { reelId: reel.id })} style={{ width: CARD_WIDTH }}>
                   <GlassCard style={{ padding: Pal.spacing[3], gap: 6, backgroundColor: '#FFFFFF' }}>
                     <View style={{ height: 120, borderRadius: Pal.borderRadius.md, backgroundColor: Pal.colors.light.primarySoft, alignItems: 'center', justifyContent: 'center' }}>
-                      {reel.thumbnail ? (
-                        <Image source={{ uri: reel.thumbnail }} style={{ width: '100%', height: '100%', borderRadius: Pal.borderRadius.md }} />
+                      {hasValidImageUrl(getReelThumbnail(reel)) ? (
+                        <Image source={{ uri: getReelThumbnail(reel) }} style={{ width: '100%', height: '100%', borderRadius: Pal.borderRadius.md }} />
                       ) : (
                         <Icon name="play-circle" size={36} color={Pal.colors.light.primary} />
                       )}
                     </View>
                     {reel.title && <Text style={{ fontSize: 12, fontFamily: Pal.typography.fontFamily.semibold, color: Pal.colors.light.text }} numberOfLines={1}>{reel.title}</Text>}
-                    <Text style={{ fontSize: 10, color: Pal.colors.light.textMuted }} numberOfLines={1}>@{reel.creator.username}</Text>
+                    <Text style={{ fontSize: 10, color: Pal.colors.light.textMuted }} numberOfLines={1}>{creatorAtHandle(reel.creator.username, 'Creator')}</Text>
                   </GlassCard>
                 </TouchableOpacity>
               ))}
@@ -914,7 +972,7 @@ export default function VendorProfileScreen({
                   { key: 'showWebsite' as const, label: 'Show website', value: !!vendor.showWebsite },
                   { key: 'showImages' as const, label: 'Show gallery', value: !!vendor.showImages },
                   { key: 'showOffers' as const, label: 'Show offers', value: !!vendor.showOffers },
-                  { key: 'showReels' as const, label: 'Show reels', value: !!vendor.showReels },
+                  { key: 'showReels' as const, label: 'Show Moments', value: !!vendor.showReels },
                   { key: 'showNavigation' as const, label: 'Show navigate', value: !!vendor.showNavigation },
                 ].map((row) => (
                   <View key={row.key} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>

@@ -7,6 +7,7 @@ describe('Task 3 India boundary mask smoke', () => {
     expect(html).toContain('var INDIA_BOUNDARY_RINGS = [[[['.replace('[[[[', '[[['));
     expect(html).toContain('fill-rule:evenodd');
     expect(html).toContain('L.polygon([WORLD_RING].concat(indiaMaskHoles)');
+    expect(html).toContain("fillColor: '#0B1220', fillOpacity: 1");
     expect(html).not.toContain('L.rectangle');
     expect(html).not.toContain('INDIA_N');
   });

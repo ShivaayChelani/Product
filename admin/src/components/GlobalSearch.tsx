@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
-import { Search, Command, X, MapPin, Users, Store } from "lucide-react";
+import { Search, X, MapPin, Users, Store } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { adminGlobalSearch } from "@/services/search";
 
@@ -89,73 +89,74 @@ export default function GlobalSearch() {
     if (item.type === "place") router.push(`/dashboard/places?id=${encodeURIComponent(item.id)}`);
   };
 
-  if (!isOpen) {
-    return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-500 transition hover:bg-gray-100"
-      >
-        <Search size={16} />
-        <span className="hidden sm:inline">Search everywhere...</span>
-        <span className="flex items-center gap-1 rounded bg-white px-1.5 py-0.5 text-xs font-semibold shadow-sm border border-gray-200">
-          <Command size={10} /> K
-        </span>
-      </button>
-    );
-  }
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 sm:pt-32 px-4 pb-20">
-      <div 
-        className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" 
+    <div className="fixed inset-0 z-[70] flex items-start justify-center px-4 pb-20 pt-20 sm:pt-32">
+      <button
+        type="button"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={() => setIsOpen(false)}
+        aria-label="Close search"
       />
-      
-      <div className="relative w-full max-w-2xl transform overflow-hidden rounded-xl bg-white shadow-2xl transition-all">
-        <div className="flex items-center border-b border-gray-100 px-4 py-3">
-          <Search className="text-gray-400" size={20} />
+
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Global search"
+        className="relative w-full max-w-2xl transform overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-2xl"
+      >
+        <div className="flex items-center border-b border-border px-4 py-3">
+          <Search className="text-muted-foreground" size={20} />
           <input
             ref={inputRef}
-            type="text"
-            className="w-full bg-transparent px-3 py-2 text-base text-gray-900 placeholder-gray-400 focus:outline-none"
-            placeholder="Search users, vendors, places, or transactions..."
+            type="search"
+            className="w-full bg-transparent px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus:outline-none"
+            placeholder="Search users, vendors, places..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search users, vendors, and places"
           />
-          <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-gray-600">
+          <button
+            type="button"
+            onClick={() => setIsOpen(false)}
+            className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label="Close search"
+          >
             <X size={20} />
           </button>
         </div>
 
         <div className="max-h-96 overflow-y-auto p-2">
           {loading ? (
-            <div className="flex items-center justify-center p-8 text-gray-500">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+            <div className="flex items-center justify-center p-8 text-muted-foreground">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : query && results.length === 0 ? (
-            <div className="p-8 text-center text-sm text-gray-500">
-              No results found for "{query}"
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              No results found for &quot;{query}&quot;
             </div>
           ) : !query ? (
-            <div className="p-4 text-xs font-medium text-gray-400 uppercase tracking-wider">
-              Recent Searches
+            <div className="p-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Type to search users, vendors, and places
             </div>
           ) : (
             <div className="space-y-1">
               {results.map((item, i) => (
                 <button
-                  key={i}
+                  key={`${item.type}-${item.id}-${i}`}
+                  type="button"
                   onClick={() => navigateToResult(item)}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition hover:bg-gray-50"
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition hover:bg-muted"
                 >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-                    {item.type === 'user' && <Users size={14} />}
-                    {item.type === 'vendor' && <Store size={14} />}
-                    {item.type === 'place' && <MapPin size={14} />}
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    {item.type === "user" && <Users size={14} />}
+                    {item.type === "vendor" && <Store size={14} />}
+                    {item.type === "place" && <MapPin size={14} />}
                   </div>
-                  <div>
-                    <div className="font-medium text-gray-900">{item.title}</div>
-                    <div className="text-xs text-gray-500">{item.subtitle}</div>
+                  <div className="min-w-0">
+                    <div className="truncate font-medium text-foreground">{item.title}</div>
+                    <div className="truncate text-xs text-muted-foreground">{item.subtitle}</div>
                   </div>
                 </button>
               ))}

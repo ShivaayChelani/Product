@@ -1,9 +1,12 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, StatusBar, TouchableOpacity, BackHandler, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Reel } from '../types';
+import { extractCreatorHandle } from '../utils/creatorHandle';
+import { RootStackParamList } from '../navigation/types';
 import { ReelFeed } from '../components/reels/ReelFeed';
 import { ReelCommentsBottomSheet } from '../components/reels/ReelCommentsBottomSheet';
 import { useUserContext } from '../context/UserContext';
@@ -32,6 +35,7 @@ export default function ReelDetailScreen({
 }: ReelDetailScreenProps) {
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user, isGuest, onLogout, setUser } = useUserContext();
   const [commentReelId, setCommentReelId] = useState<string | null>(null);
   const [feedData, setFeedData] = useState<Reel[]>(reels && reels.length > 0 ? reels : [reel]);
@@ -65,7 +69,7 @@ export default function ReelDetailScreen({
 
   const handleLike = useCallback(async (targetReelId: string) => {
     if (isGuest || user?.uid === 'guest-user' || !user) {
-      promptGuestAuth('like reels');
+      promptGuestAuth('like Moments');
       return;
     }
     const target = feedData.find(r => r.id === targetReelId);
@@ -86,7 +90,7 @@ export default function ReelDetailScreen({
   const handleShare = useCallback(async (target: Reel) => {
     const result = await shareReelAndRecord(target);
     if (result === 'unavailable') {
-      Alert.alert('Unavailable', 'This reel cannot be shared.');
+      Alert.alert('Unavailable', 'This Moment cannot be shared.');
       return;
     }
     if (result !== 'shared') return;
@@ -125,13 +129,25 @@ export default function ReelDetailScreen({
 
   const handleOpenComment = useCallback((targetReelId: string) => {
     if (isGuest || user?.uid === 'guest-user') {
-      promptGuestAuth('comment on reels');
+      promptGuestAuth('comment on Moments');
       return;
     }
     setCommentReelId(targetReelId);
   }, [isGuest, user, promptGuestAuth]);
 
   const topPad = Math.max(insets.top, 44);
+
+  const handlePressAuthor = useCallback((target: Reel) => {
+    const vendor = target.vendor;
+    const creator = target.creator;
+    if (vendor?.id && (!creator?.id || creator.id === vendor.id)) {
+      navigation.navigate('VendorProfile', { vendorId: vendor.id });
+      return;
+    }
+    const username = extractCreatorHandle(creator?.username);
+    if (!username) return;
+    navigation.navigate('CreatorProfile', { username });
+  }, [navigation]);
 
   return (
     <View style={styles.container}>
@@ -142,7 +158,7 @@ export default function ReelDetailScreen({
           style={styles.iconBtn}
           onPress={onBack}
           hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
-          accessibilityLabel="Close reel"
+          accessibilityLabel="Close Moment"
           accessibilityRole="button"
         >
           <Icon name="close" size={28} color="#fff" />
@@ -152,7 +168,7 @@ export default function ReelDetailScreen({
             style={styles.iconBtn} 
             onPress={() => {
               const { Alert } = require('react-native');
-              Alert.alert('Delete Reel', 'Are you sure you want to delete this reel?', [
+              Alert.alert('Delete Moment', 'Are you sure you want to delete this Moment?', [
                 { text: 'Cancel', style: 'cancel' },
                 { 
                   text: 'Delete', 
@@ -163,7 +179,7 @@ export default function ReelDetailScreen({
                       await creatorApi.deleteReel(reel.id);
                       onBack();
                     } catch (e) {
-                      Alert.alert('Error', 'Failed to delete reel');
+                      Alert.alert('Error', 'Failed to delete Moment');
                     }
                   }
                 }
@@ -188,6 +204,7 @@ export default function ReelDetailScreen({
         onLike={handleLike}
         onComment={handleOpenComment}
         onShare={handleShare}
+        onPressAuthor={handlePressAuthor}
         isTabFocused={isFocused}
         onReelViewed={handleReelViewed}
         layoutMode="fullscreen"

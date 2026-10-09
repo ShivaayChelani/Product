@@ -30,7 +30,7 @@ const QUEUES: Array<{
   { key: "events", label: "Pending Events", href: "/dashboard/events?status=PENDING", icon: CalendarDays, description: "Review submitted events" },
   { key: "places", label: "Pending Places", href: "/dashboard/places?status=PENDING&touristOnly=0", icon: MapPin, description: "Review place submissions" },
   { key: "vendors", label: "Pending Vendors", href: "/dashboard/vendors?status=PENDING", icon: Store, description: "Review vendor applications" },
-  { key: "reports", label: "Open Reports", href: "/dashboard/reports#event-reports", icon: Flag, description: "Review event and reel reports" },
+  { key: "reports", label: "Open Reports", href: "/dashboard/reports#event-reports", icon: Flag, description: "Review event and Moment reports" },
 ];
 
 export default function NeedsAttention() {

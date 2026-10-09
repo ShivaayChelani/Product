@@ -33,10 +33,10 @@ export function ReelUploadStatusCard({ job, onRetry, onDismiss, onViewReel }: Pr
   const isActive = job.status === 'QUEUED' || job.status === 'UPLOADING' || job.status === 'PROCESSING';
   const title = isActive
     ? job.status === 'PROCESSING'
-      ? 'Processing reel…'
-      : 'Uploading reel…'
+      ? 'Processing Moment…'
+      : 'Uploading Moment…'
     : job.status === 'POSTED'
-      ? 'Reel posted'
+      ? 'Moment posted'
       : job.status === 'FAILED'
         ? 'Upload failed'
         : 'Upload cancelled';
@@ -62,7 +62,7 @@ export function ReelUploadStatusCard({ job, onRetry, onDismiss, onViewReel }: Pr
         <View style={styles.body}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.caption} numberOfLines={1}>
-            {normalizeReelCaption(job.caption) || job.title || 'Untitled reel'}
+            {normalizeReelCaption(job.caption) || job.title || 'Untitled Moment'}
           </Text>
 
           {isActive && (
@@ -77,19 +77,19 @@ export function ReelUploadStatusCard({ job, onRetry, onDismiss, onViewReel }: Pr
           )}
 
           {job.status === 'POSTED' && (job.rewardPoints || 0) > 0 ? (
-            <Text style={styles.rewardText}>+{job.rewardPoints} PalPoints (first reel today)</Text>
+            <Text style={styles.rewardText}>+{job.rewardPoints} PalPoints (first Moment today)</Text>
           ) : null}
           {job.status === 'POSTED' && job.reelId && (
             <TouchableOpacity style={styles.linkBtn} onPress={() => onViewReel?.(job.reelId!)}>
               <Icon name="checkmark-circle" size={16} color={C.green} />
-              <Text style={styles.linkText}>View reel</Text>
+              <Text style={styles.linkText}>View Moment</Text>
             </TouchableOpacity>
           )}
 
           {job.status === 'FAILED' && (
             <>
               <Text style={styles.errorText} numberOfLines={2}>
-                {job.error || 'Reel upload failed — tap to retry'}
+                {job.error || 'Moment upload failed — tap to retry'}
               </Text>
               <TouchableOpacity style={styles.retryBtn} onPress={() => onRetry(job.localUploadId)}>
                 <Icon name="refresh-outline" size={16} color={C.gold} />

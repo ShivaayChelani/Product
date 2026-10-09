@@ -11,7 +11,7 @@ const rewardsService = fs.readFileSync(
 );
 
 describe('VendorOfferDetail buttons', () => {
-  it('wires Call, WhatsApp, Website, Directions, Save, and Redeem', () => {
+  it('wires Call, WhatsApp, Website, Directions, and Redeem without Save Offer', () => {
     expect(screen).toContain('openVendorCall');
     expect(screen).toContain('openVendorWhatsApp');
     expect(screen).toContain('openVendorWebsite');
@@ -19,9 +19,9 @@ describe('VendorOfferDetail buttons', () => {
     // external maps app, so the offer screen must not reference the old helper.
     expect(screen).toContain('openInternalDirections');
     expect(screen).not.toContain('openVendorDirections');
-    expect(screen).toContain('onSaveOffer');
-    expect(screen).not.toMatch(/onSave=\{\(\) => \{\s*\}\}/);
-    expect(screen).toContain('isSaved={isSaved}');
+    expect(screen).not.toContain('onSaveOffer');
+    expect(screen).not.toContain('Save Offer');
+    expect(screen).not.toContain('isSaved={isSaved}');
     expect(screen).toContain('onRedeemPress');
     expect(screen).toContain('Sign In Required');
     expect(screen).toContain('setRedeemOpen(true)');

@@ -1,12 +1,13 @@
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/ApiError';
 import { socialService } from '../social/social.service';
+import { isPublishableMediaUrl } from '../social/reelVisibility';
 import { ReelStatus } from '@prisma/client';
 
 const RESOURCE_HASHTAGS = [
   { tag: '#IncredibleIndia', posts: '2.1M' },
   { tag: '#HiddenGems', posts: '890K' },
-  { tag: '#TravelReels', posts: '1.4M' },
+  { tag: '#TravelMoments', posts: '1.4M' },
   { tag: '#PalSafar', posts: '12K' },
 ];
 
@@ -47,7 +48,7 @@ export const creatorService = {
     // whole studio even though this payload never uses those fields.
     const profile = await getApprovedProfile(userId);
     const todayStart = startOfDay(new Date());
-    const [followingCount, reelCount, totals, totalComments, reelsToday, draftCount, hiddenCount] = await Promise.all([
+    const [followingCount, reelCount, totals, totalComments, reelsToday, draftCount, archivedCount] = await Promise.all([
       prisma.follow.count({ where: { followerId: userId } }).catch(() => 0),
       prisma.reel.count({ where: { creatorId: profile.id } }),
       prisma.reel.aggregate({
@@ -59,22 +60,22 @@ export const creatorService = {
         where: { creatorId: profile.id, createdAt: { gte: todayStart }, status: { not: ReelStatus.HIDDEN } },
       }),
       prisma.reel.count({ where: { creatorId: profile.id, status: ReelStatus.DRAFT } }),
-      prisma.reel.count({ where: { creatorId: profile.id, status: ReelStatus.HIDDEN } }),
+      prisma.reel.count({ where: { creatorId: profile.id, status: ReelStatus.ARCHIVED } }),
     ]);
 
     let todayGoal: { title: string; description: string; cta: string; ctaAction: string };
     if (draftCount > 0) {
       todayGoal = {
         title: 'Publish your draft',
-        description: `You have ${draftCount} draft reel${draftCount > 1 ? 's' : ''} ready to publish.`,
+        description: `You have ${draftCount} draft Moment${draftCount > 1 ? 's' : ''} ready to publish.`,
         cta: 'View Drafts',
         ctaAction: 'drafts',
       };
     } else if (reelsToday === 0) {
       todayGoal = {
-        title: 'Upload 1 Reel',
+        title: 'Upload 1 Moment',
         description: 'Share your latest travel moment with the PalSafar community.',
-        cta: 'Create Reel',
+        cta: 'Create Moment',
         ctaAction: 'create_reel',
       };
     } else {
@@ -116,7 +117,7 @@ export const creatorService = {
       },
       reelCount,
       draftCount,
-      archivedCount: hiddenCount,
+      archivedCount,
     };
   },
 
@@ -239,7 +240,7 @@ export const creatorService = {
       editingTips: [
         'Trim the first 2 seconds for stronger hooks.',
         'Add captions for silent viewers.',
-        'Keep reels under 60 seconds for retention.',
+        'Keep Moments under 60 seconds for retention.',
       ],
       tourismEvents: [
         { name: 'Hornbill Festival', location: 'Nagaland', month: 'December' },
@@ -371,6 +372,45 @@ export const creatorService = {
       });
       resolvedPlaceId = foundPlace?.id ?? null;
     }
+
+    const liveMatch = await prisma.reel.findFirst({
+      where: {
+        creatorId: profile.id,
+        videoUrl: input.videoUrl,
+        status: { in: [ReelStatus.APPROVED, ReelStatus.PENDING, ReelStatus.SCHEDULED] },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+    if (liveMatch) {
+      throw new ApiError(
+        409,
+        'This Moment is already published. Edit it instead of saving a new draft.',
+      );
+    }
+
+    const existingDraft = await prisma.reel.findFirst({
+      where: {
+        creatorId: profile.id,
+        videoUrl: input.videoUrl,
+        status: { in: [ReelStatus.DRAFT, ReelStatus.HIDDEN] },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+    if (existingDraft) {
+      return prisma.reel.update({
+        where: { id: existingDraft.id },
+        data: {
+          thumbnail: input.thumbnail ?? existingDraft.thumbnail,
+          title: input.title ?? existingDraft.title,
+          description: input.description ?? existingDraft.description,
+          tags: input.tags || existingDraft.tags,
+          placeId: resolvedPlaceId ?? existingDraft.placeId,
+          vendorId: input.vendorId ?? existingDraft.vendorId,
+          status: ReelStatus.DRAFT,
+        },
+      });
+    }
+
     return prisma.reel.create({
       data: {
         creatorId: profile.id,
@@ -390,7 +430,20 @@ export const creatorService = {
     const profile = await getApprovedProfile(userId);
     const reel = await prisma.reel.findUnique({ where: { id: reelId } });
     if (!reel || reel.creatorId !== profile.id) throw new ApiError(404, 'Draft not found.');
-    if (reel.status !== ReelStatus.DRAFT) throw new ApiError(400, 'Only drafts can be published this way.');
+    if (reel.status === ReelStatus.APPROVED) {
+      return {
+        ...reel,
+        rewardPoints: 0,
+        dailyRewardClaimed: false,
+        dailyRewardDate: null,
+      };
+    }
+    if (reel.status !== ReelStatus.DRAFT && reel.status !== ReelStatus.HIDDEN) {
+      throw new ApiError(400, 'Only drafts can be published this way.');
+    }
+    if (!isPublishableMediaUrl(reel.videoUrl)) {
+      throw new ApiError(400, 'Upload the Moment video before publishing.');
+    }
     const updated = await prisma.reel.update({
       where: { id: reelId },
       data: { status: ReelStatus.APPROVED },
@@ -404,10 +457,31 @@ export const creatorService = {
     };
   },
 
+  /**
+   * Persist a creator's archive choice so the reel is removed from (or restored
+   * to) the public feed. Archiving is only meaningful for published reels —
+   * drafts/pending are not public — and unarchiving re-publishes, so archiving a
+   * non-approved reel is a no-op rather than a moderation bypass.
+   */
+  async setReelArchived(userId: string, reelId: string, archived: boolean) {
+    const profile = await getApprovedProfile(userId);
+    const reel = await prisma.reel.findUnique({ where: { id: reelId } });
+    if (!reel || reel.creatorId !== profile.id) throw new ApiError(404, 'Moment not found.');
+
+    if (archived) {
+      if (reel.status === ReelStatus.ARCHIVED) return reel;
+      if (reel.status !== ReelStatus.APPROVED) return reel;
+      return prisma.reel.update({ where: { id: reelId }, data: { status: ReelStatus.ARCHIVED } });
+    }
+
+    if (reel.status !== ReelStatus.ARCHIVED) return reel;
+    return prisma.reel.update({ where: { id: reelId }, data: { status: ReelStatus.APPROVED } });
+  },
+
   async getReelAnalytics(userId: string, reelId: string) {
     const profile = await getApprovedProfile(userId);
     const reel = await prisma.reel.findUnique({ where: { id: reelId } });
-    if (!reel || reel.creatorId !== profile.id) throw new ApiError(404, 'Reel not found.');
+    if (!reel || reel.creatorId !== profile.id) throw new ApiError(404, 'Moment not found.');
 
     const [comments, likes, saves] = await Promise.all([
       prisma.reelComment.count({ where: { reelId } }),

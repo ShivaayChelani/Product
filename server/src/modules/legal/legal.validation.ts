@@ -55,6 +55,18 @@ export const rollbackVersionSchema = z.object({
   publish: z.boolean().default(true),
 });
 
+export const acceptCurrentSchema = z.object({
+  termsAccepted: z.literal(true, {
+    errorMap: () => ({ message: 'You must accept the Terms & Conditions to continue.' }),
+  }),
+  privacyAccepted: z.literal(true, {
+    errorMap: () => ({ message: 'You must accept the Privacy Policy to continue.' }),
+  }),
+  termsVersion: z.number({ required_error: 'Terms version is required.' }).int().positive(),
+  privacyVersion: z.number({ required_error: 'Privacy version is required.' }).int().positive(),
+  platform: z.enum(['ios', 'android', 'web']).optional(),
+});
+
 export type CreateDocumentInput = z.infer<typeof createDocumentSchema>;
 export type CreateVersionInput = z.infer<typeof createVersionSchema>;
 export type UpdateVersionInput = z.infer<typeof updateVersionSchema>;

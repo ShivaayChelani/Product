@@ -122,7 +122,7 @@ export const planEnforcementService = {
     if (!limits.planId || limits.maxReels <= 0) {
       throw new ApiError(
         403,
-        'Subscribe to a vendor plan to publish reels.',
+        'Subscribe to a vendor plan to publish Moments.',
         true,
         ErrorCodes.PLAN_LIMIT_REACHED,
         { kind: 'reel', used: reelCount, limit: limits.maxReels, planName: limits.planName },
@@ -133,7 +133,7 @@ export const planEnforcementService = {
       const planLabel = limits.planName || 'current';
       throw new ApiError(
         403,
-        `Your ${planLabel} plan includes ${limits.maxReels} reel${limits.maxReels === 1 ? '' : 's'} per month. Upgrade to Unlimited to publish more.`,
+        `Your ${planLabel} plan includes ${limits.maxReels} Moment${limits.maxReels === 1 ? '' : 's'} per month. Upgrade to Unlimited to publish more.`,
         true,
         ErrorCodes.PLAN_LIMIT_REACHED,
         { kind: 'reel', used: reelCount, limit: limits.maxReels, planName: limits.planName },

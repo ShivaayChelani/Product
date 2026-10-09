@@ -50,7 +50,7 @@ export const applyCreatorSchema = z.object({
   travelCategories: z.array(z.string().min(1).max(40))
     .min(1, 'Select at least one travel category')
     .max(8, 'Select up to 8 travel categories'),
-  instagramUrl: z.string().trim().min(1, 'Instagram link is required').max(500, 'Instagram link is too long'),
+  instagramUrl: optionalLink(500),
   youtubeUrl: optionalLink(500),
   facebookUrl: optionalLink(500),
   languages: z.array(z.string().min(1).max(50)).max(20).optional(),
@@ -95,6 +95,7 @@ export const updateReelSchema = z.object({
   title: z.string().max(200, 'Title must be at most 200 characters').optional(),
   description: z.string().max(2000, 'Description must be at most 2000 characters').optional(),
   thumbnail: z.string().max(1000, 'Thumbnail is too long').optional(),
+  videoUrl: z.string().url('Video URL is invalid').optional(),
   placeId: z.string().nullable().optional(),
   vendorId: z.string().nullable().optional(),
   eventId: z.string().nullable().optional(),

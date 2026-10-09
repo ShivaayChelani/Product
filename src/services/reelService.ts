@@ -4,6 +4,7 @@ import { DEV_FLAGS } from '../config/devFlags';
 import { socialApi, uploadApi } from './api';
 import { API_CONFIG } from '../config/api';
 import { CREATOR_DAILY_REEL_POINTS } from '../utils/reelRewardPoints';
+import { deriveReelPosterFromVideo, isStaticImageUrl } from './reels/reelMediaKind';
 
 const apiOrigin = API_CONFIG.baseUrl.replace(/\/api\/v1\/?$/, '');
 
@@ -11,12 +12,41 @@ const apiOrigin = API_CONFIG.baseUrl.replace(/\/api\/v1\/?$/, '');
 
 
 
-export function getReelThumbnail(reel?: Partial<Reel> | null, _index = 0): string {
-  if (reel?.thumbnail && reel.thumbnail.trim().length > 0) {
-    if (reel.thumbnail.startsWith('/')) {
-      return `${apiOrigin}${reel.thumbnail}`;
+export type ReelThumbnailSource = {
+  thumbnail?: string | null;
+  thumbnailUrl?: string | null;
+  posterUrl?: string | null;
+  poster?: string | null;
+  previewUrl?: string | null;
+  preview?: string | null;
+  videoUrl?: string | null;
+  place?: { imageUrl?: string | null } | null;
+};
+
+export function getReelThumbnail(reel?: ReelThumbnailSource | Partial<Reel> | null, _index = 0): string {
+  const raw =
+    reel?.thumbnail ||
+    (reel as any)?.thumbnailUrl ||
+    (reel as any)?.posterUrl ||
+    (reel as any)?.poster ||
+    (reel as any)?.previewUrl ||
+    (reel as any)?.preview ||
+    '';
+  if (typeof raw === 'string' && raw.trim().length > 0) {
+    const looksLikeVideo = /\.(mp4|mov|webm|m3u8)(?:[?#]|$)/i.test(raw) && !isStaticImageUrl(raw);
+    if (!looksLikeVideo) {
+      if (raw.startsWith('/')) {
+        return `${apiOrigin}${raw}`;
+      }
+      return raw;
     }
-    return reel.thumbnail;
+  }
+  if (isStaticImageUrl((reel as any)?.videoUrl)) {
+    return (reel as any).videoUrl;
+  }
+  const derivedVideoPoster = deriveReelPosterFromVideo((reel as any)?.videoUrl);
+  if (derivedVideoPoster) {
+    return derivedVideoPoster;
   }
   if ((reel as any)?.place?.imageUrl) {
     return (reel as any).place.imageUrl;
@@ -109,7 +139,7 @@ function createLocalReel(data: ReelUploadData): Reel {
       id: `creator_${data.userId}`,
       username: data.userName,
       avatar: null,
-      verified: false,
+      verified: true,
       userId: data.userId,
     },
   };
@@ -180,7 +210,7 @@ export async function createReel(data: ReelUploadData, onProgress?: (p: number) 
           username: data.userName,
           fullName: data.userName,
           avatar: null,
-          verified: true,
+          verified: false,
           userId: data.userId,
         },
       } as Reel);
@@ -370,4 +400,3 @@ export async function incrementReelShares(reelId: string): Promise<void> {
   const reel = localReels.find(r => r.id === reelId);
   if (reel) reel.shares += 1;
 }
-

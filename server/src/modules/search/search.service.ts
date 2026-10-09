@@ -6,7 +6,7 @@ import {
   publicVendorOffersWhere,
 } from '../rewards/offer-eligibility';
 import { getPublicVendorListingWhere } from '../vendors/vendor-public-visibility';
-import { collapseRepeats, scoreAdminMatch } from './search-ranking';
+import { collapseRepeats, scoreAdminMatch, scorePlaceSearchMatch } from './search-ranking';
 import { publicEventWhere } from '../events/events-public-visibility';
 
 async function searchPlacesFuzzy(opts: {
@@ -25,11 +25,31 @@ async function searchPlacesFuzzy(opts: {
   try {
     return await prisma.$queryRawUnsafe<any[]>(
       `
-      SELECT id, name, slug, short_description as "shortDescription", thumbnail, category, city, state, rating, review_count as "reviewCount",
+      SELECT id, name, slug, short_description as "shortDescription", thumbnail, category, city, state, district,
+             canonical_name as "canonicalName", rating, review_count as "reviewCount",
              GREATEST(
-               COALESCE(ts_rank(search_vector, plainto_tsquery('english', $1)), 0),
-               COALESCE(word_similarity($1, name), 0),
-               COALESCE(similarity(lower(name), lower($1)), 0)
+               CASE WHEN lower(name) = lower($1) OR lower(COALESCE(canonical_name, '')) = lower($1) THEN 4.0 ELSE 0 END,
+               CASE WHEN lower(name) LIKE lower($1) || '%' THEN 3.4 ELSE 0 END,
+               CASE WHEN name ILIKE '%' || $1 || '%' THEN 3.0 ELSE 0 END,
+               CASE WHEN lower(COALESCE(city, '')) = lower($1) THEN 2.6 ELSE 0 END,
+               CASE WHEN lower(COALESCE(district, '')) = lower($1) THEN 2.4 ELSE 0 END,
+               CASE WHEN lower(COALESCE(state, '')) = lower($1) THEN 2.2 ELSE 0 END,
+               CASE WHEN city ILIKE '%' || $1 || '%' THEN 1.9 ELSE 0 END,
+               CASE WHEN district ILIKE '%' || $1 || '%' THEN 1.7 ELSE 0 END,
+               CASE WHEN state ILIKE '%' || $1 || '%' THEN 1.5 ELSE 0 END,
+               CASE WHEN EXISTS (
+                 SELECT 1 FROM place_aliases pa
+                 WHERE pa.place_id = places.id
+                   AND pa.normalized_alias = lower(regexp_replace(trim($1), '[^[:alnum:][:space:]]+', ' ', 'g'))
+               ) THEN 2.5 ELSE 0 END,
+               CASE WHEN EXISTS (
+                 SELECT 1 FROM place_aliases pa
+                 WHERE pa.place_id = places.id
+                   AND pa.alias ILIKE '%' || $1 || '%'
+               ) THEN 1.6 ELSE 0 END,
+               0.7 * COALESCE(ts_rank(search_vector, plainto_tsquery('english', $1)), 0),
+               0.4 * COALESCE(word_similarity($1, name), 0),
+               0.3 * COALESCE(similarity(lower(name), lower($1)), 0)
              ) AS rank
       FROM places
       WHERE status = 'APPROVED'
@@ -39,8 +59,10 @@ async function searchPlacesFuzzy(opts: {
         AND (
           search_vector @@ plainto_tsquery('english', $1)
           OR city ILIKE '%' || $1 || '%'
+          OR district ILIKE '%' || $1 || '%'
           OR state ILIKE '%' || $1 || '%'
           OR name ILIKE '%' || $1 || '%'
+          OR lower(COALESCE(canonical_name, '')) LIKE lower($1) || '%'
           OR regexp_replace(lower(name), '([a-z])\\1+', '\\1', 'g') LIKE '%' || $2 || '%'
           OR word_similarity($1, name) >= $3
           OR similarity(lower(name), lower($1)) >= $3
@@ -67,8 +89,20 @@ async function searchPlacesFuzzy(opts: {
     // pg_trgm not available — still match soft spellings via collapsed letters
     return prisma.$queryRawUnsafe<any[]>(
       `
-      SELECT id, name, slug, short_description as "shortDescription", thumbnail, category, city, state, rating, review_count as "reviewCount",
-             ts_rank(search_vector, plainto_tsquery('english', $1)) AS rank
+      SELECT id, name, slug, short_description as "shortDescription", thumbnail, category, city, state, district,
+             canonical_name as "canonicalName", rating, review_count as "reviewCount",
+             GREATEST(
+               CASE WHEN lower(name) = lower($1) OR lower(COALESCE(canonical_name, '')) = lower($1) THEN 4.0 ELSE 0 END,
+               CASE WHEN lower(name) LIKE lower($1) || '%' THEN 3.4 ELSE 0 END,
+               CASE WHEN name ILIKE '%' || $1 || '%' THEN 3.0 ELSE 0 END,
+               CASE WHEN lower(COALESCE(city, '')) = lower($1) THEN 2.6 ELSE 0 END,
+               CASE WHEN lower(COALESCE(district, '')) = lower($1) THEN 2.4 ELSE 0 END,
+               CASE WHEN lower(COALESCE(state, '')) = lower($1) THEN 2.2 ELSE 0 END,
+               CASE WHEN city ILIKE '%' || $1 || '%' THEN 1.9 ELSE 0 END,
+               CASE WHEN district ILIKE '%' || $1 || '%' THEN 1.7 ELSE 0 END,
+               CASE WHEN state ILIKE '%' || $1 || '%' THEN 1.5 ELSE 0 END,
+               COALESCE(ts_rank(search_vector, plainto_tsquery('english', $1)), 0)
+             ) AS rank
       FROM places
       WHERE status = 'APPROVED'
         AND merged_into_id IS NULL${verifiedSuffix}
@@ -77,8 +111,10 @@ async function searchPlacesFuzzy(opts: {
         AND (
           search_vector @@ plainto_tsquery('english', $1)
           OR city ILIKE '%' || $1 || '%'
+          OR district ILIKE '%' || $1 || '%'
           OR state ILIKE '%' || $1 || '%'
           OR name ILIKE '%' || $1 || '%'
+          OR lower(COALESCE(canonical_name, '')) LIKE lower($1) || '%'
           OR regexp_replace(lower(name), '([a-z])\\1+', '\\1', 'g') LIKE '%' || $2 || '%'
         )
       ORDER BY rank DESC NULLS LAST, name ASC
@@ -108,8 +144,9 @@ export const searchService = {
     const parsed = parseInt(query.limit || '10', 10);
     const limit = Number.isFinite(parsed) ? Math.min(50, Math.max(1, parsed)) : 10;
     const qCollapsed = collapseRepeats(q);
-    // Fuzzy threshold: allow near-misses like nidaan ↔ Nidan without matching unrelated names
-    const fuzzyMin = q.length <= 4 ? 0.45 : 0.32;
+    // Fuzzy threshold: keep controlled typo tolerance (nidaan ↔ Nidan) while
+    // rejecting unrelated near-miss names (e.g. Kundalpur for "Jabalpur").
+    const fuzzyMin = q.length <= 4 ? 0.5 : 0.45;
 
     // Parallel searches
     const [
@@ -131,10 +168,13 @@ export const searchService = {
             SELECT id, video_url as "videoUrl", thumbnail, title, description, views, likes, category, tags, created_at as "createdAt",
                    ts_rank(search_vector, plainto_tsquery('english', ${q})) AS rank
             FROM reels
-            WHERE search_vector @@ plainto_tsquery('english', ${q})
-               OR title ILIKE ${'%' + q + '%'}
-               OR regexp_replace(lower(COALESCE(title, '')), '([a-z])\\1+', '\\1', 'g')
-                    LIKE ${'%' + qCollapsed + '%'}
+            WHERE status = 'APPROVED'
+              AND (
+                search_vector @@ plainto_tsquery('english', ${q})
+                OR title ILIKE ${'%' + q + '%'}
+                OR regexp_replace(lower(COALESCE(title, '')), '([a-z])\\1+', '\\1', 'g')
+                     LIKE ${'%' + qCollapsed + '%'}
+              )
             ORDER BY rank DESC NULLS LAST
             LIMIT ${limit}
           `;
@@ -307,7 +347,18 @@ export const searchService = {
       vendorId: e.linkedVendorId,
     }));
 
-    const totalResults = placesRaw.length + hiddenGemsRaw.length + reelsRaw.length + vendors.length + creators.length + normalizedEvents.length + offers.length;
+    // Deterministic final ordering: exact/prefix/containment on the name or the
+    // city/district/state must always beat a weak fuzzy name-only match, so a
+    // result is never surfaced merely for sharing a coincidental substring.
+    const rerankPlaces = (rows: any[]) =>
+      [...rows]
+        .map((row, index) => ({ row, index, score: scorePlaceSearchMatch(q, row) }))
+        .sort((a, b) => b.score - a.score || a.index - b.index)
+        .map((entry) => entry.row);
+    const places = rerankPlaces(placesRaw);
+    const hiddenGems = rerankPlaces(hiddenGemsRaw);
+
+    const totalResults = places.length + hiddenGems.length + reelsRaw.length + vendors.length + creators.length + normalizedEvents.length + offers.length;
 
     // Log the search
     await prisma.searchQueryLog.create({
@@ -319,8 +370,8 @@ export const searchService = {
     }).catch(err => logger.warn({ err, query: q }, 'Failed to log search query'));
 
     return {
-      places: placesRaw,
-      hiddenGems: hiddenGemsRaw,
+      places,
+      hiddenGems,
       reels: reelsRaw,
       vendors,
       creators,

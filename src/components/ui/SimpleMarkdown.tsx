@@ -1,7 +1,33 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Linking } from 'react-native';
 import { Pal } from '../../design/DesignSystem';
 import { useTheme } from '../../context/ThemeContext';
+import { normalizeSupportEmailTypo } from '../../config/supportEmail';
+
+const EMAIL_RE = /([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/gi;
+const EMAIL_ONLY_RE = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+
+function renderEmailAware(text: string, color: string, linkColor: string, keyPrefix: string) {
+  const parts = text.split(EMAIL_RE).filter(Boolean);
+  return parts.map((part, i) => {
+    if (EMAIL_ONLY_RE.test(part)) {
+      return (
+        <Text
+          key={`${keyPrefix}-em-${i}`}
+          style={{ color: linkColor, textDecorationLine: 'underline' }}
+          onPress={() => Linking.openURL(`mailto:${part}`)}
+        >
+          {part}
+        </Text>
+      );
+    }
+    return (
+      <Text key={`${keyPrefix}-t-${i}`} style={{ color }}>
+        {part}
+      </Text>
+    );
+  });
+}
 
 interface SimpleMarkdownProps {
   content: string;
@@ -14,7 +40,7 @@ interface SimpleMarkdownProps {
  * Intentionally does not pull in a full markdown library — this content is
  * plain, server-authored prose, not arbitrary user markdown.
  */
-function renderInline(text: string, color: string, key: string | number) {
+function renderInline(text: string, color: string, key: string | number, linkColor: string) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
   return (
     <Text key={key} style={{ fontFamily: Pal.typography.fontFamily.regular, fontSize: 15, lineHeight: 23, color }}>
@@ -22,11 +48,15 @@ function renderInline(text: string, color: string, key: string | number) {
         if (part.startsWith('**') && part.endsWith('**')) {
           return (
             <Text key={i} style={{ fontFamily: Pal.typography.fontFamily.bold }}>
-              {part.slice(2, -2)}
+              {renderEmailAware(part.slice(2, -2), color, linkColor, `${key}-b-${i}`)}
             </Text>
           );
         }
-        return part;
+        return (
+          <Text key={i}>
+            {renderEmailAware(part, color, linkColor, `${key}-p-${i}`)}
+          </Text>
+        );
       })}
     </Text>
   );
@@ -34,7 +64,7 @@ function renderInline(text: string, color: string, key: string | number) {
 
 export function SimpleMarkdown({ content }: SimpleMarkdownProps) {
   const { theme } = useTheme();
-  const lines = content.replace(/\r\n/g, '\n').split('\n');
+  const lines = normalizeSupportEmailTypo(content).replace(/\r\n/g, '\n').split('\n');
 
   const blocks: React.ReactNode[] = [];
   let listBuffer: string[] = [];
@@ -46,7 +76,7 @@ export function SimpleMarkdown({ content }: SimpleMarkdownProps) {
         {listBuffer.map((item, i) => (
           <View key={i} style={{ flexDirection: 'row', gap: 8, paddingLeft: 4 }}>
             <Text style={{ color: theme.primary, fontSize: 15, lineHeight: 23 }}>•</Text>
-            <View style={{ flex: 1 }}>{renderInline(item, theme.textSecondary, `li-${i}`)}</View>
+            <View style={{ flex: 1 }}>{renderInline(item, theme.textSecondary, `li-${i}`, theme.primary)}</View>
           </View>
         ))}
       </View>,
@@ -101,7 +131,7 @@ export function SimpleMarkdown({ content }: SimpleMarkdownProps) {
 
     blocks.push(
       <View key={idx} style={{ marginBottom: Pal.spacing[3] }}>
-        {renderInline(line, theme.textSecondary, idx)}
+        {renderInline(line, theme.textSecondary, idx, theme.primary)}
       </View>,
     );
   });

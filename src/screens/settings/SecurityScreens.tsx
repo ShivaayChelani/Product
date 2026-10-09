@@ -8,7 +8,7 @@ import { SettingsHeroHeader } from '../../features/settings/components/SettingsH
 import { SettingsSection, type SettingsRowModel } from '../../features/settings/components/SettingsSection';
 import { useUserAppSettings, usePatchUserAppSettings } from '../../features/settings/hooks/useUserAppSettings';
 import { useUserContext } from '../../context/UserContext';
-import { userAppApi } from '../../services/api/userApp';
+import { userAppApi, type UserAppSettings } from '../../services/api/userApp';
 import { settingsKeys } from '../../features/settings/queryKeys';
 import { useBottomSafePadding } from '../../design/responsive';
 
@@ -49,7 +49,7 @@ export function SecuritySettingsScreen() {
           'Biometric unlock preference saved. Enable device biometrics in your phone settings for full support.',
         );
       }
-      patch.mutate({ security: { ...data!.security, [key]: value } });
+      patch.mutate({ security: { [key]: value } as UserAppSettings['security'] });
     },
     [data, patch],
   );

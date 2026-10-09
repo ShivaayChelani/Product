@@ -25,7 +25,6 @@ import type { UserProfile } from '../types';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { uploadApi } from '../services/api/upload';
 import { caughtErrorMessage } from '../utils/caughtError';
-import { extractCreatorHandle } from '../utils/creatorHandle';
 import { SelectModal } from '../components/ui/SelectModal';
 import {
   assertSupportedUploadMime,
@@ -74,20 +73,10 @@ function parsePhone(raw?: string): { code: string; number: string } {
   return { code: '+91', number: digits };
 }
 
-function deriveCreatorUsername(instagram: string, fullName: string): string {
-  const fromIg = extractCreatorHandle(instagram);
-  if (fromIg && fromIg.length >= 3) return fromIg.slice(0, 30);
+function deriveCreatorUsername(fullName: string): string {
   const fromName = fullName.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
   if (fromName.length >= 3) return fromName.slice(0, 30);
   return `cr_${Date.now().toString(36)}`.slice(0, 30);
-}
-
-function normalizeInstagramUrl(raw: string): string {
-  const trimmed = raw.trim();
-  if (!trimmed) return '';
-  if (/^https?:\/\//i.test(trimmed)) return trimmed.slice(0, 500);
-  const handle = trimmed.replace(/^@/, '').replace(/\s/g, '');
-  return handle ? `https://instagram.com/${handle}`.slice(0, 500) : '';
 }
 
 function normalizeOptionalUrl(raw: string): string | undefined {
@@ -126,7 +115,6 @@ export default function BecomeCreatorScreen({ onBack }: { onBack: () => void }) 
   const [phoneCode, setPhoneCode] = useState(parsedPhone.code);
   const [phone, setPhone] = useState(parsedPhone.number);
   
-  const [instagram, setInstagram] = useState(profile?.instagramUrl || '');
   const [youtube, setYoutube] = useState(profile?.youtubeUrl || '');
   const [otherLink, setOtherLink] = useState('');
   
@@ -236,8 +224,7 @@ export default function BecomeCreatorScreen({ onBack }: { onBack: () => void }) 
   const submitApplication = async (confirmSwitch: boolean = false) => {
     setSubmitting(true);
     try {
-      const username = deriveCreatorUsername(instagram, fullName);
-      const instagramUrl = normalizeInstagramUrl(instagram);
+      const username = deriveCreatorUsername(fullName);
       const portfolioLinks = portfolioItems
         .map((item) => item.remoteUrl || (isRemoteUrl(item.uri) ? item.uri : ''))
         .filter(Boolean);
@@ -250,7 +237,6 @@ export default function BecomeCreatorScreen({ onBack }: { onBack: () => void }) 
         fullName: fullName.trim(),
         bio: bio.trim(),
         travelCategories: contentType ? [contentType] : [],
-        instagramUrl,
         youtubeUrl: normalizeOptionalUrl(youtube),
         applicationReason: buildApplicationReason().slice(0, 1000),
         languages,
@@ -268,7 +254,6 @@ export default function BecomeCreatorScreen({ onBack }: { onBack: () => void }) 
           fullName: data.fullName,
           bio: data.bio || '',
           travelCategories: data.travelCategories || [],
-          instagramUrl: data.instagramUrl,
           youtubeUrl: data.youtubeUrl,
           applicationReason: data.applicationReason,
           portfolioLinks: data.portfolioLinks || portfolioLinks,
@@ -316,10 +301,6 @@ export default function BecomeCreatorScreen({ onBack }: { onBack: () => void }) 
         'Missing Fields',
         'Please fill in all required fields (marked with *). Your bio must be at least 20 characters.',
       );
-      return;
-    }
-    if (!normalizeInstagramUrl(instagram)) {
-      Alert.alert('Instagram required', 'Add your Instagram handle or profile link before submitting.');
       return;
     }
     void submitApplication(false);
@@ -454,7 +435,6 @@ export default function BecomeCreatorScreen({ onBack }: { onBack: () => void }) 
                 <Text style={styles.sectionTitle}>Social Media Links</Text>
               </View>
               <View style={styles.row}>
-                <View style={styles.flex}>{renderInput('Instagram Handle', 'logo-instagram', instagram, setInstagram, '@yourusername', true)}</View>
                 <View style={styles.flex}>{renderInput('YouTube Channel', 'logo-youtube', youtube, setYoutube, 'youtube.com/@yourchannel')}</View>
                 <View style={styles.flex}>{renderInput('Other Link (Optional)', 'link-outline', otherLink, setOtherLink, 'https://...')}</View>
               </View>

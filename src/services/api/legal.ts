@@ -41,6 +41,14 @@ export interface LegalCurrentVersions {
   privacyVersion: number;
 }
 
+export interface LegalAcceptanceStatus extends LegalCurrentVersions {
+  acceptedTermsVersion: number | null;
+  acceptedPrivacyVersion: number | null;
+  termsAcceptedAt: string | null;
+  privacyAcceptedAt: string | null;
+  requiresAcceptance: boolean;
+}
+
 export const legalApi = {
   async getDocument(type: LegalDocumentType, locale = 'en') {
     return apiClient.get<LegalDocumentPayload>(`/legal/${type}?locale=${locale}`);
@@ -57,5 +65,19 @@ export const legalApi = {
    */
   async getCurrentVersions(locale = 'en') {
     return apiClient.get<LegalCurrentVersions>(`/legal/current-versions?locale=${locale}`);
+  },
+
+  async getAcceptanceStatus() {
+    return apiClient.get<LegalAcceptanceStatus>('/legal/acceptance-status');
+  },
+
+  async acceptCurrent(payload: {
+    termsAccepted: true;
+    privacyAccepted: true;
+    termsVersion: number;
+    privacyVersion: number;
+    platform: 'ios' | 'android' | 'web';
+  }) {
+    return apiClient.post('/legal/accept', payload);
   },
 };

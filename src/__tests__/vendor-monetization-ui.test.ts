@@ -50,7 +50,7 @@ describe('Vendor subscription + premium UI', () => {
     expect(dash).toMatch(/Active Offers/);
     expect(dash).toMatch(/Live now/);
     expect(dash).toMatch(/View listing/);
-    expect(dash).toMatch(/Upgrade your plan and get more visibility, offers, reels, analytics and rewards\./);
+    expect(dash).toMatch(/Upgrade your plan and get more visibility, offers, Moments, analytics and rewards\./);
     expect(dash).toMatch(/View Subscription Plans/);
     expect(dash).toMatch(/navigate\('VendorSubscription'\)/);
     expect(dash).not.toMatch(/reelCount \?\? 2/);

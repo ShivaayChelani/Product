@@ -65,13 +65,19 @@ describe('Collaboration request details', () => {
       path.join(__dirname, '../screens/CreateReelScreen.tsx'),
       'utf8',
     );
+    const editorMode = fs.readFileSync(
+      path.join(__dirname, '../features/creator/utils/reelEditorMode.ts'),
+      'utf8',
+    );
     expect(widgets).toMatch(/Edit & Resubmit/);
     expect(widgets).toMatch(/effective === 'REVISION_REQUESTED'/);
     expect(screen).toMatch(/Vendor requested changes/);
     expect(screen).toMatch(/revisionNote/);
     expect(screen).toMatch(/prefillMediaUri/);
-    expect(create).toMatch(/Revise Reel/);
-    expect(create).toMatch(/Resubmit to Vendor/);
+    expect(create).toMatch(/editorActions\.title/);
+    expect(create).toMatch(/editorActions\.primaryActionLabel/);
+    expect(editorMode).toMatch(/Revise Moment/);
+    expect(editorMode).toMatch(/Resubmit to Vendor/);
   });
 
   it('lets the creator publish after the vendor approves', () => {
@@ -93,10 +99,10 @@ describe('Collaboration request details', () => {
     );
     expect(review).toMatch(/>Approve</);
     expect(review).not.toMatch(/Approve & Publish/);
-    expect(widgets).toMatch(/Publish Reel/);
+    expect(widgets).toMatch(/Publish Moment/);
     expect(widgets).toMatch(/onPublishReel/);
     expect(screen).toMatch(/publishReel/);
-    expect(screen).toMatch(/Vendor approved your reel/);
+    expect(screen).toMatch(/Vendor approved your Moment/);
     expect(api).toMatch(/publish-reel/);
   });
 

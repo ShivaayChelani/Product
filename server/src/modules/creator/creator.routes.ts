@@ -8,6 +8,7 @@ import {
   createDraftSchema,
   creatorAnalyticsQuerySchema,
   creatorReelsQuerySchema,
+  reelArchiveSchema,
   updateCreatorProfileSchema,
 } from './creator.validation';
 
@@ -33,6 +34,7 @@ router.post('/reels', validate(createReelSchema), creatorController.createReel);
 router.post('/drafts', validate(createDraftSchema), creatorController.createDraft);
 router.post('/drafts/:id/publish', creatorController.publishDraft);
 router.delete('/reels/:id', creatorController.deleteReel);
+router.patch('/reels/:id/archive', validate(reelArchiveSchema), creatorController.setReelArchived);
 router.get('/reels/:id/analytics', creatorController.getReelAnalytics);
 router.get('/resources', creatorController.getResources);
 router.get('/collaborations', creatorController.getCollaborations);

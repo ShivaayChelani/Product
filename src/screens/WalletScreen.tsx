@@ -37,6 +37,7 @@ import {
   SANS_SEMI,
 } from "../components/profile/profileTheme";
 import { useHeaderSafePadding } from "../design/responsive";
+import { txRender, txAmountRender } from "../utils/palPointsTransactions";
 
 const { width } = Dimensions.get("window");
 
@@ -132,38 +133,28 @@ export default function WalletScreen({
       .filter((tx) => tx.type === "SPEND" && new Date(tx.createdAt) >= monthBounds)
       .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
-  const mapTxIcon = (tx: WalletTransaction) => {
-    const reason = (tx.reason || "").toLowerCase();
-    if (tx.type === "SPEND" || reason.includes("redeem") || reason.includes("claim")) {
-      return { icon: "gift" as const, color: "#C94A4A", bg: "#FFEBEE", type: "redeemed" as const };
-    }
-    if (reason.includes("hidden")) {
-      return { icon: "diamond" as const, color: "#111111", bg: "#F2F2F2", type: "earned" as const };
-    }
-    if (reason.includes("review")) {
-      return { icon: "pencil" as const, color: "#111111", bg: "#F2F2F2", type: "earned" as const };
-    }
-    if (reason.includes("login") || reason.includes("daily")) {
-      return { icon: "calendar-check" as const, color: "#111111", bg: "#F2F2F2", type: "earned" as const };
-    }
-    if (reason.includes("photo") || reason.includes("image")) {
-      return { icon: "camera" as const, color: "#111111", bg: "#F2F2F2", type: "earned" as const };
-    }
-    if (tx.type === "EARN" || tx.amount > 0) {
-      return { icon: "star" as const, color: "#111111", bg: "#F2F2F2", type: "earned" as const };
-    }
-    return { icon: "cash" as const, color: "#C94A4A", bg: "#FFEBEE", type: "redeemed" as const };
-  };
-
   const displayTransactions = transactions.map((tx) => {
-    const meta = mapTxIcon(tx);
+    const meta = txRender(tx);
+    const isRedeemed = meta.kind === "redeemed";
     return {
       id: tx.id,
-      title: tx.reason || (meta.type === "earned" ? "Points earned" : "Points spent"),
-      desc: tx.referenceType || "Wallet",
-      date: new Date(tx.createdAt).toLocaleString(),
-      type: meta.type,
-      amount: Math.abs(tx.amount),
+      title: meta.label,
+      desc: meta.description,
+      date: new Date(tx.createdAt).toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }),
+      type: isRedeemed ? ("redeemed" as const) : ("earned" as const),
+      label:
+        meta.kind === "refund"
+          ? "Refund"
+          : isRedeemed
+            ? "Redeemed"
+            : "Earned",
+      amount: txAmountRender(tx),
       icon: meta.icon,
       color: meta.color,
       bg: meta.bg,
@@ -355,38 +346,43 @@ export default function WalletScreen({
   ) => {
     return (
       <View style={styles.earnCard}>
-        <View style={styles.earnCardLeft}>
-          <View style={[styles.earnIconWrap, { backgroundColor: iconBg }]}>
-            <MaterialCommunityIcons name={icon} size={28} color={iconColor} />
+        <View style={styles.earnCardMain}>
+          <View style={styles.earnCardLeft}>
+            <View style={[styles.earnIconWrap, { backgroundColor: iconBg }]}>
+              <MaterialCommunityIcons name={icon as any} size={26} color={iconColor} />
+            </View>
+            <View style={styles.earnContent}>
+              <Text style={styles.earnTitle}>{title}</Text>
+              <Text style={styles.earnSubtitle}>{subtitle}</Text>
+              {extraContent}
+            </View>
           </View>
-          <View style={styles.earnContent}>
-            <Text style={styles.earnTitle}>{title}</Text>
-            <Text style={styles.earnSubtitle}>{subtitle}</Text>
-            {extraContent}
+          <View style={styles.earnCardRight}>
+            <View style={styles.earnPointsCol}>
+              {typeof pointsLeft === "string" ? (
+                <Text style={styles.earnPointsValue} numberOfLines={1} adjustsFontSizeToFit>
+                  {pointsLeft}
+                </Text>
+              ) : (
+                pointsLeft
+              )}
+              <Text style={styles.earnPointsLabel}>{pointsRight}</Text>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.earnBtn,
+                { borderColor: btnColor },
+                (!onPress || !!actionBusy) && styles.earnBtnDisabled,
+              ]}
+              onPress={onPress}
+              disabled={!!actionBusy || !onPress}
+              accessibilityState={{ disabled: !!actionBusy || !onPress }}
+            >
+              <Text style={[styles.earnBtnText, { color: onPress ? btnColor : "#6B6B6B" }]}>
+                {btnText}
+              </Text>
+            </TouchableOpacity>
           </View>
-        </View>
-        <View style={styles.earnCardRight}>
-          <View style={styles.earnPointsCol}>
-            {typeof pointsLeft === "string" ? (
-              <Text style={styles.earnPointsValue}>{pointsLeft}</Text>
-            ) : (
-              pointsLeft
-            )}
-            <Text style={styles.earnPointsLabel}>{pointsRight}</Text>
-          </View>
-          <TouchableOpacity
-            style={[
-              styles.earnBtn,
-              { borderColor: btnColor },
-              (!!actionBusy || !onPress) && { opacity: 0.55 },
-            ]}
-            onPress={onPress}
-            disabled={!!actionBusy || !onPress}
-          >
-            <Text style={[styles.earnBtnText, { color: btnColor }]}>
-              {btnText}
-            </Text>
-          </TouchableOpacity>
         </View>
       </View>
     );
@@ -427,7 +423,7 @@ export default function WalletScreen({
             <Text
               style={[
                 styles.subTabText,
-                historySubTab === "earned" && { color: "#111111" },
+                historySubTab === "earned" && styles.subTabTextActive,
               ]}
             >
               Earned
@@ -443,7 +439,7 @@ export default function WalletScreen({
             <Text
               style={[
                 styles.subTabText,
-                historySubTab === "redeemed" && { color: "#C94A4A" },
+                historySubTab === "redeemed" && styles.subTabTextActive,
               ]}
             >
               Redeemed
@@ -489,8 +485,8 @@ export default function WalletScreen({
               />
             </View>
             <View style={styles.txInfo}>
-              <Text style={styles.txTitle}>{tx.title}</Text>
-              <Text style={styles.txDesc}>{tx.desc}</Text>
+              <Text style={styles.txTitle} numberOfLines={1}>{tx.title}</Text>
+              <Text style={styles.txDesc} numberOfLines={1}>{tx.desc}</Text>
               <View style={styles.txDateRow}>
                 <Ionicons
                   name="calendar-outline"
@@ -498,21 +494,21 @@ export default function WalletScreen({
                   color="#6B6B6B"
                   style={{ marginRight: 4 }}
                 />
-                <Text style={styles.txDate}>{tx.date}</Text>
+                <Text style={styles.txDate} numberOfLines={1}>{tx.date}</Text>
               </View>
             </View>
             <View style={styles.txRight}>
               <Text
                 style={[
                   styles.txAmount,
-                  { color: tx.type === "earned" ? "#111111" : "#C94A4A" },
+                  { color: tx.amount.isPositive ? "#111111" : "#C94A4A" },
                 ]}
               >
-                {tx.type === "earned" ? "+" : "-"}
-                {tx.amount}
+                {tx.amount.prefix}
+                {tx.amount.value}
               </Text>
               <Text style={styles.txLabel}>
-                {tx.type === "earned" ? "Earned" : "Redeemed"}
+                {tx.label}
               </Text>
             </View>
             <Ionicons
@@ -550,74 +546,74 @@ export default function WalletScreen({
         </View>
 
         {renderEarnTask(
-          "videocam-outline",
-          "#111111",
-          "#F2F2F2",
-          "First creator reel of the day",
-          "Upload your first reel today. Extra reels the same day don't add more.",
+          "movie-open-outline",
+          "#D81B60",
+          "#FCE4EC",
+          "First creator Moment of the day",
+          "Upload your first Moment today. Extra Moments the same day don't add more.",
           `+${rewardPoints.reel}`,
           "PalPoints",
           "Upload now",
-          "#111111",
+          "#D81B60",
           undefined,
           () => navigation.navigate("CreateReel"),
         )}
         {renderEarnTask(
-          "diamond-outline",
-          "#111111",
-          "#F2F2F2",
+          "diamond-stone",
+          "#8B5CF6",
+          "#F5F3FF",
           "Earn by submitting hidden gem",
           "Share hidden gems and get rewarded",
           `+${rewardPoints.hiddenGemMerge} to +${rewardPoints.hiddenGem}`,
           "PalPoints",
           "Submit now",
-          "#111111",
+          "#8B5CF6",
           undefined,
           () => navigation.navigate("AddHiddenGem"),
         )}
         {renderEarnTask(
-          "pencil-outline",
-          "#111111",
-          "#F2F2F2",
+          "star-outline",
+          "#F59E0B",
+          "#FFFBEB",
           "Earn by Submitting Business Review",
           "Write reviews and help others",
           `+${rewardPoints.review}`,
           "PalPoints",
           "Write now",
-          "#111111",
+          "#F59E0B",
           undefined,
           () => navigateToVendorReviewMap(navigation),
         )}
         {renderEarnTask(
           "play-circle-outline",
-          "#111111",
-          "#F7F6F1",
+          "#1976D2",
+          "#E3F2FD",
           "Earn by watching Ads",
           "Watch ads and earn PalPoints",
           `+${rewardPoints.ad}`,
           "PalPoints",
           actionBusy === "ad" ? "Loading ad…" : "Watch now",
-          "#111111",
+          "#1976D2",
           undefined,
           () => { void handleWatchAd(); },
         )}
         {renderEarnTask(
-          "camera-outline",
-          "#000000",
-          "#F7F6F1",
+          "image-outline",
+          "#7B1FA2",
+          "#F3E5F5",
           "Earn by uploading place photo",
           "Upload photos of places you visit",
           `+${rewardPoints.photo}`,
           "PalPoints",
           "Upload now",
-          "#000000",
+          "#7B1FA2",
           undefined,
           () => navigation.navigate("UploadPlacePhoto")
         )}
 
         {renderEarnTask(
-          "source-branch",
-          "#111111",
+          "map-marker-radius",
+          "#E64A19",
           "#FBE9E7",
           "Earn by completing Itinerary",
           "Visit places in your itinerary",
@@ -631,7 +627,7 @@ export default function WalletScreen({
           </View>,
           "PalPoints",
           "Explore now",
-          "#111111",
+          "#E64A19",
           <View style={styles.itineraryExtra}>
             <Ionicons name="star" size={12} color="#B7791F" />
             <Text style={styles.itineraryExtraText}>
@@ -642,9 +638,9 @@ export default function WalletScreen({
         )}
 
         {renderEarnTask(
-          "calendar-check-outline",
-          "#B7791F",
-          "#F7F6F1",
+          "calendar-check",
+          "#F57C00",
+          "#FFF3E0",
           "Earn by daily login",
           "Login daily and build your streak",
           `+${dailyStatus?.points ?? rewardPoints.daily}`,
@@ -654,18 +650,24 @@ export default function WalletScreen({
             : actionBusy === "daily"
               ? "Claiming…"
               : "Claim now",
-          "#B7791F",
+          "#F57C00",
           <View style={styles.dailyLoginExtra}>
-            <Text style={styles.dailyStreakText}>
-              Day streak: {dailyStatus?.streak ?? 0}
-            </Text>
-            <Text style={styles.dailyRewardText}>
-              {dailyStatus?.claimedToday
-                ? "Already claimed today"
-                : `+${dailyStatus?.points ?? rewardPoints.daily}`}
-            </Text>
+            <View style={styles.dailyStreakPill}>
+              <Ionicons name="flame" size={12} color="#F57C00" />
+              <Text style={styles.dailyStreakText}>
+                Streak {dailyStatus?.streak ?? 0}
+              </Text>
+            </View>
+            {dailyStatus?.claimedToday && (
+              <View style={styles.dailyClaimedPill}>
+                <Ionicons name="checkmark-circle" size={12} color="#111111" />
+                <Text style={styles.dailyClaimedText}>Claimed today</Text>
+              </View>
+            )}
           </View>,
-          () => { void handleClaimDaily(); },
+          dailyStatus?.claimedToday
+            ? undefined
+            : () => { void handleClaimDaily(); },
         )}
 
         <View style={styles.infoBanner}>
@@ -1012,11 +1014,18 @@ export default function WalletScreen({
                 <Ionicons name="sparkles" size={12} color="#F2F2F2" style={styles.sparkle4} />
               </View>
               <View style={styles.balanceTextWrap}>
-                <Text style={styles.balanceTitle}>Total PalPoint{'\n'}Balance</Text>
-                <Text style={styles.balanceValue}>
-                  {palPoints.toLocaleString()}
-                </Text>
-                <Text style={styles.balanceLabel}>PalPoints</Text>
+                <Text style={styles.balanceTitle}>PalPoints Balance</Text>
+                <View style={styles.balanceAmountRow}>
+                  <Text
+                    style={styles.balanceValue}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.75}
+                  >
+                    {palPoints.toLocaleString()}
+                  </Text>
+                  <Text style={styles.balanceLabel}>PalPoints</Text>
+                </View>
               </View>
             </View>
 
@@ -1110,7 +1119,6 @@ export default function WalletScreen({
             <Text style={styles.summaryTitle}>Total Earned</Text>
             <Text style={[styles.summaryVal, { color: '#111111' }]}>{lifetimeEarned.toLocaleString()}</Text>
           </View>
-          <View style={styles.summaryDiv} />
           
           <View style={styles.summaryCol}>
             <View style={[styles.summaryIcon, { backgroundColor: '#FFEBEE' }]}>
@@ -1119,23 +1127,21 @@ export default function WalletScreen({
             <Text style={styles.summaryTitle}>Total Redeemed</Text>
             <Text style={[styles.summaryVal, { color: '#C94A4A' }]}>{lifetimeSpent.toLocaleString()}</Text>
           </View>
-          <View style={styles.summaryDiv} />
 
           <View style={styles.summaryCol}>
-            <View style={[styles.summaryIcon, { backgroundColor: '#F7F6F1' }]}>
-              <Ionicons name="wallet-outline" size={20} color="#B7791F" />
+            <View style={[styles.summaryIcon, { backgroundColor: '#FFF3E0' }]}>
+              <Ionicons name="wallet-outline" size={20} color="#FF9800" />
             </View>
             <Text style={styles.summaryTitle}>Available{'\n'}Balance</Text>
             <Text style={styles.summaryVal}>{palPoints.toLocaleString()}</Text>
           </View>
-          <View style={styles.summaryDiv} />
 
           <View style={styles.summaryCol}>
-            <View style={[styles.summaryIcon, { backgroundColor: '#F7F6F1' }]}>
-              <Ionicons name="calendar-outline" size={20} color="#111111" />
+            <View style={[styles.summaryIcon, { backgroundColor: '#E3F2FD' }]}>
+              <Ionicons name="calendar-outline" size={20} color="#2196F3" />
             </View>
             <Text style={styles.summaryTitle}>This Month{'\n'}Earned</Text>
-            <Text style={[styles.summaryVal, { color: '#111111' }]}>{thisMonthEarned.toLocaleString()}</Text>
+            <Text style={[styles.summaryVal, { color: '#2196F3' }]}>{thisMonthEarned.toLocaleString()}</Text>
           </View>
         </View>
 
@@ -1206,10 +1212,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   balanceCard: {
-    flexDirection: "row",
+    flexDirection: "column",
     backgroundColor: "#000000",
     borderRadius: 16,
-    padding: 24,
+    padding: 18,
     position: "relative",
     overflow: "hidden",
     ...shadows.md,
@@ -1227,18 +1233,18 @@ const styles = StyleSheet.create({
   balanceCardLeft: {
     flexDirection: "row",
     alignItems: "center",
-    flex: 1.1,
+    width: "100%",
     zIndex: 2,
   },
   coinGraphicWrap: {
     position: "relative",
-    width: 72,
-    height: 72,
-    marginRight: 16,
+    width: 50,
+    height: 50,
+    marginRight: 12,
   },
   coinGraphic: {
-    width: 72,
-    height: 72,
+    width: 50,
+    height: 50,
     resizeMode: "contain",
   },
   sparkle1: { position: "absolute", top: 0, left: -5 },
@@ -1247,33 +1253,43 @@ const styles = StyleSheet.create({
   sparkle4: { position: "absolute", bottom: 10, left: -10 },
   balanceTextWrap: {
     flex: 1,
+    minWidth: 0,
+  },
+  balanceAmountRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    flexWrap: "nowrap",
+    marginTop: 2,
   },
   balanceTitle: {
     fontFamily: SANS,
-    fontSize: 12,
+    fontSize: 11,
     color: "#FFF",
-    marginBottom: 4,
   },
   balanceValue: {
     fontFamily: SANS_BOLD,
-    fontSize: 36,
+    fontSize: 28,
     color: "#FFF",
-    lineHeight: 40,
+    lineHeight: 34,
+    flexShrink: 1,
   },
   balanceLabel: {
     fontFamily: SANS,
-    fontSize: 11,
+    fontSize: 12,
     color: "#A79D96",
+    marginLeft: 7,
+    flexShrink: 0,
   },
   balanceCardDivider: {
-    width: 1,
+    width: "100%",
+    height: 1,
     backgroundColor: "rgba(255, 255, 255, 0.1)",
-    marginHorizontal: 16,
-    marginVertical: 4,
+    marginVertical: 14,
   },
   balanceCardRight: {
-    flex: 1,
-    justifyContent: "center",
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
     zIndex: 2,
   },
   statRow: {
@@ -1442,7 +1458,7 @@ const styles = StyleSheet.create({
   },
   txItem: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     backgroundColor: "#FFF",
     marginHorizontal: 20,
     marginBottom: 12,
@@ -1460,6 +1476,7 @@ const styles = StyleSheet.create({
   },
   txInfo: {
     flex: 1,
+    minWidth: 0,
   },
   txTitle: {
     fontFamily: SANS_BOLD,
@@ -1476,6 +1493,7 @@ const styles = StyleSheet.create({
   txDateRow: {
     flexDirection: "row",
     alignItems: "center",
+    marginTop: 2,
   },
   txDate: {
     fontFamily: SANS,
@@ -1484,6 +1502,9 @@ const styles = StyleSheet.create({
   },
   txRight: {
     alignItems: "flex-end",
+    alignSelf: "flex-start",
+    minWidth: 62,
+    marginLeft: 8,
   },
   txAmount: {
     fontFamily: SANS_BOLD,
@@ -1525,8 +1546,6 @@ const styles = StyleSheet.create({
     color: "#6B6B6B",
   },
   earnCard: {
-    flexDirection: "row",
-    alignItems: "center",
     backgroundColor: "#FFF",
     borderRadius: 16,
     padding: 16,
@@ -1534,10 +1553,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#F7F6F1",
   },
+  earnCardMain: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    width: "100%",
+  },
   earnCardLeft: {
     flex: 1,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
+    minWidth: 0,
   },
   earnIconWrap: {
     width: 50,
@@ -1549,6 +1574,7 @@ const styles = StyleSheet.create({
   },
   earnContent: {
     flex: 1,
+    minWidth: 0,
     paddingRight: 8,
   },
   earnTitle: {
@@ -1589,6 +1615,9 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
   },
+  earnBtnDisabled: {
+    opacity: 0.55,
+  },
   earnBtnText: {
     fontFamily: SANS_SEMI,
     fontSize: 10,
@@ -1620,22 +1649,38 @@ const styles = StyleSheet.create({
   dailyLoginExtra: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 6,
+    flexWrap: "wrap",
+    marginTop: 8,
+    gap: 6,
+    alignSelf: "flex-start",
+  },
+  dailyStreakPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FBE9E7",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   dailyStreakText: {
     fontFamily: SANS_SEMI,
     fontSize: 10,
     color: "#111111",
-    backgroundColor: "#FBE9E7",
+    marginLeft: 3,
+  },
+  dailyClaimedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F2F2F2",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
-    marginRight: 6,
   },
-  dailyRewardText: {
+  dailyClaimedText: {
     fontFamily: SANS_SEMI,
     fontSize: 10,
-    color: "#B7791F",
+    color: "#111111",
+    marginLeft: 3,
   },
   infoBanner: {
     flexDirection: "row",
@@ -1920,17 +1965,18 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   statIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 10,
+    marginRight: 8,
   },
   statRowSpace: {
-    height: 1,
+    width: 1,
+    height: 34,
     backgroundColor: "rgba(255,255,255,0.1)",
-    marginVertical: 12,
+    marginHorizontal: 10,
   },
   statLabelSm: {
     fontFamily: SANS,
@@ -1985,41 +2031,43 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flexDirection: "row",
+    flexWrap: "wrap",
     backgroundColor: "#FFF",
     marginHorizontal: 20,
-    paddingVertical: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
     borderRadius: 16,
-    alignItems: "flex-start",
+    alignItems: "stretch",
     marginBottom: 32,
     ...shadows.sm,
   },
   summaryCol: {
-    flex: 1,
-    alignItems: "center",
-  },
-  summaryIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: "50%",
+    flexGrow: 0,
+    flexShrink: 0,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    paddingVertical: 12,
+  },
+  summaryIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
   },
   summaryTitle: {
     fontFamily: SANS,
-    fontSize: 10,
+    fontSize: 12,
     color: "#6B6B6B",
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: 6,
+    height: 32,
   },
   summaryVal: {
     fontFamily: SANS_BOLD,
-    fontSize: 20,
+    fontSize: 18,
     color: "#000000",
-  },
-  summaryDiv: {
-    width: 1,
-    height: "100%",
-    backgroundColor: "#F7F6F1",
   },
 });

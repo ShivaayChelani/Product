@@ -10,7 +10,7 @@ export const PI = {
   textSecondary: palette.textSecondary,
   textMuted: palette.textSecondary,
   dark: palette.text,
-  darkBtnText: palette.border,
+  darkBtnText: palette.onPrimary,
   accent: palette.primaryDark,
   chipSelected: palette.background,
   chipSelectedBorder: palette.border,

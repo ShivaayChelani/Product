@@ -21,11 +21,13 @@ import { socialApi } from '../services/api/social';
 import { getReelThumbnail } from '../services/reelService';
 import { normalizeReelCaption } from '../components/reels/reelCaptionUtils';
 import { hasValidImageUrl } from '../utils/imageUrl';
+import { creatorAtHandle, extractCreatorHandle } from '../utils/creatorHandle';
 import { useUserContext } from '../context/UserContext';
 import type { Reel } from '../types';
 import { useStudioTabScreenInsets } from '../design/tabBarLayout';
 import { CreatorUI } from '../features/creator/theme';
 import { CreatorReelMenuModal } from '../features/creator/components/CreatorReelMenuModal';
+import { toEditorReelPayload } from '../features/creator/utils/reelEditorMode';
 import {
   getUnreadBadgeCount,
   subscribeUnreadBadge,
@@ -106,7 +108,7 @@ function filterOwnReels(items: CreatorReelRow[], creatorProfileId?: string | nul
 }
 
 function reelDisplayTitle(reel: Pick<Reel, 'title' | 'description'>): string {
-  return reel.title?.trim() || normalizeReelCaption(reel.description) || 'Untitled reel';
+  return reel.title?.trim() || normalizeReelCaption(reel.description) || 'Untitled Moment';
 }
 
 function formatDate(dateStr: string): string {
@@ -129,6 +131,7 @@ function getReelDuration(item: CreatorReelRow): string | null {
 function getCreatorReelTab(reel: CreatorReelRow, archivedIds: Set<string>): TabKey {
   if (archivedIds.has(String(reel.id))) return 'ARCHIVED';
   const status = String(reel.status || 'APPROVED').toUpperCase();
+  if (status === 'ARCHIVED') return 'ARCHIVED';
   if (['DRAFT', 'HIDDEN'].includes(status)) return 'DRAFT';
   return 'APPROVED';
 }
@@ -242,7 +245,7 @@ export default function CreatorReelsScreen() {
         if (!silent) {
           setReels([]);
           setAllReels([]);
-          setError(e?.message || 'Could not load your reels.');
+          setError(e?.message || 'Could not load your Moments.');
         }
       } finally {
         if (!silent) {
@@ -273,14 +276,33 @@ export default function CreatorReelsScreen() {
   const toggleArchive = useCallback(
     (reel: CreatorReelRow) => {
       const id = String(reel.id);
+      const currentlyArchived =
+        archivedIds.has(id) || String(reel.status || '').toUpperCase() === 'ARCHIVED';
+      const nextArchived = !currentlyArchived;
+
       updateArchivedIds(prev => {
         const next = new Set(prev);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
+        if (nextArchived) next.add(id);
+        else next.delete(id);
         return next;
       });
+      const withStatus = (r: CreatorReelRow): CreatorReelRow =>
+        String(r.id) === id
+          ? ({ ...r, status: nextArchived ? 'ARCHIVED' : 'APPROVED' } as CreatorReelRow)
+          : r;
+      setReels(prev => prev.map(withStatus));
+      setAllReels(prev => prev.map(withStatus));
+
+      // Persist so the reel leaves (or returns to) every public feed, not just
+      // this device. On failure the optimistic local hide still applies.
+      void creatorApi
+        .setArchived(id, nextArchived)
+        .catch(() => undefined)
+        .finally(() => {
+          void load(true, true);
+        });
     },
-    [updateArchivedIds],
+    [archivedIds, updateArchivedIds, load],
   );
 
   useFocusEffect(
@@ -295,11 +317,16 @@ export default function CreatorReelsScreen() {
   );
 
   const openEdit = (reel: CreatorReelRow) => {
-    navigation.navigate('CreateReel', { editReel: reel });
+    const tab = getCreatorReelTab(reel, archivedIds);
+    const editorMode = tab === 'DRAFT' ? 'draft' : 'published';
+    navigation.navigate('CreateReel', {
+      editReel: toEditorReelPayload(reel as unknown as Record<string, unknown>, editorMode),
+      editorMode,
+    });
   };
 
   const remove = (reel: Reel) =>
-    Alert.alert('Delete reel?', 'This cannot be undone.', [
+    Alert.alert('Delete Moment?', 'This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
@@ -315,7 +342,7 @@ export default function CreatorReelsScreen() {
               return next;
             });
           } catch (e: any) {
-            Alert.alert('Could not delete reel', e?.message || 'Please try again.');
+            Alert.alert('Could not delete Moment', e?.message || 'Please try again.');
           }
         },
       },
@@ -326,7 +353,7 @@ export default function CreatorReelsScreen() {
   };
 
   const openSortMenu = () => {
-    Alert.alert('Sort reels', undefined, [
+    Alert.alert('Sort Moments', undefined, [
       ...(Object.keys(SORT_LABELS) as SortKey[]).map(key => ({
         text: SORT_LABELS[key],
         onPress: () => setSort(key),
@@ -396,7 +423,7 @@ export default function CreatorReelsScreen() {
           )}
           <View style={styles.durationBadge}>
             <Icon name="play" size={10} color="#FFF" style={{ marginRight: 2 }} />
-            <Text style={styles.durationText}>{getReelDuration(item) || 'Reel'}</Text>
+            <Text style={styles.durationText}>{getReelDuration(item) || 'Moment'}</Text>
           </View>
         </View>
 
@@ -411,7 +438,7 @@ export default function CreatorReelsScreen() {
             )}
             <View style={styles.creatorNameWrap}>
               <Text style={styles.creatorName} numberOfLines={1}>
-                {(user as any)?.name || (user as any)?.username || 'Creator'}
+                {(user as any)?.name || extractCreatorHandle((user as any)?.username) || 'Creator'}
               </Text>
               {(user as any)?.verified && (
                 <Icon name="checkmark-circle" size={14} color="#B7791F" style={{ marginLeft: 4 }} />
@@ -425,7 +452,7 @@ export default function CreatorReelsScreen() {
             </TouchableOpacity>
           </View>
           <Text style={styles.creatorHandle} numberOfLines={1}>
-            @{(user as any)?.username?.toLowerCase().replace(/\s/g, '_') || 'creator'}
+            {creatorAtHandle((user as any)?.username, '@creator')}
           </Text>
 
           <Text style={styles.reelCaption} numberOfLines={2}>
@@ -489,24 +516,24 @@ export default function CreatorReelsScreen() {
 
   const emptyMessage =
     activeTab === 'DRAFT'
-      ? 'Save a reel as draft while editing.'
+      ? 'Save a Moment as draft while editing.'
       : activeTab === 'ARCHIVED'
-        ? 'Archived reels will appear here when you archive them from your library.'
-        : 'Publish your first travel reel for your audience.';
+        ? 'Archived Moments will appear here when you archive them from your library.'
+        : 'Publish your first travel Moment for your audience.';
 
   const emptyTitle =
     activeTab === 'DRAFT'
       ? 'No drafts yet'
       : activeTab === 'ARCHIVED'
-        ? 'No archived reels'
+        ? 'No archived Moments'
         : 'Your story starts here';
 
   const listHeader = (
     <>
       <View style={styles.pageHeader}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.pageTitle}>My Reels</Text>
-          <Text style={styles.pageSub}>Manage and track all your reels.</Text>
+          <Text style={styles.pageTitle}>My Moments</Text>
+          <Text style={styles.pageSub}>Manage and track all your Moments.</Text>
         </View>
       </View>
 
@@ -533,14 +560,14 @@ export default function CreatorReelsScreen() {
       </View>
 
       <TouchableOpacity style={styles.tipBanner} onPress={() => navigation.navigate('CreateReel')}>
-        <Icon name="bulb-outline" size={16} color={C.primary} />
+        <Icon name="bulb-outline" size={16} color="#FFFFFF" />
         <Text style={styles.tipText}>Consistent creators grow 2.8x faster! Keep sharing your journey.</Text>
-        <Icon name="chevron-forward" size={16} color={C.textMuted} />
+        <Icon name="chevron-forward" size={16} color="#FFFFFF" />
       </TouchableOpacity>
 
       <View style={styles.listHeader}>
         <Text style={styles.listTitle}>
-          {activeTab === 'APPROVED' ? 'All Published Reels' : activeTab === 'DRAFT' ? 'All Drafts' : 'Archived Reels'}
+          {activeTab === 'APPROVED' ? 'All Published Moments' : activeTab === 'DRAFT' ? 'All Drafts' : 'Archived Moments'}
         </Text>
         <View style={styles.listControls}>
           <TouchableOpacity style={styles.sortBtn} onPress={openSortMenu}>
@@ -694,7 +721,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   tabBadgeActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
-  tabBadgeText: { fontSize: 10, fontWeight: '800', color: C.primary },
+  tabBadgeText: { fontSize: 10, fontWeight: '800', color: '#FFFFFF' },
   tabBadgeTextActive: { color: '#FFF' },
   tipBanner: {
     flexDirection: 'row',
@@ -705,7 +732,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 14,
   },
-  tipText: { flex: 1, fontSize: 12, color: C.deep, lineHeight: 16 },
+  tipText: { flex: 1, fontSize: 12, color: '#FFFFFF', lineHeight: 16 },
   listHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   listTitle: { fontSize: 15, fontWeight: '800', color: C.deep },
   listControls: { flexDirection: 'row', alignItems: 'center', gap: 8 },

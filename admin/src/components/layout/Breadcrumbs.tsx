@@ -33,7 +33,7 @@ const LABEL_MAP: Record<string, string> = {
   offers: "Offers",
   search: "Search",
   tags: "Tags",
-  reels: "Reels",
+  reels: "Moments",
   legal: "Legal",
   announcements: "Announcements",
   monetization: "Monetization",

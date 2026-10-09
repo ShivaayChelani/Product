@@ -24,6 +24,7 @@ import { formatSocialCount } from '../utils/formatCount';
 import { travelSocialQueryKeys } from '../api/queryClient';
 import { socialApi } from '../../../services/api';
 import { buildCreatorShareUrl } from '../../../services/sharing/shareLinks';
+import { extractCreatorHandle } from '../../../utils/creatorHandle';
 import { copyToClipboard } from '../../../utils/clipboard';
 import { getReelThumbnail } from '../../../services/reelService';
 import { useUserContext } from '../../../context/UserContext';
@@ -106,16 +107,8 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
   }, [profile]);
 
   const coverUri = profile ? resolveCover(profile) : null;
-  let rawUsername = profile?.username || username;
-  if (rawUsername && rawUsername.includes('instagram')) {
-    rawUsername = rawUsername
-      .replace(/^httpswwwinstagramcom/, '')
-      .replace(/^httpwwwinstagramcom/, '')
-      .replace(/^httpsinstagramcom/, '')
-      .replace(/^httpinstagramcom/, '')
-      .replace(/^wwwinstagramcom/, '');
-  }
-  const displayName = profile?.fullName || rawUsername;
+  const genuineUsername = extractCreatorHandle(profile?.username);
+  const displayName = profile?.fullName || genuineUsername || 'Creator';
   const locationLabel =
     profile?.locationLabel ||
     profile?.reels?.find(r => r.place?.city)?.place?.city ||
@@ -125,7 +118,7 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
     () => [
       { key: 'followers', label: 'Followers', value: followersCount },
       { key: 'following', label: 'Following', value: profile?.followingCount ?? 0 },
-      { key: 'reels', label: 'Reels', value: profile?.reelCount ?? profile?.reels?.length ?? 0 },
+      { key: 'reels', label: 'Moments', value: profile?.reelCount ?? profile?.reels?.length ?? 0 },
       { key: 'cities', label: 'Cities', value: profile?.citiesCount ?? 0 },
       { key: 'likes', label: 'Likes', value: profile?.totalLikes ?? profile?.totalViews ?? 0 },
     ],
@@ -140,10 +133,11 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
       ? ['Verified Creator']
       : [];
 
+  const selfHandle = extractCreatorHandle(user?.creatorProfile?.username);
   const isSelf =
     profile &&
     ((profile.userId && profile.userId === user?.uid) ||
-      user?.creatorProfile?.username?.toLowerCase() === profile.username.toLowerCase());
+      (!!selfHandle && selfHandle === genuineUsername));
 
   const hasVendorRole =
     user?.roles?.includes('VENDOR') ||
@@ -184,7 +178,7 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
     }
     navigation.navigate('CollaborationRequest', {
       creatorProfileId: profile.id,
-      creatorName: profile.fullName || profile.username,
+      creatorName: profile.fullName || genuineUsername || undefined,
     });
   };
 
@@ -226,7 +220,7 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
     }
     try {
       await Share.share({
-        message: `Follow @${rawUsername} on PalSafar\n${url}`,
+        message: `Follow ${genuineUsername ? `@${genuineUsername}` : (profile?.fullName || 'this creator')} on PalSafar\n${url}`,
         url,
       });
     } catch {
@@ -267,7 +261,7 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
         <TouchableOpacity
           style={[styles.gridCell, { width: colWidth, height: colWidth * 1.35 }]}
           onPress={() => openReel(item.id, index)}
-          accessibilityLabel={`Open reel ${index + 1}`}
+          accessibilityLabel={`Open Moment ${index + 1}`}
         >
           {thumb ? (
             <Image source={{ uri: thumb }} style={styles.gridImage} />
@@ -350,7 +344,7 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
             <Image source={{ uri: profile.avatar }} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.avatarPh]}>
-              <Text style={styles.avatarLetter}>{profile.username.charAt(0).toUpperCase()}</Text>
+              <Text style={styles.avatarLetter}>{(profile.fullName || genuineUsername || 'C').charAt(0).toUpperCase()}</Text>
             </View>
           )}
           {profile.verified ? (
@@ -365,7 +359,9 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
             <Text style={styles.displayName}>{displayName}</Text>
             {profile.verified ? <Icon name="checkmark-circle" size={20} color={T.secondary} /> : null}
           </View>
-          <Text style={styles.handle}>@{rawUsername}</Text>
+          {genuineUsername ? (
+            <Text style={styles.handle}>@{genuineUsername}</Text>
+          ) : null}
           {locationLabel ? (
             <View style={styles.locationRow}>
               <Icon name="location-outline" size={14} color={T.textSecondary} />
@@ -395,9 +391,6 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
                   {following ? 'Following' : 'Follow'}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.messageBtn} onPress={() => Alert.alert('Messages', 'Coming soon')}>
-                <Text style={styles.messageBtnText}>Message</Text>
-              </TouchableOpacity>
             </View>
             {canShowCollaborate ? (
               <TouchableOpacity
@@ -406,7 +399,7 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
                 disabled={collabGate?.allowed === false}
               >
                 <Text style={styles.collaborateBtnText}>
-                  {collabGate?.allowed === false ? '🤝 Collaborated' : `🤝 Collaborate with ${profile.fullName || profile.username}`}
+                  {collabGate?.allowed === false ? '🤝 Collaborated' : `🤝 Collaborate with ${profile.fullName || (genuineUsername ? `@${genuineUsername}` : 'this creator')}`}
                 </Text>
               </TouchableOpacity>
             ) : null}
@@ -474,7 +467,7 @@ export default function ViewCreatorProfileScreen({ username, onBack }: Props) {
         ListEmptyComponent={
           <View style={styles.tabEmpty}>
             <Icon name="videocam-outline" size={48} color={T.textSecondary} />
-            <Text style={styles.emptyBody}>No reels yet</Text>
+            <Text style={styles.emptyBody}>No Moments yet</Text>
           </View>
         }
         refreshControl={
@@ -702,17 +695,6 @@ const styles = StyleSheet.create({
   },
   followBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   followBtnTextOutline: { color: T.primary },
-  messageBtn: {
-    flex: 1,
-    maxWidth: 160,
-    backgroundColor: T.background,
-    paddingVertical: 12,
-    borderRadius: T.radiusButton,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: T.border,
-  },
-  messageBtnText: { color: T.textPrimary, fontWeight: '700', fontSize: 15 },
   actionsContainer: {
     marginBottom: 20,
     paddingHorizontal: 16,

@@ -23,6 +23,7 @@ import {
   reviewTaggedCreatorReel,
 } from './vendor-tagged-reels';
 import { createVendorReelIdempotent } from './vendorReelIdempotency';
+import { deriveVideoPosterUrl, resolveStoredReelPoster } from '../../config/upload';
 import { walletService } from '../wallet/wallet.service';
 import { pointRulesService } from '../point-rules/pointRules.service';
 import { logger } from '../../config/logger';
@@ -353,7 +354,7 @@ export const vendorsService = {
     const listing = entitlements.vendorListing;
     const live = Boolean(entitlements.vendorListing?.visible);
     const reels = await prisma.vendorReel.findMany({
-      where: { vendorId: vendor.id },
+      where: { vendorId: vendor.id, archivedAt: null },
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
@@ -395,7 +396,12 @@ export const vendorsService = {
         showOnMap: vendor.showOnMap,
       },
       offers: vendor.showOffers ? offers : [],
-      reels: vendor.showReels ? reels : [],
+      reels: vendor.showReels
+        ? reels.map((row) => ({
+            ...row,
+            thumbnail: resolveStoredReelPoster(row.thumbnail, row.videoUrl) || row.thumbnail,
+          }))
+        : [],
     };
   },
 
@@ -1147,10 +1153,16 @@ export const vendorsService = {
       });
       if (!visible) throw new ApiError(404, 'Vendor not found');
     }
-    return prisma.vendorReel.findMany({
-      where: { vendorId },
+    // The owner sees every reel (including archived, so their Archived tab can
+    // render it); the public only ever sees live reels.
+    const rows = await prisma.vendorReel.findMany({
+      where: { vendorId, ...(isOwner ? {} : { archivedAt: null }) },
       orderBy: { createdAt: 'desc' },
     });
+    return rows.map((row) => ({
+      ...row,
+      thumbnail: resolveStoredReelPoster(row.thumbnail, row.videoUrl) || row.thumbnail,
+    }));
   },
 
   async createVendorReel(vendorId: string, input: CreateVendorReelInput) {
@@ -1179,7 +1191,7 @@ export const vendorsService = {
     return prisma.$transaction(async (tx) =>
       createVendorReelIdempotent(tx, vendorId, {
         videoUrl,
-        thumbnail: input.thumbnail,
+        thumbnail: input.thumbnail ?? deriveVideoPosterUrl(input.videoUrl),
         title: input.title,
         description: input.description,
       }, () => planEnforcementService.assertVendorCanCreateReel(vendor.userId)),
@@ -1188,9 +1200,38 @@ export const vendorsService = {
 
   async deleteVendorReel(vendorId: string, reelId: string) {
     const reel = await prisma.vendorReel.findUnique({ where: { id: reelId } });
-    if (!reel) throw new ApiError(404, 'Reel not found');
-    if (reel.vendorId !== vendorId) throw new ApiError(403, 'Not your reel');
+    if (!reel) throw new ApiError(404, 'Moment not found');
+    if (reel.vendorId !== vendorId) throw new ApiError(403, 'Not your Moment');
     await prisma.vendorReel.delete({ where: { id: reelId } });
+  },
+
+  /**
+   * Persist a vendor's archive choice. Archiving a reel removes it from every
+   * public surface (global feed, map listing, profile) while the owner still
+   * sees it in their Archived tab; unarchiving restores public visibility.
+   *
+   * Ownership is enforced against the authenticated vendor's id (resolved from
+   * the caller's own account), so one vendor can never archive another
+   * vendor's reel.
+   */
+  async setVendorReelArchived(vendorId: string, reelId: string, archived: boolean) {
+    const reel = await prisma.vendorReel.findUnique({ where: { id: reelId } });
+    if (!reel) throw new ApiError(404, 'Moment not found');
+    if (reel.vendorId !== vendorId) throw new ApiError(403, 'Not your Moment');
+
+    if (archived) {
+      if (reel.archivedAt) return reel;
+      return prisma.vendorReel.update({
+        where: { id: reelId },
+        data: { archivedAt: new Date() },
+      });
+    }
+
+    if (!reel.archivedAt) return reel;
+    return prisma.vendorReel.update({
+      where: { id: reelId },
+      data: { archivedAt: null },
+    });
   },
 
   async listTaggedCreatorReels(vendorId: string, viewerUserId?: string) {
@@ -1216,8 +1257,8 @@ export const vendorsService = {
     input: { title?: string; description?: string; thumbnail?: string },
   ) {
     const reel = await prisma.vendorReel.findUnique({ where: { id: reelId } });
-    if (!reel) throw new ApiError(404, 'Reel not found');
-    if (reel.vendorId !== vendorId) throw new ApiError(403, 'Not your reel');
+    if (!reel) throw new ApiError(404, 'Moment not found');
+    if (reel.vendorId !== vendorId) throw new ApiError(403, 'Not your Moment');
     return prisma.vendorReel.update({
       where: { id: reelId },
       data: {

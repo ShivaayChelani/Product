@@ -1008,7 +1008,10 @@ export default function VendorDashboardScreen({
   const { entitlements, refreshEntitlements } = useEntitlements();
   const screenInsets = useVendorScreenInsets({ withTabBar: hideBottomNav });
   const insets = useSafeAreaInsets();
-  const contentPadBottom = Math.max(insets.bottom + 120, 140);
+  const navBottomPad = Math.max(insets.bottom, 12);
+  const contentPadBottom = hideBottomNav
+    ? Math.max(insets.bottom + 120, 150)
+    : navBottomPad + 72;
   const [refreshing, setRefreshing] = useState(false);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [showVendorCode, setShowVendorCode] = useState(false);
@@ -1130,7 +1133,7 @@ export default function VendorDashboardScreen({
       setPendingTaggedReels((prev) => prev.filter((r) => r.id !== reelId));
       queryClient.invalidateQueries({ queryKey: ['vendor-map-detail'] });
     } catch {
-      Alert.alert('Could not update reel', 'Please try again.');
+      Alert.alert('Could not update Moment', 'Please try again.');
     } finally {
       setReviewingTaggedId(null);
     }
@@ -1395,8 +1398,8 @@ export default function VendorDashboardScreen({
           <Ionicons name="menu" size={24} color={COLORS.skyDeep} />
         </TouchableOpacity>
         <View style={s.headerCopy}>
-          <Text style={s.eyebrow}>Vendor Workspace</Text>
-          <Text style={s.greeting} numberOfLines={1}>
+          <Text style={s.eyebrow} numberOfLines={1}>Vendor Workspace</Text>
+          <Text style={s.greeting} numberOfLines={2} ellipsizeMode="tail">
             Welcome back, {currentVendor.businessName}
           </Text>
         </View>
@@ -1457,7 +1460,7 @@ export default function VendorDashboardScreen({
         <ScrollView
           style={s.scrollView}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: contentPadBottom }}
+          contentContainerStyle={{ paddingBottom: contentPadBottom, flexGrow: 1 }}
           scrollEventThrottle={16}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -1493,7 +1496,7 @@ export default function VendorDashboardScreen({
 
           {visibleTab === 'Home' && visibleVendorUploadJobs.length > 0 ? (
             <View style={{ marginBottom: 16 }}>
-              <Text style={s.sectionTitle}>Uploading Reels</Text>
+              <Text style={s.sectionTitle}>Uploading Moments</Text>
               {visibleVendorUploadJobs.map((job) => (
                   <ReelUploadStatusCard
                     key={job.localUploadId}
@@ -1508,7 +1511,7 @@ export default function VendorDashboardScreen({
 
           {pendingTaggedReels.length > 0 ? (
             <View style={{ marginBottom: 16, marginHorizontal: 16, gap: 10 }}>
-              <Text style={s.sectionTitle}>Creator reels to review</Text>
+              <Text style={s.sectionTitle}>Creator Moments to review</Text>
               {pendingTaggedReels.map((reel) => (
                 <TaggedReelReviewRow
                   key={reel.id}
@@ -1526,12 +1529,12 @@ export default function VendorDashboardScreen({
           <View style={s.heroDarkCard}>
             <View style={s.heroTopPillsRow}>
               <View style={s.verifiedPillBadge}>
-                <MaterialIcons name="verified" size={13} color="#111111" />
+                <MaterialIcons name="verified" size={13} color="#FFFFFF" />
                 <Text style={s.verifiedPillText}>Verified Partner</Text>
               </View>
               {currentVendor.showOnMap !== false && isApproved ? (
                 <View style={s.verifiedPillBadge}>
-                  <Ionicons name="location-sharp" size={13} color="#111111" />
+                  <Ionicons name="location-sharp" size={13} color="#FFFFFF" />
                   <Text style={s.verifiedPillText}>On map</Text>
                 </View>
               ) : null}
@@ -1625,7 +1628,7 @@ export default function VendorDashboardScreen({
                   onPress={handleCopyId}
                   hitSlop={8}
                 >
-                  <MaterialIcons name={copiedId ? 'check' : 'content-copy'} size={15} color={copiedId ? '#111111' : 'rgba(247,246,241,0.85)'} />
+                  <MaterialIcons name={copiedId ? 'check' : 'content-copy'} size={15} color="rgba(247,246,241,0.85)" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -1653,9 +1656,11 @@ export default function VendorDashboardScreen({
               <View style={[s.statCardIconCircle, { backgroundColor: '#F7F6F1' }]}>
                 <Ionicons name="pricetag-outline" size={18} color="#111111" />
               </View>
-              <Text style={s.statCardLabel}>Active Offers</Text>
-              <Text style={s.statCardValue}>{activeOffers.length}</Text>
-              <Text style={[s.statCardLinkText, { color: '#111111' }]}>View all offers &gt;</Text>
+              <Text style={s.statCardLabel} numberOfLines={1}>Active Offers</Text>
+              <Text style={s.statCardValue} numberOfLines={1} adjustsFontSizeToFit>
+                {activeOffers.length}
+              </Text>
+              <Text style={[s.statCardLinkText, { color: '#111111' }]} numberOfLines={1}>View all offers &gt;</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -1666,9 +1671,11 @@ export default function VendorDashboardScreen({
               <View style={[s.statCardIconCircle, { backgroundColor: '#FCEAF1' }]}>
                 <Ionicons name="film-outline" size={18} color="#E07A9A" />
               </View>
-              <Text style={s.statCardLabel}>Promotion Reels</Text>
-              <Text style={s.statCardValue}>{dashStats?.reelCount ?? 0}</Text>
-              <Text style={[s.statCardLinkText, { color: '#E07A9A' }]}>View all reels &gt;</Text>
+              <Text style={s.statCardLabel} numberOfLines={1}>Promotion Moments</Text>
+              <Text style={s.statCardValue} numberOfLines={1} adjustsFontSizeToFit>
+                {dashStats?.reelCount ?? 0}
+              </Text>
+              <Text style={[s.statCardLinkText, { color: '#E07A9A' }]} numberOfLines={1}>View all Moments &gt;</Text>
             </TouchableOpacity>
           </View>
 
@@ -1686,32 +1693,40 @@ export default function VendorDashboardScreen({
                 <View style={[s.activityColIcon, { backgroundColor: 'rgba(0,0,0,0.12)' }]}>
                   <MaterialCommunityIcons name="gift-outline" size={16} color="#111111" />
                 </View>
-                <Text style={s.activityColValue}>{dashStats?.todayRedemptions ?? todayRedemptions}</Text>
-                <Text style={s.activityColLabel}>PalPoints Redemptions</Text>
+                <Text style={s.activityColValue} numberOfLines={1} adjustsFontSizeToFit>
+                  {dashStats?.todayRedemptions ?? todayRedemptions}
+                </Text>
+                <Text style={s.activityColLabel} numberOfLines={2}>PalPoints Redemptions</Text>
               </View>
 
               <View style={s.activityColItem}>
                 <View style={[s.activityColIcon, { backgroundColor: 'rgba(0, 0, 0,0.12)' }]}>
                   <Ionicons name="pricetag-outline" size={16} color="#6B6B6B" />
                 </View>
-                <Text style={s.activityColValue}>{activeOffers.length}</Text>
-                <Text style={s.activityColLabel}>Active Offers</Text>
+                <Text style={s.activityColValue} numberOfLines={1} adjustsFontSizeToFit>
+                  {activeOffers.length}
+                </Text>
+                <Text style={s.activityColLabel} numberOfLines={2}>Active Offers</Text>
               </View>
 
               <View style={s.activityColItem}>
                 <View style={[s.activityColIcon, { backgroundColor: 'rgba(183,121,31,0.12)' }]}>
                   <Ionicons name="pause-circle-outline" size={16} color="#111111" />
                 </View>
-                <Text style={s.activityColValue}>{dashStats?.pausedOffers ?? pausedOffersCount}</Text>
-                <Text style={s.activityColLabel}>Paused Offers</Text>
+                <Text style={s.activityColValue} numberOfLines={1} adjustsFontSizeToFit>
+                  {dashStats?.pausedOffers ?? pausedOffersCount}
+                </Text>
+                <Text style={s.activityColLabel} numberOfLines={2}>Paused Offers</Text>
               </View>
 
               <View style={s.activityColItem}>
                 <View style={[s.activityColIcon, { backgroundColor: 'rgba(220,38,38,0.12)' }]}>
                   <Ionicons name="time-outline" size={16} color="#C94A4A" />
                 </View>
-                <Text style={s.activityColValue}>{dashStats?.expiredOffers ?? expiredOffersCount}</Text>
-                <Text style={s.activityColLabel}>Expired Offers</Text>
+                <Text style={s.activityColValue} numberOfLines={1} adjustsFontSizeToFit>
+                  {dashStats?.expiredOffers ?? expiredOffersCount}
+                </Text>
+                <Text style={s.activityColLabel} numberOfLines={2}>Expired Offers</Text>
               </View>
             </View>
           </View>
@@ -1719,15 +1734,15 @@ export default function VendorDashboardScreen({
           {/* Upgrade & Grow Banner */}
           <View style={s.sectionWrap}>
             <View style={s.upgradeBannerCard}>
+              <MaterialCommunityIcons
+                name="clipboard-check-outline"
+                size={64}
+                color="rgba(183,121,31,0.12)"
+                style={s.upgradeBannerArt}
+              />
               <View style={s.upgradeBannerBadge}>
                 <Text style={s.upgradeBannerBadgeText}>UPGRADE & GROW</Text>
               </View>
-              <MaterialCommunityIcons
-                name="clipboard-check-outline"
-                size={52}
-                color="rgba(183,121,31,0.35)"
-                style={s.upgradeBannerArt}
-              />
               <View style={s.upgradeBannerHeaderRow}>
                 <View style={s.upgradeBannerIconCircle}>
                   <MaterialCommunityIcons name="crown" size={20} color="#111111" />
@@ -1735,7 +1750,7 @@ export default function VendorDashboardScreen({
                 <Text style={s.upgradeBannerTitle}>Unlock more features and grow your business</Text>
               </View>
               <Text style={s.upgradeBannerBody}>
-                Upgrade your plan and get more visibility, offers, reels, analytics and rewards.
+                Upgrade your plan and get more visibility, offers, Moments, analytics and rewards.
               </Text>
               <TouchableOpacity
                 style={s.upgradeBannerBtn}
@@ -1761,7 +1776,7 @@ export default function VendorDashboardScreen({
             {recentActivity.length === 0 ? (
               <View style={s.recentActivityListCard}>
                 <Text style={s.activityEmptyText}>
-                  No recent activity yet. PalPoints redemptions, offers you create, and reels you publish will show up here.
+                  No recent activity yet. PalPoints redemptions, offers you create, and Moments you publish will show up here.
                 </Text>
               </View>
             ) : (
@@ -1880,7 +1895,7 @@ export default function VendorDashboardScreen({
 
       {/* Bottom Navigation — hidden when VendorTabs owns chrome */}
       {!hideBottomNav ? (
-      <View style={s.bottomNav}>
+      <View style={[s.bottomNav, { paddingBottom: navBottomPad }]}>
         {NAV_ITEMS.map((item) => {
           const isActive = visibleTab === item.key;
           const IconComp =
@@ -1953,9 +1968,9 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.18)',
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.35)',
+    borderColor: 'rgba(255, 255, 255, 0.28)',
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -1963,7 +1978,7 @@ const s = StyleSheet.create({
   verifiedPillText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#111111',
+    color: '#FFFFFF',
   },
   heroMainBodyRow: {
     flexDirection: 'row',
@@ -2141,12 +2156,15 @@ const s = StyleSheet.create({
   // 2-Column Hero Stat Cards
   twoStatRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
     paddingHorizontal: 16,
     marginBottom: 14,
   },
   heroStatCard: {
-    flex: 1,
+    flexBasis: 0,
+    flexGrow: 1,
+    minWidth: 150,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 14,
@@ -2193,6 +2211,8 @@ const s = StyleSheet.create({
   },
   activityFourColCard: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    rowGap: 10,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     paddingVertical: 14,
@@ -2202,7 +2222,8 @@ const s = StyleSheet.create({
     marginTop: 8,
   },
   activityColItem: {
-    flex: 1,
+    width: '25%',
+    minWidth: 72,
     alignItems: 'center',
     paddingHorizontal: 4,
   },
@@ -2225,6 +2246,7 @@ const s = StyleSheet.create({
     color: '#6B6B6B',
     textAlign: 'center',
     marginTop: 2,
+    minHeight: 26,
     lineHeight: 13,
   },
 
@@ -2238,15 +2260,14 @@ const s = StyleSheet.create({
     position: 'relative',
   },
   upgradeBannerBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
+    alignSelf: 'flex-start',
     backgroundColor: 'rgba(183,121,31,0.15)',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderWidth: 1,
     borderColor: 'rgba(183,121,31,0.25)',
+    marginBottom: 10,
   },
   upgradeBannerBadgeText: {
     fontSize: 9,
@@ -2257,19 +2278,19 @@ const s = StyleSheet.create({
   upgradeBannerArt: {
     position: 'absolute',
     right: 8,
-    bottom: 8,
+    top: 8,
   },
   upgradeBannerHeaderRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 10,
-    paddingRight: 72,
+    minWidth: 0,
   },
   upgradeBannerIconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F7F6F1',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -2288,7 +2309,6 @@ const s = StyleSheet.create({
     color: '#6B6B6B',
     lineHeight: 18,
     marginTop: 10,
-    paddingRight: 56,
   },
   upgradeBannerBtn: {
     flexDirection: 'row',
@@ -2305,7 +2325,7 @@ const s = StyleSheet.create({
   upgradeBannerBtnText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#F7F6F1',
+    color: '#FFFFFF',
   },
 
   // PalPoints Banner
@@ -2354,7 +2374,8 @@ const s = StyleSheet.create({
   },
   headerCopy: {
     flex: 1,
-    paddingHorizontal: 12,
+    minWidth: 0,
+    paddingHorizontal: 8,
   },
 
 
@@ -2418,11 +2439,12 @@ const s = StyleSheet.create({
     color: COLORS.sky,
   },
   greeting: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
     color: COLORS.textPrimary,
     marginTop: 4,
     letterSpacing: -0.3,
+    lineHeight: 23,
   },
   handleRow: {
     flexDirection: 'row',
@@ -3840,7 +3862,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.white,
     paddingTop: 10,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 12,
+    paddingBottom: 12,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     shadowColor: '#000',

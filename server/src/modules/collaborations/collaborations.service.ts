@@ -777,14 +777,14 @@ export const collaborationsService = {
     input: { videoUrl: string; thumbnail?: string; title?: string; description?: string; placeId?: string },
   ) {
     const row = await getCollaborationOrThrow(id);
-    if (row.creatorUserId !== creatorUserId) throw new ApiError(403, 'Only the creator can upload the collaboration reel.');
+    if (row.creatorUserId !== creatorUserId) throw new ApiError(403, 'Only the creator can upload the collaboration Moment.');
     const uploadable = new Set<CollaborationStatus>([
       CollaborationStatus.ACCEPTED,
       CollaborationStatus.IN_PROGRESS,
       CollaborationStatus.REVISION_REQUESTED,
     ]);
     if (!uploadable.has(row.status)) {
-      throw new ApiError(400, `Cannot upload reel in ${row.status} status.`);
+      throw new ApiError(400, `Cannot upload Moment in ${row.status} status.`);
     }
 
     const creator = await getCreatorForUser(creatorUserId);
@@ -835,7 +835,7 @@ export const collaborationsService = {
         },
       });
       if (marked.count === 0) {
-        throw new ApiError(400, `Cannot upload reel in ${row.status} status.`);
+        throw new ApiError(400, `Cannot upload Moment in ${row.status} status.`);
       }
 
       const collab = await tx.collaboration.findUniqueOrThrow({
@@ -856,7 +856,7 @@ export const collaborationsService = {
         row.status,
         CollaborationStatus.REEL_UPLOADED,
         creatorUserId,
-        'Collaboration reel uploaded',
+        'Collaboration Moment uploaded',
       );
 
       return { collab, reel };
@@ -865,8 +865,8 @@ export const collaborationsService = {
     await notifyCollaboration(
       row.vendorUserId,
       'collab_reel_uploaded',
-      'Collaboration reel uploaded',
-      `${result.collab.creator.fullName || result.collab.creator.username} uploaded your collaboration reel.`,
+      'Collaboration Moment uploaded',
+      `${result.collab.creator.fullName || result.collab.creator.username} uploaded your collaboration Moment.`,
       id,
       { reelId: result.reel.id },
     );
@@ -876,11 +876,11 @@ export const collaborationsService = {
 
   async approveReel(id: string, vendorUserId: string) {
     const row = await getCollaborationOrThrow(id);
-    if (row.vendorUserId !== vendorUserId) throw new ApiError(403, 'Only the vendor can approve the reel.');
+    if (row.vendorUserId !== vendorUserId) throw new ApiError(403, 'Only the vendor can approve the Moment.');
     if (row.status !== CollaborationStatus.REEL_UPLOADED) {
-      throw new ApiError(400, 'No reel pending approval.');
+      throw new ApiError(400, 'No Moment pending approval.');
     }
-    if (!row.reelId) throw new ApiError(400, 'Collaboration has no uploaded reel.');
+    if (!row.reelId) throw new ApiError(400, 'Collaboration has no uploaded Moment.');
 
     const updated = await prisma.$transaction(async (tx) => {
       const marked = await tx.collaboration.updateMany({
@@ -888,7 +888,7 @@ export const collaborationsService = {
         data: { status: CollaborationStatus.APPROVED },
       });
       if (marked.count === 0) {
-        throw new ApiError(400, 'No reel pending approval.');
+        throw new ApiError(400, 'No Moment pending approval.');
       }
 
       await recordStatusChange(tx, id, CollaborationStatus.REEL_UPLOADED, CollaborationStatus.APPROVED, vendorUserId);
@@ -902,8 +902,8 @@ export const collaborationsService = {
     await notifyCollaboration(
       row.creatorUserId,
       'collab_reel_approved',
-      'Reel approved — publish to go live',
-      `${row.businessName} approved your reel. Publish it to go live on PalSafar and their map profile.`,
+      'Moment approved — publish to go live',
+      `${row.businessName} approved your Moment. Publish it to go live on PalSafar and their map profile.`,
       id,
       { reelId: row.reelId },
     );
@@ -914,12 +914,12 @@ export const collaborationsService = {
   async publishReel(id: string, creatorUserId: string) {
     const row = await getCollaborationOrThrow(id);
     if (row.creatorUserId !== creatorUserId) {
-      throw new ApiError(403, 'Only the creator can publish the collaboration reel.');
+      throw new ApiError(403, 'Only the creator can publish the collaboration Moment.');
     }
     if (row.status !== CollaborationStatus.APPROVED) {
-      throw new ApiError(400, 'The vendor must approve this reel before you can publish it.');
+      throw new ApiError(400, 'The vendor must approve this Moment before you can publish it.');
     }
-    if (!row.reelId) throw new ApiError(400, 'Collaboration has no approved reel.');
+    if (!row.reelId) throw new ApiError(400, 'Collaboration has no approved Moment.');
 
     const updated = await prisma.$transaction(async (tx) => {
       const marked = await tx.collaboration.updateMany({
@@ -930,7 +930,7 @@ export const collaborationsService = {
         },
       });
       if (marked.count === 0) {
-        throw new ApiError(400, 'The vendor must approve this reel before you can publish it.');
+        throw new ApiError(400, 'The vendor must approve this Moment before you can publish it.');
       }
 
       await tx.reel.update({
@@ -952,8 +952,8 @@ export const collaborationsService = {
     await notifyCollaboration(
       creatorUserId,
       'collab_reel_published',
-      'Collaboration reel published',
-      `Your reel for ${row.businessName} is live on PalSafar and their map profile.`,
+      'Collaboration Moment published',
+      `Your Moment for ${row.businessName} is live on PalSafar and their map profile.`,
       id,
       { reelId: row.reelId },
     );
@@ -961,7 +961,7 @@ export const collaborationsService = {
       row.vendorUserId,
       'collab_completed',
       'Campaign completed',
-      `${updated.creator.fullName || updated.creator.username} published the collaboration reel. It is now on your map profile.`,
+      `${updated.creator.fullName || updated.creator.username} published the collaboration Moment. It is now on your map profile.`,
       id,
       { reelId: row.reelId },
     );
@@ -973,7 +973,7 @@ export const collaborationsService = {
     const row = await getCollaborationOrThrow(id);
     if (row.vendorUserId !== vendorUserId) throw new ApiError(403, 'Only the vendor can request changes.');
     if (row.status !== CollaborationStatus.REEL_UPLOADED) {
-      throw new ApiError(400, 'No reel available for revision.');
+      throw new ApiError(400, 'No Moment available for revision.');
     }
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -1011,7 +1011,7 @@ export const collaborationsService = {
       row.creatorUserId,
       'collab_revision_requested',
       'Revision requested',
-      `${row.businessName} requested changes to your collaboration reel.`,
+      `${row.businessName} requested changes to your collaboration Moment.`,
       id,
       { feedback },
     );
@@ -1021,9 +1021,9 @@ export const collaborationsService = {
 
   async rejectReel(id: string, vendorUserId: string, reason: string) {
     const row = await getCollaborationOrThrow(id);
-    if (row.vendorUserId !== vendorUserId) throw new ApiError(403, 'Only the vendor can reject the reel.');
+    if (row.vendorUserId !== vendorUserId) throw new ApiError(403, 'Only the vendor can reject the Moment.');
     if (row.status !== CollaborationStatus.REEL_UPLOADED) {
-      throw new ApiError(400, 'No reel pending review.');
+      throw new ApiError(400, 'No Moment pending review.');
     }
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -1059,7 +1059,7 @@ export const collaborationsService = {
         },
       });
       if (marked.count === 0) {
-        throw new ApiError(400, 'No reel pending review.');
+        throw new ApiError(400, 'No Moment pending review.');
       }
 
       await recordStatusChange(
@@ -1080,8 +1080,8 @@ export const collaborationsService = {
     await notifyCollaboration(
       row.creatorUserId,
       'collab_reel_rejected',
-      'Reel rejected',
-      `${row.businessName} rejected the uploaded reel. Please upload a new version.`,
+      'Moment rejected',
+      `${row.businessName} rejected the uploaded Moment. Please upload a new version.`,
       id,
       { reason },
     );

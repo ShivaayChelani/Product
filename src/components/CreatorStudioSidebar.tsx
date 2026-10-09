@@ -253,7 +253,7 @@ export default function CreatorStudioSidebar({
                     </TouchableOpacity>
                     <View style={styles.statChip}>
                       <Icon name="play-outline" size={13} color={C.bronze} />
-                      <Text style={styles.statText}>{reelCount} reels</Text>
+                      <Text style={styles.statText}>{reelCount} Moments</Text>
                     </View>
                   </View>
                 </View>

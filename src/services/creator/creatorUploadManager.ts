@@ -331,6 +331,8 @@ async function runUploadJob(localUploadId: string): Promise<void> {
         await socialApi.updateReel(job.editReelId, {
           title,
           description,
+          videoUrl: uploadedUrl,
+          thumbnail: mediaKind === 'image' ? uploadedUrl : undefined,
           placeId: job.spotId || undefined,
           vendorId: job.vendorId || undefined,
           tags: job.tags,

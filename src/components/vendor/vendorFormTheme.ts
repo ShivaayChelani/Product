@@ -19,7 +19,7 @@ export const VF = {
   required: palette.error,
   securityBg: palette.surface,
   btnBg: palette.text,
-  btnText: palette.background,
+  btnText: palette.onPrimary,
   link: palette.primary,
   sectionAccent: palette.textSecondary,
 } as const;

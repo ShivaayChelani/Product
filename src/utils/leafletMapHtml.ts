@@ -350,7 +350,7 @@ var map = L.map('map', {
   zoomControl: false,
   attributionControl: true,
   maxBounds: ${JSON.stringify(INDIA_BOUNDS)},
-  maxBoundsViscosity: 0.85,
+  maxBoundsViscosity: 1,
   minZoom: 4,
   maxZoom: 18,
 });
@@ -367,12 +367,14 @@ var streetsLayer = L.tileLayer(
 streetsLayer.addTo(map);
 
 /* India-only presentation: one world-sized mask polygon whose holes are the
-   India boundary rings (mainland + Andaman & Nicobar + Lakshadweep), so every
-   foreign country and the sea outside India are dimmed while Indian territory
-   stays clear. maxBounds clamps panning to the India view, .india-mask keeps
-   the layer transparent to gestures, and fill-rule:evenodd (CSS) makes the
-   hole winding irrelevant. */
-var indiaMaskStyle = { stroke: false, interactive: false, className: 'india-mask', fillColor: '#8A93A0', fillOpacity: 0.42 };
+   India boundary rings (mainland + Andaman & Nicobar + Lakshadweep). The mask
+   is fully opaque and sits on top of the tiles, so every foreign country and
+   the sea outside India are blanked out — the user can pan around India but can
+   never see a neighbouring country's map. maxBounds clamps panning to the India
+   view (viscosity 1 fights back instantly), .india-mask keeps the layer
+   transparent to gestures, and fill-rule:evenodd (CSS) makes the hole winding
+   irrelevant. */
+var indiaMaskStyle = { stroke: false, interactive: false, className: 'india-mask', fillColor: '#0B1220', fillOpacity: 1 };
 var WORLD_RING = [[85, -180], [85, 180], [-85, 180], [-85, -180], [85, -180]];
 var INDIA_BOUNDARY_RINGS = ${JSON.stringify(INDIA_BOUNDARY_RINGS)};
 var indiaMaskHoles = INDIA_BOUNDARY_RINGS.map(function(ring) {

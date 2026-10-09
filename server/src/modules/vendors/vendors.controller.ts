@@ -233,6 +233,18 @@ export const vendorsController = {
     sendSuccess(res, reel, { message: 'Reel updated' });
   }),
 
+  setVendorReelArchived: catchAsync(async (req: Request, res: Response) => {
+    const vendor = await vendorsService.getMyVendor((req as any).user.id);
+    if (!vendor) { sendSuccess(res, null, { message: 'No vendor account' }); return; }
+    const archived = req.body.archived === true;
+    const reel = await vendorsService.setVendorReelArchived(
+      vendor.id,
+      req.params.reelId as string,
+      archived,
+    );
+    sendSuccess(res, reel, { message: archived ? 'Reel archived' : 'Reel restored' });
+  }),
+
   // ── Offer Lifecycle ──
 
   getOfferById: catchAsync(async (req: Request, res: Response) => {

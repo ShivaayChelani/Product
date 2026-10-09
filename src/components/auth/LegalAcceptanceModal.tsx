@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -50,7 +50,14 @@ export function LegalAcceptanceModal({
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
-  const canContinue = termsAccepted && privacyAccepted && !isLoading;
+  useEffect(() => {
+    if (visible) {
+      setTermsAccepted(false);
+      setPrivacyAccepted(false);
+    }
+  }, [visible]);
+
+  const canContinue = termsAccepted && privacyAccepted && !isLoading && !!legalVersions;
 
   const handleAccept = useCallback(() => {
     if (!canContinue || !legalVersions) return;
@@ -86,6 +93,12 @@ export function LegalAcceptanceModal({
               <Text style={styles.subtitle}>
                 To create your PalSafar account, please read and accept the following:
               </Text>
+
+              {!legalVersions ? (
+                <Text style={styles.versionsError}>
+                  Could not load the current Terms and Privacy versions. Check your connection, then try again.
+                </Text>
+              ) : null}
 
               {/* Legal consent checkboxes */}
               <View style={styles.checkboxSection}>
@@ -194,7 +207,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   continueBtnDisabled: {
-    backgroundColor: palette.primary,
+    backgroundColor: '#C8C8C8',
+  },
+  versionsError: {
+    color: palette.error,
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+    marginBottom: 16,
   },
   continueBtnText: {
     color: '#FFFFFF',

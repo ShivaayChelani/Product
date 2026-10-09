@@ -41,11 +41,11 @@ function SettingsRowInner({ item, isLast }: { item: SettingsRowModel; isLast: bo
       </View>
       {item.onSwitch != null ? (
         <Switch
-          value={item.switchValue}
+          value={!!item.switchValue}
           onValueChange={item.onSwitch}
-          trackColor={{ false: '#F2F2F2', true: T.secondary }}
-          thumbColor={Platform.OS === 'android' ? T.card : undefined}
-          disabled={item.loading}
+          trackColor={{ false: '#E2E0DB', true: '#111111' }}
+          thumbColor={Platform.OS === 'android' ? (item.switchValue ? '#FFFFFF' : '#5C574F') : undefined}
+          ios_backgroundColor="#E2E0DB"
         />
       ) : item.rightText ? (
         <Text style={SettingsFonts.rowMeta}>{item.rightText}</Text>

@@ -96,9 +96,9 @@ function adaptSocialDashboard(base: CreatorDashboard): CreatorDashboardPayload {
   const todayGoal: CreatorTodayGoal =
     base.reelCount === 0
       ? {
-          title: 'Upload 1 Reel',
+          title: 'Upload 1 Moment',
           description: 'Share your latest travel moment with the PalSafar community.',
-          cta: 'Create Reel',
+          cta: 'Create Moment',
           ctaAction: 'create_reel',
         }
       : {
@@ -265,6 +265,10 @@ export const creatorApi = {
       () => apiClient.delete(`/creator/reels/${id}`),
       () => socialApi.deleteReel(id),
     );
+  },
+
+  setArchived(id: string, archived: boolean) {
+    return apiClient.patch<Reel>(`/creator/reels/${id}/archive`, { archived });
   },
 
   getReelAnalytics(id: string) {

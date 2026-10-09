@@ -2,13 +2,14 @@ import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/ApiError';
 import { auditService } from '../audit/audit.service';
 import { AuditAction } from '@prisma/client';
+import { SUPPORT_EMAIL } from '../../shared/utils/supportEmail';
 
 const DEFAULT_SETTINGS: Array<{
   category: string; key: string; value: any; label: string; description: string; type: string;
 }> = [
   { category: 'general', key: 'app_name', value: 'PalSafar', label: 'App Name', description: 'The name of the application', type: 'string' },
   { category: 'general', key: 'app_description', value: 'Discover India\'s Hidden Gems', label: 'App Description', description: 'Short description of the app', type: 'string' },
-  { category: 'general', key: 'support_email', value: 'shivaay.chelai@gmail.com', label: 'Support Email', description: 'Email address for support', type: 'string' },
+  { category: 'general', key: 'support_email', value: SUPPORT_EMAIL, label: 'Support Email', description: 'Email address for support', type: 'string' },
   { category: 'general', key: 'maintenance_mode', value: false, label: 'Maintenance Mode', description: 'Enable maintenance mode for the app', type: 'boolean' },
 
   { category: 'security', key: 'max_login_attempts', value: 5, label: 'Max Login Attempts', description: 'Maximum failed login attempts before lockout', type: 'number' },
@@ -18,7 +19,7 @@ const DEFAULT_SETTINGS: Array<{
 
   { category: 'points', key: 'points_per_checkin', value: 10, label: 'Points per Check-in', description: 'Pal Points awarded for checking in at a place', type: 'number' },
   { category: 'points', key: 'points_per_review', value: 50, label: 'Points per Review', description: 'Pal Points awarded for writing a review', type: 'number' },
-  { category: 'points', key: 'points_per_reel', value: 50, label: 'Points per Reel Upload', description: 'Pal Points awarded for uploading a reel', type: 'number' },
+  { category: 'points', key: 'points_per_reel', value: 50, label: 'Points per Moment Upload', description: 'Pal Points awarded for uploading a Moment', type: 'number' },
   { category: 'points', key: 'daily_login_points', value: 10, label: 'Daily Login Points', description: 'Pal Points for daily login', type: 'number' },
   { category: 'points', key: 'streak_bonus_multiplier', value: 2, label: 'Streak Bonus Multiplier', description: 'Points multiplier for maintaining streaks', type: 'number' },
   { category: 'points', key: 'max_daily_points', value: 500, label: 'Max Daily Points', description: 'Maximum Pal Points a user can earn per day', type: 'number' },

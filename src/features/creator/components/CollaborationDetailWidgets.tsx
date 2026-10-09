@@ -254,7 +254,7 @@ export function ContextAwareActionFooter({
           <Text style={footerStyles.secondaryText}>View Content</Text>
         </Pressable>
         <Pressable style={footerStyles.primaryBtn} onPress={onPublishReel}>
-          <Text style={footerStyles.primaryText}>Publish Reel</Text>
+          <Text style={footerStyles.primaryText}>Publish Moment</Text>
         </Pressable>
       </>
     );

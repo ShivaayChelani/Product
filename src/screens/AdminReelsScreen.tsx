@@ -15,6 +15,7 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { socialApi } from '../services/api';
+import { extractCreatorHandle, creatorAtHandle } from '../utils/creatorHandle';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomSafePadding } from '../design/responsive';
 
@@ -66,7 +67,7 @@ export default function AdminReelsScreen({ onBack }: AdminReelsScreenProps) {
         setReels(prev => [...prev, ...items]);
       }
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to load reels');
+      Alert.alert('Error', e.message || 'Failed to load Moments');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -102,8 +103,8 @@ export default function AdminReelsScreen({ onBack }: AdminReelsScreenProps) {
 
   const handleDeleteReel = (reel: AdminReel) => {
     Alert.alert(
-      'Delete Reel',
-      `Delete "${reel.title || 'this reel'}" by @${reel.creator?.username || 'unknown'}? This action cannot be undone.`,
+      'Delete Moment',
+      `Delete "${reel.title || 'this Moment'}" by ${creatorAtHandle(reel.creator?.username, reel.creator?.fullName || 'unknown')}? This action cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -115,9 +116,9 @@ export default function AdminReelsScreen({ onBack }: AdminReelsScreenProps) {
               await socialApi.adminDeleteReel(reel.id);
               setReels(prev => prev.filter(r => r.id !== reel.id));
               setTotalReels(prev => Math.max(0, prev - 1));
-              Alert.alert('Deleted', 'Reel has been removed.');
+              Alert.alert('Deleted', 'Moment has been removed.');
             } catch (err: any) {
-              Alert.alert('Error', err?.message || 'Failed to delete reel');
+              Alert.alert('Error', err?.message || 'Failed to delete Moment');
             } finally {
               setDeletingId(null);
             }
@@ -155,8 +156,8 @@ export default function AdminReelsScreen({ onBack }: AdminReelsScreenProps) {
           <MaterialIcons name="arrow-back" size={24} color="#FFF" />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={styles.title}>All Reels</Text>
-          <Text style={styles.subtitle}>{totalReels} total reels in database</Text>
+          <Text style={styles.title}>All Moments</Text>
+          <Text style={styles.subtitle}>{totalReels} total Moments in database</Text>
         </View>
       </View>
 
@@ -192,16 +193,16 @@ export default function AdminReelsScreen({ onBack }: AdminReelsScreenProps) {
         {loading && (
           <View style={styles.loader}>
             <ActivityIndicator color="#FFFFFF" size="large" />
-            <Text style={styles.loaderText}>Loading reels…</Text>
+            <Text style={styles.loaderText}>Loading Moments…</Text>
           </View>
         )}
 
         {!loading && reels.length === 0 ? (
           <View style={styles.empty}>
             <Icon name="videocam-outline" size={56} color="#68756D" />
-            <Text style={styles.emptyTitle}>No reels found</Text>
+            <Text style={styles.emptyTitle}>No Moments found</Text>
             <Text style={styles.emptySub}>
-              {searchQuery ? `No results for "${searchQuery}"` : 'No reels have been uploaded yet.'}
+              {searchQuery ? `No results for "${searchQuery}"` : 'No Moments have been uploaded yet.'}
             </Text>
           </View>
         ) : null}
@@ -228,7 +229,7 @@ export default function AdminReelsScreen({ onBack }: AdminReelsScreenProps) {
             {/* Info */}
             <View style={styles.reelInfo}>
               <Text style={styles.reelTitle} numberOfLines={2}>
-                {reel.title || 'Untitled Reel'}
+                {reel.title || 'Untitled Moment'}
               </Text>
 
               <View style={styles.creatorRow}>
@@ -237,12 +238,12 @@ export default function AdminReelsScreen({ onBack }: AdminReelsScreenProps) {
                 ) : (
                   <View style={[styles.avatarSmall, styles.avatarFallback]}>
                     <Text style={styles.avatarLetter}>
-                      {(reel.creator?.username || reel.creator?.fullName || 'U').charAt(0).toUpperCase()}
+                      {(extractCreatorHandle(reel.creator?.username) || reel.creator?.fullName || 'U').charAt(0).toUpperCase()}
                     </Text>
                   </View>
                 )}
                 <Text style={styles.creatorName} numberOfLines={1}>
-                  @{reel.creator?.username || 'unknown'}
+                  {creatorAtHandle(reel.creator?.username, reel.creator?.fullName || 'unknown')}
                 </Text>
               </View>
 

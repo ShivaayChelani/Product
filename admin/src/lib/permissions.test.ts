@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canAccessRoute, isAdminNavigationItemActive } from "./permissions";
+import { canAccessRoute, getRoleLabel, isAdminNavigationItemActive } from "./permissions";
 
 describe("event moderation route permissions", () => {
   it("allows content moderators and operations admins to reach event moderation", () => {
@@ -10,6 +10,20 @@ describe("event moderation route permissions", () => {
   it("does not grant event moderation to analytics-only roles", () => {
     expect(canAccessRoute("ANALYTICS_VIEWER", "/dashboard/events")).toBe(false);
     expect(canAccessRoute("FINANCE_MANAGER", "/dashboard/events")).toBe(false);
+  });
+
+  it("lets SUPER_ADMIN open every existing admin module", () => {
+    expect(canAccessRoute("SUPER_ADMIN", "/dashboard")).toBe(true);
+    expect(canAccessRoute("SUPER_ADMIN", "/dashboard/users")).toBe(true);
+    expect(canAccessRoute("SUPER_ADMIN", "/dashboard/security")).toBe(true);
+    expect(canAccessRoute("SUPER_ADMIN", "/dashboard/database-health")).toBe(true);
+    expect(canAccessRoute("SUPER_ADMIN", "/dashboard/settings")).toBe(true);
+    expect(getRoleLabel("SUPER_ADMIN")).toBe("Super Admin");
+  });
+
+  it("does not grant admin modules to a missing role", () => {
+    expect(canAccessRoute(undefined, "/dashboard/users")).toBe(false);
+    expect(canAccessRoute("USER" as never, "/dashboard/users")).toBe(false);
   });
 
   it("keeps the dashboard active only on its exact route", () => {

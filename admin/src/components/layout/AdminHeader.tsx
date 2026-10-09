@@ -52,7 +52,7 @@ export default function AdminHeader() {
     <>
       <GlobalSearch />
       <header className="sticky top-0 z-30 border-b border-border bg-[var(--header)] backdrop-blur-md">
-        <div className="flex h-14 items-center gap-3 px-4 lg:px-6">
+        <div className="flex h-14 items-center gap-3 pl-14 pr-4 lg:px-6">
           <div className="min-w-0 flex-1">
             <Breadcrumbs pathname={pathname} />
           </div>

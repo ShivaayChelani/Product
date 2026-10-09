@@ -308,7 +308,7 @@ export default function SignupScreen({
                     accepted={privacyAccepted}
                     onToggle={() => setPrivacyAccepted((v) => !v)}
                     onOpenDocument={() => onOpenPrivacy?.()}
-                    label="I have read the"
+                    label="I have read and agree to the"
                     linkLabel="Privacy Policy"
                     accessibilityLabel="Accept Privacy Policy"
                   />

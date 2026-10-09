@@ -22,6 +22,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useUserContext } from '../context/UserContext';
 import { socialApi } from '../services/api/social';
+import { creatorAtHandle, extractCreatorHandle } from '../utils/creatorHandle';
 import { uploadApi } from '../services/api/upload';
 import type { CreatorDashboard } from '../types';
 import { useStudioTabScreenInsets } from '../design/tabBarLayout';
@@ -115,7 +116,6 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [fullName, setFullName] = useState('');
   const [bio, setBio] = useState('');
-  const [instagram, setInstagram] = useState('');
   const [youtube, setYoutube] = useState('');
   const [facebook, setFacebook] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -136,7 +136,6 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
       setUsername(d.profile.username || '');
       setFullName(d.profile.fullName || '');
       setBio(d.profile.bio || '');
-      setInstagram(d.profile.instagramUrl || '');
       setYoutube(d.profile.youtubeUrl || '');
       setFacebook(d.profile.facebookUrl || '');
     } catch (e: any) {
@@ -240,7 +239,6 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
         username: cleanedUsername || undefined,
         fullName,
         bio,
-        instagramUrl: instagram,
         youtubeUrl: youtube,
         facebookUrl: facebook,
       });
@@ -280,8 +278,8 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
   }, [load]);
 
   const p = data?.profile;
-  const displayName = p?.fullName || p?.username || user.displayName || 'Creator';
-  const handle = p?.username ? `@${p.username}` : `@${(user.displayName || 'creator').toLowerCase().replace(/\s+/g, '')}`;
+  const displayName = p?.fullName || extractCreatorHandle(p?.username) || user.displayName || 'Creator';
+  const handle = creatorAtHandle(p?.username, `@${(user.displayName || 'creator').toLowerCase().replace(/\s+/g, '')}`);
 
   const sections = useMemo(() => {
     const creatorItems: SettingsRowConfig[] = [
@@ -601,7 +599,6 @@ export default function CreatorStudioProfileScreen({ onBack }: { onBack?: () => 
                 <Text style={styles.socialSub}>Add your social media links to connect with your audience</Text>
               </View>
 
-              <SocialField icon="logo-instagram" color="#E1306C" label="Instagram URL" value={instagram} onChangeText={setInstagram} placeholder="https://instagram.com/yourusername" />
               <SocialField icon="logo-youtube" color="#FF0000" label="YouTube URL" value={youtube} onChangeText={setYoutube} placeholder="https://youtube.com/@yourchannel" />
               <SocialField icon="logo-facebook" color="#111111" label="Facebook URL" value={facebook} onChangeText={setFacebook} placeholder="https://facebook.com/yourprofile" />
             </ScrollView>

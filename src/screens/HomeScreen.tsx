@@ -44,6 +44,7 @@ import { useHomeRewardsData } from '../hooks/useHomeRewardsData';
 import { useNearbyPlacesFromGps } from '../hooks/useNearbyPlacesFromGps';
 import { isReliableUserPosition, isValidLatLng } from '../services/location/distance';
 import { getRoutedDistanceFields } from '../services/location/routedDistance';
+import { resolveCityFromGps } from '../services/location/reverseGeocode';
 import { walletApi } from '../services/api';
 import { hasValidImageUrl } from '../utils/imageUrl';
 import { buildNearbyVendorOffers } from '../utils/homeVendorOffers';
@@ -220,7 +221,11 @@ export default function HomeScreen({
   const queryClient = useQueryClient();
   const { isGuest, user: ctxUser, setUser } = useUserContext();
   const { vendors, vendorOffers, currentVendor } = useDataContext();
-  const { requestPermission } = useLocationContext();
+  const { requestPermission, hasPermission, devMockPosition } = useLocationContext();
+  const canUseHomeLocation = hasPermission || !!devMockPosition;
+  const isReliableHomePosition = isReliableUserPosition(position);
+  const homeLatitude = position?.latitude;
+  const homeLongitude = position?.longitude;
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cityName, setCityName] = useState<string>('Nearby');
@@ -248,7 +253,7 @@ export default function HomeScreen({
   const [aiGenerating, setAiGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationPhase, setGenerationPhase] = useState('Finding amazing places...');
-  
+
   // Simulated Completed Trip state (State 5)
   const [isTripCompleted, setIsTripCompleted] = useState(false);
 
@@ -408,49 +413,51 @@ export default function HomeScreen({
   const openRewards = onNavigateToRewards || onNavigateToLeaderboard;
   const openWallet = onNavigateToWallet || onNavigateToLeaderboard;
 
-  // Reverse Geocoding
+  // Only use a current, accurate GPS fix for the Home locality and weather.
   useEffect(() => {
-    if (position?.latitude && position?.longitude) {
-      let cancelled = false;
-      fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${position.latitude}&lon=${position.longitude}&zoom=10&addressdetails=1`,
-        { headers: { 'Accept-Language': 'en', 'User-Agent': 'PalSafar-Mobile/1.0' } },
-      )
-        .then(r => { if (!r.ok) throw new Error('Geocode failed'); return r.json(); })
-        .then(data => {
-          if (cancelled) return;
-          const addr = data.address || {};
-          const city = addr.city || addr.town || addr.village || addr.county || addr.state_district || '';
-          setCityName(city || 'Nearby');
-        })
-        .catch(() => {
-          if (cancelled) return;
-          setCityName('Nearby');
-        });
-      return () => { cancelled = true; };
+    if (!canUseHomeLocation || !isReliableUserPosition(position)) {
+      setCityName('Nearby');
+      return;
     }
-    setCityName('Nearby');
-  }, [position]);
+
+    let cancelled = false;
+    resolveCityFromGps(position.latitude, position.longitude)
+      .then(resolved => {
+        if (!cancelled) setCityName(resolved?.city || 'Nearby');
+      })
+      .catch(() => {
+        if (!cancelled) setCityName('Nearby');
+      });
+    return () => { cancelled = true; };
+  }, [canUseHomeLocation, position]);
 
   // Weather fetch
   useEffect(() => {
-    if (!position?.latitude || !position?.longitude) return;
+    if (!canUseHomeLocation || !isReliableHomePosition) {
+      setWeather(null);
+      return;
+    }
+
     let cancelled = false;
-    
+
     // Open-Meteo free API
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${position.latitude}&longitude=${position.longitude}&current=temperature_2m,weather_code`;
-    
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${homeLatitude}&longitude=${homeLongitude}&current=temperature_2m,weather_code`;
+
     fetch(url)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error('Weather request failed');
+        return r.json();
+      })
       .then(data => {
         if (cancelled) return;
-        if (data?.current) {
-          const temp = Math.round(data.current.temperature_2m);
-          const code = data.current.weather_code;
-          
+        const temperature = data?.current?.temperature_2m;
+        const code = data?.current?.weather_code;
+        if (Number.isFinite(temperature) && Number.isFinite(code)) {
+          const temp = Math.round(temperature);
+
           let text = 'Clear';
           let icon = 'sunny';
-          
+
           // WMO Weather interpretation codes
           if (code === 0) { text = 'Clear'; icon = 'sunny'; }
           else if (code >= 1 && code <= 3) { text = 'Cloudy'; icon = 'partly-sunny'; }
@@ -459,14 +466,18 @@ export default function HomeScreen({
           else if (code >= 71 && code <= 77) { text = 'Snow'; icon = 'snow'; }
           else if (code >= 80 && code <= 82) { text = 'Showers'; icon = 'rainy'; }
           else if (code >= 95 && code <= 99) { text = 'Thunderstorm'; icon = 'thunderstorm'; }
-          
+
           setWeather({ temp, text, icon });
+        } else {
+          setWeather(null);
         }
       })
-      .catch(() => {});
-      
+      .catch(() => {
+        if (!cancelled) setWeather(null);
+      });
+
     return () => { cancelled = true; };
-  }, [position?.latitude, position?.longitude]);
+  }, [canUseHomeLocation, isReliableHomePosition, homeLatitude, homeLongitude]);
 
   // Entrance fade-in animation
   useEffect(() => {
@@ -564,7 +575,7 @@ export default function HomeScreen({
       } else if (progress === 80) {
         setGenerationPhase('Finalizing custom itineraries...');
       }
-      
+
       if (progress >= 100) {
         clearInterval(interval);
         setTimeout(() => {
@@ -722,7 +733,7 @@ export default function HomeScreen({
         }
       >
         <Animated.View style={[styles.contentShell, { opacity: fadeAnim }]}>
-          
+
           <ImageBackground
             source={require('../assets/Homescreen_cover.jpeg')}
             style={[styles.heroSection, responsive.isTablet && { minHeight: 400 }]}
@@ -732,20 +743,20 @@ export default function HomeScreen({
 
             {/* Header */}
             <View style={styles.header}>
-              <TouchableOpacity 
-                onPress={() => setSidebarOpen(true)} 
+              <TouchableOpacity
+                onPress={() => setSidebarOpen(true)}
                 style={[styles.menuButton, { zIndex: 10, elevation: 10 }]}
                 hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
               >
                 <Icon name="menu-outline" size={32} color="#000000" />
               </TouchableOpacity>
-              
-              <Image 
-                source={require('../assets/screen_logo.png')} 
-                style={styles.logo} 
+
+              <Image
+                source={require('../assets/screen_logo.png')}
+                style={styles.logo}
                 resizeMode="contain"
               />
-              
+
               <View style={styles.headerRight}>
                 <TouchableOpacity onPress={onNavigateToLeaderboard} style={styles.leaderboardBtn}>
                   <Icon name="trophy-outline" size={scale(24)} color="#FFFFFF" />
@@ -801,25 +812,25 @@ export default function HomeScreen({
                 <Text style={styles.categoryText}>Nearby</Text>
               </TouchableOpacity>
               <View style={styles.categoryDivider} />
-              
+
               <TouchableOpacity style={styles.categoryItem} onPress={() => onNavigateToSearch?.('Hotels', 'stay')}>
                 <Icon name="bed" size={26} color={HOME.iconOnDark} />
                 <Text style={styles.categoryText}>Hotels</Text>
               </TouchableOpacity>
               <View style={styles.categoryDivider} />
-              
+
               <TouchableOpacity style={styles.categoryItem} onPress={() => onNavigateToSearch?.('Food', 'food')}>
                 <Icon name="restaurant" size={26} color={HOME.iconOnDark} />
                 <Text style={styles.categoryText}>Food</Text>
               </TouchableOpacity>
               <View style={styles.categoryDivider} />
-              
+
               <TouchableOpacity style={styles.categoryItem} onPress={() => onNavigateToSearch?.('Temples', 'temples')}>
                 <Icon name="business" size={26} color={HOME.iconOnDark} />
                 <Text style={styles.categoryText}>Temples</Text>
               </TouchableOpacity>
               <View style={styles.categoryDivider} />
-              
+
               <TouchableOpacity style={styles.categoryItem} onPress={() => onNavigateToSearch?.()}>
                 <Icon name="grid" size={26} color={HOME.iconOnDark} />
                 <Text style={styles.categoryText}>More</Text>
@@ -841,7 +852,7 @@ export default function HomeScreen({
                 <Text style={styles.viewAllText}>View all →</Text>
               </TouchableOpacity>
             </View>
-            
+
             {responsive.isTablet ? (
               <View style={[styles.tabletGridContainer, { paddingRight: 0 }]}>
                 {nearbyPlaces.slice(0, placesCols === 3 ? 6 : 4).map((place, idx) => (
@@ -885,7 +896,7 @@ export default function HomeScreen({
                     </View>
                   </TouchableOpacity>
                 ))}
-                
+
                 {/* Explore More Card */}
                 <TouchableOpacity style={styles.exploreMoreCard} onPress={onNavigateToMap}>
                   <View style={styles.exploreMoreIconWrap}>
@@ -937,7 +948,7 @@ export default function HomeScreen({
                     </TouchableOpacity>
                     <View style={styles.vendorOfferBottom}>
                       <Text style={styles.vendorOfferName} numberOfLines={1}>{offer.vendorName}</Text>
-                      <Text style={styles.vendorOfferLoc} numberOfLines={1}>{cityName === 'Nearby' ? 'Jabalpur' : cityName}</Text>
+                      <Text style={styles.vendorOfferLoc} numberOfLines={1}>{cityName}</Text>
                       <View style={styles.vendorOfferRatingRow}>
                         <Text style={styles.vendorOfferRatingTxt}>4.5 <Icon name="star" size={10} color={HOME.accent} /></Text>
                       </View>
@@ -958,7 +969,7 @@ export default function HomeScreen({
                     </TouchableOpacity>
                     <View style={styles.vendorOfferBottom}>
                       <Text style={styles.vendorOfferName} numberOfLines={1}>{offer.vendorName}</Text>
-                      <Text style={styles.vendorOfferLoc} numberOfLines={1}>{cityName === 'Nearby' ? 'Jabalpur' : cityName}</Text>
+                      <Text style={styles.vendorOfferLoc} numberOfLines={1}>{cityName}</Text>
                       <View style={styles.vendorOfferRatingRow}>
                         <Text style={styles.vendorOfferRatingTxt}>4.5 <Icon name="star" size={10} color={HOME.accent} /></Text>
                       </View>
@@ -988,49 +999,62 @@ export default function HomeScreen({
                   <Text style={styles.viewAllText}>View all →</Text>
                 </TouchableOpacity>
               </View>
-              
-              <ImageBackground 
-                source={require('../assets/map_banner.jpg')} 
-                style={[styles.tripCard, responsive.isTablet && { height: 240 }]}
-                imageStyle={{ borderRadius: 24 }}
-                resizeMode="cover"
-              >
-                <View style={styles.tripCardOverlay} />
-                <Text style={styles.tripTitle}>{resumeTarget.title}</Text>
-                <Text style={styles.tripProgressText}>{progressPct}% Completed</Text>
-                
-                <View style={styles.progressBarTrack}>
-                  <View style={[styles.progressBarFill, { width: `${progressPct}%` }]} />
+
+              <TouchableOpacity style={styles.journeyCard} activeOpacity={0.9} onPress={onStartTrip}>
+                <Image
+                  source={require('../assets/map_banner.jpg')}
+                  style={styles.journeyImage}
+                  resizeMode="cover"
+                />
+
+                <View style={styles.journeyContent}>
+                  <Text style={styles.journeyTitle} numberOfLines={2}>{resumeTarget.title}</Text>
+
+                  <View style={styles.journeyProgressTrack}>
+                    <View style={[styles.journeyProgressFill, { width: `${progressPct}%` }]} />
+                  </View>
+
+                  <View style={styles.journeyInfoRow}>
+                    <Text style={styles.journeyInfoText}>{progressPct}% completed • {resumeTarget.stopCount ?? 0} places planned</Text>
+                  </View>
+
+                  <View style={styles.journeyActionBtn}>
+                    <Text style={styles.journeyActionBtnText}>Resume trip</Text>
+                    <Icon name="arrow-forward" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                  </View>
                 </View>
-                
-                <View style={styles.tripActionRow}>
-                  <TouchableOpacity style={styles.resumeButton} onPress={onStartTrip}>
-                    <Text style={styles.resumeButtonText}>Resume Trip</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.arrowCircleButton} onPress={onStartTrip}>
-                    <Icon name="arrow-forward" size={20} color="#000000" />
-                  </TouchableOpacity>
+
+                <View style={styles.journeyRightIcon}>
+                  <Icon name="chevron-forward" size={20} color="#000" />
                 </View>
-              </ImageBackground>
+              </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.sectionContainer}>
-              <ImageBackground 
-                source={require('../assets/map_banner.jpg')} 
-                style={[styles.tripCard, responsive.isTablet && { height: 240 }]}
-                imageStyle={{ borderRadius: 16 }}
-                resizeMode="cover"
-              >
-                <View style={styles.tripCardOverlay} />
-                <Text style={styles.tripTitle}>Plan Your{'\n'}Next Trip</Text>
-                <Text style={[styles.tripProgressText, { marginTop: 4, marginBottom: 12 }]}>Uncover unique experiences,{'\n'}local gems and hidden stories.</Text>
-                <View style={styles.tripActionRow}>
-                  <TouchableOpacity style={[styles.resumeButton, { backgroundColor: HOME.accent, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' }]} onPress={onNavigateToAITripPlanner}>
-                    <Text style={[styles.resumeButtonText, { color: '#FFF' }]}>Explore Now</Text>
-                    <Icon name="arrow-forward" size={14} color="#FFF" style={{ marginLeft: 4 }} />
-                  </TouchableOpacity>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Plan Your Next Trip</Text>
+              </View>
+              <TouchableOpacity style={styles.journeyCard} activeOpacity={0.9} onPress={onNavigateToAITripPlanner}>
+                <Image
+                  source={require('../assets/map_banner.jpg')}
+                  style={styles.journeyImage}
+                  resizeMode="cover"
+                />
+
+                <View style={styles.journeyContent}>
+                  <Text style={styles.journeyTitle} numberOfLines={2}>Uncover unique experiences</Text>
+                  <Text style={[styles.journeyInfoText, { marginTop: 8, marginBottom: 16 }]}>Discover local gems and hidden stories.</Text>
+
+                  <View style={styles.journeyActionBtn}>
+                    <Text style={styles.journeyActionBtnText}>Explore Now</Text>
+                    <Icon name="arrow-forward" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                  </View>
                 </View>
-              </ImageBackground>
+
+                <View style={styles.journeyRightIcon}>
+                  <Icon name="chevron-forward" size={20} color="#000" />
+                </View>
+              </TouchableOpacity>
             </View>
           )}
 
@@ -1285,66 +1309,72 @@ const styles = StyleSheet.create({
     color: '#6B5B4E',
     fontWeight: '600',
   },
-  tripCard: {
-    height: 180, // Will override inline if tablet
-    borderRadius: 20,
-    overflow: 'hidden',
-    padding: 20,
-    justifyContent: 'center',
-  },
-  tripCardOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  tripTitle: {
-    color: '#FFF',
-    fontSize: 22,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    fontWeight: '600',
-    marginTop: 8,
-  },
-  tripProgressText: {
-    color: '#E2E0DB',
-    fontSize: 13,
-    fontWeight: '500',
-    marginTop: 6,
-  },
-  progressBarTrack: {
-    height: 4,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 2,
-    marginTop: 12,
-    width: '50%',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: HOME.cream,
-    borderRadius: 2,
-  },
-  tripActionRow: {
+  journeyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 'auto',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  resumeButton: {
-    backgroundColor: HOME.cream,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
+  journeyImage: {
+    width: 130,
+    height: 130,
+    borderRadius: 16,
   },
-  resumeButtonText: {
-    color: '#000000',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  arrowCircleButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFF',
-    alignItems: 'center',
+  journeyContent: {
+    flex: 1,
+    paddingLeft: 16,
+    paddingRight: 8,
     justifyContent: 'center',
-    marginLeft: 12,
+  },
+  journeyTitle: {
+    fontSize: 18,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 12,
+  },
+  journeyProgressTrack: {
+    height: 6,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 3,
+    marginBottom: 8,
+  },
+  journeyProgressFill: {
+    height: '100%',
+    backgroundColor: '#000000',
+    borderRadius: 3,
+  },
+  journeyInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  journeyInfoText: {
+    fontSize: 12,
+    color: '#888888',
+  },
+  journeyActionBtn: {
+    backgroundColor: '#000000',
+    borderRadius: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+  },
+  journeyActionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  journeyRightIcon: {
+    paddingRight: 8,
   },
   tabletGridContainer: {
     flexDirection: 'row',

@@ -33,7 +33,7 @@ const C = {
 };
 
 const SERVICES = [
-  'Reel Creation', 'Short Reel (15–30 sec)', 'Cinematic Reel', 'Travel Story',
+  'Moment Creation', 'Short Moment (15–30 sec)', 'Cinematic Moment', 'Travel Story',
   'Business Showcase', 'Food Review', 'Adventure Experience', 'Hotel / Stay Review',
   'Cafe Review', 'Destination Coverage', 'Event Coverage', 'Offer Promotion',
   'Seasonal Promotion', 'New Business Launch', 'Featured Listing Campaign', 'Custom Promotion'

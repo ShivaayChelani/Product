@@ -144,7 +144,7 @@ export default function AdminVendorVerificationScreen({
             </TouchableOpacity>
           ) : null}
           <TouchableOpacity style={styles.quickNavBtn} onPress={() => { if (onNavigateReels) onNavigateReels(); }}>
-            <Text style={styles.quickNavText}>All Reels</Text>
+            <Text style={styles.quickNavText}>All Moments</Text>
           </TouchableOpacity>
         </View>
       </View>

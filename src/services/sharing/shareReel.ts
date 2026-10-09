@@ -6,8 +6,8 @@ import { shouldRecordReelShare } from './shareReelDecision';
 export async function shareReelAndRecord(reel: {
   id: string;
   status?: string | null;
-  title?: string | null;
-  description?: string | null;
+  title?: unknown;
+  description?: unknown;
 }): Promise<'unavailable' | 'cancelled' | 'shared'> {
   const message = buildReelShareMessage(reel);
   if (!message) return 'unavailable';
@@ -15,7 +15,7 @@ export async function shareReelAndRecord(reel: {
   let threw = false;
   let action: string | null = null;
   try {
-    const result = await Share.share({ message, title: 'PalSafar Reel' });
+    const result = await Share.share({ message, title: 'PalSafar Moments' });
     action = result?.action ?? null;
   } catch {
     threw = true;

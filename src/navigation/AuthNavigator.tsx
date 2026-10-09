@@ -158,7 +158,12 @@ function OTPVerificationWrapper({ navigation, route }: any) {
  */
 function AuthLegalHubWrapper({ navigation }: any) {
   const Screen = useLazyScreen(() => require('../screens/LegalHubScreen'));
-  return <Screen navigation={navigation} />;
+  return (
+    <Screen
+      onBack={() => navigation.goBack()}
+      onSelect={(type: string, label: string) => navigation.navigate('AuthLegalDocument', { type, title: label })}
+    />
+  );
 }
 
 function AuthLegalDocumentWrapper({ navigation, route }: any) {

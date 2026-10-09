@@ -386,7 +386,7 @@ export default function VendorSettingsScreen() {
                   { label: 'Show Website', desc: 'Display your website on your profile.', icon: 'globe', value: showWebsite, set: setShowWebsite },
                   { label: 'Show Gallery', desc: 'Show photos of your business to customers.', icon: 'images', value: showImages, set: setShowImages },
                   { label: 'Show Offers', desc: 'Display active offers on your profile.', icon: 'pricetags', value: showOffers, set: setShowOffers },
-                  { label: 'Show Reels', desc: 'Show your reels on your profile.', icon: 'play-circle', value: showReels, set: setShowReels },
+                  { label: 'Show Moments', desc: 'Show your Moments on your profile.', icon: 'play-circle', value: showReels, set: setShowReels },
                   { label: 'Show Navigation', desc: 'Allow customers to navigate to your location.', icon: 'navigate', value: showNavigation, set: setShowNavigation },
                 ].map((row) => (
                   <View key={row.label} style={styles.gridCard}>

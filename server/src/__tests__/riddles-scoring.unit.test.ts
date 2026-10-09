@@ -7,6 +7,7 @@ vi.mock('../../src/config/database', () => ({
     riddleProgress: { upsert: vi.fn(), update: vi.fn() },
     riddleDailyAttempt: { findUnique: vi.fn(), create: vi.fn() },
     riddle: { findFirst: vi.fn() },
+    place: { findFirst: vi.fn() },
     $transaction: vi.fn(),
   },
 }));
@@ -132,6 +133,9 @@ function setupState(riddleRewards: number[] = [9999, 9999, 9999]) {
     ctx.dailyAttemptsByRiddle.set(data.riddleId, { isCorrect: data.isCorrect });
     return rec;
   });
+
+  // No place alias is registered by default; individual tests opt in.
+  (prisma.place.findFirst as any).mockResolvedValue(null);
 
   const tx = {
     riddleDailyAttempt: {
@@ -426,5 +430,36 @@ describe('Treasure Hunt scoring — canonical riddle reward = 20 pts, no complet
     const hiTypo = await submit('hunt-1', 'r1', 'हुगली नदि', 'hi');
     expect(hiTypo.correct).toBe(true);
     expect(hiTypo.rewardCoins).toBe(20);
+  });
+
+  it('accepts a curated place alias for the riddle answer (Bhedaghat ↔ Marble Rocks)', async () => {
+    const ctx = setupState();
+    ctx.hunt.riddles[0].answerEnglish = 'Bhedaghat';
+    ctx.hunt.riddles[0].answerHindi = 'भेड़ाघाट';
+    (prisma.place.findFirst as any).mockResolvedValue({
+      name: 'Bhedaghat',
+      canonicalName: null,
+      aliases: [{ alias: 'Marble Rocks' }, { alias: 'Dhuandhar Falls' }, { alias: 'Bheda Ghat' }],
+    });
+
+    const alias = await submit('hunt-1', 'r1', 'Marble Rocks', 'en');
+    expect(alias.correct).toBe(true);
+    expect(alias.rewardCoins).toBe(20);
+    expect(ctx.earnCalls).toHaveLength(1);
+    expect(ctx.earnCalls[0].amount).toBe(20);
+  });
+
+  it('rejects an unrelated answer even when the riddle answer maps to a place with aliases', async () => {
+    const ctx = setupState();
+    ctx.hunt.riddles[0].answerEnglish = 'Bhedaghat';
+    (prisma.place.findFirst as any).mockResolvedValue({
+      name: 'Bhedaghat',
+      canonicalName: null,
+      aliases: [{ alias: 'Marble Rocks' }, { alias: 'Dhuandhar Falls' }],
+    });
+
+    const wrong = await submit('hunt-1', 'r1', 'Gateway of India', 'en');
+    expect(wrong.correct).toBe(false);
+    expect(wrong.rewardCoins).toBe(0);
   });
 });

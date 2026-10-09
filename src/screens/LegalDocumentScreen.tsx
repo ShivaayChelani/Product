@@ -57,7 +57,14 @@ export default function LegalDocumentScreen({ type, fallbackTitle, onBack }: Leg
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <View style={{ paddingTop: headerPadTop, paddingHorizontal: Pal.spacing[5], paddingBottom: Pal.spacing[4], flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-        <TouchableOpacity onPress={onBack} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.glass, justifyContent: 'center', alignItems: 'center' }}>
+        <TouchableOpacity
+          onPress={onBack}
+          disabled={loading}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          accessibilityState={{ disabled: loading }}
+          style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.glass, justifyContent: 'center', alignItems: 'center', opacity: loading ? 0.4 : 1 }}
+        >
           <Text style={{ color: theme.text, fontSize: 20 }}>←</Text>
         </TouchableOpacity>
         <Text style={{ flex: 1, fontFamily: Pal.typography.fontFamily.bold, fontSize: 19, color: theme.text }} numberOfLines={1}>

@@ -22,6 +22,7 @@ import { ReelsTopBar } from '../features/travelSocial/components/ReelsTopBar';
 import { ReelActionRailPosition } from '../components/reels/reelLayout';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { DEV_FLAGS } from '../config/devFlags';
+import { extractCreatorHandle } from '../utils/creatorHandle';
 import { socialApi } from '../services/api/social';
 import { REEL_TAG_LABELS } from '../features/travelSocial/reelTags';
 import type { RootStackParamList } from '../navigation/types';
@@ -104,7 +105,7 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
       if (reset) setError(null);
     } catch {
       if (fetchGenRef.current !== gen) return;
-      if (reset) setError('Failed to load reels. Check your connection and try again.');
+      if (reset) setError('Failed to load Moments. Check your connection and try again.');
     } finally {
       if (fetchGenRef.current === gen) {
         if (reset) setLoading(false);
@@ -150,7 +151,7 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
 
   const handleLike = useCallback(async (reelId: string) => {
     if (isGuest || user?.uid === 'guest-user' || !user) {
-      promptGuestAuth('like reels');
+      promptGuestAuth('like Moments');
       return;
     }
     const target = reels.find(r => r.id === reelId);
@@ -170,7 +171,7 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
   const handleShare = useCallback(async (reel: Reel) => {
     const result = await shareReelAndRecord(reel);
     if (result === 'unavailable') {
-      Alert.alert('Unavailable', 'This reel cannot be shared.');
+      Alert.alert('Unavailable', 'This Moment cannot be shared.');
       return;
     }
     if (result !== 'shared') return;
@@ -215,7 +216,7 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
       try {
         const { socialApi } = require('../services/api/social') as typeof import('../services/api/social');
         await socialApi.reportReel(reelId, 'Inappropriate content');
-        Alert.alert('Reported', 'Thank you. Our team will review this reel.');
+        Alert.alert('Reported', 'Thank you. Our team will review this Moment.');
         return;
       } catch { /* fall through */ }
     }
@@ -250,7 +251,18 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
   }, [isGuest, user, promptGuestAuth]);
 
   const handlePressAuthor = useCallback((reel: Reel) => {
-    const username = reel.creator?.username;
+    const vendor = reel.vendor;
+    const creator = reel.creator;
+    // A self-serve vendor reel is projected with creator.id === vendor.id (the
+    // server synthesizes the creator object from the vendor row). A creator reel
+    // that merely tags a vendor keeps its own creator id, so this still routes
+    // to the creator. Routing the vendor reel to CreatorProfile would open a
+    // profile that cannot exist (its "username" is the business name).
+    if (vendor?.id && (!creator?.id || creator.id === vendor.id)) {
+      navigation.navigate('VendorProfile', { vendorId: vendor.id });
+      return;
+    }
+    const username = extractCreatorHandle(creator?.username);
     if (!username) return;
     navigation.navigate('CreatorProfile', { username });
   }, [navigation]);
@@ -275,7 +287,7 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
   const handleCategorySelect = (cat: ReelFilterCategory) => {
     setCategoryOpen(false);
     if (cat === 'Following' && (isGuest || user?.uid === 'guest-user' || !user)) {
-      promptGuestAuth('see reels from creators you follow');
+      promptGuestAuth('see Moments from creators you follow');
       return;
     }
     setActiveCategory(cat);
@@ -318,7 +330,7 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
         onLike={handleLike}
         onComment={reelId => {
           if (isGuest || user?.uid === 'guest-user') {
-            promptGuestAuth('comment on reels');
+            promptGuestAuth('comment on Moments');
             return;
           }
           setCommentReelId(reelId);
@@ -345,7 +357,7 @@ export default function ReelsFeedScreen({ onCreateReel: _onCreateReel }: ReelsFe
       <Modal visible={categoryOpen} transparent animationType="fade" onRequestClose={() => setCategoryOpen(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setCategoryOpen(false)}>
           <View style={[styles.categorySheet, { marginTop: topPad + 48 }]}>
-            <Text style={styles.sheetTitle}>Filter reels</Text>
+            <Text style={styles.sheetTitle}>Filter Moments</Text>
             {CATEGORIES.map(cat => (
               <TouchableOpacity
                 key={cat}

@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   filterLabelActive: {
-    color: colors.primaryLight,
+    color: '#FFFFFF',
     fontWeight: '700',
   },
   content: {

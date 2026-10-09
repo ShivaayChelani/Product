@@ -38,12 +38,18 @@ export const creatorController = {
 
   publishDraft: catchAsync(async (req: any, res: Response) => {
     const data = await creatorService.publishDraft(req.user.id, req.params.id);
-    sendSuccess(res, data, { message: 'Reel published.' });
+    sendSuccess(res, data, { message: 'Moment published.' });
   }),
 
   deleteReel: catchAsync(async (req: any, res: Response) => {
     await socialService.deleteOwnReel(req.user.id, req.params.id);
     sendSuccess(res, null, { message: 'Reel deleted.' });
+  }),
+
+  setReelArchived: catchAsync(async (req: any, res: Response) => {
+    const archived = req.body.archived === true;
+    const data = await creatorService.setReelArchived(req.user.id, req.params.id, archived);
+    sendSuccess(res, data, { message: archived ? 'Reel archived.' : 'Reel restored.' });
   }),
 
   getReelAnalytics: catchAsync(async (req: any, res: Response) => {
@@ -74,6 +80,6 @@ export const creatorController = {
 
   createReel: catchAsync(async (req: any, res: Response) => {
     const data = await socialService.createReel(req.user.id, req.body);
-    sendSuccess(res, data, { message: 'Reel published.', statusCode: 201 });
+    sendSuccess(res, data, { message: 'Moment published.', statusCode: 201 });
   }),
 };

@@ -6,7 +6,7 @@ export const EARN_REASON_MESSAGES: Record<string, string> = {
   daily_login: 'Daily login PalPoints added.',
   daily_open: 'Opening PalSafar today!',
   game_complete: 'Game reward PalPoints added.',
-  reel_upload: 'Thanks for uploading a reel.',
+  reel_upload: 'Thanks for uploading a Moment.',
   itinerary_checkpoint: 'Itinerary checkpoint PalPoints added.',
   itinerary_completion: 'Itinerary completion PalPoints added.',
 };

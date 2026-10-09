@@ -182,7 +182,7 @@ export default function CollaborationDetailScreen() {
               <Text style={styles.revisionTitle}>Vendor requested changes</Text>
             </View>
             <Text style={styles.revisionBody}>
-              {item.revisionFeedback?.trim() || 'The vendor asked you to update this reel. Edit your content and resubmit it for review.'}
+              {item.revisionFeedback?.trim() || 'The vendor asked you to update this Moment. Edit your content and resubmit it for review.'}
             </Text>
           </View>
         ) : null}
@@ -191,7 +191,7 @@ export default function CollaborationDetailScreen() {
           <View style={styles.publishCard}>
             <View style={styles.revisionHeader}>
               <Icon name="checkmark-circle" size={20} color={C.green} />
-              <Text style={styles.publishTitle}>Vendor approved your reel</Text>
+              <Text style={styles.publishTitle}>Vendor approved your Moment</Text>
             </View>
             <Text style={styles.publishBody}>
               Publish it to go live on PalSafar and this business’s map profile.
@@ -206,7 +206,7 @@ export default function CollaborationDetailScreen() {
               <Text style={styles.publishTitle}>Waiting for creator to publish</Text>
             </View>
             <Text style={styles.publishBody}>
-              You approved this reel. It will appear on your map profile after the creator publishes it.
+              You approved this Moment. It will appear on your map profile after the creator publishes it.
             </Text>
           </View>
         ) : null}
@@ -224,7 +224,7 @@ export default function CollaborationDetailScreen() {
             {parsedBrief?.servicesRequested?.length ? parsedBrief.servicesRequested.map((s: string) => (
               <View key={s} style={styles.chip}><Text style={styles.chipText}>{s}</Text></View>
             )) : (
-              <View style={styles.chip}><Text style={styles.chipText}>1 Reel</Text></View>
+              <View style={styles.chip}><Text style={styles.chipText}>1 Moment</Text></View>
             )}
           </View>
 
@@ -318,7 +318,7 @@ export default function CollaborationDetailScreen() {
               disabled={acting}
               onPress={() => navigation.navigate('CollaborationReview', { collaborationId: item.id })}
             >
-              <Text style={styles.primaryBtnText}>Review Reel</Text>
+              <Text style={styles.primaryBtnText}>Review Moment</Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -383,7 +383,7 @@ export default function CollaborationDetailScreen() {
             navigation.navigate('CreateReel', {
               collaborationId: item.id,
               revisionNote: item.status === 'REVISION_REQUESTED'
-                ? (item.revisionFeedback?.trim() || 'Please update your reel.')
+                ? (item.revisionFeedback?.trim() || 'Please update your Moment.')
                 : undefined,
               prefillMediaUri: item.status === 'REVISION_REQUESTED'
                 ? (item.reel?.videoUrl || undefined)
@@ -398,18 +398,18 @@ export default function CollaborationDetailScreen() {
               navigation.navigate('ReelDetail', { reelId: item.reel.id });
               return;
             }
-            Alert.alert('View Content', 'Your reel is waiting for vendor review.');
+            Alert.alert('View Content', 'Your Moment is waiting for vendor review.');
           }}
           onPublishReel={() => {
             Alert.alert(
-              'Publish reel',
-              'This reel will go live on PalSafar and the vendor’s map profile.',
+              'Publish Moment',
+              'This Moment will go live on PalSafar and the vendor’s map profile.',
               [
                 { text: 'Cancel', style: 'cancel' },
                 {
                   text: 'Publish',
                   onPress: () =>
-                    runAction('Reel published', () => collaborationsApi.publishReel(item.id)),
+                    runAction('Moment published', () => collaborationsApi.publishReel(item.id)),
                 },
               ],
             );

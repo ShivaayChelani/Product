@@ -118,6 +118,7 @@ export const UNIT_TEST_FILES = [
   'src/__tests__/challenge-gps-hardening.unit.test.ts',
   'src/__tests__/brevo-template-flows.unit.test.ts',
   'src/__tests__/pal-points-partner-redeem.unit.test.ts',
+  'src/__tests__/partner-redemption-accounting.unit.test.ts',
   'src/__tests__/security-refresh-token.unit.test.ts',
   'src/__tests__/rate-limit-client-ip.unit.test.ts',
   'src/__tests__/pagination.unit.test.ts',
@@ -155,9 +156,12 @@ export const UNIT_TEST_FILES = [
   'src/__tests__/hunt-city-resolution.unit.test.ts',
   'src/__tests__/answer-matching.unit.test.ts',
   'src/__tests__/daily-open-reward.unit.test.ts',
+  'src/__tests__/wallet-summary.unit.test.ts',
+  'src/__tests__/redemptions-accounting.unit.test.ts',
   'src/__tests__/reverse-geocode.unit.test.ts',
   'src/__tests__/riddles-daily.unit.test.ts',
   'src/__tests__/legal-current-versions.unit.test.ts',
+  'src/__tests__/support-email.unit.test.ts',
   // Phase 1 itinerary intelligence engine (pure, DB-free)
   'src/__tests__/itinerary-phase1-intent.unit.test.ts',
   'src/__tests__/itinerary-phase1-candidates.unit.test.ts',
@@ -181,6 +185,11 @@ export const UNIT_TEST_FILES = [
   'src/__tests__/share-token.unit.test.ts',
   'src/__tests__/admin-search-ranking.unit.test.ts',
   'src/__tests__/refresh-avoid.unit.test.ts',
+  'src/__tests__/creator-reel-draft-lifecycle.unit.test.ts',
+  'src/__tests__/social-update-own-reel.unit.test.ts',
+  'src/__tests__/user-app-privacy-mask.unit.test.ts',
+  'src/__tests__/super-admin-assignment.unit.test.ts',
+  'src/__tests__/seed-production-guards.unit.test.ts',
 ];
 
 export const E2E_TEST_GLOB = 'src/__tests__/**/*.integration.test.ts';

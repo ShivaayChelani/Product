@@ -276,7 +276,7 @@ function FeatureItem({ icon, title, desc }: { icon: string; title: string; desc:
   return (
     <View style={styles.featureItem}>
       <View style={styles.featureIconWrap}>
-        <Icon name={icon} size={22} color={TH.brown} />
+        <Icon name={icon} size={22} color="#FFFFFF" />
       </View>
       <Text style={styles.featureTitle}>{title}</Text>
       <Text style={styles.featureDesc}>{desc}</Text>

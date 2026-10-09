@@ -22,6 +22,7 @@ import { creatorApi } from '../features/creator/api/creatorApi';
 import { uploadApi } from '../services/api/upload';
 import { compactNumber } from '../features/creator/utils/format';
 import { hasValidImageUrl } from '../utils/imageUrl';
+import { extractCreatorHandle, creatorAtHandle } from '../utils/creatorHandle';
 
 import { CreatorUI } from '../features/creator/theme';
 import { useBottomSafePadding } from '../design/responsive';
@@ -94,8 +95,8 @@ export default function CreatorProfileTabScreen() {
   const dashboard = dashboardQuery.data;
   const profile = dashboard?.profile;
   const overview = dashboard?.overview;
-  const displayName = profile?.fullName || profile?.username || user?.displayName || 'Creator';
-  const username = profile?.username ? `@${profile.username}` : '@creator';
+  const displayName = profile?.fullName || extractCreatorHandle(profile?.username) || user?.displayName || 'Creator';
+  const username = creatorAtHandle(profile?.username, '@creator');
 
   const followers = overview?.followers ?? profile?.followerCount ?? 0;
   const totalViews = overview?.views ?? profile?.totalViews ?? 0;
@@ -188,7 +189,7 @@ export default function CreatorProfileTabScreen() {
         {/* CREATOR TOOLS */}
         <Text style={styles.sectionHeading}>Creator Tools</Text>
         <View style={styles.listCard}>
-          <RowItem icon="videocam-outline" title="My Reels" desc="Manage and grow your content" onPress={() => navigation.navigate('Reels')} />
+          <RowItem icon="videocam-outline" title="My Moments" desc="Manage and grow your content" onPress={() => navigation.navigate('Reels')} />
           <RowItem icon="hand-left-outline" title="Collaborations" desc="Track campaigns and opportunities" onPress={() => navigation.navigate('Collaboration')} />
           <RowItem icon="stats-chart-outline" title="Analytics" desc="See your performance insights" onPress={() => navigation.navigate('CreatorAnalytics')} />
 

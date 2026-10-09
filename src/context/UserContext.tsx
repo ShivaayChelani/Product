@@ -216,6 +216,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [legalModalVisible, setLegalModalVisible] = useState(false);
   const [pendingGoogleIdToken, setPendingGoogleIdToken] = useState<string | null>(null);
   const [pendingAppleAuthorization, setPendingAppleAuthorization] = useState<PendingAppleAuthorization | null>(null);
+  const [pendingSessionLegal, setPendingSessionLegal] = useState(false);
   const [googleLegalLoading, setGoogleLegalLoading] = useState(false);
   const [appleLegalLoading, setAppleLegalLoading] = useState(false);
   const [legalVersions, setLegalVersions] = useState<LegalCurrentVersions | null>(null);
@@ -365,21 +366,50 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }, [pendingAppleAuthorization]);
 
+  const handleSessionLegalAccept = useCallback(async (versions: { termsVersion: number; privacyVersion: number }) => {
+    setGoogleLegalLoading(true);
+    try {
+      await legalApi.acceptCurrent({
+        termsAccepted: true,
+        privacyAccepted: true,
+        termsVersion: versions.termsVersion,
+        privacyVersion: versions.privacyVersion,
+        platform: Platform.OS === 'ios' ? 'ios' : 'android',
+      });
+      setLegalModalVisible(false);
+      setPendingSessionLegal(false);
+    } finally {
+      setGoogleLegalLoading(false);
+    }
+  }, []);
+
   const handleLegalAccept = useCallback(
-    (versions: { termsVersion: number; privacyVersion: number }) =>
-      pendingAppleAuthorization
-        ? handleAppleLegalAccept(versions)
-        : handleGoogleLegalAccept(versions),
-    [pendingAppleAuthorization, handleAppleLegalAccept, handleGoogleLegalAccept],
+    (versions: { termsVersion: number; privacyVersion: number }) => {
+      if (pendingSessionLegal) return handleSessionLegalAccept(versions);
+      if (pendingAppleAuthorization) return handleAppleLegalAccept(versions);
+      return handleGoogleLegalAccept(versions);
+    },
+    [pendingSessionLegal, pendingAppleAuthorization, handleSessionLegalAccept, handleAppleLegalAccept, handleGoogleLegalAccept],
   );
 
   const handleGoogleLegalCancel = useCallback(() => {
+    const sessionGate = pendingSessionLegal;
     setLegalModalVisible(false);
     setPendingGoogleIdToken(null);
     setPendingAppleAuthorization(null);
+    setPendingSessionLegal(false);
     setGoogleLegalLoading(false);
     setAppleLegalLoading(false);
-  }, []);
+    if (sessionGate) {
+      trackAuthEvent('logout');
+      notificationService.unregisterDeviceToken().catch(() => {});
+      logout().catch(() => {});
+      clearMonitoringUser();
+      void clearAppCaches();
+      setUser(GuestUser());
+      setIsAuthenticated(false);
+    }
+  }, [pendingSessionLegal]);
 
   const onLogin = useCallback(async (
     email: string,
@@ -488,8 +518,25 @@ export function UserProvider({ children }: { children: ReactNode }) {
     void clearAppCaches();
     setUser(GuestUser());
     setIsAuthenticated(false);
+    setPendingSessionLegal(false);
+    setLegalModalVisible(false);
     setIsLoggingOut(true);
     setTimeout(() => setIsLoggingOut(false), 500);
+  }, []);
+
+  const promptLegalIfNeeded = useCallback(async () => {
+    try {
+      const res = await legalApi.getAcceptanceStatus();
+      if (!res.data.requiresAcceptance) return;
+      setLegalVersions({
+        termsVersion: res.data.termsVersion,
+        privacyVersion: res.data.privacyVersion,
+      });
+      setPendingSessionLegal(true);
+      setLegalModalVisible(true);
+    } catch {
+      // Keep the session; the next foreground refresh will retry.
+    }
   }, []);
 
   const enforceAppleCredentialState = useCallback(async () => {
@@ -554,6 +601,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
       void enforceAppleCredentialState();
     });
   }, [isAuthenticated, user.uid, enforceAppleCredentialState]);
+
+  useEffect(() => {
+    if (!isAuthenticated || user.uid === 'guest-user') return;
+    if (pendingGoogleIdToken || pendingAppleAuthorization) return;
+    void promptLegalIfNeeded();
+  }, [isAuthenticated, user.uid, pendingGoogleIdToken, pendingAppleAuthorization, promptLegalIfNeeded]);
 
   const setActiveMode = useCallback(async (mode: UserActiveMode) => {
     if (!isAuthenticated || user.uid === 'guest-user') {

@@ -95,7 +95,7 @@ export default function DashboardLayout({
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <AdminHeader />
-        <main className="min-w-0 flex-1 overflow-auto p-4 pb-12 pt-14 lg:p-8 lg:pt-8">
+        <main className="min-w-0 flex-1 overflow-auto p-4 pb-12 lg:p-8">
           <NotificationProvider>
             <ErrorBoundary>
               <RouteGuard>{children}</RouteGuard>

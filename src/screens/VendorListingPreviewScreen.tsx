@@ -119,12 +119,12 @@ export default function VendorListingPreviewScreen({ onBack }: { onBack?: () => 
             </View>
           ))}
 
-          <Text style={styles.section}>Reels</Text>
+          <Text style={styles.section}>Moments</Text>
           {reels.length === 0 ? (
-            <Text style={styles.mutedLeft}>No reels in this preview.</Text>
+            <Text style={styles.mutedLeft}>No Moments in this preview.</Text>
           ) : reels.map((r: any) => (
             <View key={r.id} style={styles.rowCard}>
-              <Text style={styles.rowTitle}>{r.title || 'Promotion reel'}</Text>
+              <Text style={styles.rowTitle}>{r.title || 'Promotion Moment'}</Text>
             </View>
           ))}
         </ScrollView>

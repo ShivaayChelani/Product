@@ -29,7 +29,7 @@ type TabName = 'Home' | 'Explore' | 'Map' | 'Itinerary' | 'Profile';
 
 const TAB_ICONS: Record<TabName, { active: string; inactive: string; label: string }> = {
   Home:      { active: 'home',      inactive: 'home-outline',      label: 'Home' },
-  Explore:   { active: 'film', inactive: 'film-outline', label: 'Reels' },
+  Explore:   { active: 'film', inactive: 'film-outline', label: 'Moments' },
   Map:       { active: 'map',       inactive: 'map-outline',       label: 'Map' },
   Itinerary: { active: 'briefcase', inactive: 'briefcase-outline', label: 'Trips' },
   Profile:   { active: 'person',    inactive: 'person-outline',    label: 'Profile' },

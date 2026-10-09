@@ -16,7 +16,8 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Video from 'react-native-video';
-import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
+import { launchImageLibrary } from 'react-native-image-picker';
+import { captureReelMedia } from '../services/media/reelCamera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 
@@ -65,14 +66,20 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
 
   const handlePickVideo = useCallback(async (source: 'gallery' | 'camera') => {
     try {
-      const options: any = { mediaType: 'mixed', selectionLimit: 1, durationLimit: 60 };
-      let result;
       if (source === 'camera') {
-        result = await launchCamera(options);
-      } else {
-        result = await launchImageLibrary(options);
+        const result = await captureReelMedia('video');
+        if (result.status === 'captured') {
+          setVideoUri(result.uri);
+          setVideoMime(result.type);
+          setVideoFileName(result.fileName);
+        } else if (result.status === 'error') {
+          Alert.alert('Error', result.message);
+        }
+        return;
       }
-      
+
+      const options: any = { mediaType: 'mixed', selectionLimit: 1, durationLimit: 60 };
+      const result = await launchImageLibrary(options);
       if (result.assets && result.assets[0]) {
         const asset = result.assets[0];
         setVideoUri(asset.uri || null);
@@ -109,7 +116,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
     setUploading(true);
     try {
       if (!user?.uid) {
-        throw new Error('Please sign in again to publish this reel.');
+        throw new Error('Please sign in again to publish this Moment.');
       }
 
       const structuredData = {
@@ -138,12 +145,12 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
       submitLockRef.current = false;
       setUploading(false);
       if (e?.status === 403 || e?.code === 'PLAN_LIMIT_REACHED') {
-        Alert.alert('Upgrade plan', e?.message || 'Your plan does not allow more reels this month.', [
+        Alert.alert('Upgrade plan', e?.message || 'Your plan does not allow more Moments this month.', [
           { text: 'Not now', style: 'cancel' },
           { text: 'Upgrade Plan', onPress: () => navigation.navigate('VendorSubscription') },
         ]);
       } else {
-        Alert.alert('Couldn\'t publish your Reel', e?.message || 'Please check your connection and try again.', [
+        Alert.alert('Couldn\'t publish your Moment', e?.message || 'Please check your connection and try again.', [
           { text: 'Try Again', style: 'cancel' }
         ]);
       }
@@ -162,7 +169,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
           <Icon name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>Create Promotion Reel</Text>
+          <Text style={styles.headerTitle}>Create Promotion Moment</Text>
           <Text style={styles.headerSub}>Share your offers and attract more travelers</Text>
         </View>
 
@@ -204,7 +211,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
                     </View>
                   </View>
                   <Text style={styles.uploadMainText}>Tap to upload photo or video</Text>
-                  <Text style={styles.uploadSubText}>Media is saved to the cloud only after your reel publishes</Text>
+                  <Text style={styles.uploadSubText}>Media is saved to the cloud only after your Moment publishes</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -287,7 +294,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
               </View>
               <View style={styles.boostHeaderTextWrap}>
                 <Text style={styles.boostTitle}>Boost your promotion</Text>
-                <Text style={styles.boostSub}>Turn on to feature your reel on PalSafar home feed</Text>
+                <Text style={styles.boostSub}>Turn on to feature your Moment on PalSafar home feed</Text>
               </View>
             </View>
             <View style={styles.boostSettingRow}>
@@ -315,8 +322,8 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
                 <Icon name="eye-outline" size={22} color="#111111" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.previewCardTitle}>Preview Reel</Text>
-                <Text style={styles.previewCardSub}>See how your reel will appear on Map</Text>
+                <Text style={styles.previewCardTitle}>Preview Moment</Text>
+                <Text style={styles.previewCardSub}>See how your Moment will appear on Map</Text>
               </View>
               <Icon name="chevron-forward" size={18} color="#000000" />
             </TouchableOpacity>
@@ -327,7 +334,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.previewCardTitle}>View on Map</Text>
-                <Text style={styles.previewCardSub}>See how your reel will appear in Business Reel on Map</Text>
+                <Text style={styles.previewCardSub}>See how your Moment will appear in Business Moments on Map</Text>
               </View>
               <Icon name="chevron-forward" size={18} color="#000000" />
             </TouchableOpacity>
@@ -346,7 +353,7 @@ export default function CreateVendorReelScreen({ onBack }: CreateVendorReelScree
             <ActivityIndicator color="#FFF" />
           ) : (
             <>
-              <Text style={styles.publishBtnText}>Publish Reel</Text>
+              <Text style={styles.publishBtnText}>Publish Moment</Text>
               <Icon name="arrow-forward" size={20} color="#FFF" />
             </>
           )}

@@ -115,6 +115,20 @@ describe('Legal CMS admin (HTTP wiring)', () => {
     }
   });
 
+  it('refuses to archive the currently published legal document', async () => {
+    const versions = await request(app)
+      .get(`/api/v1/admin/legal/documents/${termsDocumentId}/versions`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    const published = versions.body.data.find((v: { status: string }) => v.status === 'PUBLISHED');
+    expect(published).toBeTruthy();
+
+    const res = await request(app)
+      .post(`/api/v1/admin/legal/versions/${published.id}/archive`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/cannot be archived/i);
+  });
+
   it('public current-versions endpoint matches the DB published state', async () => {
     const dbVersions = await getPublishedLegalVersions();
     const res = await request(app).get('/api/v1/legal/current-versions');

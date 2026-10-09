@@ -108,7 +108,7 @@ export const ReelActions: React.FC<ReelActionsProps> = React.memo(({
 
 export function showReelMenu(onReport?: () => void) {
   const { Alert } = require('react-native');
-  Alert.alert('Reel options', undefined, [
+  Alert.alert('Moment options', undefined, [
     { text: 'Report', style: 'destructive', onPress: onReport },
     { text: 'Cancel', style: 'cancel' },
   ]);

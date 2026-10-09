@@ -175,7 +175,7 @@ export default function DataTable<T extends Record<string, unknown>>({
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
           </div>
         )}
-        <table className={`w-full text-left text-sm ${dense ? "admin-table-dense" : ""}`}>
+        <table className={`w-full min-w-[720px] text-left text-sm ${dense ? "admin-table-dense" : ""}`}>
           <thead>
             <tr className="sticky top-0 z-10 border-b border-border bg-muted/50">
               {selectable && (
@@ -206,7 +206,7 @@ export default function DataTable<T extends Record<string, unknown>>({
                   onClick={() => {
                     if (col.sortable && onSort) onSort(col.key);
                   }}
-                  className={`px-4 py-3 font-semibold text-muted-foreground ${col.sortable ? "cursor-pointer select-none transition-colors hover:bg-muted" : ""} ${col.className || ""}`}
+                  className={`whitespace-nowrap px-4 py-3 font-semibold text-muted-foreground ${col.sortable ? "cursor-pointer select-none transition-colors hover:bg-muted" : ""} ${col.className || ""}`}
                 >
                   <div className="flex items-center gap-1.5">
                     {col.header}

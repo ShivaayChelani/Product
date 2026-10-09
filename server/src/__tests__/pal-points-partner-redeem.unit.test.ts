@@ -30,6 +30,7 @@ describe('Partner PalPoints redemption (H-05)', () => {
   it('rejects invalid vendor code inside transaction', async () => {
     (prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation(async (fn) => {
       const tx = {
+        $queryRaw: vi.fn().mockResolvedValue([]),
         vendorPalPointsPartnerOffer: {
           findUnique: vi.fn().mockResolvedValue({
             id: 'offer-1',

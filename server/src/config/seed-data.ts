@@ -251,7 +251,6 @@ export async function seedStreetStory(prisma: PrismaClient): Promise<void> {
           fullName: 'Rahul Chelani',
           bio: 'Travel storyteller exploring the hidden gems of Madhya Pradesh and beyond.',
           avatar: null,
-          instagramUrl: 'https://instagram.com/rahul.chelani.travels',
           youtubeUrl: 'https://youtube.com/@rahulchelanitravels',
           travelCategories: ['solo', 'culture', 'food', 'heritage', 'nature'],
           verified: true,

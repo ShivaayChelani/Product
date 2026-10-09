@@ -69,6 +69,7 @@ const COLORS = {
   cardBorder: palette.border,
   btnBg: palette.primaryLight,
   btnBorder: palette.border,
+  btnForeground: '#FFFFFF',
 };
 
 const serif = Platform.OS === 'ios' ? 'Georgia' : 'serif';
@@ -250,7 +251,7 @@ export default function MapPlaceDetailCard({
               </View>
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.reelsTitle}>Watch Reels</Text>
+              <Text style={s.reelsTitle}>Watch Moments</Text>
               <Text style={s.reelsSub} numberOfLines={1}>
                 Explore this place in short videos
               </Text>
@@ -333,7 +334,7 @@ export default function MapPlaceDetailCard({
           accessibilityRole="button"
           accessibilityLabel="Navigate"
         >
-          <Icon name="navigate-outline" size={18} color={COLORS.textPrimary} />
+          <Icon name="navigate-outline" size={18} color={COLORS.btnForeground} />
           <Text style={styles.actionPillText}>Navigate</Text>
         </TouchableOpacity>
 
@@ -344,12 +345,12 @@ export default function MapPlaceDetailCard({
           activeOpacity={0.8}
         >
           {addingToItinerary ? (
-            <ActivityIndicator size="small" color={COLORS.textPrimary} />
+            <ActivityIndicator size="small" color={COLORS.btnForeground} />
           ) : (
             <Icon
               name={isVendor ? 'storefront-outline' : inItinerary ? 'checkmark-circle-outline' : 'briefcase-outline'}
               size={18}
-              color={COLORS.textPrimary}
+              color={COLORS.btnForeground}
             />
           )}
           <Text style={styles.actionPillText}>
@@ -362,7 +363,7 @@ export default function MapPlaceDetailCard({
           onPress={onBookRide || onNavigate}
           activeOpacity={0.8}
         >
-          <Icon name="car-outline" size={18} color={COLORS.textPrimary} />
+          <Icon name="car-outline" size={18} color={COLORS.btnForeground} />
           <Text style={styles.actionPillText}>Get a Ride</Text>
         </TouchableOpacity>
       </View>
@@ -642,6 +643,6 @@ const styles = StyleSheet.create({
   actionPillText: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: COLORS.btnForeground,
   },
 });

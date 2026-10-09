@@ -1,4 +1,5 @@
 import { settingsService } from '../settings/settings.service';
+import { SUPPORT_EMAIL, normalizeSupportEmailTypo } from '../../shared/utils/supportEmail';
 
 function parseSetting(settings: { key: string; value: unknown }[], key: string, fallback: string) {
   const row = settings.find(s => s.key === key);
@@ -14,7 +15,9 @@ export const appPublicService = {
     const minVersion = parseSetting(settings, 'force_update_min_version', '');
     const playStoreUrl = parseSetting(settings, 'play_store_url', 'https://play.google.com/store/apps/details?id=com.palsasafar');
     const appStoreUrl = parseSetting(settings, 'app_store_url', 'https://apps.apple.com/app/id0000000000');
-    const supportEmail = parseSetting(settings, 'support_email', 'shivaay.chelai@gmail.com');
+    const supportEmail = normalizeSupportEmailTypo(
+      parseSetting(settings, 'support_email', SUPPORT_EMAIL),
+    );
 
     return {
       latestVersion,

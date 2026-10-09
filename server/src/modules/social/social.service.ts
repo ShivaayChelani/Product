@@ -3,11 +3,13 @@ import { logger } from '../../config/logger';
 import { CreatorStatus, Prisma, ReelReportStatus, Role, RoleAssignmentStatus, VendorListingStatus } from '@prisma/client';
 import { getPaginationParams, paginatedResponse } from '../../shared/utils/pagination';
 import { ApiError, ErrorCodes } from '../../shared/utils/ApiError';
+import { deriveVideoPosterUrl } from '../../config/upload';
 import { mapCreatorStatusToRoleStatus } from '../../shared/utils/specialtyRoles';
 import { roleTransitionService } from '../../shared/services/roleTransition.service';
 import { notificationService } from '../notifications/notification.service';
 import { planEnforcementService } from '../monetization/plan-enforcement.service';
 import { getPublicVendorListingWhere } from '../vendors/vendor-public-visibility';
+import { publicPrivacyMask, readPrivacy } from '../user-app/user-app.types';
 import { notifyVendorOfTaggedReel } from '../vendors/vendor-tagged-reels';
 import {
   claimActionSlot,
@@ -23,6 +25,7 @@ import {
 } from './creatorDailyReelReward';
 import { notifyCreatorDailyReelReward } from './creatorDailyReelNotification';
 import { resolveReelEventLink, sanitizeReelEvent, isAdminUser } from './reelEventLink';
+import { isPublishableMediaUrl, isReelVisibleToViewer } from './reelVisibility';
 import type {
   ApplyCreatorInput,
   UpdateCreatorProfileInput,
@@ -53,6 +56,20 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
  */
 function isCuidLike(value: string): boolean {
   return /^c[a-z0-9]{8,127}$/i.test(value);
+}
+
+/**
+ * PalSafar usernames are the only valid value for the `username` field. Legacy
+ * rows may hold a pasted social URL (e.g. an Instagram profile link, sometimes
+ * with its punctuation stripped). Such values must never be returned as a
+ * username, so malformed/URL-like stored values are replaced with an empty
+ * string at the API boundary. No database migration is required.
+ */
+function sanitizeStoredUsername(value?: string | null): string {
+  const trimmed = String(value ?? '').trim().toLowerCase();
+  if (!trimmed) return '';
+  if (/instagram|https?|www\./i.test(trimmed)) return '';
+  return /^[a-z0-9_.]{3,30}$/.test(trimmed) ? trimmed : '';
 }
 
 async function getFollowingUserIdSet(followerId: string): Promise<Set<string>> {
@@ -212,14 +229,14 @@ const CREATOR_SCOPED_FEED_CATEGORIES = new Set(['Following', 'Nearby']);
  */
 async function findPublicVendorReelForEngagement(vendorReelId: string) {
   return prisma.vendorReel.findFirst({
-    where: { id: vendorReelId, vendor: getPublicVendorListingWhere() },
+    where: { id: vendorReelId, archivedAt: null, vendor: getPublicVendorListingWhere() },
     select: { id: true, vendorId: true },
   });
 }
 
 async function likeVendorReel(userId: string, vendorReelId: string) {
   const row = await findPublicVendorReelForEngagement(vendorReelId);
-  if (!row) throw new ApiError(404, 'Reel not found.');
+  if (!row) throw new ApiError(404, 'Moment not found.');
 
   const existing = await prisma.vendorReelLike.findUnique({
     where: { vendorReelId_userId: { vendorReelId, userId } },
@@ -240,7 +257,7 @@ async function likeVendorReel(userId: string, vendorReelId: string) {
 
 async function unlikeVendorReel(userId: string, vendorReelId: string) {
   const row = await findPublicVendorReelForEngagement(vendorReelId);
-  if (!row) throw new ApiError(404, 'Reel not found.');
+  if (!row) throw new ApiError(404, 'Moment not found.');
 
   const like = await prisma.vendorReelLike.findUnique({
     where: { vendorReelId_userId: { vendorReelId, userId } },
@@ -257,7 +274,7 @@ async function unlikeVendorReel(userId: string, vendorReelId: string) {
 /** Share counter for a `vendor_reels` row, using the same dedup window as `reels`. */
 async function incrementVendorReelShares(vendorReelId: string, actorKey: string) {
   const row = await findPublicVendorReelForEngagement(vendorReelId);
-  if (!row) throw new ApiError(404, 'Reel not found.');
+  if (!row) throw new ApiError(404, 'Moment not found.');
 
   const current = await prisma.vendorReel.findUnique({
     where: { id: vendorReelId },
@@ -420,7 +437,7 @@ function isMissingVendorReelLikeTable(err: unknown): boolean {
 
 async function queryEligibleFeedVendorReels(take: number, viewerId?: string) {
   const rows = await prisma.vendorReel.findMany({
-    where: { vendor: getPublicVendorListingWhere() },
+    where: { archivedAt: null, vendor: getPublicVendorListingWhere() },
     orderBy: { createdAt: 'desc' },
     take,
     include: {
@@ -688,6 +705,14 @@ export const socialService = {
     });
     if (!profile) throw new ApiError(404, 'Creator profile not found.');
 
+    const viewerIsOwner = !!currentUserId && currentUserId === profile.userId;
+    const prefRow = await prisma.userAppPreference.findUnique({
+      where: { userId: profile.userId },
+      select: { privacy: true },
+    });
+    const privacyMask = publicPrivacyMask(readPrivacy(prefRow?.privacy), viewerIsOwner);
+    const visibleReels = privacyMask.hideReels ? [] : profile.reels;
+
     let isFollowing = false;
     if (currentUserId) {
       const follow = await prisma.follow.findFirst({
@@ -730,13 +755,16 @@ export const socialService = {
 
     return {
       ...profile,
+      username: sanitizeStoredUsername(profile.username),
+      bio: privacyMask.hideProfile ? null : profile.bio,
+      reels: visibleReels,
       followerCount,
       followingCount,
       isFollowing,
-      badges,
-      totalLikes: reelTotals._sum.likes ?? 0,
-      reelCount: reelTotals._count.id ?? profile.reels?.length ?? 0,
-      citiesCount,
+      badges: privacyMask.hideProfile ? [] : badges,
+      totalLikes: privacyMask.hideReels ? 0 : (reelTotals._sum.likes ?? 0),
+      reelCount: privacyMask.hideReels ? 0 : (reelTotals._count.id ?? profile.reels?.length ?? 0),
+      citiesCount: privacyMask.hideReels ? 0 : citiesCount,
     };
   },
 
@@ -896,8 +924,8 @@ export const socialService = {
       },
       topReels,
       note: period === 'all'
-        ? 'Totals are calculated from current reel aggregates.'
-        : 'Historical view events are not recorded, so this period uses current reel aggregates.',
+        ? 'Totals are calculated from current Moment aggregates.'
+        : 'Historical view events are not recorded, so this period uses current Moment aggregates.',
     };
   },
 
@@ -923,21 +951,27 @@ export const socialService = {
       title?: string;
       description?: string;
       thumbnail?: string;
+      videoUrl?: string;
       placeId?: string | null;
       vendorId?: string | null;
       eventId?: string | null;
       tags?: string[];
+      status?: unknown;
     },
   ) {
     const profile = await this.getApprovedCreatorProfile(userId);
     const reel = await prisma.reel.findUnique({ where: { id: reelId } });
-    if (!reel) throw new ApiError(404, 'Reel not found.');
-    if (reel.creatorId !== profile.id) throw new ApiError(403, 'You can only edit your own reels.');
+    if (!reel) throw new ApiError(404, 'Moment not found.');
+    if (reel.creatorId !== profile.id) throw new ApiError(403, 'You can only edit your own Moments.');
 
     const dataToUpdate: any = {};
+    // Client-supplied status is ignored. Published/approved reels stay visible
+    // unless a dedicated archive/publish endpoint is used.
+    void input.status;
     if (input.title !== undefined) dataToUpdate.title = input.title;
     if (input.description !== undefined) dataToUpdate.description = input.description;
     if (input.thumbnail !== undefined) dataToUpdate.thumbnail = input.thumbnail;
+    if (input.videoUrl !== undefined) dataToUpdate.videoUrl = input.videoUrl;
     if (input.placeId !== undefined) {
       if (input.placeId) {
         const foundPlace = await prisma.place.findFirst({
@@ -999,8 +1033,8 @@ export const socialService = {
   async deleteOwnReel(userId: string, reelId: string) {
     const profile = await this.getApprovedCreatorProfile(userId);
     const reel = await prisma.reel.findUnique({ where: { id: reelId } });
-    if (!reel) throw new ApiError(404, 'Reel not found.');
-    if (reel.creatorId !== profile.id) throw new ApiError(403, 'You can only delete your own reels.');
+    if (!reel) throw new ApiError(404, 'Moment not found.');
+    if (reel.creatorId !== profile.id) throw new ApiError(403, 'You can only delete your own Moments.');
 
     return prisma.$transaction(async (tx) => {
       if (reel.collaborationId) {
@@ -1016,7 +1050,7 @@ export const socialService = {
               data: {
                 reelId: null,
                 ...(needsReset
-                  ? { status: 'IN_PROGRESS', revisionFeedback: 'Reel deleted by creator' }
+                  ? { status: 'IN_PROGRESS', revisionFeedback: 'Moment deleted by creator' }
                   : {}),
               },
             });
@@ -1151,7 +1185,7 @@ export const socialService = {
       where: { userId, status: 'APPROVED' },
     });
     if (!capable || !profile) {
-      throw new ApiError(403, 'Only approved travel creators can publish reels.');
+      throw new ApiError(403, 'Only approved travel creators can publish Moments.');
     }
 
     await planEnforcementService.assertCreatorCanUploadReel(userId);
@@ -1194,6 +1228,10 @@ export const socialService = {
       isAdmin: await isAdminUser(userId),
     });
 
+    if (!isPublishableMediaUrl(input.videoUrl)) {
+      throw new ApiError(400, 'Upload the Moment video before publishing.');
+    }
+
     // Idempotency: retry with the same uploaded video must not create duplicate reels.
     const recentDuplicate = await prisma.reel.findFirst({
       where: {
@@ -1219,7 +1257,7 @@ export const socialService = {
         data: {
           creatorId: profile.id,
           videoUrl: input.videoUrl,
-          thumbnail: input.thumbnail,
+          thumbnail: input.thumbnail ?? deriveVideoPosterUrl(input.videoUrl),
           title: input.title || input.description?.slice(0, 200) || null,
           description: input.description,
           tags: input.tags || [],
@@ -1227,6 +1265,7 @@ export const socialService = {
           vendorId: taggedVendor?.id || null,
           vendorListingStatus: taggedVendor ? VendorListingStatus.PENDING : null,
           eventId: resolvedEventId,
+          status: 'APPROVED',
         },
         include: reelResponseInclude,
       });
@@ -1565,7 +1604,7 @@ export const socialService = {
     const isOwner = reel.creator?.userId === userId;
     const isCollabVendor = reel.vendor?.userId === userId;
     if (reel.status !== 'APPROVED' && !isOwner && !isCollabVendor) {
-      throw new ApiError(404, 'Reel not found.');
+      throw new ApiError(404, 'Moment not found.');
     }
 
     const existing = await prisma.reelLike.findUnique({
@@ -1596,7 +1635,7 @@ export const socialService = {
     const isOwner = reel.creator?.userId === userId;
     const isCollabVendor = reel.vendor?.userId === userId;
     if (reel.status !== 'APPROVED' && !isOwner && !isCollabVendor) {
-      throw new ApiError(404, 'Reel not found.');
+      throw new ApiError(404, 'Moment not found.');
     }
 
     const like = await prisma.reelLike.findUnique({
@@ -1618,7 +1657,7 @@ export const socialService = {
 
   async saveReel(userId: string, reelId: string) {
     const reel = await prisma.reel.findUnique({ where: { id: reelId } });
-    if (!reel) throw new ApiError(404, 'Reel not found.');
+    if (!reel) throw new ApiError(404, 'Moment not found.');
 
     const existing = await prisma.reelSave.findUnique({
       where: { reelId_userId: { reelId, userId } },
@@ -1655,8 +1694,24 @@ export const socialService = {
   },
 
   async addComment(userId: string, reelId: string, text: string) {
-    const reel = await prisma.reel.findUnique({ where: { id: reelId } });
-    if (!reel) throw new ApiError(404, 'Reel not found.');
+    const reel = await prisma.reel.findUnique({
+      where: { id: reelId },
+      select: {
+        id: true,
+        status: true,
+        creator: { select: { userId: true } },
+        vendor: { select: { userId: true } },
+      },
+    });
+    if (!reel) throw new ApiError(404, 'Moment not found.');
+    if (
+      !isReelVisibleToViewer(reel.status, {
+        isOwner: reel.creator?.userId === userId,
+        isCollabVendor: reel.vendor?.userId === userId,
+      })
+    ) {
+      throw new ApiError(404, 'Moment not found.');
+    }
 
     return prisma.reelComment.create({
       data: {
@@ -1684,12 +1739,12 @@ export const socialService = {
         savesList: userId ? { where: { userId } } : undefined,
       },
     });
-    if (!item) throw new ApiError(404, 'Reel not found.');
+    if (!item) throw new ApiError(404, 'Moment not found.');
 
     const isOwner = !!userId && item.creator?.userId === userId;
     const isCollabVendor = !!userId && item.vendor?.userId === userId;
     if (item.status !== 'APPROVED' && !isOwner && !isCollabVendor) {
-      throw new ApiError(404, 'Reel not found.');
+      throw new ApiError(404, 'Moment not found.');
     }
 
     let isFollowingCreator = false;
@@ -1719,7 +1774,24 @@ export const socialService = {
     };
   },
 
-  async listComments(reelId: string) {
+  async listComments(reelId: string, userId?: string) {
+    const reel = await prisma.reel.findUnique({
+      where: { id: reelId },
+      select: {
+        status: true,
+        creator: { select: { userId: true } },
+        vendor: { select: { userId: true } },
+      },
+    });
+    if (!reel) throw new ApiError(404, 'Moment not found.');
+    if (
+      !isReelVisibleToViewer(reel.status, {
+        isOwner: !!userId && reel.creator?.userId === userId,
+        isCollabVendor: !!userId && reel.vendor?.userId === userId,
+      })
+    ) {
+      throw new ApiError(404, 'Moment not found.');
+    }
     return prisma.reelComment.findMany({
       where: { reelId },
       orderBy: { createdAt: 'desc' },
@@ -1733,8 +1805,24 @@ export const socialService = {
   },
 
   async reportReel(userId: string, reelId: string, reason: string) {
-    const reel = await prisma.reel.findUnique({ where: { id: reelId } });
-    if (!reel) throw new ApiError(404, 'Reel not found.');
+    const reel = await prisma.reel.findUnique({
+      where: { id: reelId },
+      select: {
+        id: true,
+        status: true,
+        creator: { select: { userId: true } },
+        vendor: { select: { userId: true } },
+      },
+    });
+    if (!reel) throw new ApiError(404, 'Moment not found.');
+    if (
+      !isReelVisibleToViewer(reel.status, {
+        isOwner: reel.creator?.userId === userId,
+        isCollabVendor: reel.vendor?.userId === userId,
+      })
+    ) {
+      throw new ApiError(404, 'Moment not found.');
+    }
     return prisma.reelReport.create({
       data: { reelId, userId, reason },
     });
@@ -1772,9 +1860,13 @@ export const socialService = {
   async incrementViews(reelId: string, actorKey: string, viewerUserId?: string | null) {
     const reel = await prisma.reel.findUnique({
       where: { id: reelId },
-      select: { id: true, views: true, creatorId: true, creator: { select: { userId: true } } },
+      select: { id: true, views: true, status: true, creatorId: true, creator: { select: { userId: true } } },
     });
-    if (!reel) throw new ApiError(404, 'Reel not found.');
+    if (!reel) throw new ApiError(404, 'Moment not found.');
+    const isOwner = reel.creator.userId === viewerUserId;
+    if (!isReelVisibleToViewer(reel.status, { isOwner })) {
+      throw new ApiError(404, 'Moment not found.');
+    }
 
     const readCurrent = async () => {
       // Re-read rather than reuse the value fetched at the start of the request:
@@ -1809,8 +1901,6 @@ export const socialService = {
       });
       return { ...updated, counted: true, outcome: 'anonymous' as const };
     }
-
-    const isOwner = reel.creator.userId === viewerUserId;
 
     // The insert and the increment share one transaction: if the insert loses
     // the unique-index race, the increment is rolled back with it.
@@ -1848,11 +1938,28 @@ export const socialService = {
     return { ...decision.result, counted: decision.counted, outcome: decision.outcome };
   },
 
-  async incrementShares(reelId: string, actorKey: string) {
-    const reel = await prisma.reel.findUnique({ where: { id: reelId }, select: { id: true, shares: true } });
+  async incrementShares(reelId: string, actorKey: string, viewerUserId?: string | null) {
+    const reel = await prisma.reel.findUnique({
+      where: { id: reelId },
+      select: {
+        id: true,
+        shares: true,
+        status: true,
+        creator: { select: { userId: true } },
+        vendor: { select: { userId: true } },
+      },
+    });
     // Same dual-table resolution as Like, so sharing a vendor reel from the feed
     // records a share instead of 404-ing behind a swallowed client catch.
     if (!reel) return incrementVendorReelShares(reelId, actorKey);
+    if (
+      !isReelVisibleToViewer(reel.status, {
+        isOwner: !!viewerUserId && reel.creator?.userId === viewerUserId,
+        isCollabVendor: !!viewerUserId && reel.vendor?.userId === viewerUserId,
+      })
+    ) {
+      throw new ApiError(404, 'Moment not found.');
+    }
 
     const claimed = await claimActionSlot(`reel-share:${reelId}:${actorKey}`, REEL_SHARE_DEDUP_MS);
     if (!claimed) {

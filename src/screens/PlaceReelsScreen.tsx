@@ -20,6 +20,9 @@ import { useUserContext } from '../context/UserContext';
 import { useDataContext } from '../context/DataContext';
 import { isVendorApproved } from '../utils/workspaceRoles';
 import { normalizeReelCaption } from '../components/reels/reelCaptionUtils';
+import { getReelThumbnail } from '../services/reelService';
+import { hasValidImageUrl } from '../utils/imageUrl';
+import { creatorAtHandle, extractCreatorHandle } from '../utils/creatorHandle';
 
 type PlaceReelsRouteProp = RouteProp<RootStackParamList, 'PlaceReels'>;
 
@@ -98,7 +101,7 @@ export default function PlaceReelsScreen() {
   const handleSharePlace = async () => {
     try {
       await Share.share({
-        message: `Check out creator reels and experiences from ${placeName} on PalSafar! 🌍📸`,
+        message: `Check out creator Moments and experiences from ${placeName} on PalSafar! 🌍📸`,
       });
     } catch (error) {
       if (typeof __DEV__ !== 'undefined' && __DEV__) {
@@ -116,7 +119,7 @@ export default function PlaceReelsScreen() {
       >
         <Icon name="arrow-back" size={24} color={COLORS.text} />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>Reels from {placeName}</Text>
+      <Text style={styles.headerTitle}>Moments from {placeName}</Text>
       <View style={styles.headerActions}>
         <TouchableOpacity style={styles.headerIconBtn} onPress={handleSharePlace}>
           <Icon name="arrow-redo-outline" size={24} color={COLORS.text} />
@@ -147,7 +150,7 @@ export default function PlaceReelsScreen() {
           </Text>
         </View>
         <Text style={styles.bannerDesc} numberOfLines={2}>
-          Discover the top creator reels and stories from this location.
+          Discover the top creator Moments and stories from this location.
         </Text>
       </View>
     </View>
@@ -157,7 +160,7 @@ export default function PlaceReelsScreen() {
     <View style={styles.filtersScroll}>
       <View style={[styles.chip, styles.chipActive]}>
         <Icon name="play-outline" size={16} color={COLORS.chipTextActive} style={styles.chipIcon} />
-        <Text style={[styles.chipText, styles.chipTextActive]}>All Reels</Text>
+        <Text style={[styles.chipText, styles.chipTextActive]}>All Moments</Text>
       </View>
       <View style={styles.chip}>
         <Icon name="flame-outline" size={16} color={COLORS.chipText} style={styles.chipIcon} />
@@ -176,7 +179,7 @@ export default function PlaceReelsScreen() {
 
   const renderListHeader = () => (
     <View style={styles.listHeader}>
-      <Text style={styles.listHeaderTitle}>Reels ({reels.length})</Text>
+      <Text style={styles.listHeaderTitle}>Moments ({reels.length})</Text>
       <View style={styles.sortRow}>
         <View style={styles.sortBtn}>
           <Text style={styles.sortBtnText}>Sort: Latest</Text>
@@ -196,8 +199,8 @@ export default function PlaceReelsScreen() {
       }}
     >
       <View style={styles.reelThumbWrap}>
-        {item.thumbnail ? (
-          <Image source={{ uri: item.thumbnail }} style={styles.reelThumb} resizeMode="cover" />
+        {hasValidImageUrl(getReelThumbnail(item)) ? (
+          <Image source={{ uri: getReelThumbnail(item) }} style={styles.reelThumb} resizeMode="cover" />
         ) : (
           <View style={styles.reelThumbPlaceholder}>
             <Icon name="videocam-outline" size={28} color="#B0B0B8" />
@@ -205,7 +208,7 @@ export default function PlaceReelsScreen() {
         )}
         <View style={styles.durationBadge}>
           <Icon name="play" size={10} color="#FFF" style={{ marginRight: 2 }} />
-          <Text style={styles.durationText}>Reel</Text>
+          <Text style={styles.durationText}>Moment</Text>
         </View>
       </View>
       <View style={styles.reelInfo}>
@@ -219,7 +222,7 @@ export default function PlaceReelsScreen() {
           )}
           <View style={styles.creatorNameWrap}>
             <Text style={styles.creatorName} numberOfLines={1}>
-              {item.creator?.username || 'Creator'}
+              {extractCreatorHandle(item.creator?.username) || 'Creator'}
             </Text>
             {item.creator?.verified && (
               <Icon name="checkmark-circle" size={14} color="#B7791F" style={{ marginLeft: 4 }} />
@@ -230,7 +233,7 @@ export default function PlaceReelsScreen() {
           </TouchableOpacity>
         </View>
         <Text style={styles.creatorHandle} numberOfLines={1}>
-          @{item.creator?.username?.toLowerCase().replace(/\s/g, '_') || 'creator'}
+          {creatorAtHandle(item.creator?.username, '@creator')}
         </Text>
 
         <Text style={styles.reelCaption} numberOfLines={2}>
@@ -273,16 +276,16 @@ export default function PlaceReelsScreen() {
         <View style={styles.emptyIconWrap}>
           <Icon name="videocam-outline" size={48} color="#F2F2F2" />
         </View>
-        <Text style={styles.emptyTitle}>No Reels from this place yet</Text>
+        <Text style={styles.emptyTitle}>No Moments from this place yet</Text>
         <Text style={styles.emptyDesc}>
           {canCreateCreatorReel
             ? 'Be the first creator to share your experience.'
-            : 'Post promotion reels from your vendor dashboard to appear on your business listing.'}
+            : 'Post promotion Moments from your vendor dashboard to appear on your business listing.'}
         </Text>
         {canCreateCreatorReel ? (
           <TouchableOpacity style={styles.createBtn} onPress={handleCreateReel}>
             <Icon name="videocam" size={20} color="#FFF" style={{ marginRight: 8 }} />
-            <Text style={styles.createBtnText}>Create a Reel</Text>
+            <Text style={styles.createBtnText}>Create a Moment</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -336,7 +339,7 @@ export default function PlaceReelsScreen() {
           activeOpacity={0.9}
         >
           <Icon name="videocam" size={20} color="#FFF" />
-          <Text style={styles.fabText}>Create Reel</Text>
+          <Text style={styles.fabText}>Create Moment</Text>
         </TouchableOpacity>
       ) : null}
     </View>

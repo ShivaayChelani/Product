@@ -21,6 +21,8 @@ import TaggedReelReviewRow from './TaggedReelReviewRow';
 import { mapVendorReelsToFeed } from '../features/mapExplore/utils/mapVendorReelToFeed';
 import { formatOfferDiscount } from '../features/mapExplore/utils/vendorFilters';
 import type { Reel } from '../types';
+import { getReelThumbnail } from '../services/reelService';
+import { hasValidImageUrl } from '../utils/imageUrl';
 
 type Props = {
   vendorId: string;
@@ -144,7 +146,7 @@ export default function MapVendorDetailCard({
       await queryClient.invalidateQueries({ queryKey: ['vendor-map-detail', vendorId] });
       await refetch();
     } catch {
-      Alert.alert('Could not update reel', 'Please try again.');
+      Alert.alert('Could not update Moment', 'Please try again.');
     } finally {
       setReviewingId(null);
     }
@@ -273,14 +275,14 @@ export default function MapVendorDetailCard({
 
           {vendorPromoReels.length > 0 ? (
             <View style={styles.vendorReelsWrap}>
-              <Text style={styles.vendorReelsLabel}>Business reels</Text>
+              <Text style={styles.vendorReelsLabel}>Business Moments</Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.vendorReelsRow}
               >
                 {vendorPromoReels.map((reel) => {
-                  const thumb = reel.thumbnail || reel.videoUrl;
+                  const thumb = getReelThumbnail(reel);
                   return (
                     <TouchableOpacity
                       key={reel.id}
@@ -288,9 +290,9 @@ export default function MapVendorDetailCard({
                       onPress={() => openVendorPromoReel(reel.id)}
                       activeOpacity={0.85}
                       accessibilityRole="button"
-                      accessibilityLabel={reel.title || 'Play business reel'}
+                      accessibilityLabel={reel.title || 'Play business Moment'}
                     >
-                      {thumb ? (
+                      {hasValidImageUrl(thumb) ? (
                         <Image source={{ uri: thumb }} style={styles.vendorReelImage} />
                       ) : (
                         <View style={[styles.vendorReelImage, styles.vendorReelFallback]}>
@@ -321,9 +323,9 @@ export default function MapVendorDetailCard({
                 </View>
                 <Icon name="chevron-forward" size={16} color={T.textSecondary} />
               </View>
-              <Text style={styles.tileTitle}>Reels</Text>
+              <Text style={styles.tileTitle}>Moments</Text>
               <Text style={styles.tileSubtitle}>
-                {vendor.reelCount === 0 ? 'No Reels yet' : `${vendor.reelCount} Reels`}
+                {vendor.reelCount === 0 ? 'No Moments yet' : `${vendor.reelCount} Moments`}
               </Text>
             </TouchableOpacity>
 

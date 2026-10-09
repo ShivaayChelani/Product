@@ -26,14 +26,14 @@ export default function Modal({
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
-    
+
     if (isOpen) {
       document.body.style.overflow = "hidden";
       window.addEventListener("keydown", handleEscape);
     }
-    
+
     return () => {
-      document.body.style.overflow = "unset";
+      document.body.style.overflow = "";
       window.removeEventListener("keydown", handleEscape);
     };
   }, [isOpen, onClose]);
@@ -51,32 +51,39 @@ export default function Modal({
   }[maxWidth];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      <div 
-        className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" 
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
+      <button
+        type="button"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
+        aria-label="Close dialog backdrop"
       />
-      
-      <div 
+
+      <div
         ref={modalRef}
-        className={`relative w-full ${maxWidthClass} transform overflow-hidden rounded-xl bg-white shadow-2xl transition-all max-h-[90vh] flex flex-col`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="admin-modal-title"
+        className={`relative flex max-h-[min(90vh,720px)] w-full ${maxWidthClass} transform flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-2xl`}
       >
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-          <button 
+        <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4 sm:px-6">
+          <h3 id="admin-modal-title" className="min-w-0 truncate text-lg font-semibold text-foreground">
+            {title}
+          </h3>
+          <button
+            type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
+            className="shrink-0 rounded-lg p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            aria-label="Close dialog"
           >
             <X size={20} />
           </button>
         </div>
-        
-        <div className="flex-1 overflow-y-auto px-6 py-4">
-          {children}
-        </div>
-        
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">{children}</div>
+
         {footer && (
-          <div className="border-t border-gray-100 bg-gray-50 px-6 py-4 flex items-center justify-end gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border bg-muted/40 px-5 py-4 sm:px-6">
             {footer}
           </div>
         )}

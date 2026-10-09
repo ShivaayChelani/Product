@@ -328,15 +328,14 @@ export default function CreatorsPage() {
             </div>
             {detailCreator.bio && <p className="text-sm leading-relaxed">{detailCreator.bio}</p>}
             <div className="flex flex-wrap gap-2">
-              {detailCreator.instagramUrl && <a href={detailCreator.instagramUrl} target="_blank" rel="noreferrer" className="admin-btn-secondary py-1 text-xs">Instagram</a>}
               {detailCreator.youtubeUrl && <a href={detailCreator.youtubeUrl} target="_blank" rel="noreferrer" className="admin-btn-secondary py-1 text-xs">YouTube</a>}
-              {detailCreator.sampleReelUrl && <a href={detailCreator.sampleReelUrl} target="_blank" rel="noreferrer" className="admin-btn-secondary py-1 text-xs"><Video size={12} /> Sample Reel</a>}
+              {detailCreator.sampleReelUrl && <a href={detailCreator.sampleReelUrl} target="_blank" rel="noreferrer" className="admin-btn-secondary py-1 text-xs"><Video size={12} /> Sample Moment</a>}
             </div>
             <Link href={`/dashboard/users?id=${detailCreator.userId}`} className="text-sm text-primary hover:underline">
               View user profile
             </Link>
             <Link href="/dashboard/reels" className="block text-sm text-primary hover:underline">
-              View creator uploads (Reels)
+              View creator uploads (Moments)
             </Link>
           </div>
         )}

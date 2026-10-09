@@ -114,9 +114,8 @@ model User {
 }
 
 /// Records that a user has accepted the current Terms of Service and Privacy Policy.
-/// Created at registration time (email or Google). Grandfathered users have no record
-/// — the absence of a record never blocks existing sessions. Future legal re-acceptance
-/// flows can compare stored termsVersion/privacyVersion against the currently published.
+/// Created at registration time (email/Google/Apple) and upserted on re-acceptance
+/// when published legal versions change. Timestamps are always server-authored.
 model LegalAcceptance {
   id             String   @id @default(cuid())
   userId         String   @unique @map("user_id")
@@ -124,6 +123,8 @@ model LegalAcceptance {
   privacyVersion Int      @map("privacy_version")
   /// Server-authoritative acceptance timestamp — never trust client-provided timestamps.
   acceptedAt     DateTime @default(now()) @map("accepted_at")
+  termsAcceptedAt   DateTime @default(now()) @map("terms_accepted_at")
+  privacyAcceptedAt DateTime @default(now()) @map("privacy_accepted_at")
   /// Optional: "ios" | "android" | "web"
   platform       String?
 
@@ -323,21 +324,26 @@ model VendorOffer {
 }
 
 model VendorReel {
-  id          String   @id @default(cuid())
-  vendorId    String   @map("vendor_id")
-  videoUrl    String   @map("video_url")
+  id          String    @id @default(cuid())
+  vendorId    String    @map("vendor_id")
+  videoUrl    String    @map("video_url")
   thumbnail   String?
   title       String?
   description String?
-  views       Int      @default(0)
-  likes       Int      @default(0)
-  shares      Int      @default(0)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  views       Int       @default(0)
+  likes       Int       @default(0)
+  shares      Int       @default(0)
+  /// Owner archive marker. NULL means the reel is live; a timestamp removes it
+  /// from every public surface (feed, map listing, profile) while keeping it in
+  /// the owner's Archived tab. Additive and nullable so existing rows stay live.
+  archivedAt  DateTime? @map("archived_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  vendor      Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   likesList   VendorReelLike[]
 
   @@index([vendorId])
+  @@index([archivedAt])
   @@map("vendor_reels")
 }
 

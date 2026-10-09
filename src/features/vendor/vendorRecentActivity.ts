@@ -103,7 +103,7 @@ export function buildVendorRecentActivity(input: {
     items.push({
       id: `reel:${reel.id}`,
       kind: 'reel',
-      title: (reel.title || '').trim() || 'Promotion reel',
+      title: (reel.title || '').trim() || 'Promotion Moment',
       subtitle: `Published successfully • ${formatActivityWhen(at)}`,
       badge: 'Published',
       createdAt: at,

@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useUserContext } from '../context/UserContext';
@@ -18,6 +19,7 @@ import { DEV_FLAGS } from '../config/devFlags';
 import { navigateToVendorReviewMap } from '../navigation/vendorReviewFlow';
 import { CreatorUI } from '../features/creator/theme';
 import { useBottomSafePadding, useHeaderSafePadding } from '../design/responsive';
+import { txRender, txAmountRender } from '../utils/palPointsTransactions';
 
 const C = CreatorUI.colors;
 
@@ -132,28 +134,11 @@ export default function PalPointsScreen() {
   const lifetimeEarned = wallet?.lifetimeEarned ?? 0;
   const lifetimeSpent = wallet?.lifetimeSpent ?? 0;
 
-  const mapTxIcon = (tx: WalletTransaction) => {
-    const reason = (tx.reason || '').toLowerCase();
-    if (tx.type === 'SPEND' || reason.includes('redeem') || reason.includes('claim')) {
-      return { icon: 'gift-outline' as const, color: '#C94A4A', bg: '#FBEAEA', type: 'redeemed' as const, isPositive: false };
-    }
-    if (reason.includes('reel') || reason.includes('video')) {
-      return { icon: 'videocam-outline' as const, color: '#111111', bg: '#F2F2F2', type: 'earned' as const, isPositive: true };
-    }
-    if (reason.includes('collaboration') || reason.includes('collab')) {
-      return { icon: 'hand-right-outline' as const, color: '#111111', bg: '#F2F2F2', type: 'earned' as const, isPositive: true };
-    }
-    if (tx.type === 'EARN' || tx.amount > 0) {
-      return { icon: 'star-outline' as const, color: '#111111', bg: '#F2F2F2', type: 'earned' as const, isPositive: true };
-    }
-    return { icon: 'remove-circle-outline' as const, color: '#C94A4A', bg: '#FBEAEA', type: 'redeemed' as const, isPositive: false };
-  };
-
   const filteredTransactions = useMemo(() => {
     return transactions.filter(tx => {
-      const type = mapTxIcon(tx).type;
-      if (historySubTab === 'earned') return type === 'earned';
-      if (historySubTab === 'redeemed') return type === 'redeemed';
+      const kind = txRender(tx).kind;
+      if (historySubTab === 'earned') return kind === 'earned' || kind === 'refund';
+      if (historySubTab === 'redeemed') return kind === 'redeemed';
       return true;
     });
   }, [transactions, historySubTab]);
@@ -229,7 +214,7 @@ export default function PalPointsScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.waysRow}>
               <TouchableOpacity style={styles.wayCard} onPress={() => navigation.navigate('CreateReel')}>
                 <Text style={styles.wayPoints} numberOfLines={1} adjustsFontSizeToFit>+{rewardPoints.reel}</Text>
-                <Text style={styles.wayTitle} numberOfLines={2}>First reel today</Text>
+                <Text style={styles.wayTitle} numberOfLines={2}>First Moment today</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.wayCard} onPress={() => navigation.navigate('CreatorTabs', { screen: 'Collaboration' })}>
                 <Text style={styles.wayPoints} numberOfLines={1} adjustsFontSizeToFit>+{rewardPoints.collab}</Text>
@@ -281,17 +266,19 @@ export default function PalPointsScreen() {
                 </View>
               ) : (
                 filteredTransactions.map((tx, idx) => {
-                  const meta = mapTxIcon(tx);
-                  const amount = Math.abs(tx.amount);
-                  const prefix = meta.isPositive ? '+' : '-';
+                  const meta = txRender(tx);
+                  const amount = txAmountRender(tx);
                   return (
                     <View key={tx.id || idx} style={styles.txRow}>
                       <View style={[styles.txIconWrap, { backgroundColor: meta.bg }]}>
-                        <Icon name={meta.icon} size={20} color={meta.color} />
+                        <MaterialCommunityIcons name={meta.icon as any} size={20} color={meta.color} />
                       </View>
                       <View style={styles.txBody}>
                         <Text style={styles.txTitle} numberOfLines={1}>
-                          {tx.reason || (meta.isPositive ? 'Points Earned' : 'Points Redeemed')}
+                          {meta.label}
+                        </Text>
+                        <Text style={styles.txSubtitle} numberOfLines={1}>
+                          {meta.description}
                         </Text>
                         <Text style={styles.txDate}>
                           {new Date(tx.createdAt).toLocaleString('en-IN', {
@@ -303,8 +290,8 @@ export default function PalPointsScreen() {
                         </Text>
                       </View>
                       <View style={styles.txAmountWrap}>
-                        <Text style={[styles.txAmount, { color: meta.isPositive ? '#111111' : '#C94A4A' }]}>
-                          {prefix}{amount}
+                        <Text style={[styles.txAmount, { color: amount.isPositive ? '#111111' : '#C94A4A' }]}>
+                          {amount.prefix}{amount.value}
                         </Text>
                         <Text style={styles.txAmountLabel}>PalPoints</Text>
                       </View>
@@ -573,7 +560,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: C.deep,
-    marginBottom: 4,
+    marginBottom: 2,
+  },
+  txSubtitle: {
+    fontSize: 12,
+    color: C.textSecondary ?? C.textMuted,
+    marginBottom: 2,
   },
   txDate: {
     fontSize: 12,

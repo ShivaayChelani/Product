@@ -450,6 +450,25 @@ describe('events navigation wiring', () => {
     expect(src).toMatch(/navigation\.navigate\('AddEvent'\)/);
   });
 
+  it('copies event details onto the Events feed card and keeps the Home strip to image and name', () => {
+    const src = read('features/events/EventCard.tsx');
+    const stripBranch = src.slice(
+      src.indexOf('if (isStrip)'),
+      src.indexOf('accessibilityLabel={`${event.title}, ${when}`}'),
+    );
+    expect(stripBranch).toMatch(/event\.title/);
+    expect(stripBranch).toMatch(/onError/);
+    expect(stripBranch).not.toMatch(/shortDescription/);
+    expect(stripBranch).not.toMatch(/calendar-outline/);
+    expect(stripBranch).not.toMatch(/location-outline/);
+    expect(src).toMatch(/UPCOMING/);
+    expect(src).toMatch(/calendar-outline/);
+    expect(src).toMatch(/location-outline/);
+    expect(src).toMatch(/formatEventFullSchedule/);
+    expect(src).toMatch(/shortDescription/);
+    expect(src).toMatch(/EVENT_STRIP_CARD_WIDTH/);
+  });
+
   it('renders the featured strip on Home', () => {
     const src = read('screens/HomeScreen.tsx');
     expect(src).toMatch(/<HomeEventsStrip/);

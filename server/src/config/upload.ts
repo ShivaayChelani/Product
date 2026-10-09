@@ -127,6 +127,39 @@ export const uploadToCloudinary = (
   });
 };
 
+/** Derive a lazy Cloudinary poster (a video frame served as a JPG) from a
+ *  Cloudinary video URL. Cloudinary generates the frame on first request and
+ *  caches it at the CDN — no eager or synchronous transformation, so it costs
+ *  nothing at upload time (matching the Render request-budget constraint
+ *  documented below). The `so_0` start offset and `q_auto` quality are enough;
+ *  the extension swap from a video container to `.jpg` selects the image output. */
+export function deriveVideoPosterUrl(videoUrl?: string | null): string | undefined {
+  if (!videoUrl) return undefined;
+  const match = String(videoUrl).match(
+    /^(https:\/\/res\.cloudinary\.com\/[^/]+\/video\/upload\/)(?:(v\d+|[\w_,.-]+)\/)?(.+?)\.(mp4|mov|webm|m3u8)(?:[?#].*)?$/i,
+  );
+  if (!match) return undefined;
+  const [, base, segment, path] = match;
+  const rest = segment && !/^v\d+/i.test(segment) ? `${segment}/${path}` : path;
+  return `${base}so_0,q_auto/${rest}.jpg`;
+}
+
+export function isLikelyVideoMediaUrl(url?: string | null): boolean {
+  const value = String(url || '').trim();
+  if (!value) return false;
+  if (/\.(jpe?g|png|webp|gif|bmp)(?:[?#]|$)/i.test(value)) return false;
+  return /\.(mp4|mov|webm|m3u8)(?:[?#]|$)/i.test(value);
+}
+
+export function resolveStoredReelPoster(
+  thumbnail?: string | null,
+  videoUrl?: string | null,
+): string | null {
+  const raw = String(thumbnail || '').trim();
+  if (raw && !isLikelyVideoMediaUrl(raw)) return raw;
+  return deriveVideoPosterUrl(videoUrl) || deriveVideoPosterUrl(raw) || null;
+}
+
 /** Incoming video transformations are synchronous at Cloudinary and routinely
  *  exceed Render's request budget, so the mobile client never receives a URL
  *  and the job appears stuck. Playback already applies `q_auto,vc_h264`. */

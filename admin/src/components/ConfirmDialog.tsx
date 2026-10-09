@@ -37,7 +37,7 @@ export default function ConfirmDialog({
       : "bg-primary text-primary-foreground hover:bg-primary-hover";
 
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title" className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
       <div className="mx-4 w-full max-w-sm rounded-xl bg-card p-6 text-card-foreground shadow-2xl">
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-center gap-3">

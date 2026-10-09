@@ -120,7 +120,7 @@ function ReelBottomPanelComponent({
 
       {showControls && (
         <View pointerEvents="box-none">
-          <View style={styles.progressWrap} pointerEvents="box-none">
+          <View style={styles.progressWrap}>
             <ReelProgressBar progress={progress} onSeek={onSeek} />
           </View>
           {/* <ReelCommentBar onPress={onComment} /> */}

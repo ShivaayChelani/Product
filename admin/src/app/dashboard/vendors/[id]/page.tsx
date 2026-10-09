@@ -109,7 +109,7 @@ export default function VendorDetailPage() {
           { label: "PalPoints Used", value: stats.totalPalPointsUsed ?? 0 },
           { label: "Listing", value: data.listing?.mapListing || (data.listing?.visible ? "Active" : "Hidden") },
           { label: "Offers used", value: data.listing?.offersLimit != null && data.listing.offersLimit < 0 ? "Unlimited" : `${data.listing?.offersUsed ?? stats.activeOffers ?? 0}${data.listing?.offersLimit != null ? ` / ${data.listing.offersLimit}` : ""}` },
-          { label: "Reels used", value: data.listing?.reelsLimit != null && data.listing.reelsLimit < 0 ? "Unlimited" : `${data.listing?.reelsUsedThisMonth ?? 0}${data.listing?.reelsLimit != null ? ` / ${data.listing.reelsLimit}` : ""}` },
+          { label: "Moments used", value: data.listing?.reelsLimit != null && data.listing.reelsLimit < 0 ? "Unlimited" : `${data.listing?.reelsUsedThisMonth ?? 0}${data.listing?.reelsLimit != null ? ` / ${data.listing.reelsLimit}` : ""}` },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border bg-white p-4 shadow-sm">
             <p className="text-xs text-gray-500">{s.label}</p>

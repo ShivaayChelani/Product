@@ -264,7 +264,7 @@ export default function HomeSidebar({
                     iconColor="#000000"
                     iconBg="#F7F6F1"
                     label="Creator Studio"
-                    subtitle="Manage reels & profile"
+                    subtitle="Manage Moments & profile"
                     badge={workspace.normalizedMode === 'CONTENT_CREATOR' ? 'Active' : undefined}
                     active={workspace.normalizedMode === 'CONTENT_CREATOR'}
                     onPress={switchWorkspace('CONTENT_CREATOR')}

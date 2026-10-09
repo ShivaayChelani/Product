@@ -16,6 +16,12 @@ import {
 } from '../../shared/utils/specialtyRoles';
 import { roleTransitionService, type ProfessionalRole } from '../../shared/services/roleTransition.service';
 import {
+  assertCanGrantAdmin,
+  assertCanGrantSuperAdmin,
+  assertNotSelfRoleChange,
+  expandUserListRoles,
+} from './roleChangeGuards';
+import {
   collectUserOwnedMediaAssets,
   purgeUserMediaAssets,
 } from '../upload/media-cleanup.service';
@@ -162,11 +168,12 @@ export const usersService = {
 
     if (query.permission ?? query.role) {
       const role = (query.permission ?? query.role) as Role;
+      const roles = expandUserListRoles(role);
       where.OR = [
-        { permission: role },
+        { permission: { in: roles } },
         {
           userRoles: {
-            some: { role, status: { in: [RoleAssignmentStatus.ACTIVE, RoleAssignmentStatus.APPROVED] } },
+            some: { role: { in: roles }, status: { in: [RoleAssignmentStatus.ACTIVE, RoleAssignmentStatus.APPROVED] } },
           },
         },
       ];
@@ -261,10 +268,23 @@ export const usersService = {
     return enrichUserWithRoles(user);
   },
 
+  async persistSuperAdminRole(userId: string, actorId: string | null) {
+    await ensureBaseUserRole(userId);
+    await upsertRoleStatus({
+      userId,
+      role: Role.SUPER_ADMIN,
+      status: RoleAssignmentStatus.APPROVED,
+      approvedById: actorId,
+    });
+    await prisma.user.update({
+      where: { id: userId },
+      data: { permission: Role.SUPER_ADMIN, activeMode: Role.SUPER_ADMIN },
+    });
+    await syncUserPermissionFromRoles(userId);
+  },
+
   async updateRole(id: string, input: UpdateRoleInput, actorId: string) {
-    if (actorId === id) {
-      throw new ApiError(400, 'You cannot change your own role.');
-    }
+    assertNotSelfRoleChange(actorId, id);
 
     const user = await prisma.user.findUnique({
       where: { id },
@@ -296,11 +316,7 @@ export const usersService = {
       });
     } else if (newPermission === Role.ADMIN) {
       const actorRoles = await listApprovedRoles(actorId);
-      const canGrantAdmin =
-        actorRoles.includes(Role.SUPER_ADMIN) || actorRoles.includes(Role.ADMIN);
-      if (!canGrantAdmin) {
-        throw new ApiError(403, 'Only ADMIN or SUPER_ADMIN can grant admin access.');
-      }
+      assertCanGrantAdmin(actorRoles);
       await ensureBaseUserRole(id);
       await upsertRoleStatus({
         userId: id,
@@ -312,6 +328,10 @@ export const usersService = {
         where: { id },
         data: { permission: Role.ADMIN, activeMode: Role.ADMIN },
       });
+    } else if (newPermission === Role.SUPER_ADMIN) {
+      const actorRoles = await listApprovedRoles(actorId);
+      assertCanGrantSuperAdmin(actorRoles);
+      await usersService.persistSuperAdminRole(id, actorId);
     } else {
       // Professional roles are exclusive — all grant logic lives in the central transition service.
       await roleTransitionService.adminGrant(

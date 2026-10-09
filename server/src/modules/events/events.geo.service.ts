@@ -225,7 +225,7 @@ export const eventsGeoService = {
     // another page" instead of being guessed from a full page that may be last.
     const rows = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
       SELECT ${EVENT_LIST_SELECT},
-             (SELECT COUNT(*) FROM reels r WHERE r.event_id = e.id)::int AS reel_count,
+             (SELECT COUNT(*) FROM reels r WHERE r.event_id = e.id AND r.status = 'APPROVED')::int AS reel_count,
              (SELECT COUNT(*) FROM event_reports er WHERE er.event_id = e.id AND er.status = 'PENDING')::int AS report_count
       FROM events e
       WHERE ${joinAnd(conditions)}
@@ -282,7 +282,7 @@ export const eventsGeoService = {
     const rows = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
       SELECT ${EVENT_LIST_SELECT},
              ${distanceMetersSql(coord.latitude, coord.longitude)} AS distance_m,
-             (SELECT COUNT(*) FROM reels r WHERE r.event_id = e.id)::int AS reel_count,
+             (SELECT COUNT(*) FROM reels r WHERE r.event_id = e.id AND r.status = 'APPROVED')::int AS reel_count,
              (SELECT COUNT(*) FROM event_reports er WHERE er.event_id = e.id AND er.status = 'PENDING')::int AS report_count
       FROM events e
       WHERE e.location && ST_MakeEnvelope(${west}, ${south}, ${east}, ${north}, 4326)
@@ -313,7 +313,7 @@ export const eventsGeoService = {
 
     const rows = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
       SELECT ${EVENT_LIST_SELECT},
-             (SELECT COUNT(*) FROM reels r WHERE r.event_id = e.id)::int AS reel_count
+             (SELECT COUNT(*) FROM reels r WHERE r.event_id = e.id AND r.status = 'APPROVED')::int AS reel_count
       FROM events e
       WHERE ${joinAnd(visibility)}
       ORDER BY e.start_date ASC, e.id ASC

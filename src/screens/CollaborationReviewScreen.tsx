@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { collaborationsApi, type CollaborationItem } from '../services/api/collaborations';
+import { extractCreatorHandle } from '../utils/creatorHandle';
 import { colors } from '../config/theme';
 import { ReasonPromptModal, promptWithReason } from '../components/ReasonPromptModal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -82,7 +83,7 @@ export default function CollaborationReviewScreen() {
     );
   }
 
-  const creatorName = item.creator?.fullName || item.creator?.username || 'Creator';
+  const creatorName = item.creator?.fullName || extractCreatorHandle(item.creator?.username) || 'Creator';
   const revisionReady = feedback.trim().length >= MIN_REVISION_FEEDBACK;
 
   const requestChanges = () => {
@@ -103,12 +104,12 @@ export default function CollaborationReviewScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Icon name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Review Reel</Text>
+        <Text style={styles.headerTitle}>Review Moment</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: contentPadBottom }]}>
-        <Text style={styles.hero}>{creatorName} uploaded your collaboration reel</Text>
+        <Text style={styles.hero}>{creatorName} uploaded your collaboration Moment</Text>
         <Text style={styles.sub}>{item.campaignTitle}</Text>
 
         {item.reel?.videoUrl ? (
@@ -145,7 +146,7 @@ export default function CollaborationReviewScreen() {
             <TouchableOpacity
               style={styles.approveBtn}
               disabled={acting}
-              onPress={() => act('Creator can now publish the reel', () => collaborationsApi.approveReel(item.id))}
+              onPress={() => act('Creator can now publish the Moment', () => collaborationsApi.approveReel(item.id))}
             >
               <Text style={styles.approveText}>Approve</Text>
             </TouchableOpacity>
@@ -166,17 +167,17 @@ export default function CollaborationReviewScreen() {
               onPress={() => {
                 const reject = (reason: string) => {
                   if (!reason.trim()) {
-                    Alert.alert('Reason required', 'Please provide a reason for rejecting this reel.');
+                    Alert.alert('Reason required', 'Please provide a reason for rejecting this Moment.');
                     return;
                   }
-                  act('Reel rejected', () => collaborationsApi.rejectReel(item.id, reason.trim()));
+                  act('Moment rejected', () => collaborationsApi.rejectReel(item.id, reason.trim()));
                 };
 
                 if (Platform.OS === 'android') {
                   openAndroidModal(
                     {
-                      title: 'Reject reel',
-                      message: 'Tell the creator why this reel was rejected.',
+                      title: 'Reject Moment',
+                      message: 'Tell the creator why this Moment was rejected.',
                       placeholder: 'Reason…',
                       confirmLabel: 'Reject',
                       required: true,
@@ -187,19 +188,19 @@ export default function CollaborationReviewScreen() {
                 }
 
                 promptWithReason(
-                  { title: 'Reject reel', message: 'Reason', placeholder: 'Reason…', required: true },
+                  { title: 'Reject Moment', message: 'Reason', placeholder: 'Reason…', required: true },
                   reject,
                   openAndroidModal,
                 );
               }}
             >
-              <Text style={styles.rejectText}>Reject Reel</Text>
+              <Text style={styles.rejectText}>Reject Moment</Text>
             </TouchableOpacity>
           </>
         ) : item.status === 'APPROVED' ? (
-          <Text style={styles.sub}>You approved this reel. The creator can now publish it.</Text>
+          <Text style={styles.sub}>You approved this Moment. The creator can now publish it.</Text>
         ) : (
-          <Text style={styles.sub}>This reel is no longer waiting for review.</Text>
+          <Text style={styles.sub}>This Moment is no longer waiting for review.</Text>
         )}
       </ScrollView>
 

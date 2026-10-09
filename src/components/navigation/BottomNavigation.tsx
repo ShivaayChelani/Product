@@ -75,7 +75,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab })
     <View style={[styles.container, { bottom: bottomPosition }]} pointerEvents="box-none">
       <View style={styles.pillContainer}>
         {renderTab('home', 'Home', 'home', 'home-outline')}
-        {renderTab('reels', 'Reels', 'film', 'film-outline')}
+        {renderTab('reels', 'Moments', 'film', 'film-outline')}
         
         {/* Center Map Button */}
         <View style={styles.mapButtonWrapper} pointerEvents="box-none">

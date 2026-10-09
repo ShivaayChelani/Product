@@ -143,7 +143,7 @@ export default function UnifiedModerationPage() {
           <option value="HIDDEN_GEM">Hidden Gems</option>
           <option value="VENDOR_APP">Vendors</option>
           <option value="CREATOR_APP">Creators</option>
-          <option value="REEL">Reel Reports</option>
+          <option value="REEL">Moment Reports</option>
         </select>
       </div>
       <DataTable columns={columns} data={items as (UnifiedIncident & Record<string, unknown>)[]} loading={loading} page={page} totalPages={totalPages} totalRecords={totalRecords} hasNext={hasNext} hasPrev={hasPrev} onPageChange={setPage} emptyMessage="No pending moderation items" exportFilename="moderation-queue" />

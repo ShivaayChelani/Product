@@ -122,6 +122,7 @@ export interface VendorReel {
   description: string | null;
   views: number;
   likes: number;
+  archivedAt: string | null;
   createdAt: string;
 }
 
@@ -468,6 +469,14 @@ export const vendorsApi = {
     const res = await apiClient.patch<VendorReel>(
       API_CONFIG.endpoints.vendors.updateReel(reelId),
       input,
+    );
+    return res.data;
+  },
+
+  async setVendorReelArchived(reelId: string, archived: boolean) {
+    const res = await apiClient.patch<VendorReel>(
+      API_CONFIG.endpoints.vendors.archiveReel(reelId),
+      { archived },
     );
     return res.data;
   },

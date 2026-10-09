@@ -215,7 +215,7 @@ export default function DashboardPage() {
           { title: 'Active Vendors', value: d.kpis?.activeVendors?.value || 0, prev: d.kpis?.activeVendors?.prev || 0, icon: Store, color: 'text-orange-500', bg: 'bg-orange-100' },
           { title: 'Offer Redemptions', value: d.kpis?.qrRedemptions?.value || 0, prev: d.kpis?.qrRedemptions?.prev || 0, icon: Receipt, color: 'text-pink-600', bg: 'bg-pink-100' },
           { title: 'Hidden Gems', value: d.kpis?.hiddenGems?.value || 0, subtitle: 'Pending Approval', icon: Diamond, color: 'text-teal-600', bg: 'bg-teal-100' },
-          { title: 'Reels Uploaded', value: d.kpis?.reelsUploaded?.value || 0, prev: d.kpis?.reelsUploaded?.prev || 0, icon: Video, color: 'text-blue-500', bg: 'bg-blue-100' },
+          { title: 'Moments Uploaded', value: d.kpis?.reelsUploaded?.value || 0, prev: d.kpis?.reelsUploaded?.prev || 0, icon: Video, color: 'text-blue-500', bg: 'bg-blue-100' },
         ].map((kpi, i) => {
           const content = (
             <>
@@ -223,9 +223,9 @@ export default function DashboardPage() {
                 <kpi.icon size={16} className={kpi.color || "text-blue-600"} />
               </div>
               <div>
-                <p className="text-xs text-gray-500 font-medium mb-1 truncate">{kpi.title}</p>
+                <p className="mb-1 truncate text-xs font-medium text-muted-foreground">{kpi.title}</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-xl font-bold text-gray-900">{kpi.value.toLocaleString()}</span>
+                  <span className="text-xl font-bold text-foreground">{kpi.value.toLocaleString()}</span>
                   {"prev" in kpi && kpi.prev !== undefined && renderTrend(kpi.value as number, kpi.prev as number)}
                 </div>
                 {"subtitle" in kpi && kpi.subtitle && <p className="text-[10px] text-orange-500 font-medium mt-1">{kpi.subtitle}</p>}
@@ -248,9 +248,9 @@ export default function DashboardPage() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* User Growth */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold text-gray-900">User Growth <span className="text-gray-400 font-normal">(Last 30 Days)</span></h2>
+        <div className="admin-card p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="min-w-0 text-sm font-bold text-foreground">User Growth <span className="font-normal text-muted-foreground">(Last 30 Days)</span></h2>
             <Link href="/dashboard/analytics" className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1 rounded-full">View All</Link>
           </div>
           <div className="h-64 min-h-[256px] min-w-0 w-full">
@@ -286,9 +286,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Vendor Growth */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold text-gray-900">Vendor Growth <span className="text-gray-400 font-normal">(Last 30 Days)</span></h2>
+        <div className="admin-card p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="min-w-0 text-sm font-bold text-foreground">Vendor Growth <span className="font-normal text-muted-foreground">(Last 30 Days)</span></h2>
             <Link href="/dashboard/vendors" className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1 rounded-full">View All</Link>
           </div>
           <div className="h-64 min-h-[256px] min-w-0 w-full">
@@ -307,7 +307,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Offer Redemptions Overview */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex flex-col">
+        <div className="admin-card flex flex-col p-5">
           <div className="flex items-center justify-between mb-4">
             <Link href="/dashboard/monetization/revenue" className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1 rounded-full">View All</Link>
           </div>
@@ -417,7 +417,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center"><Video size={14}/></div>
-            <div><p className="text-[10px] text-gray-500 font-medium">Reels Uploaded</p><p className="text-sm font-bold text-gray-900">{d.quickStats?.reelsUploaded || 0}</p></div>
+            <div><p className="text-[10px] text-gray-500 font-medium">Moments Uploaded</p><p className="text-sm font-bold text-gray-900">{d.quickStats?.reelsUploaded || 0}</p></div>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center"><Star size={14}/></div>

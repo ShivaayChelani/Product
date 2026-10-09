@@ -4,7 +4,7 @@ import { walletService } from '../wallet/wallet.service';
 import { logger } from '../../config/logger';
 import { canonicalCityKey } from '../../shared/utils/cityIdentity';
 import { validateTreasureHuntExcelFile } from './riddles-import';
-import { isAnswerMatch } from '../../shared/utils/answerMatch';
+import { isAnswerMatchAny } from '../../shared/utils/answerMatch';
 import { TREASURE_HUNT_RIDDLE_REWARD_POINTS, RECENT_IMPORTS_STATUS_WHERE } from './riddles.constants';
 import { getIndiaRewardDate } from '../social/creatorDailyReelReward';
 import { resolveCurrentHuntFromLocation } from './huntCityResolution';
@@ -12,6 +12,45 @@ import { resolveCurrentHuntFromLocation } from './huntCityResolution';
 // ──────────────── TYPES ────────────────
 
 type DailyStatus = 'AVAILABLE' | 'COMPLETED_TODAY' | 'LOCKED_TODAY' | 'NO_RIDDLES' | 'HUNT_COMPLETE';
+
+const DEVANAGARI_SCRIPT = /[\u0900-\u097F]/;
+
+/**
+ * Build the set of answers accepted for a riddle: the expected answer plus the
+ * curated aliases of the matching place (e.g. the "Bhedaghat" riddle also
+ * accepts its official alias "Marble Rocks"). Aliases are only added when the
+ * expected answer corresponds to a known approved place, and only aliases in
+ * the same script are admitted so English/Hindi answers never cross-match.
+ */
+async function collectAcceptedAnswers(expected: string): Promise<string[]> {
+  const expectedAnswer = String(expected ?? '').trim();
+  if (!expectedAnswer) return [];
+  try {
+    const place = await prisma.place.findFirst({
+      where: {
+        status: 'APPROVED',
+        OR: [
+          { name: { equals: expectedAnswer, mode: 'insensitive' } },
+          { canonicalName: { equals: expectedAnswer, mode: 'insensitive' } },
+          { aliases: { some: { alias: { equals: expectedAnswer, mode: 'insensitive' } } } },
+        ],
+      },
+      select: {
+        name: true,
+        canonicalName: true,
+        aliases: { select: { alias: true } },
+      },
+    });
+    if (!place) return [expectedAnswer];
+
+    const expectedIsDevanagari = DEVANAGARI_SCRIPT.test(expectedAnswer);
+    const candidates = [expectedAnswer, place.name, place.canonicalName ?? '', ...place.aliases.map((a) => a.alias)];
+    return candidates.filter((value) => value.trim() !== '' && DEVANAGARI_SCRIPT.test(value) === expectedIsDevanagari);
+  } catch (err) {
+    logger.warn({ err, expected: expectedAnswer }, 'Treasure hunt alias lookup failed');
+    return [expectedAnswer];
+  }
+}
 
 export const riddlesService = {
 
@@ -601,10 +640,16 @@ export const riddlesService = {
 
     const isCorrect =
       language === 'hi'
-        ? isAnswerMatch(answer, riddle.answerHindi)
+        ? isAnswerMatchAny(answer, await collectAcceptedAnswers(riddle.answerHindi))
         : language === 'en'
-          ? isAnswerMatch(answer, riddle.answerEnglish)
-          : isAnswerMatch(answer, riddle.answerEnglish) || isAnswerMatch(answer, riddle.answerHindi);
+          ? isAnswerMatchAny(answer, await collectAcceptedAnswers(riddle.answerEnglish))
+          : await (async () => {
+              const [englishAnswers, hindiAnswers] = await Promise.all([
+                collectAcceptedAnswers(riddle.answerEnglish),
+                collectAcceptedAnswers(riddle.answerHindi),
+              ]);
+              return isAnswerMatchAny(answer, englishAnswers) || isAnswerMatchAny(answer, hindiAnswers);
+            })();
 
     let rewardCoins = 0;
 

@@ -6,6 +6,7 @@ import {
   DEFAULT_NOTIFICATIONS,
   DEFAULT_PRIVACY,
   DEFAULT_SECURITY,
+  applyUserAppSettingsPatch,
   normalizeUserAppSettings,
   type UserAppSettingsPayload,
 } from './user-app.types';
@@ -32,34 +33,28 @@ export const userAppService = {
   },
 
   async patchSettings(userId: string, patch: Partial<UserAppSettingsPayload>): Promise<UserAppSettingsPayload> {
-    const current = await ensurePreferences(userId);
-    const data: {
-      privacy?: object;
-      notifications?: object;
-      security?: object;
-      appearance?: object;
-      language?: string;
-    } = {};
-
-    if (patch.privacy) {
-      data.privacy = { ...mergeJson(DEFAULT_PRIVACY, current.privacy), ...patch.privacy };
-    }
-    if (patch.notifications) {
-      data.notifications = { ...mergeJson(DEFAULT_NOTIFICATIONS, current.notifications), ...patch.notifications };
-    }
-    if (patch.security) {
-      data.security = { ...mergeJson(DEFAULT_SECURITY, current.security), ...patch.security };
-    }
-    if (patch.appearance) {
-      data.appearance = { ...mergeJson(DEFAULT_APPEARANCE, current.appearance), ...patch.appearance };
-    }
-    if (patch.language) {
-      data.language = patch.language;
-    }
-
-    const updated = await prisma.userAppPreference.update({
-      where: { userId },
-      data,
+    const updated = await prisma.$transaction(async tx => {
+      await tx.userAppPreference.upsert({
+        where: { userId },
+        create: {
+          userId,
+          privacy: DEFAULT_PRIVACY,
+          notifications: DEFAULT_NOTIFICATIONS,
+          security: DEFAULT_SECURITY,
+          appearance: DEFAULT_APPEARANCE,
+          language: 'auto',
+        },
+        update: {},
+      });
+      // Serialize concurrent toggles so a second PATCH reads the first write
+      // instead of merging onto a stale row and dropping the other key.
+      await tx.$queryRaw`SELECT "user_id" FROM "user_app_preferences" WHERE "user_id" = ${userId} FOR UPDATE`;
+      const current = await tx.userAppPreference.findUniqueOrThrow({ where: { userId } });
+      const data = applyUserAppSettingsPatch(current, patch);
+      return tx.userAppPreference.update({
+        where: { userId },
+        data,
+      });
     });
     return normalizeUserAppSettings(updated);
   },
@@ -211,8 +206,3 @@ export const userAppService = {
     return { id: row.id, createdAt: row.createdAt.toISOString() };
   },
 };
-
-function mergeJson<T extends Record<string, unknown>>(defaults: T, raw: unknown): T {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ...defaults };
-  return { ...defaults, ...(raw as Partial<T>) };
-}

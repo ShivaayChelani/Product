@@ -1,52 +1,59 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  DARK_BUTTON_BG_ALT,
+  DISABLED_BUTTON_BG,
+  DISABLED_BUTTON_FG,
+  ON_DARK,
+} from '../../design/contrast';
 
 const COLORS = {
   white: '#FFFFFF',
-  text: '#202020',
-  textMuted: '#6B6B6B',
-  gold: '#111111',
   border: '#F2F2F2',
-  background: '#FFFFFF',
 };
 
 interface StickyActionBarProps {
-  onSave: () => void;
   onPrimaryAction: () => void;
-  isSaved?: boolean;
   primaryActionLabel?: string;
   primaryActionIcon?: string;
+  disabled?: boolean;
+  loading?: boolean;
 }
 
-export const StickyActionBar = ({ 
-  onSave, 
-  onPrimaryAction, 
-  isSaved, 
-  primaryActionLabel = 'Visit Vendor', 
-  primaryActionIcon = 'arrow-forward' 
+export const StickyActionBar = ({
+  onPrimaryAction,
+  primaryActionLabel = 'Visit Vendor',
+  primaryActionIcon = 'arrow-forward',
+  disabled = false,
+  loading = false,
 }: StickyActionBarProps) => {
   const insets = useSafeAreaInsets();
+  const inactive = disabled || loading;
+  const foreground = inactive ? DISABLED_BUTTON_FG : ON_DARK;
 
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-      <TouchableOpacity 
-        style={styles.saveBtn} 
-        onPress={onSave}
-        activeOpacity={0.7}
-      >
-        <Icon name={isSaved ? "heart" : "heart-outline"} size={24} color={isSaved ? '#FF3B30' : COLORS.text} />
-        <Text style={styles.saveText}>{isSaved ? 'Saved' : 'Save Offer'}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity 
-        style={styles.primaryBtn} 
+      <TouchableOpacity
+        style={[styles.primaryBtn, inactive && styles.primaryBtnDisabled]}
         onPress={onPrimaryAction}
         activeOpacity={0.8}
+        disabled={inactive}
+        accessibilityRole="button"
+        accessibilityLabel={primaryActionLabel}
+        accessibilityState={{ disabled: inactive, busy: loading }}
       >
-        <Text style={styles.primaryText}>{primaryActionLabel}</Text>
-        <Icon name={primaryActionIcon} size={20} color={COLORS.text} style={styles.primaryIcon} />
+        {loading ? (
+          <ActivityIndicator color={foreground} />
+        ) : (
+          <>
+            <Text style={[styles.primaryText, inactive && styles.primaryTextDisabled]}>
+              {primaryActionLabel}
+            </Text>
+            <Icon name={primaryActionIcon} size={20} color={foreground} style={styles.primaryIcon} />
+          </>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -54,8 +61,7 @@ export const StickyActionBar = ({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     paddingHorizontal: 20,
     paddingTop: 16,
     backgroundColor: COLORS.white,
@@ -67,36 +73,25 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  saveBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginRight: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.background,
-  },
-  saveText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginTop: 4,
-  },
   primaryBtn: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.gold,
+    backgroundColor: DARK_BUTTON_BG_ALT,
     paddingVertical: 18,
     borderRadius: 16,
+    minHeight: 56,
+  },
+  primaryBtnDisabled: {
+    backgroundColor: DISABLED_BUTTON_BG,
   },
   primaryText: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text,
+    color: ON_DARK,
+  },
+  primaryTextDisabled: {
+    color: DISABLED_BUTTON_FG,
   },
   primaryIcon: {
     marginLeft: 8,
