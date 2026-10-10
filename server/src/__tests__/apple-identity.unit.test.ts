@@ -317,5 +317,19 @@ describe('appleLoginSchema', () => {
         fullName: 'Forged',
       }),
     ).toThrow();
+
+    // A typed email is an account-completion field, not an identity claim.
+    expect(appleLoginSchema.parse({
+      ...valid,
+      email: 'person@example.com',
+      emailVerificationCode: 'APPLEOTP',
+      firstName: 'Ada',
+    })).toMatchObject({
+      email: 'person@example.com',
+      emailVerificationCode: 'APPLEOTP',
+      firstName: 'Ada',
+    });
+    expect(() => appleLoginSchema.parse({ ...valid, appleUserId: 'client-sub' })).toThrow();
+    expect(() => appleLoginSchema.parse({ ...valid, sub: 'client-sub' })).toThrow();
   });
 });

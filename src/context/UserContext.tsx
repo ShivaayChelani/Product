@@ -5,7 +5,8 @@ import { loadUserProgress, saveUserProgress } from '../services/localStorageServ
 import {
   login, signup, logout, restoreSession, forgotPassword, setActiveMode as persistActiveMode,
   refreshSessionRoles, verifyRegisterEmail, resendRegisterOtp, googleLogin, finalizeGoogleLogin,
-  appleLogin, finalizeAppleLogin, type LegalMeta, type PendingAppleAuthorization,
+  appleLogin, finalizeAppleLogin, submitAppleEmailCompletion, type LegalMeta, type PendingAppleAuthorization,
+  type AppleLoginClientResult,
 } from '../services/authService';
 import { notificationService } from '../services/notificationService';
 import { apiClient } from '../services/api/client';
@@ -13,6 +14,7 @@ import { legalApi, type LegalCurrentVersions } from '../services/api/legal';
 import { clearMonitoringUser, setMonitoringUser, trackAuthEvent, trackRoleSwitch } from '../services/monitoring';
 import { LogoutModal } from '../components/ui/LogoutModal';
 import { LegalAcceptanceModal } from '../components/auth/LegalAcceptanceModal';
+import { AppleEmailCompletionModal } from '../components/auth/AppleEmailCompletionModal';
 import { clearAppCaches } from '../features/settings/utils/storageManager';
 import { applyWalletPalPoints } from '../utils/syncPalPoints';
 import { attemptDailyOpenReward } from '../services/dailyOpenReward';
@@ -220,6 +222,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [googleLegalLoading, setGoogleLegalLoading] = useState(false);
   const [appleLegalLoading, setAppleLegalLoading] = useState(false);
   const [legalVersions, setLegalVersions] = useState<LegalCurrentVersions | null>(null);
+  const [appleEmailVisible, setAppleEmailVisible] = useState(false);
+  const [appleEmailStep, setAppleEmailStep] = useState<'email' | 'code'>('email');
+  const [appleCompletionEmail, setAppleCompletionEmail] = useState('');
+  const [appleEmailError, setAppleEmailError] = useState<string | null>(null);
+  const [appleEmailLoading, setAppleEmailLoading] = useState(false);
 
   const onGoogleLogin = useCallback(async (): Promise<boolean> => {
     setAuthLoading(true);
@@ -272,6 +279,51 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }, [applyWalletPalPoints]);
 
+  const routeAppleResult = useCallback(async (result: AppleLoginClientResult | null): Promise<boolean> => {
+    if (!result) return false;
+
+    if ('requiresEmailCompletion' in result) {
+      setPendingAppleAuthorization(result.pendingAppleAuthorization);
+      setAppleEmailStep('email');
+      setAppleEmailError(null);
+      setAppleEmailVisible(true);
+      return false;
+    }
+
+    if ('requiresEmailVerification' in result) {
+      setPendingAppleAuthorization(result.pendingAppleAuthorization);
+      setAppleCompletionEmail(result.email);
+      setAppleEmailStep('code');
+      setAppleEmailError(null);
+      setAppleEmailVisible(true);
+      return false;
+    }
+
+    if ('requiresLegalAcceptance' in result) {
+      setAppleEmailVisible(false);
+      setPendingAppleAuthorization(result.pendingAppleAuthorization);
+      try {
+        const versionRes = await legalApi.getCurrentVersions();
+        setLegalVersions(versionRes.data);
+      } catch {
+        setLegalVersions(null);
+      }
+      setLegalModalVisible(true);
+      return false;
+    }
+
+    setAppleEmailVisible(false);
+    setPendingAppleAuthorization(null);
+    setUser(prev => ({ ...prev, ...result.user }));
+    setIsAuthenticated(true);
+    trackAuthEvent('login', { mode: result.user.activeMode || result.user.activeRole });
+    void applyWalletPalPoints(setUser);
+    notificationService.requestPermission().then((granted) => {
+      if (granted) notificationService.registerDeviceToken().catch(() => {});
+    }).catch(() => {});
+    return true;
+  }, [applyWalletPalPoints]);
+
   const onAppleLogin = useCallback(async (): Promise<boolean> => {
     if (!canUseSignInWithApple()) {
       throw new Error('Sign in with Apple is not available on this device.');
@@ -279,32 +331,69 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     setAuthLoading(true);
     try {
-      const result = await appleLogin();
-      if (!result) return false;
-
-      if ('requiresLegalAcceptance' in result) {
-        setPendingAppleAuthorization(result.pendingAppleAuthorization);
-        try {
-          const versionRes = await legalApi.getCurrentVersions();
-          setLegalVersions(versionRes.data);
-        } catch {
-          setLegalVersions(null);
-        }
-        setLegalModalVisible(true);
-        return false;
-      }
-
-      setUser(prev => ({ ...prev, ...result.user }));
-      setIsAuthenticated(true);
-      trackAuthEvent('login', { mode: result.user.activeMode || result.user.activeRole });
-      void applyWalletPalPoints(setUser);
-      notificationService.requestPermission().then((granted) => {
-        if (granted) notificationService.registerDeviceToken().catch(() => {});
-      }).catch(() => {});
-      return true;
+      return await routeAppleResult(await appleLogin());
     } finally {
       setAuthLoading(false);
     }
+  }, [routeAppleResult]);
+
+  const handleAppleEmailSubmit = useCallback(async (email: string) => {
+    if (!pendingAppleAuthorization) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setAppleEmailError('Enter a valid email address.');
+      return;
+    }
+    setAppleEmailLoading(true);
+    setAppleEmailError(null);
+    try {
+      await routeAppleResult(await submitAppleEmailCompletion(pendingAppleAuthorization, { email }));
+    } catch (err: any) {
+      setAppleEmailError(err?.message || 'Could not continue with that email.');
+    } finally {
+      setAppleEmailLoading(false);
+    }
+  }, [pendingAppleAuthorization, routeAppleResult]);
+
+  const handleAppleCodeSubmit = useCallback(async (code: string) => {
+    if (!pendingAppleAuthorization || !appleCompletionEmail) return;
+    if (!/^[A-Za-z0-9]{8}$/.test(code)) {
+      setAppleEmailError('Enter the 8-character verification code.');
+      return;
+    }
+    setAppleEmailLoading(true);
+    setAppleEmailError(null);
+    try {
+      await routeAppleResult(await submitAppleEmailCompletion(pendingAppleAuthorization, {
+        email: appleCompletionEmail,
+        emailVerificationCode: code,
+      }));
+    } catch (err: any) {
+      setAppleEmailError(err?.message || 'That verification code was not accepted.');
+    } finally {
+      setAppleEmailLoading(false);
+    }
+  }, [pendingAppleAuthorization, appleCompletionEmail, routeAppleResult]);
+
+  const handleAppleEmailResend = useCallback(async () => {
+    if (!pendingAppleAuthorization || !appleCompletionEmail) return;
+    setAppleEmailLoading(true);
+    setAppleEmailError(null);
+    try {
+      await routeAppleResult(await submitAppleEmailCompletion(pendingAppleAuthorization, {
+        email: appleCompletionEmail,
+      }));
+    } catch (err: any) {
+      setAppleEmailError(err?.message || 'Could not resend the verification code.');
+    } finally {
+      setAppleEmailLoading(false);
+    }
+  }, [pendingAppleAuthorization, appleCompletionEmail, routeAppleResult]);
+
+  const handleAppleEmailCancel = useCallback(() => {
+    setAppleEmailVisible(false);
+    setAppleEmailError(null);
+    setAppleEmailLoading(false);
+    setPendingAppleAuthorization(null);
   }, []);
 
   /** Called when user accepts legal docs in the Google legal gate modal. */
@@ -397,6 +486,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setLegalModalVisible(false);
     setPendingGoogleIdToken(null);
     setPendingAppleAuthorization(null);
+    setAppleEmailVisible(false);
     setPendingSessionLegal(false);
     setGoogleLegalLoading(false);
     setAppleLegalLoading(false);
@@ -702,6 +792,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
           void onLogout();
         }}
         onCancel={() => setIsLogoutModalVisible(false)}
+      />
+      <AppleEmailCompletionModal
+        visible={appleEmailVisible}
+        step={appleEmailStep}
+        email={appleCompletionEmail}
+        isLoading={appleEmailLoading}
+        error={appleEmailError}
+        onSubmitEmail={(email) => { void handleAppleEmailSubmit(email); }}
+        onSubmitCode={(code) => { void handleAppleCodeSubmit(code); }}
+        onResend={() => { void handleAppleEmailResend(); }}
+        onCancel={handleAppleEmailCancel}
       />
       <LegalAcceptanceModal
         visible={legalModalVisible}

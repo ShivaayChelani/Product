@@ -12,6 +12,8 @@ export const ErrorCodes = {
   ACTIVE_SUBSCRIPTION_EXISTS: 'ACTIVE_SUBSCRIPTION_EXISTS',
   GOOGLE_IDENTITY_CONFLICT: 'GOOGLE_IDENTITY_CONFLICT',
   APPLE_IDENTITY_CONFLICT: 'APPLE_IDENTITY_CONFLICT',
+  /** Verified Apple identity has no stored account and the token omitted email. */
+  APPLE_EMAIL_REQUIRED: 'APPLE_EMAIL_REQUIRED',
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

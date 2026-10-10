@@ -86,6 +86,8 @@ export const authController = {
       nonce,
       firstName,
       lastName,
+      email,
+      emailVerificationCode,
       termsAccepted,
       privacyAccepted,
       termsVersion,
@@ -97,7 +99,18 @@ export const authController = {
       nonce,
       { termsAccepted, privacyAccepted, termsVersion, privacyVersion, platform },
       { firstName, lastName },
+      { email, emailVerificationCode },
     );
+
+    if ('requiresEmailCompletion' in result && result.requiresEmailCompletion) {
+      sendSuccess(res, result, { message: 'An email address is required to finish creating this account.' });
+      return;
+    }
+
+    if ('requiresEmailVerification' in result && result.requiresEmailVerification) {
+      sendSuccess(res, result, { message: 'Enter the verification code sent to your email.' });
+      return;
+    }
 
     if ('requiresLegalAcceptance' in result) {
       sendSuccess(res, result, { message: 'Legal acceptance required before account creation.' });

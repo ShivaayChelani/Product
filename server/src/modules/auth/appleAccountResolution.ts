@@ -140,10 +140,10 @@ async function resolveInsideTransaction(
   }
 
   // 2. Email fallback for first-time Apple sign-in by an existing PalSafar user.
-  //    Only ever reached with an email Apple itself marked verified, so this cannot be
-  //    used to hijack an account the Apple ID does not own. Private relay addresses are
-  //    accepted as-is: Apple mints them per (Apple ID, app), so a match can only be the
-  //    same person returning to this app.
+  //    Reached only when the address was verified by Apple's token, or by a one-time
+  //    code the server sent to that mailbox. A client-typed address is never verified
+  //    on its own, so it cannot hijack an account. Private relay addresses are accepted
+  //    as-is: Apple mints them per (Apple ID, app).
   if (identity.email && identity.emailVerified) {
     const existingUserId = await findUserIdByEmail(tx, identity.email);
     if (existingUserId) {
@@ -171,12 +171,15 @@ async function resolveInsideTransaction(
     }
   }
 
-  // 3. Brand-new account. `User.email` is required, so an authorization that carries no
-  //    usable address cannot be turned into an account ? surface it instead of inventing one.
+  // 3. Brand-new account. `User.email` is required. When the verified token has no
+  //    address and no stored Apple account, signal the caller to collect and prove an
+  //    email. Do not invent a user here.
   if (!identity.email) {
     throw new ApiError(
       400,
-      'Apple did not share an email address for this sign-in. Please sign in with Google or email instead, or contact support.',
+      'Apple did not share an email address for this sign-in.',
+      true,
+      ErrorCodes.APPLE_EMAIL_REQUIRED,
     );
   }
   if (!identity.emailVerified) {
