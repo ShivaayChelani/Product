@@ -1,3 +1,4 @@
+import 'react-native-get-random-values';
 // Safe console polyfill to prevent early logging crashes
 if (typeof global.console === 'undefined') {
   global.console = {

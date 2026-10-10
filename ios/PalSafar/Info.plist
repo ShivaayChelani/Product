@@ -8,8 +8,6 @@
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>PalSafar</string>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -47,6 +45,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-8325735283795010~7920259135</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
@@ -58,6 +58,12 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>PalSafar needs camera access to capture quest checkpoints and profile photos.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>PalSafar connects to the Metro development server on your local network while a debug build is running.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>PalSafar uses your location to show nearby places, personalize travel discovery, and support location-based travel features while you are using the app. PalSafar does not track your location in the background.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>PalSafar uses your location to show nearby travel spots, places of interest, and vendors on the map.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>PalSafar needs microphone access when recording video for reels.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
@@ -114,9 +120,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>PalSafar uses your location to show nearby travel spots, places of interest, and vendors on the map.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>PalSafar uses your location to show nearby places, personalize travel discovery, and support location-based travel features while you are using the app. PalSafar does not track your location in the background.</string>
 </dict>
 </plist>

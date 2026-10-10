@@ -110,6 +110,45 @@ target 'PalSafar' do
           config.build_settings['SWIFT_VERSION'] = '5.0'
         end
       end
+
+      # These phases have no stable output file list. Xcode otherwise warns that
+      # dependency analysis cannot skip them. always_out_of_date keeps the
+      # scripts running on every build (symlink creation is a no-op for
+      # non-versioned iOS frameworks; Hermes still swaps the Debug/Release
+      # binary) and records that this is intentional.
+      target.shell_script_build_phases.each do |phase|
+        next unless [
+          'Create Symlinks to Header Folders',
+          '[CP-User] [Hermes] Replace Hermes for the right configuration, if needed',
+        ].include?(phase.name)
+
+        phase.always_out_of_date = '1'
+      end
+    end
+  end
+
+  # CocoaPods rewrites these user-project phases on every install and drops
+  # attributes it does not own. Re-apply after integration. The phases still
+  # run on every build; this only records that missing output files are
+  # intentional, so Xcode does not warn or skip Metro, Firebase, or ads setup.
+  post_integrate do |installer|
+    user_script_names = [
+      'Bundle React Native code and images',
+      '[CP-User] [RNFB] Core Configuration',
+      '[CP-User] [RNGoogleMobileAds] Configuration',
+    ]
+    installer.aggregate_targets.map(&:user_project).uniq.each do |project|
+      changed = false
+      project.native_targets.each do |target|
+        target.shell_script_build_phases.each do |phase|
+          next unless user_script_names.include?(phase.name)
+          next if phase.always_out_of_date == '1'
+
+          phase.always_out_of_date = '1'
+          changed = true
+        end
+      end
+      project.save if changed
     end
   end
 end
