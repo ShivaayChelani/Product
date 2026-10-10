@@ -463,7 +463,11 @@ export async function appleLogin(): Promise<
       ...(response.fullName?.givenName ? { firstName: response.fullName.givenName } : {}),
       ...(response.fullName?.familyName ? { lastName: response.fullName.familyName } : {}),
     };
-    const result = await authApi.appleLogin(pendingAppleAuthorization);
+
+    const apiAuthorization = { ...pendingAppleAuthorization };
+    delete apiAuthorization.appleUserId;
+
+    const result = await authApi.appleLogin(apiAuthorization);
     if ('requiresLegalAcceptance' in result) {
       return { requiresLegalAcceptance: true, pendingAppleAuthorization };
     }
@@ -504,8 +508,11 @@ export async function finalizeAppleLogin(
   }
 
   try {
+    // Keep appleUserId for local credential-state tracking only; the API schema
+    // does not accept this client-only field.
+    const { appleUserId, ...apiAuthorization } = authorization;
     const result = await authApi.appleLogin({
-      ...authorization,
+      ...apiAuthorization,
       termsAccepted: true,
       privacyAccepted: true,
       termsVersion: legalMeta.termsVersion,
