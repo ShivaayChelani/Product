@@ -14,6 +14,7 @@ import {
 } from './googleAuthDiagnostics';
 import { appleAuth, generateAppleNonce } from '../config/appleAuth';
 import { isAppleSignInCancelled, mapAppleAuthFailure } from './appleAuthErrors';
+import { toAppleApiBody } from './appleLoginRequest';
 import { forgetAppleUserId, rememberAppleUserId } from './appleCredentialState';
 import { parseJsonObject } from '../utils/safeJson';
 import { purgeUserLocalData } from './localStorageService';
@@ -427,13 +428,57 @@ export type PendingAppleAuthorization = {
   appleUserId?: string;
   firstName?: string;
   lastName?: string;
+  email?: string;
+  emailVerificationCode?: string;
 };
 
-export async function appleLogin(): Promise<
+export type AppleLoginClientResult =
   | { user: UserProfile; session: Session }
   | { requiresLegalAcceptance: true; pendingAppleAuthorization: PendingAppleAuthorization }
-  | null
-> {
+  | { requiresEmailCompletion: true; pendingAppleAuthorization: PendingAppleAuthorization }
+  | { requiresEmailVerification: true; email: string; pendingAppleAuthorization: PendingAppleAuthorization };
+
+async function settleAppleApiResult(
+  result: Awaited<ReturnType<typeof authApi.appleLogin>>,
+  pending: PendingAppleAuthorization,
+): Promise<AppleLoginClientResult> {
+  if ('requiresEmailCompletion' in result && result.requiresEmailCompletion) {
+    return { requiresEmailCompletion: true, pendingAppleAuthorization: pending };
+  }
+  if ('requiresEmailVerification' in result && result.requiresEmailVerification) {
+    return {
+      requiresEmailVerification: true,
+      email: result.email,
+      pendingAppleAuthorization: { ...pending, email: result.email },
+    };
+  }
+  if ('requiresLegalAcceptance' in result && result.requiresLegalAcceptance) {
+    return { requiresLegalAcceptance: true, pendingAppleAuthorization: pending };
+  }
+  if (!('accessToken' in result) || !result.accessToken || !result.user?.id) {
+    throw new Error('Apple Sign-In returned an incomplete session. Please try again.');
+  }
+
+  const profile = buildProfileFromApiUser(result.user);
+  try {
+    await persistAuthUser(profile);
+    await rememberAppleUserId(pending.appleUserId);
+  } catch {
+    await apiClient.setToken(null);
+    throw new Error('Apple Sign-In returned an incomplete session. Please try again.');
+  }
+  return {
+    user: profile,
+    session: {
+      userId: profile.uid,
+      email: result.user.email,
+      role: profile.role,
+      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+    },
+  };
+}
+
+export async function appleLogin(): Promise<AppleLoginClientResult | null> {
   if (!DEV_FLAGS.USE_SERVER_API) {
     throw new Error('Server API is required. Set USE_SERVER_API=true in devFlags.');
   }
@@ -464,37 +509,35 @@ export async function appleLogin(): Promise<
       ...(response.fullName?.familyName ? { lastName: response.fullName.familyName } : {}),
     };
 
-    const apiAuthorization = { ...pendingAppleAuthorization };
-    delete apiAuthorization.appleUserId;
-
-    const result = await authApi.appleLogin(apiAuthorization);
-    if ('requiresLegalAcceptance' in result) {
-      return { requiresLegalAcceptance: true, pendingAppleAuthorization };
-    }
-
-    if (!result?.accessToken || !result.user?.id) {
-      throw new Error('Apple Sign-In returned an incomplete session. Please try again.');
-    }
-
-    const profile = buildProfileFromApiUser(result.user);
-    try {
-      await persistAuthUser(profile);
-      await rememberAppleUserId(appleUserId);
-    } catch {
-      await apiClient.setToken(null);
-      throw new Error('Apple Sign-In returned an incomplete session. Please try again.');
-    }
-    return {
-      user: profile,
-      session: {
-        userId: profile.uid,
-        email: result.user.email,
-        role: profile.role,
-        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
-      },
-    };
+    const result = await authApi.appleLogin(toAppleApiBody(pendingAppleAuthorization));
+    return settleAppleApiResult(result, pendingAppleAuthorization);
   } catch (error: unknown) {
     if (isAppleSignInCancelled(error)) return null;
+    throw mapAppleAuthFailure(error);
+  }
+}
+
+export async function submitAppleEmailCompletion(
+  authorization: PendingAppleAuthorization,
+  input: { email: string; emailVerificationCode?: string },
+): Promise<AppleLoginClientResult> {
+  if (!DEV_FLAGS.USE_SERVER_API) {
+    throw new Error('Server API is required. Set USE_SERVER_API=true in devFlags.');
+  }
+
+  const pending: PendingAppleAuthorization = {
+    ...authorization,
+    email: input.email.trim(),
+  };
+  if (input.emailVerificationCode) {
+    pending.emailVerificationCode = input.emailVerificationCode.trim();
+  } else {
+    delete pending.emailVerificationCode;
+  }
+  try {
+    const result = await authApi.appleLogin(toAppleApiBody(pending));
+    return settleAppleApiResult(result, pending);
+  } catch (error: unknown) {
     throw mapAppleAuthFailure(error);
   }
 }
@@ -508,36 +551,18 @@ export async function finalizeAppleLogin(
   }
 
   try {
-    // Keep appleUserId for local credential-state tracking only; the API schema
-    // does not accept this client-only field.
-    const { appleUserId, ...apiAuthorization } = authorization;
-    const result = await authApi.appleLogin({
-      ...apiAuthorization,
+    const result = await authApi.appleLogin(toAppleApiBody(authorization, {
       termsAccepted: true,
       privacyAccepted: true,
       termsVersion: legalMeta.termsVersion,
       privacyVersion: legalMeta.privacyVersion,
       platform: legalMeta.platform,
-    });
-    if ('requiresLegalAcceptance' in result) {
+    }));
+    const settled = await settleAppleApiResult(result, authorization);
+    if (!('user' in settled)) {
       throw new Error('Legal acceptance was not recorded. Please reload and try again.');
     }
-    if (!result?.accessToken || !result.user?.id) {
-      throw new Error('Apple Sign-In returned an incomplete session. Please try again.');
-    }
-
-    const profile = buildProfileFromApiUser(result.user);
-    await persistAuthUser(profile);
-    await rememberAppleUserId(authorization.appleUserId);
-    return {
-      user: profile,
-      session: {
-        userId: profile.uid,
-        email: result.user.email,
-        role: profile.role,
-        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
-      },
-    };
+    return settled;
   } catch (error: unknown) {
     if (isAppleSignInCancelled(error)) return null;
     throw mapAppleAuthFailure(error);

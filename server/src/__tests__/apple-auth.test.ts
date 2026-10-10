@@ -51,6 +51,7 @@ async function cleanupUserIds(ids: string[]) {
 
 describe('POST /api/v1/auth/apple', () => {
   const createdUserIds: string[] = [];
+  const proofEmails: string[] = [];
   let versions: { termsVersion: number; privacyVersion: number };
 
   beforeAll(async () => {
@@ -60,6 +61,11 @@ describe('POST /api/v1/auth/apple', () => {
 
   afterAll(async () => {
     await cleanupUserIds(createdUserIds);
+    if (proofEmails.length) {
+      await prisma.passwordResetToken.deleteMany({
+        where: { email: { in: proofEmails.map((email) => `apple-email:${email}`) } },
+      }).catch(() => undefined);
+    }
   });
 
   it('requires legal acceptance for a brand-new Apple account and creates the full session on Phase 2', async () => {
@@ -285,14 +291,220 @@ describe('POST /api/v1/auth/apple', () => {
     expect(verifyAppleIdentityToken).not.toHaveBeenCalled();
   });
 
-  it('refuses to invent an account when Apple shares no email', async () => {
+  it('asks a new Apple user for an email instead of inventing an account', async () => {
     const identity = appleIdentity({ email: null, emailVerified: false });
     verifyAppleIdentityToken.mockResolvedValueOnce(identity);
     const res = await request(app)
       .post('/api/v1/auth/apple')
       .send({ identityToken: 'no-email', nonce: NONCE, ...legalAcceptancePayload(versions) });
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(200);
+    expect(res.body.data.requiresEmailCompletion).toBe(true);
+    expect(res.body.data.accessToken).toBeUndefined();
     expect(await prisma.authAccount.count({ where: { providerAccountId: identity.sub } })).toBe(0);
+  });
+
+  it('completes a new Apple account only after the typed email is proven', async () => {
+    const identity = appleIdentity({ email: null, emailVerified: false, fullName: null });
+    const email = `apple-new-${Date.now()}@palsafar.test`;
+    proofEmails.push(email);
+
+    verifyAppleIdentityToken.mockResolvedValueOnce(identity);
+    const requested = await request(app)
+      .post('/api/v1/auth/apple')
+      .send({ identityToken: 'complete-email', nonce: NONCE, email, firstName: 'Grace', lastName: 'Hopper' });
+    expect(requested.status).toBe(200);
+    expect(requested.body.data.requiresEmailVerification).toBe(true);
+    expect(requested.body.data.email).toBe(email);
+    expect(requested.body.data.accessToken).toBeUndefined();
+    expect(await prisma.user.count({ where: { email } })).toBe(0);
+
+    verifyAppleIdentityToken.mockResolvedValueOnce(identity);
+    const wrong = await request(app)
+      .post('/api/v1/auth/apple')
+      .send({
+        identityToken: 'complete-wrong',
+        nonce: NONCE,
+        email,
+        emailVerificationCode: 'WRONGCOD',
+        ...legalAcceptancePayload(versions),
+      });
+    expect(wrong.status).toBe(400);
+    expect(await prisma.user.count({ where: { email } })).toBe(0);
+
+    verifyAppleIdentityToken.mockResolvedValueOnce(identity);
+    const pendingLegal = await request(app)
+      .post('/api/v1/auth/apple')
+      .send({
+        identityToken: 'complete-legal',
+        nonce: NONCE,
+        email,
+        emailVerificationCode: 'APPLEOTP',
+        firstName: 'Grace',
+        lastName: 'Hopper',
+      });
+    expect(pendingLegal.status).toBe(200);
+    expect(pendingLegal.body.data.requiresLegalAcceptance).toBe(true);
+    expect(await prisma.user.count({ where: { email } })).toBe(0);
+
+    verifyAppleIdentityToken.mockResolvedValueOnce(identity);
+    const created = await request(app)
+      .post('/api/v1/auth/apple')
+      .send({
+        identityToken: 'complete-create',
+        nonce: NONCE,
+        email,
+        emailVerificationCode: 'APPLEOTP',
+        firstName: 'Grace',
+        lastName: 'Hopper',
+        ...legalAcceptancePayload(versions),
+      });
+    expect(created.status).toBe(200);
+    expect(created.body.data.user.email).toBe(email);
+    expect(created.body.data.user.name).toBe('Grace Hopper');
+    createdUserIds.push(created.body.data.user.id);
+    expect(await prisma.user.count({ where: { email } })).toBe(1);
+
+    const account = await prisma.authAccount.findUnique({
+      where: {
+        provider_providerAccountId: { provider: 'apple', providerAccountId: identity.sub },
+      },
+    });
+    expect(account?.userId).toBe(created.body.data.user.id);
+  });
+
+  it('logs a returning Apple user in by verified sub when the token omits email', async () => {
+    const email = `apple-return-${Date.now()}@palsafar.test`;
+    proofEmails.push(email);
+    const identity = appleIdentity({ email: null, emailVerified: false });
+
+    verifyAppleIdentityToken.mockResolvedValueOnce(identity);
+    await request(app).post('/api/v1/auth/apple').send({ identityToken: 'return-otp', nonce: NONCE, email });
+
+    verifyAppleIdentityToken.mockResolvedValueOnce(identity);
+    const created = await request(app)
+      .post('/api/v1/auth/apple')
+      .send({
+        identityToken: 'return-create',
+        nonce: NONCE,
+        email,
+        emailVerificationCode: 'APPLEOTP',
+        ...legalAcceptancePayload(versions),
+      });
+    expect(created.status).toBe(200);
+    createdUserIds.push(created.body.data.user.id);
+
+    verifyAppleIdentityToken.mockResolvedValueOnce({ ...identity, email: null, emailVerified: false });
+    const again = await request(app)
+      .post('/api/v1/auth/apple')
+      .send({ identityToken: 'return-again', nonce: NONCE });
+    expect(again.status).toBe(200);
+    expect(again.body.data.user.id).toBe(created.body.data.user.id);
+    expect(again.body.data.requiresEmailCompletion).toBeUndefined();
+    expect(await prisma.user.count({ where: { email } })).toBe(1);
+  });
+
+  it('links a proven completion email to the existing account and does not create a duplicate', async () => {
+    const email = `apple-link-${Date.now()}@palsafar.test`;
+    proofEmails.push(email);
+    const registered = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email,
+        name: 'Existing Traveller',
+        password: 'LinkTest@123',
+        ...legalAcceptancePayload(versions),
+      });
+    expect(registered.status).toBe(201);
+    createdUserIds.push(registered.body.data.user.id);
+
+    const identity = appleIdentity({ email: null, emailVerified: false });
+    verifyAppleIdentityToken.mockResolvedValueOnce(identity);
+    const requested = await request(app)
+      .post('/api/v1/auth/apple')
+      .send({ identityToken: 'link-otp', nonce: NONCE, email });
+    expect(requested.body.data.requiresEmailVerification).toBe(true);
+    expect(await prisma.authAccount.count({ where: { providerAccountId: identity.sub } })).toBe(0);
+
+    verifyAppleIdentityToken.mockResolvedValueOnce(identity);
+    const linked = await request(app)
+      .post('/api/v1/auth/apple')
+      .send({
+        identityToken: 'link-proof',
+        nonce: NONCE,
+        email,
+        emailVerificationCode: 'APPLEOTP',
+      });
+    expect(linked.status).toBe(200);
+    expect(linked.body.data.user.id).toBe(registered.body.data.user.id);
+    expect(linked.body.data.user.name).toBe('Existing Traveller');
+    expect(await prisma.user.count({ where: { email } })).toBe(1);
+  });
+
+  it('refuses to link a proven completion email that already belongs to a different Apple ID', async () => {
+    const email = `apple-owned-${Date.now()}@palsafar.test`;
+    proofEmails.push(email);
+    const registered = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email,
+        name: 'Owned Account',
+        password: 'Conflict@123',
+        ...legalAcceptancePayload(versions),
+      });
+    expect(registered.status).toBe(201);
+    const userId = registered.body.data.user.id;
+    createdUserIds.push(userId);
+    await prisma.authAccount.create({
+      data: {
+        userId,
+        provider: 'apple',
+        providerAccountId: `owned-sub-${userId}`,
+        email,
+        emailVerified: true,
+      },
+    });
+
+    const identity = appleIdentity({ email: null, emailVerified: false, sub: `new-sub-${userId}` });
+    verifyAppleIdentityToken.mockResolvedValueOnce(identity);
+    const requested = await request(app)
+      .post('/api/v1/auth/apple')
+      .send({ identityToken: 'owned-otp', nonce: NONCE, email });
+    expect(requested.status).toBe(200);
+    expect(requested.body.data.requiresEmailVerification).toBe(true);
+
+    verifyAppleIdentityToken.mockResolvedValueOnce(identity);
+    const res = await request(app)
+      .post('/api/v1/auth/apple')
+      .send({
+        identityToken: 'owned-proof',
+        nonce: NONCE,
+        email,
+        emailVerificationCode: 'APPLEOTP',
+      });
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe(ErrorCodes.APPLE_IDENTITY_CONFLICT);
+    expect(await prisma.user.count({ where: { email } })).toBe(1);
+    expect(await prisma.authAccount.count({ where: { providerAccountId: identity.sub } })).toBe(0);
+  });
+
+  it('does not let a client-supplied email replace the email in the verified Apple token', async () => {
+    const identity = appleIdentity();
+    const forgedEmail = `forged-${Date.now()}@palsafar.test`;
+    proofEmails.push(forgedEmail);
+    verifyAppleIdentityToken.mockResolvedValueOnce(identity);
+    const res = await request(app)
+      .post('/api/v1/auth/apple')
+      .send({
+        identityToken: 'token-email-wins',
+        nonce: NONCE,
+        email: forgedEmail,
+        emailVerificationCode: 'APPLEOTP',
+        ...legalAcceptancePayload(versions),
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.data.user.email).toBe(identity.email);
+    createdUserIds.push(res.body.data.user.id);
+    expect(await prisma.user.findUnique({ where: { email: forgedEmail } })).toBeNull();
   });
 
   it('rejects a first-time Apple sign-in whose email Apple did not verify', async () => {

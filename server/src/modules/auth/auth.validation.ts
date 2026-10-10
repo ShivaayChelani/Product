@@ -52,6 +52,9 @@ export const appleLoginSchema = z.object({
   nonce: z.string().min(8, 'Nonce is required').max(256, 'Nonce is too long'),
   firstName: z.string().trim().min(1).max(60).optional(),
   lastName: z.string().trim().min(1).max(60).optional(),
+  // Optional mailbox for a new Apple user whose token omitted email. Never an identity key.
+  email: z.string().trim().min(3).max(254).email('Invalid email address').optional(),
+  emailVerificationCode: z.string().trim().regex(/^[A-Za-z0-9]{8}$/, 'Verification code must be 8 characters').optional(),
   termsAccepted: z.boolean().optional(),
   privacyAccepted: z.boolean().optional(),
   termsVersion: z.number().int().positive().optional(),

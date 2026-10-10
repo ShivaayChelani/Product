@@ -16,7 +16,7 @@ import { buildVerificationEmail } from '../../shared/email/email.templates';
 import { prisma } from '../../config/database';
 import { env } from '../../config/env';
 import { logger } from '../../config/logger';
-import { ApiError } from '../../shared/utils/ApiError';
+import { ApiError, ErrorCodes } from '../../shared/utils/ApiError';
 import { RegisterInput, LoginInput } from './auth.validation';
 import { eventBus, AppEvents } from '../../config/events';
 import { awardDailyReward } from './daily-rewards';
@@ -37,7 +37,12 @@ import {
 } from '../upload/media-cleanup.service';
 import { verifyGoogleIdToken } from './googleIdentity';
 import { resolveGoogleAccount } from './googleAccountResolution';
-import { joinAppleFullName, verifyAppleIdentityToken } from './appleIdentity';
+import {
+  isApplePrivateRelayEmail,
+  joinAppleFullName,
+  verifyAppleIdentityToken,
+  type VerifiedAppleIdentity,
+} from './appleIdentity';
 import { resolveAppleAccount } from './appleAccountResolution';
 import { legalService } from '../legal/legal.service';
 
@@ -229,6 +234,105 @@ async function issueRegisterOtpEmail(canonicalEmail: string): Promise<void> {
     input,
     { email: canonicalEmail, purpose: 'register_otp' },
   );
+}
+
+/** Fixed code only in the test runner. Production codes are random and emailed. */
+const APPLE_EMAIL_PROOF_TEST_CODE = 'APPLEOTP';
+
+function appleEmailProofKey(canonicalEmail: string): string {
+  return `apple-email:${canonicalEmail}`;
+}
+
+function hashVerificationCode(code: string): string {
+  return crypto.createHash('sha256').update(code.trim().toUpperCase()).digest('hex');
+}
+
+/**
+ * Mailbox proof for a new Apple user whose identity token omitted email.
+ * The code proves the address; it does not prove the Apple identity.
+ */
+async function issueAppleCompletionCode(canonicalEmail: string): Promise<void> {
+  const code = process.env.NODE_ENV === 'test' ? APPLE_EMAIL_PROOF_TEST_CODE : generateVerificationCode();
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+  const storageKey = appleEmailProofKey(canonicalEmail);
+
+  await prisma.passwordResetToken.upsert({
+    where: { email: storageKey },
+    update: { token: hashVerificationCode(code), expiresAt },
+    create: { email: storageKey, token: hashVerificationCode(code), expiresAt },
+  });
+
+  if (process.env.NODE_ENV === 'test') return;
+
+  if (!isSmtpConfigured()) {
+    throw new ApiError(503, 'Email verification is unavailable. SMTP is not configured.');
+  }
+
+  const templateId = resolveBrevoTemplateId(
+    getBrevoEmailVerificationTemplateId(),
+    'BREVO_EMAIL_VERIFICATION_TEMPLATE_ID',
+  );
+  const mail = buildVerificationEmail(code, 'register_otp');
+  const input: SendEmailInput = {
+    to: canonicalEmail,
+    subject: mail.subject,
+    text: mail.text,
+    html: mail.html,
+  };
+  if (templateId) {
+    input.templateId = templateId;
+    input.params = brevoTemplateParams(code);
+  }
+  await sendVerificationEmailOrThrow(input, { email: canonicalEmail, purpose: 'apple_email_completion' });
+}
+
+async function assertAppleEmailProof(canonicalEmail: string, code: string): Promise<void> {
+  const storageKey = appleEmailProofKey(canonicalEmail);
+  const record = await prisma.passwordResetToken.findUnique({ where: { email: storageKey } });
+  if (!record || record.token !== hashVerificationCode(code) || record.expiresAt < new Date()) {
+    throw new ApiError(400, 'Invalid or expired verification code.');
+  }
+}
+
+async function consumeAppleEmailProof(canonicalEmail: string): Promise<void> {
+  await prisma.passwordResetToken
+    .delete({ where: { email: appleEmailProofKey(canonicalEmail) } })
+    .catch(() => undefined);
+}
+
+/**
+ * New Apple identity, no email in the verified token, and no stored `sub`.
+ * Returning users never reach this: `resolveAppleAccount` finds them by `sub` first.
+ */
+async function continueAppleLoginWithoutTokenEmail(
+  identity: VerifiedAppleIdentity,
+  legal: SocialLegalInput | undefined,
+  completion?: { email?: string | null; emailVerificationCode?: string | null },
+) {
+  const rawEmail = completion?.email?.trim();
+  if (!rawEmail) {
+    return { requiresEmailCompletion: true as const };
+  }
+
+  const email = normalizeEmail(rawEmail);
+  const code = completion?.emailVerificationCode?.trim();
+  if (!code) {
+    await issueAppleCompletionCode(email);
+    return { requiresEmailVerification: true as const, email };
+  }
+
+  await assertAppleEmailProof(email, code);
+  const { userId, created } = await resolveAppleAccount({
+    ...identity,
+    email,
+    emailVerified: true,
+    isPrivateRelay: isApplePrivateRelayEmail(email),
+  });
+  const result = await finalizeSocialLogin(userId, created, legal, 'Apple', APPLE_SIGNIN_WINDOW_MS);
+  if (!('requiresLegalAcceptance' in result)) {
+    await consumeAppleEmailProof(email);
+  }
+  return result;
 }
 
 type SocialLegalInput = {
@@ -613,28 +717,37 @@ export const authService = {
   /**
    * Sign in (or register) with Apple.
    *
-   * Identity is anchored exclusively on the verified Apple `sub`; the email is only
-   * a first-time linking fallback and is only ever honoured when Apple itself marks
-   * it verified. Apple sends the user's name OUT OF BAND and only on the very first
-   * authorization for the app, so `nameParts` is best-effort profile enrichment and
-   * never participates in identity.
+   * Identity is anchored exclusively on the verified Apple `sub`. A client-supplied
+   * email or Apple user id is never proof of identity. The token email is used only
+   * as a first-time linking fallback when Apple marked it verified. When a new Apple
+   * identity has no token email, the caller must prove a mailbox with a one-time code
+   * before an account is created or linked. Apple sends the name out of band and only
+   * on the first authorization, so `nameParts` is profile enrichment only.
    */
   async appleLogin(
     identityToken: string,
     nonce: string,
     legal?: SocialLegalInput,
     nameParts?: { firstName?: string | null; lastName?: string | null },
+    completion?: { email?: string | null; emailVerificationCode?: string | null },
   ) {
     // Throws 401 on a bad signature/audience/issuer/expiry and on a nonce that does
     // not match the SHA-256 digest Apple echoed back.
     const identity = await verifyAppleIdentityToken(identityToken, nonce);
-    const { userId, created } = await resolveAppleAccount({
+    const named: VerifiedAppleIdentity = {
       ...identity,
-      // Apple's token never carries the name; attach the client-forwarded one.
       fullName: joinAppleFullName(nameParts),
-    });
+    };
 
-    return finalizeSocialLogin(userId, created, legal, 'Apple', APPLE_SIGNIN_WINDOW_MS);
+    try {
+      const { userId, created } = await resolveAppleAccount(named);
+      return finalizeSocialLogin(userId, created, legal, 'Apple', APPLE_SIGNIN_WINDOW_MS);
+    } catch (error) {
+      if (error instanceof ApiError && error.code === ErrorCodes.APPLE_EMAIL_REQUIRED) {
+        return continueAppleLoginWithoutTokenEmail(named, legal, completion);
+      }
+      throw error;
+    }
   },
 
   async refresh(refreshTokenStr: string) {

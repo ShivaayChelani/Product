@@ -1,6 +1,7 @@
 import { apiClient } from './client';
 import { API_CONFIG } from '../../config/api';
 import type { UserActiveMode, UserPermission } from '../../types';
+import { classifyAppleServerPayload } from '../appleLoginRequest';
 
 export interface LoginResponse {
   user: {
@@ -54,6 +55,9 @@ export interface AppleLoginInput {
   nonce: string;
   firstName?: string;
   lastName?: string;
+  /** Mailbox to complete a new Apple account. Not proof of Apple identity. */
+  email?: string;
+  emailVerificationCode?: string;
   termsAccepted?: boolean;
   privacyAccepted?: boolean;
   termsVersion?: number;
@@ -64,6 +68,21 @@ export interface AppleLoginInput {
 export interface AppleLoginRequiresLegal {
   requiresLegalAcceptance: true;
 }
+
+export interface AppleLoginRequiresEmailCompletion {
+  requiresEmailCompletion: true;
+}
+
+export interface AppleLoginRequiresEmailVerification {
+  requiresEmailVerification: true;
+  email: string;
+}
+
+export type AppleLoginResult =
+  | LoginResponse
+  | AppleLoginRequiresLegal
+  | AppleLoginRequiresEmailCompletion
+  | AppleLoginRequiresEmailVerification;
 
 /** Returned by Phase 1 of Google login when a brand-new account needs legal acceptance. */
 export interface GoogleLoginRequiresLegal {
@@ -196,18 +215,24 @@ export const authApi = {
     return loginData;
   },
 
-  async appleLogin(input: AppleLoginInput): Promise<LoginResponse | AppleLoginRequiresLegal> {
-    const res = await apiClient.post<LoginResponse | AppleLoginRequiresLegal>(
+  async appleLogin(input: AppleLoginInput): Promise<AppleLoginResult> {
+    const res = await apiClient.post<AppleLoginResult>(
       API_CONFIG.endpoints.auth.apple,
       input,
     );
-    const data = res.data;
+    const outcome = classifyAppleServerPayload(res.data);
 
-    if (data && 'requiresLegalAcceptance' in data && data.requiresLegalAcceptance) {
-      return data;
+    if (outcome.type === 'email_completion') {
+      return { requiresEmailCompletion: true };
+    }
+    if (outcome.type === 'email_verification') {
+      return { requiresEmailVerification: true, email: outcome.email };
+    }
+    if (outcome.type === 'legal') {
+      return { requiresLegalAcceptance: true };
     }
 
-    const loginData = data as LoginResponse;
+    const loginData = res.data as LoginResponse;
     if (!loginData?.accessToken) {
       throw new Error('Apple Login succeeded but no access token was returned.');
     }

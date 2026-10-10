@@ -400,7 +400,7 @@ describe('resolveAppleAccount', () => {
   it('refuses to mint an account when Apple shares no email', async () => {
     await expect(
       resolveAppleAccount(identity({ email: null, emailVerified: false, fullName: null }), store.db as any),
-    ).rejects.toMatchObject({ statusCode: 400 });
+    ).rejects.toMatchObject({ statusCode: 400, code: ErrorCodes.APPLE_EMAIL_REQUIRED });
     expect(store.users.size).toBe(0);
   });
 
