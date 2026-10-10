@@ -83,6 +83,28 @@ target 'PalSafar' do
       :mac_catalyst_enabled => false,
     )
 
+    # Keep app-level privacy reasons separate from SDK-only reasons.
+    app_privacy_manifest = File.join(__dir__, 'PalSafar', 'PrivacyInfo.xcprivacy')
+    if File.file?(app_privacy_manifest)
+      app_privacy = Xcodeproj::Plist.read_from_path(app_privacy_manifest)
+      accessed_api_types = app_privacy['NSPrivacyAccessedAPITypes'] || []
+
+      accessed_api_types.each do |entry|
+        next unless entry['NSPrivacyAccessedAPIType'] == 'NSPrivacyAccessedAPICategoryUserDefaults'
+
+        reasons = entry['NSPrivacyAccessedAPITypeReasons'] || []
+        entry['NSPrivacyAccessedAPITypeReasons'] = reasons - ['1C8F.1', 'C56D.1']
+      end
+
+      accessed_api_types.reject! do |entry|
+        entry['NSPrivacyAccessedAPIType'] == 'NSPrivacyAccessedAPICategoryUserDefaults' &&
+          Array(entry['NSPrivacyAccessedAPITypeReasons']).empty?
+      end
+
+      app_privacy['NSPrivacyAccessedAPITypes'] = accessed_api_types
+      Xcodeproj::Plist.write_to_path(app_privacy, app_privacy_manifest)
+    end
+
     # fmt 11.0.2 base.h must ship with consteval disabled for Xcode 26's clang.
     patch_fmt_consteval!(installer)
 
