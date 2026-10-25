@@ -95,7 +95,7 @@ function sortByDistanceFrom(spots: TouristSpot[], lat: number, lng: number): Tou
 }
 
 function filterTouristPlaces(spots: TouristSpot[]): TouristSpot[] {
-  return spots.filter(s => !isCommercialPlaceCategory(s.category));
+  return spots.filter(s => !isCommercialPlaceCategory(s.category, s.name));
 }
 
 function mapCategory(cat: string): TouristSpot['category'] {

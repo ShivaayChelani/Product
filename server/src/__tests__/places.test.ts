@@ -356,7 +356,7 @@ describe('Places API', () => {
     it('finds a place by partial name, case-insensitively', async () => {
       const res = await request(app)
         .get('/api/v1/admin/places')
-        .query({ search: 'marble casc', touristOnly: 'false', limit: 50 })
+        .query({ search: 'marble casc', limit: 50 })
         .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBe(200);
       expect(res.body.data.some((p: { name: string }) => p.name.includes('Marble Cascade'))).toBe(true);
@@ -365,14 +365,14 @@ describe('Places API', () => {
     it('finds places by city and by state', async () => {
       const cityRes = await request(app)
         .get('/api/v1/admin/places')
-        .query({ search: cityA, touristOnly: 'false', limit: 50 })
+        .query({ search: cityA, limit: 50 })
         .set('Authorization', `Bearer ${adminToken}`);
       expect(cityRes.status).toBe(200);
       expect(cityRes.body.data.some((p: { name: string }) => p.name.includes('Marble Cascade'))).toBe(true);
 
       const stateRes = await request(app)
         .get('/api/v1/admin/places')
-        .query({ search: stateA, touristOnly: 'false', limit: 50 })
+        .query({ search: stateA, limit: 50 })
         .set('Authorization', `Bearer ${adminToken}`);
       expect(stateRes.status).toBe(200);
       const names = stateRes.body.data.map((p: { name: string }) => p.name);
@@ -383,7 +383,7 @@ describe('Places API', () => {
     it('combines search with category filter', async () => {
       const res = await request(app)
         .get('/api/v1/admin/places')
-        .query({ search: cityA, category: 'waterfall', touristOnly: 'false', limit: 50 })
+        .query({ search: cityA, category: 'waterfall', limit: 50 })
         .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBe(200);
       const mine = res.body.data.filter((p: { name: string }) => p.name.includes(marker));
@@ -395,7 +395,7 @@ describe('Places API', () => {
     it('sorts by real editorialPriority ascending and descending', async () => {
       const asc = await request(app)
         .get('/api/v1/admin/places')
-        .query({ search: marker, touristOnly: 'false', sort: 'priority', sortDir: 'asc', limit: 50 })
+        .query({ search: marker, sort: 'priority', sortDir: 'asc', limit: 50 })
         .set('Authorization', `Bearer ${adminToken}`);
       expect(asc.status).toBe(200);
       const ascMine = asc.body.data.filter((p: { name: string }) => p.name.includes(marker));
@@ -403,7 +403,7 @@ describe('Places API', () => {
 
       const desc = await request(app)
         .get('/api/v1/admin/places')
-        .query({ search: marker, touristOnly: 'false', sort: 'priority', sortDir: 'desc', limit: 50 })
+        .query({ search: marker, sort: 'priority', sortDir: 'desc', limit: 50 })
         .set('Authorization', `Bearer ${adminToken}`);
       expect(desc.status).toBe(200);
       const descMine = desc.body.data.filter((p: { name: string }) => p.name.includes(marker));

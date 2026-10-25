@@ -54,6 +54,25 @@ describe("admin Places table columns", () => {
     expect(page).toMatch(/pageAfterSearchChange/);
   });
 
+  it("has no 'Tourist destinations only' toggle; vendor businesses are excluded server-side", () => {
+    expect(page).not.toMatch(/Tourist destinations only/);
+    expect(page).not.toMatch(/touristOnly/);
+    expect(page).toMatch(/href="\/dashboard\/vendors"/);
+    const service = read("services/places.ts");
+    expect(service).not.toMatch(/touristOnly/);
+    const utils = read("app/dashboard/places/utils.tsx");
+    expect(utils).not.toMatch(/touristOnly/);
+    const needsAttention = read("components/NeedsAttention.tsx");
+    expect(needsAttention).not.toMatch(/touristOnly/);
+  });
+
+  it("lists mall alongside market as a Places category", () => {
+    const constants = read("app/dashboard/places/constants.ts");
+    expect(constants).toMatch(/"market",\s*"mall"/);
+    const form = read("components/PlaceForm.tsx");
+    expect(form).toMatch(/"market",\s*"mall"/);
+  });
+
   it("lets the admin pick 25, 50, 75, or 100 rows per page", () => {
     expect(page).toMatch(/PAGE_SIZE_OPTIONS/);
     expect(page).toMatch(/onPageSizeChange/);

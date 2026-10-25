@@ -1,6 +1,9 @@
 import { prisma } from '../../../config/database';
 import { cache, cacheKey } from '../../../config/cache';
 import { mapViewportRow, placeApproved, resolvePlace } from './places.helpers';
+import { nonCommercialPlaceSqlFor } from '../../../shared/utils/touristPlaceFilter';
+
+const nonCommercialOther = nonCommercialPlaceSqlFor('ps_other');
 
 export const placesRecommendationService = {
   async getRecommendations(placeIdOrSlug: string, limit: number = 10) {
@@ -27,7 +30,7 @@ export const placesRecommendationService = {
         WHERE ps."placeId" != ${placeId}
           AND ps.action IN ('like', 'save')
           AND ps_other.status = ${placeApproved}
-          AND ps_other.category::text NOT IN ('SHOPPING', 'RESTAURANT', 'HOTEL')
+          AND ${nonCommercialOther}
         GROUP BY ps."placeId"
       )
       SELECT

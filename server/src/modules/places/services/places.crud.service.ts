@@ -19,10 +19,7 @@ import { walletService } from '../../wallet/wallet.service';
 import { pointRulesService } from '../../point-rules/pointRules.service';
 import { logger } from '../../../config/logger';
 import { applyPublicPlacePrismaFilter, canPublicViewPlace } from './places-public-visibility';
-import {
-  filterTouristPlaces,
-  mergePlaceWhere,
-} from '../../../shared/utils/touristPlaceFilter';
+import { mergePlaceWhere } from '../../../shared/utils/touristPlaceFilter';
 import { placesCanonicalService } from './places.canonical.service';
 import { withPlaceGeohash } from './place-geo.helpers';
 import { buildAdminPlaceOrderBy, buildAdminPlaceSearchWhere } from './places.adminQuery';
@@ -187,6 +184,12 @@ export const placesCrudService = {
     return paginatedResponse(rows, total, pagination);
   },
 
+  /**
+   * Admin Places list. Every real place row is visible (admins moderate junk
+   * here), but vendor businesses — shops, restaurants, hotels mirrored from
+   * the Vendors module — are excluded unconditionally; they are managed in
+   * the Vendors tab. Malls and market areas are tourist destinations and stay.
+   */
   async adminList(query: {
     page?: string;
     limit?: string;
@@ -195,85 +198,25 @@ export const placesCrudService = {
     search?: string;
     city?: string;
     state?: string;
-    touristOnly?: string;
     verified?: string;
     featured?: string;
     sort?: string;
     sortDir?: string;
   }) {
     const pagination = getPaginationParams(query, 200);
-    const touristOnly = query.touristOnly !== 'false';
-    const where = placesCrudService.buildAdminWhere(query, touristOnly);
+    const where = placesCrudService.buildAdminWhere(query);
     const orderBy = buildAdminPlaceOrderBy(query.sort, query.sortDir);
 
-    if (!touristOnly) {
-      const [data, total] = await Promise.all([
-        prisma.place.findMany({
-          select: placeListSelect,
-          where,
-          skip: pagination.skip,
-          take: pagination.limit,
-          orderBy,
-        }),
-        prisma.place.count({ where }),
-      ]);
-      return paginatedResponse(data, total, pagination);
-    }
-
-    // Tourist-only: commercial categories excluded in SQL; name/park quality refined in memory.
-    // Walk ordered rows until the requested page is filled so skip/total stay consistent.
-    const batchSize = Math.min(Math.max(pagination.limit * 4, 100), 400);
-    const needed = pagination.skip + pagination.limit;
-    const touristRows: Prisma.PlaceGetPayload<{ select: typeof placeListSelect }>[] = [];
-    let dbOffset = 0;
-    let exhausted = false;
-
-    while (touristRows.length < needed && !exhausted) {
-      const batch = await prisma.place.findMany({
+    const [data, total] = await Promise.all([
+      prisma.place.findMany({
         select: placeListSelect,
         where,
-        skip: dbOffset,
-        take: batchSize,
+        skip: pagination.skip,
+        take: pagination.limit,
         orderBy,
-      });
-      if (batch.length === 0) {
-        exhausted = true;
-        break;
-      }
-      dbOffset += batch.length;
-      touristRows.push(...filterTouristPlaces(batch));
-      if (batch.length < batchSize) exhausted = true;
-    }
-
-    let total = touristRows.length;
-    if (!exhausted) {
-      // Continue scanning for an accurate total (cap batches to avoid runaway admin scans).
-      let safety = 0;
-      while (!exhausted && safety < 50) {
-        safety += 1;
-        const batch = await prisma.place.findMany({
-          select: {
-            id: true,
-            name: true,
-            category: true,
-            source: true,
-            editorialPriority: true,
-            tags: true,
-            description: true,
-          },
-          where,
-          skip: dbOffset,
-          take: batchSize,
-          orderBy,
-        });
-        if (batch.length === 0) break;
-        dbOffset += batch.length;
-        total += filterTouristPlaces(batch).length;
-        if (batch.length < batchSize) break;
-      }
-    }
-
-    const data = touristRows.slice(pagination.skip, pagination.skip + pagination.limit);
+      }),
+      prisma.place.count({ where }),
+    ]);
     return paginatedResponse(data, total, pagination);
   },
 
@@ -283,13 +226,11 @@ export const placesCrudService = {
     status?: string;
     state?: string;
     search?: string;
-    touristOnly?: string;
     placesPerCity?: string;
   }) {
     const pagination = getPaginationParams(query, 20);
-    const touristOnly = query.touristOnly !== 'false';
     const placesPerCity = Math.min(parseInt(query.placesPerCity || '20', 10), 50);
-    const where = placesCrudService.buildAdminWhere(query, touristOnly);
+    const where = placesCrudService.buildAdminWhere(query);
 
     const groups = await prisma.place.groupBy({
       by: ['state', 'city'],
@@ -318,20 +259,18 @@ export const placesCrudService = {
             ? {}
             : { state: { equals: g.state, mode: 'insensitive' } };
 
-        let places = await prisma.place.findMany({
+        const places = await prisma.place.findMany({
           select: placeListSelect,
           where: mergePlaceWhere(where, mergePlaceWhere(cityWhere, stateWhere)),
           orderBy: [{ editorialPriority: 'desc' }, { name: 'asc' }],
-          take: touristOnly ? placesPerCity * 3 : placesPerCity,
+          take: placesPerCity,
         });
-        if (touristOnly) places = filterTouristPlaces(places);
-        places = places.slice(0, placesPerCity);
 
         return {
           city: g.city,
           state: g.state,
           placeCount: places.length,
-          totalInCity: touristOnly ? places.length : g.dbCount,
+          totalInCity: g.dbCount,
           places,
         };
       }),
@@ -350,7 +289,6 @@ export const placesCrudService = {
       verified?: string;
       featured?: string;
     },
-    touristOnly: boolean,
   ): Prisma.PlaceWhereInput {
     const where: Prisma.PlaceWhereInput = {};
     const requestedStatus = query.status ? String(query.status).toUpperCase() : undefined;
@@ -392,12 +330,8 @@ export const placesCrudService = {
       where.editorialPriority = { lt: 3 };
     }
 
-    if (touristOnly) {
-      // Safe enum pre-filter (avoids fragile nested OR from touristPlacePrismaWhere).
-      // Name/park quality is refined by filterTouristPlaces after fetch.
-      Object.assign(where, excludeCommercialPlacesWhere);
-    }
-    return where;
+    // Vendor businesses never show in Places; malls / market areas do.
+    return mergePlaceWhere(where, excludeCommercialPlacesWhere);
   },
 
   async getById(idOrSlug: string, viewer?: { isAdmin?: boolean; userId?: string }) {

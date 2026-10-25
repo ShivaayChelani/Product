@@ -85,13 +85,26 @@ export const PLACE_CATEGORIES = [
 
 export type PlaceCategoryKey = (typeof PLACE_CATEGORIES)[number];
 
+/**
+ * Market areas and malls are destinations in their own right (Sarojini Nagar,
+ * Johari Bazaar, a city's main mall) and stay on the Places layer. Mirrors the
+ * server rule in `touristPlaceFilter.ts`.
+ */
+const MARKET_AREA_CATEGORIES = new Set(['market', 'mall', 'shopping_mall', 'bazaar', 'bazar']);
+const MARKET_AREA_NAME = /\b(mall|market|bazaar|bazar|haat|chowk|emporium)\b/i;
+
+export function isMarketAreaPlace(category?: string | null, name?: string | null): boolean {
+  const raw = (category || '').toLowerCase().trim();
+  if (MARKET_AREA_CATEGORIES.has(raw)) return true;
+  if (raw !== 'shopping' && normalizeCategory(raw) !== 'shopping') return false;
+  return MARKET_AREA_NAME.test(name || '');
+}
+
 /** Commercial POIs that belong on the Vendors tab, not Places. */
 const COMMERCIAL_PLACE_CATEGORIES = new Set([
   'shopping',
-  'market',
   'shop',
   'shops',
-  'bazaar',
   'restaurant',
   'cafe',
   'café',
@@ -104,9 +117,14 @@ const COMMERCIAL_PLACE_CATEGORIES = new Set([
   'vendor',
 ]);
 
-export function isCommercialPlaceCategory(category?: string | null): boolean {
+/**
+ * True for single businesses (shops, cafés, hotels) that live on the Vendors
+ * tab. Pass the place name so a SHOPPING-category mall / market area is kept.
+ */
+export function isCommercialPlaceCategory(category?: string | null, name?: string | null): boolean {
   const raw = (category || '').toLowerCase().trim();
   if (!raw) return false;
+  if (isMarketAreaPlace(raw, name)) return false;
   if (COMMERCIAL_PLACE_CATEGORIES.has(raw)) return true;
   return COMMERCIAL_PLACE_CATEGORIES.has(normalizeCategory(raw));
 }
@@ -128,6 +146,9 @@ export function normalizeCategory(raw: string): string {
     wildlife: 'wildlife',
     shopping: 'shopping',
     market: 'shopping',
+    mall: 'shopping',
+    shopping_mall: 'shopping',
+    bazaar: 'shopping',
     shop: 'shopping',
     restaurant: 'food',
     street_food: 'food',

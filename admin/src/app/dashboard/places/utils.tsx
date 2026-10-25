@@ -13,7 +13,6 @@ export type PlacesFilters = {
   missingImages?: boolean;
   missingDescription?: boolean;
   hiddenGemsOnly?: boolean;
-  touristOnly?: boolean;
 };
 
 export const SEARCH_MIN_LENGTH = 2;
@@ -63,7 +62,6 @@ export function filtersToSearchParams(filters: PlacesFilters): URLSearchParams {
   if (filters.missingImages) p.set("missingImages", "1");
   if (filters.missingDescription) p.set("missingDescription", "1");
   if (filters.hiddenGemsOnly) p.set("hiddenGems", "1");
-  if (filters.touristOnly === false) p.set("touristOnly", "0");
   return p;
 }
 
@@ -80,7 +78,6 @@ export function searchParamsToFilters(params: URLSearchParams): PlacesFilters {
     missingImages: params.get("missingImages") === "1",
     missingDescription: params.get("missingDescription") === "1",
     hiddenGemsOnly: params.get("hiddenGems") === "1",
-    touristOnly: params.get("touristOnly") !== "0",
   };
 }
 

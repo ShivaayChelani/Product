@@ -45,11 +45,18 @@ describe("admin places search helpers", () => {
     const params = filtersToSearchParams({
       state: "Madhya Pradesh",
       category: "waterfall",
-      touristOnly: true,
     });
     expect(params.get("state")).toBe("Madhya Pradesh");
     expect(params.get("category")).toBe("waterfall");
     expect(params.get("search")).toBeNull();
+  });
+
+  it("no longer emits or reads the removed touristOnly toggle", () => {
+    const params = filtersToSearchParams({ state: "Madhya Pradesh" });
+    expect(params.get("touristOnly")).toBeNull();
+    const parsed = searchParamsToFilters(new URLSearchParams("touristOnly=0&state=Goa"));
+    expect(parsed.state).toBe("Goa");
+    expect("touristOnly" in parsed).toBe(false);
   });
 
   it("drops rejected status from the Places URL", () => {
@@ -63,7 +70,6 @@ describe("admin places search helpers", () => {
       search: "Jabalpur",
       state: "Madhya Pradesh",
       category: "waterfall",
-      touristOnly: true,
     });
     const parsed = searchParamsToFilters(params);
     expect(parsed.search).toBe("Jabalpur");

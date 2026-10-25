@@ -1,6 +1,7 @@
 import { Prisma, Role, PlaceCategory } from '@prisma/client';
 import { prisma } from '../../../config/database';
 import { ApiError } from '../../../shared/utils/ApiError';
+import { nonCommercialPlaceSql, nonCommercialPlaceWhere } from '../../../shared/utils/touristPlaceFilter';
 
 /** Shops / cafés / hotels belong to vendors, not tourist places. */
 export const COMMERCIAL_PLACE_CATEGORIES: PlaceCategory[] = [
@@ -9,13 +10,13 @@ export const COMMERCIAL_PLACE_CATEGORIES: PlaceCategory[] = [
   PlaceCategory.HOTEL,
 ];
 
-export const excludeCommercialPlacesSql = Prisma.sql`
-  p.category::text NOT IN ('SHOPPING', 'RESTAURANT', 'HOTEL')
-`;
+/**
+ * Hide vendor businesses from Places (SQL + Prisma twins). Malls and market
+ * areas are tourist destinations and stay visible — see touristPlaceFilter.
+ */
+export const excludeCommercialPlacesSql = nonCommercialPlaceSql;
 
-export const excludeCommercialPlacesWhere: Prisma.PlaceWhereInput = {
-  category: { notIn: COMMERCIAL_PLACE_CATEGORIES },
-};
+export const excludeCommercialPlacesWhere: Prisma.PlaceWhereInput = nonCommercialPlaceWhere();
 
 export const placeListSelect = {
   id: true,

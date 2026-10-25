@@ -18,18 +18,14 @@ export async function getPlaces(params?: {
   search?: string;
   state?: string;
   city?: string;
-  touristOnly?: boolean;
   verified?: string;
   featured?: string;
   sort?: string;
   sortDir?: "asc" | "desc";
 }): Promise<PaginatedResponse<Place>> {
-  const res = await client.get<PaginatedResponse<Place>>("/admin/places", {
-    params: {
-      ...params,
-      touristOnly: params?.touristOnly !== false ? "true" : "false",
-    },
-  });
+  // Vendor businesses (shops, restaurants, hotels) are excluded server-side;
+  // they are managed under /dashboard/vendors.
+  const res = await client.get<PaginatedResponse<Place>>("/admin/places", { params });
   return res.data;
 }
 
@@ -39,15 +35,9 @@ export async function getCityClusters(params?: {
   status?: string;
   state?: string;
   search?: string;
-  touristOnly?: boolean;
   placesPerCity?: number;
 }): Promise<PaginatedResponse<CityPlaceCluster>> {
-  const res = await client.get<PaginatedResponse<CityPlaceCluster>>("/admin/places/city-clusters", {
-    params: {
-      ...params,
-      touristOnly: params?.touristOnly !== false ? "true" : "false",
-    },
-  });
+  const res = await client.get<PaginatedResponse<CityPlaceCluster>>("/admin/places/city-clusters", { params });
   return res.data;
 }
 

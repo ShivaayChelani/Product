@@ -68,7 +68,7 @@ const INDIAN_STATES = [
 const categories = [
   "temple", "mosque", "church", "gurudwara", "monument",
   "museum", "park", "lake", "fort", "palace", "beach",
-  "waterfall", "trek", "market", "ghat", "other",
+  "waterfall", "trek", "market", "mall", "ghat", "other",
 ];
 
 const DAYS_OF_WEEK = [

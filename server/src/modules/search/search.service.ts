@@ -8,6 +8,10 @@ import {
 import { getPublicVendorListingWhere } from '../vendors/vendor-public-visibility';
 import { collapseRepeats, scoreAdminMatch, scorePlaceSearchMatch } from './search-ranking';
 import { publicEventWhere } from '../events/events-public-visibility';
+import { nonCommercialPlaceSqlText, nonCommercialPlaceWhere } from '../../shared/utils/touristPlaceFilter';
+
+/** Vendor businesses never surface as places; malls / market areas do. */
+const nonCommercialPlacesClause = nonCommercialPlaceSqlText('places');
 
 async function searchPlacesFuzzy(opts: {
   q: string;
@@ -55,7 +59,7 @@ async function searchPlacesFuzzy(opts: {
       WHERE status = 'APPROVED'
         AND merged_into_id IS NULL${verifiedSuffix}
         AND ${sourceClause}
-        AND category::text NOT IN ('SHOPPING', 'RESTAURANT', 'HOTEL')
+        AND ${nonCommercialPlacesClause}
         AND (
           search_vector @@ plainto_tsquery('english', $1)
           OR city ILIKE '%' || $1 || '%'
@@ -107,7 +111,7 @@ async function searchPlacesFuzzy(opts: {
       WHERE status = 'APPROVED'
         AND merged_into_id IS NULL${verifiedSuffix}
         AND ${sourceClause}
-        AND category::text NOT IN ('SHOPPING', 'RESTAURANT', 'HOTEL')
+        AND ${nonCommercialPlacesClause}
         AND (
           search_vector @@ plainto_tsquery('english', $1)
           OR city ILIKE '%' || $1 || '%'
@@ -433,6 +437,8 @@ export const searchService = {
       prisma.place.findMany({
         where: {
           mergedIntoId: null,
+          // Vendor businesses are searched via the vendors bucket below.
+          AND: [nonCommercialPlaceWhere()],
           OR: [
             { name: { contains: query, mode: 'insensitive' } },
             { publicPlaceId: { contains: query, mode: 'insensitive' } },

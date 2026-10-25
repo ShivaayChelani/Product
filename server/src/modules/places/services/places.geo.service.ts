@@ -341,7 +341,7 @@ export const placesGeoService = {
       where: {
         status: 'APPROVED',
         mergedIntoId: null,
-        ...excludeCommercialPlacesWhere,
+        AND: [excludeCommercialPlacesWhere],
         ...(env.placesPublicVerifiedOnly ? { dataQuality: 'VERIFIED' as const } : {}),
         latitude: { not: null, gte: swLat, lte: neLat },
         longitude: { not: null, gte: swLng, lte: neLng },
@@ -477,7 +477,7 @@ export const placesGeoService = {
       LEFT JOIN place_stats ps ON ps."placeId" = p.id AND ps.created_at >= ${sevenDaysAgo}
       WHERE p.status = ${placeApproved}
         AND p.merged_into_id IS NULL
-        AND p.category::text NOT IN ('SHOPPING', 'RESTAURANT', 'HOTEL')
+        AND ${excludeCommercialPlacesSql}
         ${verifiedPlaceSqlP()}
       GROUP BY p.id
       ORDER BY engagement DESC
@@ -511,7 +511,7 @@ export const placesGeoService = {
         AND p.merged_into_id IS NULL
         AND p.source = 'HIDDEN_GEM'
         AND 'hidden-gem' = ANY(p.tags)
-        AND p.category::text NOT IN ('SHOPPING', 'RESTAURANT', 'HOTEL')
+        AND ${excludeCommercialPlacesSql}
         ${verifiedPlaceSqlP({ includeApprovedHiddenGems: true })}
       ORDER BY p.created_at DESC
       LIMIT ${limit}
@@ -550,7 +550,7 @@ export const placesGeoService = {
       JOIN place_stats ps ON ps."placeId" = p.id
       WHERE p.status = ${placeApproved}
         AND p.merged_into_id IS NULL
-        AND p.category::text NOT IN ('SHOPPING', 'RESTAURANT', 'HOTEL')
+        AND ${excludeCommercialPlacesSql}
         AND ps.created_at >= ${since}
         ${verifiedPlaceSqlP()}
       GROUP BY p.id

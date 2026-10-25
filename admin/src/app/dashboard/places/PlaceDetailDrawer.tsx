@@ -60,7 +60,6 @@ export default function PlaceDetailDrawer({ placeId, onClose, onEdit, onRefresh,
             city: detail.city,
             state: detail.state,
             limit: 6,
-            touristOnly: true,
           }).catch(() => ({ data: [] as Place[] }));
           if (!cancelled) {
             setNearby(nearRes.data.filter((p) => p.id !== placeId).slice(0, 5));

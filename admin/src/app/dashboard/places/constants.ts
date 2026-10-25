@@ -14,7 +14,7 @@ export const PLACE_CATEGORIES = [
   "monument", "fort", "palace", "temple", "mosque", "church", "gurudwara",
   "waterfall", "beach", "lake", "national_park", "wildlife", "sanctuary",
   "hill_station", "cave", "dam", "viewpoint", "museum", "ghat", "trek",
-  "heritage", "market", "adventure", "pilgrimage", "zoo", "garden",
+  "heritage", "market", "mall", "adventure", "pilgrimage", "zoo", "garden",
 ];
 
 export const PAGE_SIZE = 25;

@@ -69,7 +69,7 @@ function PlacesWorkspaceContent() {
   const searchParams = useSearchParams();
 
   const [urlReady, setUrlReady] = useState(false);
-  const [filters, setFilters] = useState<PlacesFilters>({ touristOnly: true });
+  const [filters, setFilters] = useState<PlacesFilters>({});
   const [searchInput, setSearchInput] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
@@ -112,7 +112,6 @@ function PlacesWorkspaceContent() {
     state: filters.state || undefined,
     city: filters.city || undefined,
     search: effectivePlaceSearch(filters.search),
-    touristOnly: filters.touristOnly !== false,
     verified: filters.verified || undefined,
     featured: filters.featured || undefined,
   }), [filters]);
@@ -124,7 +123,7 @@ function PlacesWorkspaceContent() {
     if (urlInitRef.current) return;
     urlInitRef.current = true;
     const parsed = searchParamsToFilters(searchParams);
-    setFilters((f) => ({ ...f, ...parsed, touristOnly: parsed.touristOnly !== false }));
+    setFilters((f) => ({ ...f, ...parsed }));
     if (parsed.search) setSearchInput(parsed.search);
     const limit = Number(searchParams.get("limit"));
     if ((PAGE_SIZE_OPTIONS as readonly number[]).includes(limit)) setPageSize(limit);
@@ -189,7 +188,7 @@ function PlacesWorkspaceContent() {
     if (!filters.state) { setCityOptions([]); return; }
     setCityOptionsLoading(true);
     try {
-      const res = await getCityClusters({ state: filters.state, limit: 500, touristOnly: filters.touristOnly !== false, placesPerCity: 1 });
+      const res = await getCityClusters({ state: filters.state, limit: 500, placesPerCity: 1 });
       setCityOptions(
         res.data.filter((c) => c.city && c.city !== "(unknown city)")
           .map((c) => ({ city: c.city, state: c.state, placeCount: c.totalInCity || c.placeCount }))
@@ -197,7 +196,7 @@ function PlacesWorkspaceContent() {
       );
     } catch { setCityOptions([]); }
     finally { setCityOptionsLoading(false); }
-  }, [filters.state, filters.touristOnly]);
+  }, [filters.state]);
 
   const fetchPlaces = useCallback(async () => {
     const seq = ++fetchSeq.current;
@@ -259,7 +258,7 @@ function PlacesWorkspaceContent() {
 
   const resetFilters = () => {
     setSearchInput("");
-    syncUrl({ touristOnly: true });
+    syncUrl({});
   };
 
   const clearSearch = () => {
@@ -595,10 +594,11 @@ function PlacesWorkspaceContent() {
             )}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <label className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-sm text-foreground">
-              <input type="checkbox" checked={filters.touristOnly !== false} onChange={(e) => syncUrl({ ...filters, touristOnly: e.target.checked })} className="h-4 w-4 rounded border-border accent-primary" />
-              Tourist destinations only
-            </label>
+            <p className="text-xs text-muted-foreground">
+              Shops, restaurants and hotels are managed under{" "}
+              <Link href="/dashboard/vendors" className="font-medium text-primary hover:underline">Vendors</Link>.
+              Malls and market areas are tourist destinations and appear here.
+            </p>
             <button
               type="button"
               onClick={() => setFilterOpen((o) => !o)}

@@ -1108,7 +1108,7 @@ export default function MapScreen({
     // if (DEV_FLAGS.USE_SERVER_API) return;
     if (propPlaces?.length) {
       const batch = propPlaces
-        .filter(p => !isCommercialPlaceCategory(p.category))
+        .filter(p => !isCommercialPlaceCategory(p.category, p.name))
         .map(mapPlaceToMarker);
       if (batch.length) {
         setAllPlaces(prev => dedupeMapMarkers([...prev, ...batch]));
@@ -1144,7 +1144,7 @@ export default function MapScreen({
       list = list.filter(m => {
         if (m.type === 'cluster') return !filtering;
         if (filtering) return placeMatchesMapFilter(m.category, selectedMapCategory);
-        return !isCommercialPlaceCategory(m.category);
+        return !isCommercialPlaceCategory(m.category, m.name);
       });
     }
     return activeTab === 'places' ? dedupeMapMarkers(list, 0.001) : dedupeMapMarkers(list, 0.01);
@@ -1324,7 +1324,7 @@ export default function MapScreen({
   }, [postToWebView, searchQuery, lockMapView]);
 
   const mergePlaceMarkers = useCallback((batch: MarkerData[]) => {
-    const touristOnly = batch.filter(m => !isCommercialPlaceCategory(m.category));
+    const touristOnly = batch.filter(m => !isCommercialPlaceCategory(m.category, m.name));
     if (!touristOnly.length) return;
     setAllPlaces(prev => {
       const map = new Map(prev.map(p => [p.id, p]));

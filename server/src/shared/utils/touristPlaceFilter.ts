@@ -33,7 +33,127 @@ export const TOURIST_CATEGORIES = [
   'fortress',
   'ruins',
   'archaeological_site',
+  'mall',
 ] as const;
+
+/**
+ * Shops, cafés, restaurants and hotels are vendor businesses and live in the
+ * Vendors module. The one exception is a market area / mall: tourists travel
+ * to Sarojini Nagar, Johari Bazaar or a city's main mall, so those stay Places.
+ */
+export const COMMERCIAL_BUSINESS_CATEGORIES = ['SHOPPING', 'RESTAURANT', 'HOTEL'] as const;
+
+/** Place categories that describe a market area rather than a single shop. */
+export const MARKET_AREA_CATEGORIES = ['market', 'mall', 'shopping_mall', 'bazaar'] as const;
+
+/** Words that mark a SHOPPING-category row as a market area / mall, not one shop. */
+const MARKET_AREA_WORDS = ['mall', 'market', 'bazaar', 'bazar', 'haat', 'chowk', 'emporium'] as const;
+const MARKET_AREA_NAME = new RegExp(`\\b(${MARKET_AREA_WORDS.join('|')})\\b`, 'i');
+
+export const VENDOR_PLACE_EXTERNAL_ID_PREFIX = 'vendor:';
+
+export type CommercialPlaceLike = {
+  name?: string | null;
+  category?: string | null;
+  subcategory?: string | null;
+  tags?: string[] | null;
+  source?: string | null;
+  externalId?: string | null;
+};
+
+/** A Place row that mirrors a Vendor business (created for itinerary quick-add). */
+export function isVendorPlace(place: Pick<CommercialPlaceLike, 'source' | 'externalId'>): boolean {
+  if (String(place.source || '').toUpperCase() === PlaceSource.VENDOR) return true;
+  return String(place.externalId || '').startsWith(VENDOR_PLACE_EXTERNAL_ID_PREFIX);
+}
+
+/** Markets, bazaars and malls are destinations; a single shop is not. */
+export function isMarketArea(place: CommercialPlaceLike): boolean {
+  const cat = String(place.category || '').toLowerCase().trim();
+  if ((MARKET_AREA_CATEGORIES as readonly string[]).includes(cat)) return true;
+  if (cat !== 'shopping') return false;
+  if (MARKET_AREA_NAME.test(String(place.name || ''))) return true;
+  if (MARKET_AREA_NAME.test(String(place.subcategory || ''))) return true;
+  return (place.tags || []).some((tag) => MARKET_AREA_NAME.test(String(tag)));
+}
+
+/**
+ * True when the row is a vendor business (shop / restaurant / hotel) that
+ * belongs in the Vendors tab, never in Places. Malls and market areas pass.
+ */
+export function isCommercialBusinessPlace(place: CommercialPlaceLike): boolean {
+  if (isVendorPlace(place)) return true;
+  const cat = String(place.category || '').toUpperCase().trim();
+  if (!(COMMERCIAL_BUSINESS_CATEGORIES as readonly string[]).includes(cat)) return false;
+  return !isMarketArea(place);
+}
+
+/**
+ * Prisma filter equivalent of `!isCommercialBusinessPlace`. Safe to spread into
+ * a `where` that has no `AND` of its own, or merge with `mergePlaceWhere`.
+ */
+export function nonCommercialPlaceWhere(): Prisma.PlaceWhereInput {
+  const marketAreaName: Prisma.PlaceWhereInput[] = MARKET_AREA_WORDS.flatMap((word) => [
+    { name: { contains: word, mode: 'insensitive' } },
+    { subcategory: { contains: word, mode: 'insensitive' } },
+  ]);
+  return {
+    AND: [
+      { NOT: { source: PlaceSource.VENDOR } },
+      {
+        OR: [
+          { externalId: null },
+          { NOT: { externalId: { startsWith: VENDOR_PLACE_EXTERNAL_ID_PREFIX } } },
+        ],
+      },
+      {
+        OR: [
+          { NOT: { category: { in: [...COMMERCIAL_BUSINESS_CATEGORIES], mode: 'insensitive' } } },
+          {
+            AND: [
+              { category: { equals: 'shopping', mode: 'insensitive' } },
+              { OR: marketAreaName },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+const MARKET_AREA_SQL_REGEX = `(^|[^[:alpha:]])(${MARKET_AREA_WORDS.join('|')})([^[:alpha:]]|$)`;
+
+/**
+ * Raw-SQL twin of `nonCommercialPlaceWhere` as plain text, for `$queryRawUnsafe`
+ * strings. `alias` is the places table alias in the query (e.g. `p`, `places`)
+ * and must be a code constant, never user input.
+ */
+export function nonCommercialPlaceSqlText(alias: string = 'p'): string {
+  if (!/^[a-z_][a-z0-9_]*$/i.test(alias)) throw new Error(`Invalid SQL alias: ${alias}`);
+  const cats = COMMERCIAL_BUSINESS_CATEGORIES.map((c) => `'${c}'`).join(', ');
+  return `(
+    ${alias}.source::text <> 'VENDOR'
+    AND COALESCE(${alias}.external_id, '') NOT LIKE 'vendor:%'
+    AND (
+      UPPER(${alias}.category::text) NOT IN (${cats})
+      OR (
+        UPPER(${alias}.category::text) = 'SHOPPING'
+        AND (
+          ${alias}.name ~* '${MARKET_AREA_SQL_REGEX}'
+          OR COALESCE(${alias}.subcategory, '') ~* '${MARKET_AREA_SQL_REGEX}'
+        )
+      )
+    )
+  )`;
+}
+
+/** Tagged-template version of `nonCommercialPlaceSqlText` for `prisma.$queryRaw`. */
+export function nonCommercialPlaceSqlFor(alias: string = 'p'): Prisma.Sql {
+  return Prisma.raw(nonCommercialPlaceSqlText(alias));
+}
+
+/** Shared clause for the `p`-aliased places queries. */
+export const nonCommercialPlaceSql = nonCommercialPlaceSqlFor('p');
 
 const SMALL_PARK_NAME = [
   /neighbourhood\s+park/i,
@@ -70,6 +190,8 @@ export type TouristPlaceLike = {
   name: string;
   category: string;
   source?: string | null;
+  externalId?: string | null;
+  subcategory?: string | null;
   editorialPriority?: number | null;
   tags?: string[] | null;
   description?: string | null;
@@ -107,8 +229,8 @@ export function isTouristWorthyPlace(place: TouristPlaceLike): boolean {
   const name = String(place.name || '').trim();
   if (!hasProperPlaceName(name)) return false;
 
-  const catUpper = String(place.category || '').toUpperCase();
-  if (['SHOPPING', 'RESTAURANT', 'HOTEL'].includes(catUpper)) return false;
+  // Vendor businesses (shops, cafés, hotels) belong to the Vendors module.
+  if (isCommercialBusinessPlace(place)) return false;
 
   const slugCat = String(place.category || '').toLowerCase();
   if (isSmallLocalPark(place)) return false;
@@ -118,6 +240,9 @@ export function isTouristWorthyPlace(place: TouristPlaceLike): boolean {
 
   // Wikidata/OSM must pass name quality; curated/admin get more leeway
   if (!isTrusted && isJunkPlaceName(name)) return false;
+
+  // Market areas and malls are destinations even when categorised as SHOPPING.
+  if (isMarketArea(place)) return true;
 
   if ((TOURIST_CATEGORIES as readonly string[]).includes(slugCat)) {
     // Temple/mosque etc. from bulk imports still need a real name, not "108 temples"
@@ -137,8 +262,8 @@ export function isTouristWorthyPlace(place: TouristPlaceLike): boolean {
 /** Prisma filter — coarse DB pre-filter; name junk is refined in filterTouristPlaces(). */
 export function touristPlacePrismaWhere(): Prisma.PlaceWhereInput {
   return {
-    NOT: { category: { in: ['shopping', 'restaurant', 'hotel'], mode: 'insensitive' } },
     AND: [
+      nonCommercialPlaceWhere(),
       {
         NOT: {
           OR: [
