@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FileSpreadsheet, Upload, X, Download, AlertTriangle, CheckCircle2 } from "lucide-react";
 import Papa from "papaparse";
-import * as XLSX from "xlsx";
 import { importPlaces } from "@/services/places";
 import {
   downloadTemplateCsv,
   downloadTemplateXlsx,
+  parseSpreadsheetBuffer,
   rowsFromObjects,
   type ParsePlacesResult,
   type ParsedPlaceRow,
@@ -52,7 +52,7 @@ async function parseFile(file: File): Promise<ParsePlacesResult> {
           resolve(parsed);
         },
         error: (err: Error) => {
-          resolve({ places: [], headers: [], errors: [err.message], skippedEmpty: 0 });
+          resolve({ places: [], headers: [], errors: [err.message], skippedEmpty: 0, skippedDuplicates: 0 });
         },
       });
     });
@@ -60,17 +60,7 @@ async function parseFile(file: File): Promise<ParsePlacesResult> {
 
   if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
     const buf = await file.arrayBuffer();
-    const workbook = XLSX.read(buf, { type: "array" });
-    const sheetName = workbook.SheetNames[0];
-    if (!sheetName) {
-      return { places: [], headers: [], errors: ["Workbook has no sheets."], skippedEmpty: 0 };
-    }
-    const sheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-      defval: "",
-      raw: false,
-    });
-    return rowsFromObjects(rows);
+    return parseSpreadsheetBuffer(buf);
   }
 
   return {
@@ -78,6 +68,7 @@ async function parseFile(file: File): Promise<ParsePlacesResult> {
     headers: [],
     errors: ["Unsupported file type. Use .csv, .xlsx, or .xls."],
     skippedEmpty: 0,
+    skippedDuplicates: 0,
   };
 }
 
@@ -137,6 +128,7 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
         headers: [],
         errors: [err instanceof Error ? err.message : "Failed to parse file"],
         skippedEmpty: 0,
+        skippedDuplicates: 0,
       });
     } finally {
       setParsing(false);
@@ -278,7 +270,7 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
 
           {parsed && (
             <div className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-4">
                 <div className="rounded-lg border border-border bg-card p-3">
                   <p className="text-xs text-muted-foreground">Valid places</p>
                   <p className="text-xl font-bold text-primary">{parsed.places.length}</p>
@@ -286,6 +278,10 @@ export default function PlaceImportModal({ open, onClose, onImported, notify }: 
                 <div className="rounded-lg border border-border bg-card p-3">
                   <p className="text-xs text-muted-foreground">Row errors</p>
                   <p className="text-xl font-bold text-warning">{parsed.errors.length}</p>
+                </div>
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="text-xs text-muted-foreground">Duplicates in file</p>
+                  <p className="text-xl font-bold text-foreground">{parsed.skippedDuplicates}</p>
                 </div>
                 <div className="rounded-lg border border-border bg-card p-3">
                   <p className="text-xs text-muted-foreground">Empty rows skipped</p>

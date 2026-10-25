@@ -3,15 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Globe, Edit, Trash2, Star, MapPin, Store, Clock, History,
-  EyeOff, Sparkles, ExternalLink,
+  Globe, Edit, Trash2, Star, MapPin, Store, Clock,
+  Sparkles, ExternalLink,
 } from "lucide-react";
 import Drawer from "@/components/ui/Drawer";
 import StatusBadge from "@/components/StatusBadge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
   getPlace, getPlaceReviews, getPlaceNearbyVendors, getPlaces,
-  rejectPlace, updatePlace, deletePlace,
+  updatePlace, deletePlace,
 } from "@/services/places";
 import { getAuditLogs } from "@/services/audit";
 import type { Place } from "@/types";
@@ -90,21 +90,6 @@ export default function PlaceDetailDrawer({ placeId, onClose, onEdit, onRefresh,
     }
   };
 
-  const handleHide = async () => {
-    if (!place) return;
-    setActionLoading(true);
-    try {
-      await rejectPlace(place.id);
-      notify("success", "Place hidden (rejected)");
-      onRefresh();
-      onClose();
-    } catch {
-      notify("error", "Failed to hide place");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handleDelete = async () => {
     if (!place || !confirm("Delete this place permanently?")) return;
     setActionLoading(true);
@@ -120,7 +105,7 @@ export default function PlaceDetailDrawer({ placeId, onClose, onEdit, onRefresh,
     }
   };
 
-  const historyText = (place as Place & { history?: string })?.history;
+  const visibleAudit = auditLogs.filter((log) => !/reject/i.test(log.action || ""));
 
   return (
     <Drawer
@@ -197,15 +182,6 @@ export default function PlaceDetailDrawer({ placeId, onClose, onEdit, onRefresh,
             </div>
           )}
 
-          {historyText && (
-            <div>
-              <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                <History size={12} /> History
-              </p>
-              <p className="text-sm leading-relaxed">{historyText}</p>
-            </div>
-          )}
-
           {place.tags?.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {place.tags.map((t) => (
@@ -265,13 +241,13 @@ export default function PlaceDetailDrawer({ placeId, onClose, onEdit, onRefresh,
             </section>
           )}
 
-          {auditLogs.length > 0 && (
+          {visibleAudit.length > 0 && (
             <section>
               <h3 className="mb-2 flex items-center gap-1 text-sm font-semibold">
                 <Clock size={14} /> Audit Log
               </h3>
               <ul className="space-y-2 text-xs">
-                {auditLogs.map((log) => (
+                {visibleAudit.map((log) => (
                   <li key={log.id} className="rounded-lg bg-muted/50 p-2">
                     <span className="font-medium">{log.action}</span>
                     <span className="text-muted-foreground"> · {new Date(log.createdAt).toLocaleString()}</span>
@@ -288,9 +264,6 @@ export default function PlaceDetailDrawer({ placeId, onClose, onEdit, onRefresh,
             </button>
             <button type="button" disabled={actionLoading} onClick={handleFeature} className="admin-btn-secondary">
               <Sparkles size={16} /> Feature
-            </button>
-            <button type="button" disabled={actionLoading} onClick={handleHide} className="admin-btn-secondary">
-              <EyeOff size={16} /> Hide
             </button>
             <a
               href={`https://www.google.com/maps?q=${place.latitude},${place.longitude}`}

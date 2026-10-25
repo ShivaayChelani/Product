@@ -354,7 +354,11 @@ export const placesCrudService = {
   ): Prisma.PlaceWhereInput {
     const where: Prisma.PlaceWhereInput = {};
     const requestedStatus = query.status ? String(query.status).toUpperCase() : undefined;
-    if (requestedStatus) where.status = requestedStatus as any;
+    if (requestedStatus && requestedStatus !== 'REJECTED') {
+      where.status = requestedStatus as any;
+    } else {
+      where.status = { not: 'REJECTED' };
+    }
     if (query.category) {
       where.category = { equals: String(query.category).trim(), mode: 'insensitive' };
     }

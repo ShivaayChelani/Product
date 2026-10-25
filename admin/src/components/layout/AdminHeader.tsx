@@ -59,7 +59,7 @@ export default function AdminHeader() {
 
           <button
             type="button"
-            onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }))}
+            onClick={() => window.dispatchEvent(new CustomEvent("admin:open-search"))}
             className="hidden items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground transition hover:border-primary/30 hover:text-foreground sm:flex"
             aria-label="Open global search"
           >

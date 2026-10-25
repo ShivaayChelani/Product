@@ -5,6 +5,12 @@ import { Search, X, MapPin, Users, Store } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { adminGlobalSearch } from "@/services/search";
 
+declare global {
+  interface WindowEventMap {
+    "admin:open-search": Event;
+  }
+}
+
 type SearchResultItem = {
   type: "user" | "vendor" | "place";
   id: string;
@@ -30,8 +36,13 @@ export default function GlobalSearch() {
         setIsOpen(false);
       }
     };
+    const openSearch = () => setIsOpen(true);
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("admin:open-search", openSearch);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("admin:open-search", openSearch);
+    };
   }, []);
 
   useEffect(() => {

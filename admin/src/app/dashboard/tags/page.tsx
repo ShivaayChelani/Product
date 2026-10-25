@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Search, Pencil, Trash2 } from "lucide-react";
+import { Search, Pencil, Trash2, Hash } from "lucide-react";
 import { getTags, updateTag, deleteTag, type Tag } from "@/services/tags";
 import { useNotification } from "@/components/Notification";
 import DataTable from "@/components/DataTable";
 import type { Column } from "@/components/DataTable";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import PageHeader from "@/components/ui/PageHeader";
 
 export default function TagsPage() {
   const { notify } = useNotification();
@@ -77,10 +78,11 @@ export default function TagsPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Tags</h1>
-        <p className="mt-1 text-sm text-gray-500">Place tags aggregated from live place data</p>
-      </div>
+      <PageHeader
+        title="Tags"
+        description="Place tags aggregated from live place data"
+        icon={Hash}
+      />
       <div className="mb-4 relative max-w-md">
         <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search tags..." className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-emerald-500" />

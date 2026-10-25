@@ -166,6 +166,17 @@ describe('placesBulkService.bulkImport (coordinate gate)', () => {
     expect(h.create).not.toHaveBeenCalled();
   });
 
+  it('skips in-file duplicates instead of creating them twice', async () => {
+    const res = await placesBulkService.bulkImport([
+      validRow,
+      { ...validRow, name: 'valid  waterfall' },
+      { ...validRow, name: 'Other Name Same Coords', city: 'Bhedaghat' },
+    ]);
+    expect(res.created).toBe(1);
+    expect(res.skipped).toBe(2);
+    expect(h.create).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps valid rows while rejecting invalid ones in a mixed batch', async () => {
     const res = await placesBulkService.bulkImport([
       validRow,

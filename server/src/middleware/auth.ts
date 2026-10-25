@@ -78,6 +78,11 @@ export function hasRole(user: any, role: Role): boolean {
   return user.permission === role;
 }
 
+/** True if the user has any dashboard-admin capability (not only Role.ADMIN). */
+export function hasAdminRole(user: any): boolean {
+  return ADMIN_ROLES.some((role) => hasRole(user, role));
+}
+
 /** @deprecated Prefer hasRole — kept for gradual migration */
 export function hasPermission(user: any, role: Role): boolean {
   return hasRole(user, role);

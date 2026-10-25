@@ -15,6 +15,7 @@ import DataTable from "@/components/DataTable";
 import type { Column } from "@/components/DataTable";
 import StatusBadge from "@/components/StatusBadge";
 import StatCard from "@/components/StatCard";
+import EmptyState from "@/components/ui/EmptyState";
 import type { SyncItem, SyncStats } from "@/types";
 
 export default function SyncPage() {
@@ -28,9 +29,11 @@ export default function SyncPage() {
   const [hasPrev, setHasPrev] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState("");
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setLoadError("");
     try {
       const [statsData, itemsData] = await Promise.all([
         getSyncStatus(),
@@ -42,9 +45,10 @@ export default function SyncPage() {
       setTotalRecords(itemsData.pagination.total);
       setHasNext(itemsData.pagination.hasNext);
       setHasPrev(itemsData.pagination.hasPrev);
-    } catch {
+    } catch (err) {
       setStats(null);
       setItems([]);
+      setLoadError(err instanceof Error ? err.message : "Failed to load sync queue");
     } finally {
       setLoading(false);
     }
@@ -120,6 +124,19 @@ export default function SyncPage() {
         }
       />
 
+      {loadError && !loading ? (
+        <EmptyState
+          icon={AlertCircle}
+          title="Could not load sync queue"
+          description={loadError}
+          action={
+            <button type="button" onClick={() => void fetchData()} className="admin-btn-primary">
+              Retry
+            </button>
+          }
+        />
+      ) : (
+      <>
       <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard title="Total Jobs" value={stats?.total || 0} icon={RefreshCw} color="blue" />
         <StatCard title="Pending" value={stats?.pending || 0} icon={Clock} color="yellow" />
@@ -164,6 +181,8 @@ export default function SyncPage() {
         emptyMessage="No sync jobs"
         exportFilename="sync-queue"
       />
+      </>
+      )}
     </div>
   );
 }

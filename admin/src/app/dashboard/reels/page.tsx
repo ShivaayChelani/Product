@@ -8,6 +8,7 @@ import type { Column } from "@/components/DataTable";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useNotification } from "@/components/Notification";
 import { getAdminRoleFromStorage } from "@/lib/permissions";
+import PageHeader from "@/components/ui/PageHeader";
 
 // Mirrors server requireContentOps (ADMIN/SUPER_ADMIN/OPS_ADMIN/CONTENT_MODERATOR) —
 // delete/feature are 403 for other admin roles, so hide them rather than surface errors.
@@ -119,8 +120,8 @@ export default function ReelsPage() {
             </div>
           )}
           <div>
-            <p className="font-semibold text-gray-900 line-clamp-1">{item.title || "Untitled Moment"}</p>
-            <p className="text-xs text-gray-500 line-clamp-2 mt-0.5 max-w-xs">{item.description || "No caption description."}</p>
+            <p className="line-clamp-1 font-semibold text-foreground">{item.title || "Untitled Moment"}</p>
+            <p className="mt-0.5 line-clamp-2 max-w-xs text-xs text-muted-foreground">{item.description || "No caption description."}</p>
           </div>
         </div>
       ),
@@ -206,17 +207,11 @@ export default function ReelsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Video className="text-emerald-600" />
-            Moments Moderation
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Moderate and feature PalSafar Moments to showcase high-quality travel guides.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Moments Moderation"
+        description="Moderate and feature PalSafar Moments to showcase high-quality travel guides."
+        icon={Video}
+      />
 
       {loadError && !loading && (
         <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">

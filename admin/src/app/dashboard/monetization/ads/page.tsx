@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Save, AlertTriangle } from "lucide-react";
+import { Save, AlertTriangle, Smartphone } from "lucide-react";
 import { monetizationApi } from "@/services/monetization";
 import { useNotification } from "@/components/Notification";
+import PageHeader from "@/components/ui/PageHeader";
 
 const emptyForm = {
   adsEnabled: false,
@@ -90,10 +91,11 @@ export default function AdMobPage() {
 
   return (
     <form onSubmit={handleSave} className="space-y-6 max-w-4xl pb-12">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">AdMob Configuration</h1>
-        <p className="text-sm text-gray-500">Manage PalSafar advertising configuration for Android and iOS.</p>
-      </div>
+      <PageHeader
+        title="AdMob Configuration"
+        description="Manage PalSafar advertising configuration for Android and iOS."
+        icon={Smartphone}
+      />
 
       {isTestConfig && (
         <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">

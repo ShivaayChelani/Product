@@ -86,7 +86,46 @@ export type ParsePlacesResult = {
   headers: string[];
   errors: string[];
   skippedEmpty: number;
+  skippedDuplicates: number;
 };
+
+function emptyParse(headers: string[], errors: string[]): ParsePlacesResult {
+  return { places: [], headers, errors, skippedEmpty: 0, skippedDuplicates: 0 };
+}
+
+export function foldPlaceText(value: string): string {
+  return String(value || "")
+    .trim()
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{M}\p{N}\s]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function placeDuplicateKeys(place: {
+  name?: string;
+  canonicalName?: string | null;
+  city?: string;
+  state?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}): string[] {
+  const name = foldPlaceText(place.name || "");
+  const canonical = foldPlaceText(place.canonicalName || "");
+  const city = foldPlaceText(place.city || "");
+  const state = foldPlaceText(place.state || "");
+  const keys: string[] = [];
+  if (name && city && state) keys.push(`ncs:${name}|${city}|${state}`);
+  if (canonical && city && state) keys.push(`ccs:${canonical}|${city}|${state}`);
+  if (name && city && !state) keys.push(`nc:${name}|${city}`);
+  if (canonical && city && !state) keys.push(`cc:${canonical}|${city}`);
+  if (place.latitude != null && place.longitude != null
+    && Number.isFinite(place.latitude) && Number.isFinite(place.longitude)) {
+    keys.push(`xy:${place.latitude.toFixed(4)}|${place.longitude.toFixed(4)}`);
+  }
+  return keys;
+}
 
 const DAYS = [
   "Monday",
@@ -572,7 +611,7 @@ function missingRequiredColumns(
 
 export function rowsFromObjects(rawRows: Record<string, unknown>[]): ParsePlacesResult {
   if (!rawRows.length) {
-    return { places: [], headers: [], errors: ["File has no data rows."], skippedEmpty: 0 };
+    return emptyParse([], ["File has no data rows."]);
   }
   const headers = Object.keys(rawRows[0] || {});
   const { map: headerMap, matched } = buildHeaderMap(headers);
@@ -581,33 +620,25 @@ export function rowsFromObjects(rawRows: Record<string, unknown>[]): ParsePlaces
     const extra = missing.length
       ? ` Missing required column(s): ${missing.join(", ")}.`
       : "";
-    return {
-      places: [],
-      headers,
-      errors: [
-        `Missing required column "place_name" (also accepts: name, place, title).${extra}`,
-      ],
-      skippedEmpty: 0,
-    };
+    return emptyParse(headers, [
+      `Missing required column "place_name" (also accepts: name, place, title).${extra}`,
+    ]);
   }
 
   const missing = missingRequiredColumns(headerMap, matched);
   if (missing.length) {
-    return {
-      places: [],
-      headers,
-      errors: [
-        `Missing required column(s): ${missing.join(
-          ", ",
-        )}. Expected columns: ${CANONICAL_HEADERS.join(", ")}.`,
-      ],
-      skippedEmpty: 0,
-    };
+    return emptyParse(headers, [
+      `Missing required column(s): ${missing.join(
+        ", ",
+      )}. Expected columns: ${CANONICAL_HEADERS.join(", ")}.`,
+    ]);
   }
 
   const places: ParsedPlaceRow[] = [];
   const errors: string[] = [];
   let skippedEmpty = 0;
+  let skippedDuplicates = 0;
+  const seen = new Set<string>();
 
   rawRows.forEach((row, i) => {
     const values = Object.values(row).map((v) => (v == null ? "" : String(v).trim()));
@@ -617,10 +648,80 @@ export function rowsFromObjects(rawRows: Record<string, unknown>[]): ParsePlaces
     }
     const mapped = mapRow(row, headerMap, matched, i);
     if (mapped.error) errors.push(mapped.error);
-    if (mapped.place) places.push(mapped.place);
+    if (!mapped.place) return;
+
+    const keys = placeDuplicateKeys(mapped.place);
+    const hit = keys.find((k) => seen.has(k));
+    if (hit) {
+      skippedDuplicates += 1;
+      errors.push(`Row ${i + 2} (${mapped.place.name}): duplicate of an earlier row in this file`);
+      return;
+    }
+    keys.forEach((k) => seen.add(k));
+    places.push(mapped.place);
   });
 
-  return { places, headers, errors, skippedEmpty };
+  return { places, headers, errors, skippedEmpty, skippedDuplicates };
+}
+
+function sheetHasPlaceHeader(headers: string[]): boolean {
+  return headers.some((h) => {
+    const n = normalizeHeader(h);
+    return n === "place_name" || n === "name" || n === "placename" || n === "title" || n === "place";
+  });
+}
+
+function objectsFromSheet(sheet: XLSX.WorkSheet): Record<string, unknown>[] {
+  const grid = XLSX.utils.sheet_to_json<(string | number | boolean | null)[]>(sheet, {
+    header: 1,
+    defval: "",
+    raw: false,
+    blankrows: false,
+  });
+  const headerIdx = grid.findIndex((row) => sheetHasPlaceHeader((row || []).map((c) => String(c ?? ""))));
+  if (headerIdx < 0) {
+    return XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "", raw: false });
+  }
+  const headers = (grid[headerIdx] || []).map((h, i) => String(h || "").trim() || `column_${i + 1}`);
+  const objects: Record<string, unknown>[] = [];
+  for (const row of grid.slice(headerIdx + 1)) {
+    const obj: Record<string, unknown> = {};
+    let any = false;
+    headers.forEach((h, i) => {
+      const v = row?.[i];
+      obj[h] = v;
+      if (v != null && String(v).trim()) any = true;
+    });
+    if (any) objects.push(obj);
+  }
+  return objects;
+}
+
+/** Pick the worksheet that actually contains place rows (not a cover/notes sheet). */
+export function objectsFromWorkbook(workbook: XLSX.WorkBook): Record<string, unknown>[] {
+  if (!workbook.SheetNames.length) return [];
+  const ordered = [
+    ...workbook.SheetNames.filter((n) => /place/i.test(n)),
+    ...workbook.SheetNames.filter((n) => !/place/i.test(n)),
+  ];
+  let fallback: Record<string, unknown>[] = [];
+  for (const name of ordered) {
+    const sheet = workbook.Sheets[name];
+    if (!sheet) continue;
+    const rows = objectsFromSheet(sheet);
+    if (!rows.length) continue;
+    if (sheetHasPlaceHeader(Object.keys(rows[0] || {}))) return rows;
+    if (rows.length > fallback.length) fallback = rows;
+  }
+  return fallback;
+}
+
+export function parseSpreadsheetBuffer(buf: ArrayBuffer | Uint8Array): ParsePlacesResult {
+  const workbook = XLSX.read(buf, { type: "array", cellDates: true });
+  if (!workbook.SheetNames.length) {
+    return emptyParse([], ["Workbook has no sheets."]);
+  }
+  return rowsFromObjects(objectsFromWorkbook(workbook));
 }
 
 export const PLACE_IMPORT_TEMPLATE_HEADERS: readonly string[] = [...CANONICAL_HEADERS];

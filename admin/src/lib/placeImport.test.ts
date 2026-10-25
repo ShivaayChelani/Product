@@ -7,6 +7,7 @@ import {
   buildTemplateCsv,
   CANONICAL_HEADERS,
   PLACE_IMPORT_TEMPLATE_HEADERS,
+  parseSpreadsheetBuffer,
   rowsFromObjects,
 } from "./placeImport";
 
@@ -421,10 +422,7 @@ describe("canonical contract", () => {
     const ws = XLSX.utils.aoa_to_sheet(rows);
     XLSX.utils.book_append_sheet(wb, ws, "Places");
     const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
-    const parsedWb = XLSX.read(buf, { type: "array" });
-    const raw = XLSX.utils.sheet_to_json(parsedWb.Sheets[parsedWb.SheetNames[0]]);
-
-    const result = rowsFromObjects(raw as Record<string, unknown>[]);
+    const result = parseSpreadsheetBuffer(buf as ArrayBuffer);
     expect(result.errors).toEqual([]);
     expect(result.places[0]).toMatchObject({
       name: "Dhuandhar Falls",
@@ -436,5 +434,43 @@ describe("canonical contract", () => {
     const hours = result.places[0].openingHours as Record<string, { open: string; close: string }[]>;
     expect(hours.Monday).toEqual([]);
     expect(hours.Tuesday).toEqual([{ open: "06:00", close: "21:00" }]);
+  });
+
+  it("skips duplicate rows in the same file by name+city+state and coordinates", () => {
+    const result = rowsFromObjects([
+      {
+        place_name: "Dhuandhar Falls", city: "Jabalpur", state: "Madhya Pradesh",
+        category: "waterfall", latitude: "23.1254", longitude: "79.8134",
+      },
+      {
+        place_name: "dhuandhar  falls", city: "Jabalpur", state: "Madhya Pradesh",
+        category: "waterfall", latitude: "23.1254", longitude: "79.8134",
+      },
+      {
+        place_name: "Same Spot Different Name", city: "Bhedaghat", state: "Madhya Pradesh",
+        category: "waterfall", latitude: "23.1254", longitude: "79.8134",
+      },
+    ]);
+    expect(result.places).toHaveLength(1);
+    expect(result.skippedDuplicates).toBe(2);
+    expect(result.errors.some((e) => /duplicate of an earlier row/i.test(e))).toBe(true);
+  });
+
+  it("reads the Places sheet even when a notes sheet comes first", () => {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Notes"], ["Ignore this cover page"]]), "Readme");
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.aoa_to_sheet([
+        ["", "", ""],
+        ["place_name", "city", "state", "latitude", "longitude"],
+        ["Bhedaghat", "Jabalpur", "Madhya Pradesh", "23.13", "79.80"],
+      ]),
+      "Places",
+    );
+    const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
+    const result = parseSpreadsheetBuffer(buf);
+    expect(result.errors).toEqual([]);
+    expect(result.places[0]?.name).toBe("Bhedaghat");
   });
 });

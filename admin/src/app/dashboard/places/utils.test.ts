@@ -52,6 +52,12 @@ describe("admin places search helpers", () => {
     expect(params.get("search")).toBeNull();
   });
 
+  it("drops rejected status from the Places URL", () => {
+    const parsed = searchParamsToFilters(new URLSearchParams("status=REJECTED&state=Madhya+Pradesh"));
+    expect(parsed.status).toBe("");
+    expect(parsed.state).toBe("Madhya Pradesh");
+  });
+
   it("round-trips search with other filters", () => {
     const params = filtersToSearchParams({
       search: "Jabalpur",

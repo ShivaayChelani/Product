@@ -44,6 +44,7 @@ export default function FraudDetectionPage() {
   const [notifications, setNotifications] = useState<FraudNotification[]>([]);
   const [suspicious, setSuspicious] = useState<RedemptionRow[]>([]);
   const [suspiciousLoading, setSuspiciousLoading] = useState(false);
+  const [suspiciousError, setSuspiciousError] = useState<string | null>(null);
   const [detailAlert, setDetailAlert] = useState<FraudAuditLog | FraudNotification | null>(null);
   const [detailType, setDetailType] = useState<"audit" | "notification" | "redemption">("audit");
   const [detailRedemption, setDetailRedemption] = useState<RedemptionRow | null>(null);
@@ -65,6 +66,7 @@ export default function FraudDetectionPage() {
 
   const loadSuspicious = useCallback(async () => {
     setSuspiciousLoading(true);
+    setSuspiciousError(null);
     try {
       const [cancelled, pending] = await Promise.all([
         listRedemptions({ page: 1, limit: 50, status: "CANCELLED" }),
@@ -77,10 +79,12 @@ export default function FraudDetectionPage() {
       setSuspicious(unique);
     } catch {
       setSuspicious([]);
+      setSuspiciousError("Failed to load suspicious redemptions");
+      notify("error", "Failed to load suspicious redemptions");
     } finally {
       setSuspiciousLoading(false);
     }
-  }, []);
+  }, [notify]);
 
   useEffect(() => {
     void loadAlerts();
@@ -303,7 +307,18 @@ export default function FraudDetectionPage() {
 
       {tab === "suspicious" && (
         <>
-          {!suspiciousLoading && suspicious.length === 0 ? (
+          {suspiciousError && !suspiciousLoading ? (
+            <EmptyState
+              icon={AlertCircle}
+              title="Could not load suspicious redemptions"
+              description={suspiciousError}
+              action={
+                <button type="button" onClick={() => void loadSuspicious()} className="admin-btn-primary">
+                  Retry
+                </button>
+              }
+            />
+          ) : !suspiciousLoading && suspicious.length === 0 ? (
             <EmptyState
               icon={Receipt}
               title="No suspicious redemptions"

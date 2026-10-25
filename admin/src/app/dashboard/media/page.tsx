@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Search, Trash2 } from "lucide-react";
+import { Search, Trash2, ImageIcon } from "lucide-react";
 import { getMediaAssets, deleteMediaAsset, type MediaAsset } from "@/services/media";
 import { useNotification } from "@/components/Notification";
 import DataTable from "@/components/DataTable";
 import type { Column } from "@/components/DataTable";
 import StatusBadge from "@/components/StatusBadge";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import PageHeader from "@/components/ui/PageHeader";
 
 export default function MediaLibraryPage() {
   const { notify } = useNotification();
@@ -81,10 +82,11 @@ export default function MediaLibraryPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Media Library</h1>
-        <p className="mt-1 text-sm text-gray-500">Place images, user submissions, and Moments</p>
-      </div>
+      <PageHeader
+        title="Media Library"
+        description="Place images, user submissions, and Moments"
+        icon={ImageIcon}
+      />
       <div className="mb-4 flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-md">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />

@@ -89,6 +89,7 @@ adminRouter.use(authenticate, requireAdmin);
 adminRouter.get('/', placesController.adminList);
 adminRouter.get('/city-clusters', placesController.adminCityClusters);
 adminRouter.get('/pending', placesController.getPendingPlaces);
+adminRouter.get('/:id', placesController.getById);
 adminRouter.post('/import', requirePlatformOps, placesController.bulkImport);
 adminRouter.post('/canonical', requirePlatformOps, placesController.canonicalUpsert);
 adminRouter.post('/canonical/merge', requirePlatformOps, placesController.canonicalMerge);

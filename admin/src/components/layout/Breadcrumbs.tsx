@@ -34,6 +34,12 @@ const LABEL_MAP: Record<string, string> = {
   search: "Search",
   tags: "Tags",
   reels: "Moments",
+  events: "Events",
+  collaborations: "Collaborations",
+  redemptions: "Redemptions",
+  "fraud-detection": "Fraud Detection",
+  ads: "AdMob",
+  new: "New",
   legal: "Legal",
   announcements: "Announcements",
   monetization: "Monetization",
@@ -43,6 +49,8 @@ const LABEL_MAP: Record<string, string> = {
   revenue: "Revenue",
   "point-rules": "Point Rules",
   "riddle-hunt": "Treasure Hunt",
+  table: "Table",
+  "pal-points-partner": "PalPoints Partner",
 };
 
 function segmentLabel(segment: string): string {

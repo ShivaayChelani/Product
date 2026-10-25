@@ -8,8 +8,8 @@ import {
   RefreshCw, ChevronRight, Upload, CheckSquare, Copy, ListFilter, Download,
 } from "lucide-react";
 import {
-  getPlaces, getCityClusters, approvePlace, rejectPlace, deletePlace,
-  fetchAllPlaces, bulkPlaceStatus,
+  getPlaces, getCityClusters, approvePlace, deletePlace,
+  fetchAllPlaces, bulkPlaceStatus, bulkDeletePlaces,
 } from "@/services/places";
 import { useNotification } from "@/components/Notification";
 import DataTable from "@/components/DataTable";
@@ -94,7 +94,7 @@ function PlacesWorkspaceContent() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const [confirmDialog, setConfirmDialog] = useState<{
-    open: boolean; title: string; message: string; action: () => void;
+    open: boolean; title: string; message: string; confirmLabel?: string; action: () => void;
   }>({ open: false, title: "", message: "", action: () => {} });
 
   const [placeForm, setPlaceForm] = useState<{ open: boolean; place: Place | null }>({ open: false, place: null });
@@ -302,16 +302,10 @@ function PlacesWorkspaceContent() {
     finally { setActionLoading(null); }
   };
 
-  const handleReject = async (id: string) => {
-    setActionLoading(id);
-    try { await rejectPlace(id); refreshAll(); notify("error", "Place rejected"); }
-    catch { notify("error", "Failed to reject"); }
-    finally { setActionLoading(null); }
-  };
-
   const handleDelete = (id: string) => {
     setConfirmDialog({
       open: true, title: "Delete Place", message: "This action cannot be undone.",
+      confirmLabel: "Delete",
       action: async () => {
         setActionLoading(id);
         try { await deletePlace(id); notify("success", "Deleted"); }
@@ -338,23 +332,50 @@ function PlacesWorkspaceContent() {
       return next;
     });
 
-  const runBulkStatus = (status: "APPROVED" | "REJECTED") => {
+  const runBulkApprove = () => {
     const ids = [...selectedIds];
     if (!ids.length) return;
     setConfirmDialog({
       open: true,
-      title: `Bulk ${status === "APPROVED" ? "approve" : "reject"} ${ids.length} place${ids.length > 1 ? "s" : ""}?`,
-      message: "Each place will be updated individually; failures are reported per place.",
+      title: `Approve ${ids.length} selected place${ids.length > 1 ? "s" : ""}?`,
+      message: "Each pending place will be marked approved. Failures are reported per place.",
       action: async () => {
         setBulkLoading(true);
         try {
-          const res = await bulkPlaceStatus(ids, status);
+          const res = await bulkPlaceStatus(ids, "APPROVED");
           notify(res.failed.length ? "error" : "success",
             `${res.succeeded.length} succeeded${res.failed.length ? `, ${res.failed.length} failed` : ""}`);
           setSelectedIds(new Set());
           refreshAll();
         } catch {
-          notify("error", "Bulk action failed");
+          notify("error", "Bulk approve failed");
+        }
+        setConfirmDialog((p) => ({ ...p, open: false }));
+        setBulkLoading(false);
+      },
+    });
+  };
+
+  const runBulkDelete = () => {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    setConfirmDialog({
+      open: true,
+      title: `Delete ${ids.length} selected place${ids.length > 1 ? "s" : ""}?`,
+      message: "This permanently removes the selected places. This cannot be undone.",
+      confirmLabel: "Delete",
+      action: async () => {
+        setBulkLoading(true);
+        try {
+          const res = await bulkDeletePlaces(ids);
+          notify(
+            res.failed.length ? "error" : "success",
+            `${res.succeeded.length} deleted${res.failed.length ? `, ${res.failed.length} failed` : ""}`,
+          );
+          setSelectedIds(new Set(res.failed.map((f) => f.id)));
+          refreshAll();
+        } catch {
+          notify("error", "Bulk delete failed");
         }
         setConfirmDialog((p) => ({ ...p, open: false }));
         setBulkLoading(false);
@@ -447,10 +468,7 @@ function PlacesWorkspaceContent() {
       render: (item) => (
         <div className="flex items-center justify-end gap-0.5 whitespace-nowrap">
           {item.status === "PENDING" && (
-            <>
-              <button type="button" onClick={() => handleApprove(item.id as string)} disabled={actionLoading === item.id} className="row-action-btn row-action-success" title="Approve" aria-label={`Approve ${String(item.name)}`}><Check size={16} /></button>
-              <button type="button" onClick={() => handleReject(item.id as string)} disabled={actionLoading === item.id} className="row-action-btn row-action-danger" title="Reject" aria-label={`Reject ${String(item.name)}`}><XIcon size={16} /></button>
-            </>
+            <button type="button" onClick={() => handleApprove(item.id as string)} disabled={actionLoading === item.id} className="row-action-btn row-action-success" title="Approve" aria-label={`Approve ${String(item.name)}`}><Check size={16} /></button>
           )}
           <button type="button" onClick={() => setPlaceForm({ open: true, place: item as Place })} className="row-action-btn row-action-info" title="Edit" aria-label={`Edit ${String(item.name)}`}><Edit size={16} /></button>
           <button type="button" onClick={() => handleDelete(item.id as string)} disabled={actionLoading === item.id} className="row-action-btn row-action-danger" title="Delete" aria-label={`Delete ${String(item.name)}`}><Trash2 size={16} /></button>
@@ -505,11 +523,11 @@ function PlacesWorkspaceContent() {
           <span className="text-sm font-semibold text-foreground">
             {selectedIds.size} selected
           </span>
-          <button type="button" disabled={bulkLoading} onClick={() => runBulkStatus("APPROVED")} className="admin-btn-primary">
+          <button type="button" disabled={bulkLoading} onClick={runBulkApprove} className="admin-btn-primary">
             {bulkLoading ? "Working…" : (<><Check size={14} /> Approve selected</>)}
           </button>
-          <button type="button" disabled={bulkLoading} onClick={() => runBulkStatus("REJECTED")} className="admin-btn-danger">
-            <XIcon size={14} /> Reject selected
+          <button type="button" disabled={bulkLoading} onClick={runBulkDelete} className="admin-btn-danger">
+            <Trash2 size={14} /> Delete selected
           </button>
           <button type="button" onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-muted-foreground hover:text-foreground">
             Clear selection
@@ -518,73 +536,73 @@ function PlacesWorkspaceContent() {
       )}
 
       <div className="admin-card mb-4 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-            <div className="relative min-w-[200px] flex-1">
-              <Search size={16} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                ref={searchInputRef}
-                role="combobox"
-                aria-expanded={showSuggestions && searchSuggestions.length > 0}
-                aria-controls="places-search-listbox"
-                aria-activedescendant={activeSuggestionIndex >= 0 ? `place-search-option-${activeSuggestionIndex}` : undefined}
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onFocus={() => { if (searchSuggestions.length) setShowSuggestions(true); }}
-                onBlur={() => setTimeout(() => { setShowSuggestions(false); setActiveSuggestionIndex(-1); }, 150)}
-                onKeyDown={handleSearchKeyDown}
-                placeholder="Search by name, city or state..."
-                className="admin-input w-full pl-8 pr-8"
-                aria-label="Search by name, city or state"
-                autoComplete="off"
-              />
-              {searchInput.length > 0 && (
-                <button
-                  type="button"
-                  onClick={clearSearch}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                  aria-label="Clear search"
-                >
-                  <XIcon size={14} />
-                </button>
-              )}
-              {showSuggestions && searchSuggestions.length > 0 && (
-                <ul id="places-search-listbox" role="listbox" aria-label="Search suggestions" className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-border bg-card py-1 shadow-lg">
-                  {searchSuggestions.map((s, idx) => (
-                    <li
-                      key={s}
-                      id={`place-search-option-${idx}`}
-                      role="option"
-                      aria-selected={idx === activeSuggestionIndex}
-                      className={idx === activeSuggestionIndex ? "bg-muted" : ""}
+        <div className="flex flex-col gap-3">
+          <div className="relative w-full">
+            <Search size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              ref={searchInputRef}
+              role="combobox"
+              aria-expanded={showSuggestions && searchSuggestions.length > 0}
+              aria-controls="places-search-listbox"
+              aria-activedescendant={activeSuggestionIndex >= 0 ? `place-search-option-${activeSuggestionIndex}` : undefined}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onFocus={() => { if (searchSuggestions.length) setShowSuggestions(true); }}
+              onBlur={() => setTimeout(() => { setShowSuggestions(false); setActiveSuggestionIndex(-1); }, 150)}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Search by name, city or state..."
+              className="admin-input h-11 w-full rounded-xl bg-muted/40 pl-11 pr-11"
+              aria-label="Search by name, city or state"
+              autoComplete="off"
+            />
+            {searchInput.length > 0 && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="Clear search"
+              >
+                <XIcon size={14} />
+              </button>
+            )}
+            {showSuggestions && searchSuggestions.length > 0 && (
+              <ul id="places-search-listbox" role="listbox" aria-label="Search suggestions" className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-border bg-card py-1 shadow-lg">
+                {searchSuggestions.map((s, idx) => (
+                  <li
+                    key={s}
+                    id={`place-search-option-${idx}`}
+                    role="option"
+                    aria-selected={idx === activeSuggestionIndex}
+                    className={idx === activeSuggestionIndex ? "bg-muted" : ""}
+                  >
+                    <button
+                      type="button"
+                      className={`w-full px-3 py-2 text-left text-sm ${idx === activeSuggestionIndex ? "text-foreground" : "hover:bg-muted"}`}
+                      onMouseDown={() => pickSuggestion(s)}
+                      onMouseEnter={() => setActiveSuggestionIndex(idx)}
                     >
-                      <button
-                        type="button"
-                        className={`w-full px-3 py-2 text-left text-sm ${idx === activeSuggestionIndex ? "text-foreground" : "hover:bg-muted"}`}
-                        onMouseDown={() => pickSuggestion(s)}
-                        onMouseEnter={() => setActiveSuggestionIndex(idx)}
-                      >
-                        {highlightMatch(s, searchInput)}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <label className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-sm">
+                      {highlightMatch(s, searchInput)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <label className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-sm text-foreground">
               <input type="checkbox" checked={filters.touristOnly !== false} onChange={(e) => syncUrl({ ...filters, touristOnly: e.target.checked })} className="h-4 w-4 rounded border-border accent-primary" />
               Tourist destinations only
             </label>
+            <button
+              type="button"
+              onClick={() => setFilterOpen((o) => !o)}
+              className="admin-btn-secondary admin-btn-icon md:hidden"
+              aria-label={filterOpen ? "Hide filters" : "Show filters"}
+              aria-expanded={filterOpen}
+            >
+              <ListFilter size={16} />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setFilterOpen((o) => !o)}
-            className="admin-btn-secondary admin-btn-icon md:hidden"
-            aria-label={filterOpen ? "Hide filters" : "Show filters"}
-            aria-expanded={filterOpen}
-          >
-            <ListFilter size={16} />
-          </button>
         </div>
 
         <div className={`mt-3 ${filterOpen ? "block" : "hidden md:block"}`}>
@@ -594,7 +612,7 @@ function PlacesWorkspaceContent() {
             <FilterSelect label="Category" value={filters.category || ""} onChange={(v) => syncUrl({ ...filters, category: v })} options={PLACE_CATEGORIES} placeholder="All Categories" />
             <FilterSelect label="Verified" value={filters.verified || ""} onChange={(v) => syncUrl({ ...filters, verified: v as PlacesFilters["verified"] })} options={["verified", "unverified"]} placeholder="All" />
             <FilterSelect label="Featured" value={filters.featured || ""} onChange={(v) => syncUrl({ ...filters, featured: v as PlacesFilters["featured"] })} options={["featured", "not"]} placeholder="All" />
-            <FilterSelect label="Status" value={filters.status || ""} onChange={(v) => syncUrl({ ...filters, status: v })} options={["PENDING", "APPROVED", "REJECTED"]} placeholder="All Status" />
+            <FilterSelect label="Status" value={filters.status || ""} onChange={(v) => syncUrl({ ...filters, status: v })} options={["PENDING", "APPROVED"]} placeholder="All Status" />
           </div>
         </div>
 
@@ -668,7 +686,7 @@ function PlacesWorkspaceContent() {
         notify={notify}
       />
 
-      <ConfirmDialog open={confirmDialog.open} title={confirmDialog.title} message={confirmDialog.message} onConfirm={confirmDialog.action} onCancel={() => setConfirmDialog((p) => ({ ...p, open: false }))} />
+      <ConfirmDialog open={confirmDialog.open} title={confirmDialog.title} message={confirmDialog.message} confirmLabel={confirmDialog.confirmLabel} onConfirm={confirmDialog.action} onCancel={() => setConfirmDialog((p) => ({ ...p, open: false }))} />
       <PlaceForm key={placeForm.place?.id || "new"} open={placeForm.open} place={placeForm.place} onClose={() => setPlaceForm({ open: false, place: null })} onSaved={refreshAll} />
       <PlaceImportModal open={importOpen} onClose={() => setImportOpen(false)} onImported={refreshAll} notify={notify} />
     </div>

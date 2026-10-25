@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { Search } from "lucide-react";
 import { getSearchAnalytics, adminGlobalSearch } from "@/services/searchAdmin";
 import { useNotification } from "@/components/Notification";
 import StatCard from "@/components/StatCard";
+import PageHeader from "@/components/ui/PageHeader";
 
 export default function SearchAdminPage() {
   const { notify } = useNotification();
@@ -41,10 +43,11 @@ export default function SearchAdminPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Search Admin</h1>
-        <p className="mt-1 text-sm text-gray-500">Platform search analytics and admin global search</p>
-      </div>
+      <PageHeader
+        title="Search Admin"
+        description="Platform search analytics and admin global search"
+        icon={Search}
+      />
 
       {analytics && (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -54,23 +57,23 @@ export default function SearchAdminPage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <h2 className="text-sm font-bold text-gray-900 mb-4">Popular Keywords</h2>
+        <div className="admin-card p-5">
+          <h2 className="mb-4 text-sm font-bold text-foreground">Popular Keywords</h2>
           <ul className="space-y-2">
             {(analytics?.popularKeywords || []).slice(0, 10).map((k) => (
               <li key={k.keyword} className="flex justify-between text-sm">
-                <span className="text-gray-700">{k.keyword}</span>
-                <span className="font-semibold text-gray-900">{k.count}</span>
+                <span className="text-muted-foreground">{k.keyword}</span>
+                <span className="font-semibold text-foreground">{k.count}</span>
               </li>
             ))}
           </ul>
         </div>
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <h2 className="text-sm font-bold text-gray-900 mb-4">Failed Keywords</h2>
+        <div className="admin-card p-5">
+          <h2 className="mb-4 text-sm font-bold text-foreground">Failed Keywords</h2>
           <ul className="space-y-2">
             {(analytics?.failedKeywords || []).slice(0, 10).map((k) => (
               <li key={k.keyword} className="flex justify-between text-sm">
-                <span className="text-gray-700">{k.keyword}</span>
+                <span className="text-muted-foreground">{k.keyword}</span>
                 <span className="font-semibold text-red-600">{k.count}</span>
               </li>
             ))}
@@ -78,33 +81,57 @@ export default function SearchAdminPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-bold text-gray-900 mb-4">Admin Global Search</h2>
-        <div className="flex gap-2 mb-4">
+      <div className="admin-card p-5">
+        <h2 className="mb-4 text-sm font-bold text-foreground">Admin Global Search</h2>
+        <div className="mb-4 flex gap-2">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && runSearch()}
             placeholder="Search places, users, vendors..."
-            className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500"
+            className="flex-1 rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary"
           />
-          <button type="button" onClick={runSearch} disabled={searching} className="rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
+          <button type="button" onClick={runSearch} disabled={searching} className="admin-btn-primary">
             {searching ? "Searching..." : "Search"}
           </button>
         </div>
         {results && (
-          <div className="grid gap-4 md:grid-cols-3 text-sm">
+          <div className="grid gap-4 text-sm md:grid-cols-3">
             <div>
-              <p className="font-semibold text-gray-900 mb-2">Places ({results.places.length})</p>
-              <ul className="space-y-1 text-gray-600">{results.places.slice(0, 8).map((p) => <li key={p.id}>{p.name} — {p.city}</li>)}</ul>
+              <p className="mb-2 font-semibold text-foreground">Places ({results.places.length})</p>
+              <ul className="space-y-1">
+                {results.places.slice(0, 8).map((p) => (
+                  <li key={p.id}>
+                    <Link href={`/dashboard/places?id=${p.id}`} className="text-primary hover:underline">
+                      {p.name}{p.city ? ` — ${p.city}` : ""}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
             <div>
-              <p className="font-semibold text-gray-900 mb-2">Users ({results.users.length})</p>
-              <ul className="space-y-1 text-gray-600">{results.users.slice(0, 8).map((u) => <li key={u.id}>{u.name || u.email}</li>)}</ul>
+              <p className="mb-2 font-semibold text-foreground">Users ({results.users.length})</p>
+              <ul className="space-y-1">
+                {results.users.slice(0, 8).map((u) => (
+                  <li key={u.id}>
+                    <Link href={`/dashboard/users?id=${u.id}`} className="text-primary hover:underline">
+                      {u.name || u.email}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
             <div>
-              <p className="font-semibold text-gray-900 mb-2">Vendors ({results.vendors.length})</p>
-              <ul className="space-y-1 text-gray-600">{results.vendors.slice(0, 8).map((v) => <li key={v.id}>{v.businessName}</li>)}</ul>
+              <p className="mb-2 font-semibold text-foreground">Vendors ({results.vendors.length})</p>
+              <ul className="space-y-1">
+                {results.vendors.slice(0, 8).map((v) => (
+                  <li key={v.id}>
+                    <Link href={`/dashboard/vendors/${v.id}`} className="text-primary hover:underline">
+                      {v.businessName}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         )}

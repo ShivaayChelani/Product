@@ -1,6 +1,7 @@
 import { prisma } from '../../../config/database';
 import { generateSlug, sanitizeImageMetadata } from './places.helpers';
 import { validateBulkCoordinates } from './place-coordinates';
+import { normalizeForMatch } from '../../../shared/utils/canonicalText';
 
 export interface BulkPlaceInput {
   name: string;
@@ -50,8 +51,67 @@ export interface BulkImportResult {
 const BATCH_SIZE = 50;
 const MAX_IMPORT_SIZE = 1000;
 
-function normalizeName(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, ' ');
+type DuplicateRecord = {
+  id: string;
+  name: string;
+  city: string | null;
+  state: string | null;
+  slug: string;
+  latitude: number | null;
+  longitude: number | null;
+  canonicalName?: string | null;
+  status?: string | null;
+};
+
+function importStatus(requested?: string): 'APPROVED' | 'PENDING' {
+  return requested === 'PENDING' ? 'PENDING' : 'APPROVED';
+}
+
+function identityKeys(place: {
+  name?: string | null;
+  canonicalName?: string | null;
+  city?: string | null;
+  state?: string | null;
+  slug?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}): string[] {
+  const name = normalizeForMatch(place.name || '');
+  const canonical = normalizeForMatch(place.canonicalName || '');
+  const city = normalizeForMatch(place.city || '');
+  const state = normalizeForMatch(place.state || '');
+  const keys: string[] = [];
+  if (name && city && state) keys.push(`ncs:${name}|${city}|${state}`);
+  if (canonical && city && state) keys.push(`ccs:${canonical}|${city}|${state}`);
+  if (name && city && !state) keys.push(`nc:${name}|${city}`);
+  if (canonical && city && !state) keys.push(`cc:${canonical}|${city}`);
+  if (place.slug) keys.push(`slug:${place.slug}`);
+  if (place.latitude != null && place.longitude != null
+    && Number.isFinite(place.latitude) && Number.isFinite(place.longitude)) {
+    keys.push(`xy:${Number(place.latitude).toFixed(4)}|${Number(place.longitude).toFixed(4)}`);
+  }
+  return keys;
+}
+
+function remember(index: Map<string, DuplicateRecord>, record: DuplicateRecord, extra?: {
+  name?: string | null;
+  canonicalName?: string | null;
+  city?: string | null;
+  state?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}) {
+  for (const key of identityKeys({ ...record, ...extra })) {
+    index.set(key, record);
+  }
+}
+
+function findDuplicate(index: Map<string, DuplicateRecord>, place: BulkPlaceInput): DuplicateRecord | undefined {
+  for (const key of identityKeys(place)) {
+    const hit = index.get(key);
+    if (hit) return hit;
+  }
+  return undefined;
 }
 
 export const placesBulkService = {
@@ -76,18 +136,25 @@ export const placesBulkService = {
     };
 
     const existingPlaces = await prisma.place.findMany({
-      select: { id: true, name: true, city: true, state: true, slug: true, latitude: true, longitude: true },
+      select: {
+        id: true,
+        name: true,
+        city: true,
+        state: true,
+        slug: true,
+        latitude: true,
+        longitude: true,
+        canonicalName: true,
+        status: true,
+      },
     });
 
-    const duplicateIndex = new Map<string, typeof existingPlaces[0]>();
+    const duplicateIndex = new Map<string, DuplicateRecord>();
     for (const p of existingPlaces) {
-      const key = `${normalizeName(p.name)}|${normalizeName(p.city || '')}|${normalizeName(p.state || '')}`;
-      duplicateIndex.set(key, p);
-      duplicateIndex.set(p.slug, p);
-      if (p.latitude && p.longitude) {
-        duplicateIndex.set(`${p.latitude.toFixed(4)}|${p.longitude.toFixed(4)}`, p);
-      }
+      remember(duplicateIndex, p);
     }
+
+    const resolvedStatus = importStatus(options?.status);
 
     for (let i = 0; i < input.length; i += BATCH_SIZE) {
       const batch = input.slice(i, i + BATCH_SIZE);
@@ -102,32 +169,48 @@ export const placesBulkService = {
           continue;
         }
 
-        const nameKey = `${normalizeName(place.name)}|${normalizeName(place.city || '')}|${normalizeName(place.state || '')}`;
+        const existing = findDuplicate(duplicateIndex, {
+          ...place,
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        });
 
-        if (duplicateIndex.has(nameKey)) {
-          const existing = duplicateIndex.get(nameKey)!;
+        if (existing) {
+          const reviveRejected = existing.status === 'REJECTED';
           result.skipped++;
-          result.skippedReasons.push({ name: place.name, reason: `Duplicate: already exists as "${existing.name}" in ${existing.city}, ${existing.state}` });
+          result.skippedReasons.push({
+            name: place.name,
+            reason: reviveRejected
+              ? `Duplicate of rejected "${existing.name}" — will restore instead of creating another`
+              : `Duplicate: already exists as "${existing.name}" in ${existing.city}, ${existing.state}`,
+          });
 
-          if (options?.overwrite) {
-            toUpdate.push({ id: existing.id, ...place });
+          if (options?.overwrite || reviveRejected) {
+            toUpdate.push({ id: existing.id, ...place, latitude: coords.latitude, longitude: coords.longitude, status: resolvedStatus });
           }
+          remember(duplicateIndex, existing, {
+            name: place.name,
+            canonicalName: place.canonicalName,
+            city: place.city,
+            state: place.state,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          });
           continue;
         }
 
-        if (place.latitude != null && place.longitude != null) {
-          const coordKey = `${coords.latitude.toFixed(4)}|${coords.longitude.toFixed(4)}`;
-          if (duplicateIndex.has(coordKey)) {
-            const existing = duplicateIndex.get(coordKey)!;
-            result.skipped++;
-            result.skippedReasons.push({ name: place.name, reason: `Duplicate coordinates: matches "${existing.name}"` });
-            if (options?.overwrite) {
-              toUpdate.push({ id: existing.id, ...place });
-            }
-            continue;
-          }
-        }
-
+        const pending: DuplicateRecord = {
+          id: `pending:${place.name}|${place.city}|${place.state}`,
+          name: place.name,
+          city: place.city || '',
+          state: place.state || '',
+          slug: '',
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          canonicalName: place.canonicalName,
+          status: resolvedStatus,
+        };
+        remember(duplicateIndex, pending, place);
         toCreate.push({ ...place, latitude: coords.latitude, longitude: coords.longitude });
       }
 
@@ -163,7 +246,7 @@ export const placesBulkService = {
                     ? p.editorialPriority
                     : 3,
                 externalId: p.externalId ?? undefined,
-                status: options?.status || p.status || 'PENDING',
+                status: resolvedStatus,
                 source: options?.source || p.source || 'ADMIN',
                 submittedById: options?.userId ?? null,
               };
@@ -182,7 +265,7 @@ export const placesBulkService = {
         }
       }
 
-      if (toUpdate.length > 0 && options?.overwrite) {
+      if (toUpdate.length > 0) {
         try {
           await Promise.all(
             toUpdate.map(async (p) => {
@@ -204,6 +287,7 @@ export const placesBulkService = {
               if (p.bestTimeToVisit) data.bestTimeToVisit = { bestMonths: p.bestTimeToVisit };
               if (p.bestTimeReason) data.bestTimeReason = p.bestTimeReason;
               if (typeof p.editorialPriority === 'number') data.editorialPriority = p.editorialPriority;
+              if (p.status) data.status = p.status;
               return prisma.place.update({ where: { id: p.id }, data });
             })
           );

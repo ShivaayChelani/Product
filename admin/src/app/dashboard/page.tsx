@@ -229,7 +229,7 @@ export default function DashboardPage() {
                   {"prev" in kpi && kpi.prev !== undefined && renderTrend(kpi.value as number, kpi.prev as number)}
                 </div>
                 {"subtitle" in kpi && kpi.subtitle && <p className="text-[10px] text-orange-500 font-medium mt-1">{kpi.subtitle}</p>}
-                {"prev" in kpi && kpi.prev !== undefined && <p className="text-[10px] text-gray-400 mt-1">vs last 30 days</p>}
+                {"prev" in kpi && kpi.prev !== undefined && <p className="mt-1 text-[10px] text-muted-foreground">vs last 30 days</p>}
               </div>
             </>
           );
@@ -308,24 +308,25 @@ export default function DashboardPage() {
 
         {/* Offer Redemptions Overview */}
         <div className="admin-card flex flex-col p-5">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="min-w-0 text-sm font-bold text-foreground">Offer Redemptions</h2>
             <Link href="/dashboard/monetization/revenue" className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1 rounded-full">View All</Link>
           </div>
           <div className="flex-1 flex items-center">
           <div className="w-1/3">
             <div className="mb-4">
-              <p className="text-[10px] text-gray-500 uppercase font-semibold">Total</p>
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground">Total</p>
               <p className="text-xl font-bold text-blue-600">{(d.kpis?.qrRedemptions?.value || 0).toLocaleString()}</p>
             </div>
             <div className="mb-4">
-              <p className="text-[10px] text-gray-500 uppercase font-semibold">Previous Period</p>
-              <p className="text-xl font-bold text-gray-900">{(d.kpis?.qrRedemptions?.prev || 0).toLocaleString()}</p>
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground">Previous Period</p>
+              <p className="text-xl font-bold text-foreground">{(d.kpis?.qrRedemptions?.prev || 0).toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-[10px] text-gray-500 uppercase font-semibold">vs Last 30 Days</p>
-              <p className="text-lg font-bold mt-1">{(d.kpis?.qrRedemptions?.prev || 0) > 0
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground">vs Last 30 Days</p>
+              <p className="mt-1 text-lg font-bold">{(d.kpis?.qrRedemptions?.prev || 0) > 0
                 ? renderTrend(d.kpis?.qrRedemptions?.value || 0, d.kpis?.qrRedemptions?.prev || 0)
-                : <span className="text-gray-400">N/A</span>
+                : <span className="text-muted-foreground">N/A</span>
               }</p>
             </div>
           </div>
@@ -352,26 +353,26 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         
         {/* City Analytics */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold text-gray-900">City Analytics</h2>
+        <div className="admin-card p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-sm font-bold text-foreground">City Analytics</h2>
             <Link href="/dashboard/analytics" className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1 rounded-full">View All</Link>
           </div>
           <div className="space-y-4">
             {(d.cityAnalytics || []).map((city, i) => (
               <div key={i} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs font-bold flex items-center justify-center">{i + 1}</div>
-                  <span className="text-sm font-medium text-gray-900">{city.city}</span>
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600">{i + 1}</div>
+                  <span className="text-sm font-medium text-foreground">{city.city}</span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="text-sm text-gray-500">{city.users.toLocaleString()} Users</span>
+                  <span className="text-sm text-muted-foreground">{city.users.toLocaleString()} Users</span>
                   {typeof city.growth === "number" ? (
-                    <span className={`text-xs font-bold w-10 text-right ${city.growth >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                    <span className={`w-10 text-right text-xs font-bold ${city.growth >= 0 ? "text-emerald-500" : "text-red-500"}`}>
                       {city.growth >= 0 ? "↑" : "↓"} {Math.abs(city.growth)}%
                     </span>
                   ) : (
-                    <span className="text-xs font-bold w-10 text-right text-gray-400">—</span>
+                    <span className="w-10 text-right text-xs font-bold text-muted-foreground">—</span>
                   )}
                 </div>
               </div>
@@ -383,22 +384,22 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-sm font-bold text-gray-900">Recent Activity</h2>
+        <div className="admin-card p-5">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-sm font-bold text-foreground">Recent Activity</h2>
             <Link href="/dashboard/audit-logs" className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1 rounded-full">View All</Link>
           </div>
-          <div className="space-y-5 relative">
-            <div className="absolute left-[11px] top-2 bottom-2 w-px bg-gray-200 z-0"></div>
+          <div className="relative space-y-5">
+            <div className="absolute bottom-2 left-[11px] top-2 z-0 w-px bg-border"></div>
             {(d.recentActivity || []).map((act, i) => (
-              <div key={i} className="flex gap-4 relative z-10">
-                <div className="w-6 h-6 rounded-full bg-white border-2 border-blue-500 flex items-center justify-center mt-0.5 shrink-0">
-                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+              <div key={i} className="relative z-10 flex gap-4">
+                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-blue-500 bg-card">
+                  <div className="h-2 w-2 rounded-full bg-blue-500"></div>
                 </div>
                 <div className="flex-1">
-                  <p className="text-xs text-gray-800 leading-snug"><span className="font-semibold text-gray-900">{act.user}</span> {act.action} {act.target}</p>
+                  <p className="text-xs leading-snug text-foreground"><span className="font-semibold">{act.user}</span> {act.action} {act.target}</p>
                 </div>
-                <span className="text-[10px] text-gray-400 whitespace-nowrap">{new Date(act.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                <span className="whitespace-nowrap text-[10px] text-muted-foreground">{new Date(act.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
               </div>
             ))}
           </div>
@@ -406,31 +407,31 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Stats Footer */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="admin-card flex flex-wrap items-center justify-between gap-4 p-4">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-bold text-gray-900">Quick Stats <span className="text-gray-400 font-normal">(Today)</span></h2>
+          <h2 className="text-sm font-bold text-foreground">Quick Stats <span className="font-normal text-muted-foreground">(Today)</span></h2>
         </div>
         <div className="flex items-center gap-8 overflow-x-auto pb-2 custom-scrollbar">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><Users size={14}/></div>
-            <div><p className="text-[10px] text-gray-500 font-medium">New Users</p><p className="text-sm font-bold text-gray-900">{d.quickStats?.newUsers || 0}</p></div>
+            <div><p className="text-[10px] font-medium text-muted-foreground">New Users</p><p className="text-sm font-bold text-foreground">{d.quickStats?.newUsers || 0}</p></div>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center"><Video size={14}/></div>
-            <div><p className="text-[10px] text-gray-500 font-medium">Moments Uploaded</p><p className="text-sm font-bold text-gray-900">{d.quickStats?.reelsUploaded || 0}</p></div>
+            <div><p className="text-[10px] font-medium text-muted-foreground">Moments Uploaded</p><p className="text-sm font-bold text-foreground">{d.quickStats?.reelsUploaded || 0}</p></div>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center"><Star size={14}/></div>
-            <div><p className="text-[10px] text-gray-500 font-medium">Reviews</p><p className="text-sm font-bold text-gray-900">{d.quickStats?.reviews || 0}</p></div>
+            <div><p className="text-[10px] font-medium text-muted-foreground">Reviews</p><p className="text-sm font-bold text-foreground">{d.quickStats?.reviews || 0}</p></div>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><MapPin size={14}/></div>
-            <div><p className="text-[10px] text-gray-500 font-medium">Check-ins</p><p className="text-sm font-bold text-gray-900">{d.quickStats?.checkIns || 0}</p></div>
+            <div><p className="text-[10px] font-medium text-muted-foreground">Check-ins</p><p className="text-sm font-bold text-foreground">{d.quickStats?.checkIns || 0}</p></div>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><Receipt size={14}/></div>
-            <div><p className="text-[10px] text-gray-500 font-medium">Redeemed Today</p><p className="text-sm font-bold text-gray-900">{d.quickStats?.qrRedeemed || 0}</p></div>
+            <div><p className="text-[10px] font-medium text-muted-foreground">Redeemed Today</p><p className="text-sm font-bold text-foreground">{d.quickStats?.qrRedeemed || 0}</p></div>
           </div>
         </div>
       </div>

@@ -22,6 +22,14 @@ describe('crash-audit follow-up guards', () => {
     expect(src).not.toMatch(/permission !== 'ADMIN'/);
   });
 
+  it('place create/get treat any dashboard admin as isAdmin, not only Role.ADMIN', () => {
+    const src = readSrc('modules/places/places.controller.ts');
+    expect(src).toMatch(/hasAdminRole/);
+    expect(src).not.toMatch(/hasRole\(req\.user, Role\.ADMIN\)/);
+    const routes = readSrc('modules/places/places.routes.ts');
+    expect(routes).toMatch(/adminRouter\.get\('\/:id'/);
+  });
+
   it('reorderStops rejects stop IDs that do not belong to the day', () => {
     const src = readSrc('modules/trips/trips.service.ts');
     const fn = src.slice(src.indexOf('async reorderStops'), src.indexOf('async generateItinerary'));

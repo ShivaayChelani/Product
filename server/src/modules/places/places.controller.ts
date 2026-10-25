@@ -1,14 +1,13 @@
 import { Request, Response } from 'express';
-import { Role } from '@prisma/client';
 import { placesService } from './places.service';
 import { catchAsync } from '../../shared/utils/catchAsync';
 import { sendSuccess, sendCreated, sendNoContent } from '../../shared/utils/response';
-import { hasRole } from '../../middleware/auth';
+import { hasAdminRole } from '../../middleware/auth';
 import { metricActorKey } from '../../shared/utils/metricActor';
 
 export const placesController = {
   create: catchAsync(async (req: any, res: Response) => {
-    const isAdmin = hasRole(req.user, Role.ADMIN);
+    const isAdmin = hasAdminRole(req.user);
     const place = await placesService.create(req.body, req.user.id, { isAdmin });
     sendCreated(
       res,
@@ -19,7 +18,7 @@ export const placesController = {
 
   list: catchAsync(async (req: any, res: Response) => {
     const result = await placesService.list(req.query as any, {
-      isAdmin: hasRole(req.user, Role.ADMIN),
+      isAdmin: hasAdminRole(req.user),
       userId: req.user?.id,
     });
     sendSuccess(res, result.data, { pagination: result.pagination });
@@ -37,7 +36,7 @@ export const placesController = {
 
   getById: catchAsync(async (req: any, res: Response) => {
     const place = await placesService.getById(req.params.id as string, {
-      isAdmin: hasRole(req.user, Role.ADMIN),
+      isAdmin: hasAdminRole(req.user),
       userId: req.user?.id,
     });
     sendSuccess(res, place);

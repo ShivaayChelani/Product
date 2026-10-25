@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { Handshake, Search, PauseCircle, BarChart3 } from "lucide-react";
 import {
   getAnalyticsSummary,
@@ -10,6 +9,7 @@ import {
   type AdminCollaboration,
   type AdminCollaborationAnalytics,
 } from "@/services/collaborations";
+import PageHeader from "@/components/ui/PageHeader";
 
 export default function CollaborationsAdminPage() {
   const [items, setItems] = useState<AdminCollaboration[]>([]);
@@ -48,17 +48,12 @@ export default function CollaborationsAdminPage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Handshake className="h-7 w-7 text-emerald-600" />
-            Creator Collaborations
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">Vendor ↔ Creator campaigns, moderation & revenue</p>
-        </div>
-        <Link href="/dashboard" className="text-sm text-emerald-700 hover:underline">← Dashboard</Link>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Creator Collaborations"
+        description="Vendor ↔ Creator campaigns, moderation and revenue"
+        icon={Handshake}
+      />
 
       {summary ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

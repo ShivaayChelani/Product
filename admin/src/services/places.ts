@@ -52,7 +52,7 @@ export async function getCityClusters(params?: {
 }
 
 export async function getPlace(id: string): Promise<Place> {
-  const res = await client.get<SingleResponse<Place>>(`/places/${id}`);
+  const res = await client.get<SingleResponse<Place>>(`/admin/places/${id}`);
   return res.data.data;
 }
 
@@ -93,6 +93,22 @@ export async function bulkPlaceStatus(
 
 export async function deletePlace(id: string): Promise<void> {
   await client.delete(`/admin/places/${id}`);
+}
+
+export async function bulkDeletePlaces(
+  ids: string[],
+): Promise<{ succeeded: string[]; failed: Array<{ id: string; error: string }> }> {
+  const succeeded: string[] = [];
+  const failed: Array<{ id: string; error: string }> = [];
+  for (const id of ids) {
+    try {
+      await deletePlace(id);
+      succeeded.push(id);
+    } catch (err) {
+      failed.push({ id, error: (err as Error)?.message || "Failed" });
+    }
+  }
+  return { succeeded, failed };
 }
 
 export async function deleteAllPlaces(): Promise<{ deletedCount: number }> {

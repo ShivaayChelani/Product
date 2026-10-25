@@ -72,7 +72,7 @@ export function searchParamsToFilters(params: URLSearchParams): PlacesFilters {
     state: params.get("state") || "",
     city: params.get("city") || "",
     category: params.get("category") || "",
-    status: params.get("status") || "",
+    status: params.get("status") === "REJECTED" ? "" : (params.get("status") || ""),
     search: params.get("search") || "",
     source: params.get("source") || "",
     verified: (params.get("verified") as PlacesFilters["verified"]) || "",

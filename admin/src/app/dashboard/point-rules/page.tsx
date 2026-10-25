@@ -9,6 +9,7 @@ import type { Column } from "@/components/DataTable";
 import StatCard from "@/components/StatCard";
 import StatusBadge from "@/components/StatusBadge";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import PageHeader from "@/components/ui/PageHeader";
 
 interface PointRule {
   id: string;
@@ -417,13 +418,11 @@ export default function PointRulesPage() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Point Rules</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Configure points awarded for user actions
-          </p>
-        </div>
+      <PageHeader
+        title="Point Rules"
+        description="Configure points awarded for user actions"
+        icon={Settings}
+        actions={
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -441,7 +440,8 @@ export default function PointRulesPage() {
             Reset to Defaults
           </button>
         </div>
-      </div>
+        }
+      />
 
       {fetchError && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

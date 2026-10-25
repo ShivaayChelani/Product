@@ -85,7 +85,7 @@ const navGroups = [
   {
     title: "CONTENT",
     items: [
-      { href: "/dashboard/reels", label: "Reels & Content", icon: Video },
+      { href: "/dashboard/reels", label: "Moments", icon: Video },
     ],
   },
   {

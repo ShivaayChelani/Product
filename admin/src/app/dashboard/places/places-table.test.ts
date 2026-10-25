@@ -36,10 +36,34 @@ describe("admin Places table columns", () => {
     expect(page).toMatch(/aria-label="Clear search"/);
     expect(page).toMatch(/clearSearch/);
     expect(page).toMatch(/No places match your search/);
+    expect(page).toMatch(/pl-11 pr-11/);
+    expect(page).toMatch(/h-11 w-full rounded-xl/);
+  });
+
+  it("offers bulk delete and approve without reject", () => {
+    expect(page).toMatch(/Delete selected/);
+    expect(page).toMatch(/runBulkDelete/);
+    expect(page).toMatch(/bulkDeletePlaces/);
+    expect(page).toMatch(/Approve selected/);
+    expect(page).not.toMatch(/Reject selected/);
+    expect(page).not.toMatch(/handleReject/);
+    expect(page).not.toMatch(/"REJECTED"/);
   });
 
   it("resets page when committed search changes", () => {
     expect(page).toMatch(/pageAfterSearchChange/);
+  });
+});
+
+describe("admin Places delete API client", () => {
+  const service = read("services/places.ts");
+
+  it("deletes selected places one by one and never calls delete-all", () => {
+    const fn = service.match(/export async function bulkDeletePlaces[\s\S]*?(?=\nexport async function)/)?.[0] ?? "";
+    expect(fn).toContain("export async function bulkDeletePlaces");
+    expect(fn).toMatch(/await deletePlace\(id\)/);
+    expect(fn).not.toMatch(/deleteAllPlaces/);
+    expect(fn).not.toMatch(/client\.delete\("\/admin\/places"\)/);
   });
 });
 
