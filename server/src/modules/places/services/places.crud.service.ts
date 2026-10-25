@@ -635,6 +635,102 @@ export const placesCrudService = {
     eventBus.emit(AppEvents.PLACE_DELETED, { placeId: id, actorId, previous });
   },
 
+  async adminBulkDelete(ids: string[], actorId: string) {
+    const uniqueIds = [...new Set((ids || []).filter(Boolean))];
+    const succeeded: string[] = [];
+    const failed: Array<{ id: string; error: string }> = [];
+
+    const user = await prisma.user.findUnique({
+      where: { id: actorId },
+      select: { permission: true },
+    });
+    const isPlatformOps =
+      user?.permission === Role.ADMIN
+      || user?.permission === Role.SUPER_ADMIN
+      || user?.permission === Role.OPS_ADMIN;
+    if (!isPlatformOps) {
+      throw new ApiError(403, 'You do not have permission to delete these places.');
+    }
+
+    const places = await prisma.place.findMany({
+      where: { id: { in: uniqueIds } },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        status: true,
+        latitude: true,
+        longitude: true,
+        city: true,
+        state: true,
+        externalId: true,
+      },
+    });
+    const found = new Set(places.map((p) => p.id));
+    for (const id of uniqueIds) {
+      if (!found.has(id)) failed.push({ id, error: 'Place not found.' });
+    }
+    if (places.length === 0) return { succeeded, failed };
+
+    const idsToDelete = places.map((p) => p.id);
+
+    await prisma.$transaction(async (tx) => {
+      for (const place of places) {
+        await tx.deletedPlaceRef.upsert({
+          where: { slug: place.slug },
+          create: {
+            slug: place.slug,
+            curatedId: place.externalId?.startsWith('curated:')
+              ? place.externalId.replace(/^curated:/, '')
+              : place.slug,
+            name: place.name,
+            city: place.city || '',
+            state: place.state || '',
+            externalId: place.externalId,
+            deletedById: actorId,
+          },
+          update: {
+            name: place.name,
+            city: place.city || '',
+            state: place.state || '',
+            externalId: place.externalId,
+            deletedById: actorId,
+            deletedAt: new Date(),
+          },
+        });
+      }
+
+      await tx.tripPlanStop.deleteMany({ where: { placeId: { in: idsToDelete } } });
+      await tx.collectionPlace.deleteMany({ where: { placeId: { in: idsToDelete } } });
+      await tx.placeStat.deleteMany({ where: { placeId: { in: idsToDelete } } });
+      await tx.checkIn.deleteMany({ where: { placeId: { in: idsToDelete } } });
+      await tx.review.deleteMany({ where: { placeId: { in: idsToDelete } } });
+      await tx.placeImage.deleteMany({ where: { placeId: { in: idsToDelete } } });
+      await tx.placeVideo.deleteMany({ where: { placeId: { in: idsToDelete } } });
+      await tx.placeOffer.deleteMany({ where: { placeId: { in: idsToDelete } } });
+      await tx.placeEvent.deleteMany({ where: { placeId: { in: idsToDelete } } });
+      await tx.reel.updateMany({ where: { placeId: { in: idsToDelete } }, data: { placeId: null } });
+      await tx.auditLog.updateMany({ where: { placeId: { in: idsToDelete } }, data: { placeId: null } });
+      await tx.place.deleteMany({ where: { id: { in: idsToDelete } } });
+    });
+
+    for (const place of places) {
+      succeeded.push(place.id);
+      eventBus.emit(AppEvents.PLACE_DELETED, {
+        placeId: place.id,
+        actorId,
+        previous: {
+          name: place.name,
+          status: place.status,
+          latitude: place.latitude,
+          longitude: place.longitude,
+        },
+      });
+    }
+
+    return { succeeded, failed };
+  },
+
   async adminDeleteAll(actorId: string) {
     const count = await prisma.place.count();
 

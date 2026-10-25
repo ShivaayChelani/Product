@@ -23,7 +23,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonCards } from "@/components/ui/Skeleton";
 import PlaceDetailDrawer from "./PlaceDetailDrawer";
 import {
-  INDIAN_STATES, PLACE_CATEGORIES, PAGE_SIZE,
+  INDIAN_STATES, PLACE_CATEGORIES, PAGE_SIZE, PAGE_SIZE_OPTIONS,
 } from "./constants";
 import {
   applyClientFilters, highlightMatch,
@@ -73,6 +73,7 @@ function PlacesWorkspaceContent() {
   const [searchInput, setSearchInput] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [sortKey, setSortKey] = useState("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
@@ -125,6 +126,8 @@ function PlacesWorkspaceContent() {
     const parsed = searchParamsToFilters(searchParams);
     setFilters((f) => ({ ...f, ...parsed, touristOnly: parsed.touristOnly !== false }));
     if (parsed.search) setSearchInput(parsed.search);
+    const limit = Number(searchParams.get("limit"));
+    if ((PAGE_SIZE_OPTIONS as readonly number[]).includes(limit)) setPageSize(limit);
     setUrlReady(true);
   }, [searchParams]);
 
@@ -154,12 +157,13 @@ function PlacesWorkspaceContent() {
   useEffect(() => {
     if (!urlReady) return;
     const params = filtersToSearchParams(filters);
+    if (pageSize !== PAGE_SIZE) params.set("limit", String(pageSize));
     const qs = params.toString();
     const target = qs ? `/dashboard/places?${qs}` : "/dashboard/places";
     if (`${window.location.pathname}${window.location.search}` !== target) {
       router.replace(target, { scroll: false });
     }
-  }, [filters, urlReady, router]);
+  }, [filters, pageSize, urlReady, router]);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -208,16 +212,16 @@ function PlacesWorkspaceContent() {
         if (seq !== fetchSeq.current) return;
         const filtered = applyClientFilters(all, filters);
         const sorted = sortPlaces(filtered, sortKey, sortDir);
-        const tp = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+        const tp = Math.max(1, Math.ceil(sorted.length / pageSize));
         setTotalPages(tp);
         setTotalRecords(sorted.length);
         setHasNext(page < tp);
         setHasPrev(page > 1);
-        setPlaces(sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE));
+        setPlaces(sorted.slice((page - 1) * pageSize, page * pageSize));
       } else {
         const res = await getPlaces({
           page,
-          limit: PAGE_SIZE,
+          limit: pageSize,
           ...serverFilters,
           sort: sortParam,
           sortDir,
@@ -238,7 +242,7 @@ function PlacesWorkspaceContent() {
     } finally {
       if (seq === fetchSeq.current) setLoading(false);
     }
-  }, [page, filters, serverFilters, sortKey, sortDir]);
+  }, [page, pageSize, filters, serverFilters, sortKey, sortDir]);
 
   useEffect(() => { if (urlReady) void fetchCityOptions(); }, [fetchCityOptions, urlReady]);
   useEffect(() => { if (urlReady) void fetchPlaces(); }, [fetchPlaces, urlReady]);
@@ -365,6 +369,7 @@ function PlacesWorkspaceContent() {
       message: "This permanently removes the selected places. This cannot be undone.",
       confirmLabel: "Delete",
       action: async () => {
+        setConfirmDialog((p) => ({ ...p, open: false }));
         setBulkLoading(true);
         try {
           const res = await bulkDeletePlaces(ids);
@@ -377,7 +382,6 @@ function PlacesWorkspaceContent() {
         } catch {
           notify("error", "Bulk delete failed");
         }
-        setConfirmDialog((p) => ({ ...p, open: false }));
         setBulkLoading(false);
       },
     });
@@ -527,7 +531,7 @@ function PlacesWorkspaceContent() {
             {bulkLoading ? "Working…" : (<><Check size={14} /> Approve selected</>)}
           </button>
           <button type="button" disabled={bulkLoading} onClick={runBulkDelete} className="admin-btn-danger">
-            <Trash2 size={14} /> Delete selected
+            <Trash2 size={14} /> {bulkLoading ? "Deleting…" : "Delete selected"}
           </button>
           <button type="button" onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-muted-foreground hover:text-foreground">
             Clear selection
@@ -538,33 +542,35 @@ function PlacesWorkspaceContent() {
       <div className="admin-card mb-4 p-4">
         <div className="flex flex-col gap-3">
           <div className="relative w-full">
-            <Search size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              ref={searchInputRef}
-              role="combobox"
-              aria-expanded={showSuggestions && searchSuggestions.length > 0}
-              aria-controls="places-search-listbox"
-              aria-activedescendant={activeSuggestionIndex >= 0 ? `place-search-option-${activeSuggestionIndex}` : undefined}
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onFocus={() => { if (searchSuggestions.length) setShowSuggestions(true); }}
-              onBlur={() => setTimeout(() => { setShowSuggestions(false); setActiveSuggestionIndex(-1); }, 150)}
-              onKeyDown={handleSearchKeyDown}
-              placeholder="Search by name, city or state..."
-              className="admin-input h-11 w-full rounded-xl bg-muted/40 pl-11 pr-11"
-              aria-label="Search by name, city or state"
-              autoComplete="off"
-            />
-            {searchInput.length > 0 && (
-              <button
-                type="button"
-                onClick={clearSearch}
-                className="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                aria-label="Clear search"
-              >
-                <XIcon size={14} />
-              </button>
-            )}
+            <div className="flex h-11 w-full items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 focus-within:border-primary focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--primary)_25%,transparent)]">
+              <Search size={18} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+              <input
+                ref={searchInputRef}
+                role="combobox"
+                aria-expanded={showSuggestions && searchSuggestions.length > 0}
+                aria-controls="places-search-listbox"
+                aria-activedescendant={activeSuggestionIndex >= 0 ? `place-search-option-${activeSuggestionIndex}` : undefined}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onFocus={() => { if (searchSuggestions.length) setShowSuggestions(true); }}
+                onBlur={() => setTimeout(() => { setShowSuggestions(false); setActiveSuggestionIndex(-1); }, 150)}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Search by name, city or state..."
+                className="h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                aria-label="Search by name, city or state"
+                autoComplete="off"
+              />
+              {searchInput.length > 0 && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label="Clear search"
+                >
+                  <XIcon size={14} />
+                </button>
+              )}
+            </div>
             {showSuggestions && searchSuggestions.length > 0 && (
               <ul id="places-search-listbox" role="listbox" aria-label="Search suggestions" className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-border bg-card py-1 shadow-lg">
                 {searchSuggestions.map((s, idx) => (
@@ -668,7 +674,9 @@ function PlacesWorkspaceContent() {
           hasNext={hasNext}
           hasPrev={hasPrev}
           onPageChange={setPage}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
           showFirstLast
           onSort={handleSort}
           sortKey={sortKey}

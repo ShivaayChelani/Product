@@ -36,8 +36,8 @@ describe("admin Places table columns", () => {
     expect(page).toMatch(/aria-label="Clear search"/);
     expect(page).toMatch(/clearSearch/);
     expect(page).toMatch(/No places match your search/);
-    expect(page).toMatch(/pl-11 pr-11/);
-    expect(page).toMatch(/h-11 w-full rounded-xl/);
+    expect(page).toMatch(/flex h-11 w-full items-center gap-2 rounded-xl/);
+    expect(page).toMatch(/<Search size=\{18\}/);
   });
 
   it("offers bulk delete and approve without reject", () => {
@@ -53,15 +53,23 @@ describe("admin Places table columns", () => {
   it("resets page when committed search changes", () => {
     expect(page).toMatch(/pageAfterSearchChange/);
   });
+
+  it("lets the admin pick 25, 50, 75, or 100 rows per page", () => {
+    expect(page).toMatch(/PAGE_SIZE_OPTIONS/);
+    expect(page).toMatch(/onPageSizeChange/);
+    const constants = read("app/dashboard/places/constants.ts");
+    expect(constants).toMatch(/25,\s*50,\s*75,\s*100/);
+  });
 });
 
 describe("admin Places delete API client", () => {
   const service = read("services/places.ts");
 
-  it("deletes selected places one by one and never calls delete-all", () => {
+  it("deletes selected places in one bulk-delete request and never calls delete-all", () => {
     const fn = service.match(/export async function bulkDeletePlaces[\s\S]*?(?=\nexport async function)/)?.[0] ?? "";
     expect(fn).toContain("export async function bulkDeletePlaces");
-    expect(fn).toMatch(/await deletePlace\(id\)/);
+    expect(fn).toMatch(/\/admin\/places\/bulk-delete/);
+    expect(fn).not.toMatch(/await deletePlace\(id\)/);
     expect(fn).not.toMatch(/deleteAllPlaces/);
     expect(fn).not.toMatch(/client\.delete\("\/admin\/places"\)/);
   });

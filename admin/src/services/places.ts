@@ -98,17 +98,8 @@ export async function deletePlace(id: string): Promise<void> {
 export async function bulkDeletePlaces(
   ids: string[],
 ): Promise<{ succeeded: string[]; failed: Array<{ id: string; error: string }> }> {
-  const succeeded: string[] = [];
-  const failed: Array<{ id: string; error: string }> = [];
-  for (const id of ids) {
-    try {
-      await deletePlace(id);
-      succeeded.push(id);
-    } catch (err) {
-      failed.push({ id, error: (err as Error)?.message || "Failed" });
-    }
-  }
-  return { succeeded, failed };
+  const res = await client.post("/admin/places/bulk-delete", { ids });
+  return res.data?.data ?? { succeeded: [], failed: [] };
 }
 
 export async function deleteAllPlaces(): Promise<{ deletedCount: number }> {

@@ -38,13 +38,13 @@ export default function ConfirmDialog({
 
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title" className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-sm rounded-xl bg-card p-6 text-card-foreground shadow-2xl">
-        <div className="mb-4 flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
+      <div className="mx-4 w-full max-w-md rounded-xl bg-card p-6 text-card-foreground shadow-2xl">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
               <AlertTriangle size={20} className="text-destructive" />
             </div>
-            <h3 id="confirm-dialog-title" className="text-lg font-semibold text-foreground">{title}</h3>
+            <h3 id="confirm-dialog-title" className="min-w-0 text-lg font-semibold leading-snug text-foreground">{title}</h3>
           </div>
           <button onClick={onCancel} className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Close">
             <X size={20} />

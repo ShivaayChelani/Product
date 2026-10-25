@@ -160,6 +160,13 @@ export const placesController = {
     sendNoContent(res);
   }),
 
+  adminBulkDelete: catchAsync(async (req: any, res: Response) => {
+    const result = await placesService.adminBulkDelete(req.body.ids as string[], req.user.id);
+    sendSuccess(res, result, {
+      message: `Deleted ${result.succeeded.length}${result.failed.length ? `, ${result.failed.length} failed` : ''}`,
+    });
+  }),
+
   adminDeleteAll: catchAsync(async (req: any, res: Response) => {
     const result = await placesService.adminDeleteAll(req.user.id);
     sendSuccess(res, result, { message: `Deleted ${result.deletedCount} places` });

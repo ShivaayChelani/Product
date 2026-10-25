@@ -22,6 +22,16 @@ describe('crash-audit follow-up guards', () => {
     expect(src).not.toMatch(/permission !== 'ADMIN'/);
   });
 
+  it('admin places expose a single-request bulk-delete that is not delete-all', () => {
+    const routes = readSrc('modules/places/places.routes.ts');
+    expect(routes).toMatch(/adminRouter\.post\('\/bulk-delete'/);
+    expect(routes).toMatch(/adminBulkDelete/);
+    const crud = readSrc('modules/places/services/places.crud.service.ts');
+    const fn = crud.slice(crud.indexOf('async adminBulkDelete'), crud.indexOf('async adminDeleteAll'));
+    expect(fn).toMatch(/place\.deleteMany\(\{ where: \{ id: \{ in: idsToDelete/);
+    expect(fn).not.toMatch(/place\.deleteMany\(\)/);
+  });
+
   it('place create/get treat any dashboard admin as isAdmin, not only Role.ADMIN', () => {
     const src = readSrc('modules/places/places.controller.ts');
     expect(src).toMatch(/hasAdminRole/);

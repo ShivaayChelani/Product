@@ -162,6 +162,10 @@ export const bulkPlaceStatusSchema = z.object({
   status: z.enum(['APPROVED', 'REJECTED']),
 });
 
+export const bulkPlaceDeleteSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1, 'Select at least one place').max(200, 'Maximum 200 places per batch'),
+});
+
 export const vendorUpdatePlaceSchema = z.object({
   images: z.array(z.string().url()).optional(),
   tags: z.array(z.string()).optional(),

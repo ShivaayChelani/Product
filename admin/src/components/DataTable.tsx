@@ -74,6 +74,8 @@ export default function DataTable<T extends Record<string, unknown>>({
   exportFilename,
   toolbar,
   pageSize = 15,
+  pageSizeOptions,
+  onPageSizeChange,
   dense = false,
   retainRowsOnLoading = false,
   selectedRowIds,
@@ -99,6 +101,8 @@ export default function DataTable<T extends Record<string, unknown>>({
   exportFilename?: string;
   toolbar?: React.ReactNode;
   pageSize?: number;
+  pageSizeOptions?: readonly number[];
+  onPageSizeChange?: (size: number) => void;
   /** Keep previous rows visible while loading (show a soft overlay instead of the skeleton) */
   retainRowsOnLoading?: boolean;
   /** Compact row density */
@@ -272,15 +276,33 @@ export default function DataTable<T extends Record<string, unknown>>({
         </table>
       </div>
 
-      {totalPages && totalPages > 1 && onPageChange && (
+      {((totalPages && totalPages > 1 && onPageChange) || (pageSizeOptions && onPageSizeChange)) && (
         <div className="flex flex-col sm:flex-row items-center justify-between border-t border-border px-4 py-3 gap-4">
-          <p className="text-sm text-muted-foreground">
-            {totalRecords !== undefined ? (
-              <>Showing <span className="font-medium">{Math.min(((page || 1) - 1) * pageSize + 1, totalRecords)}</span> to <span className="font-medium">{Math.min((page || 1) * pageSize, totalRecords)}</span> of <span className="font-medium">{totalRecords}</span> records</>
-            ) : (
-              <>Page <span className="font-medium">{page}</span> of <span className="font-medium">{totalPages}</span></>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm text-muted-foreground">
+              {totalRecords !== undefined ? (
+                <>Showing <span className="font-medium">{Math.min(((page || 1) - 1) * pageSize + 1, totalRecords)}</span> to <span className="font-medium">{Math.min((page || 1) * pageSize, totalRecords)}</span> of <span className="font-medium">{totalRecords}</span> records</>
+              ) : (
+                <>Page <span className="font-medium">{page}</span> of <span className="font-medium">{totalPages}</span></>
+              )}
+            </p>
+            {pageSizeOptions && onPageSizeChange && (
+              <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="whitespace-nowrap">Rows</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => onPageSizeChange(Number(e.target.value))}
+                  className="rounded-lg border border-border bg-card px-2 py-1.5 text-sm font-medium text-foreground"
+                  aria-label="Rows per page"
+                >
+                  {pageSizeOptions.map((size) => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </select>
+              </label>
             )}
-          </p>
+          </div>
+          {totalPages && totalPages > 1 && onPageChange ? (
           <div className="flex gap-1 items-center">
             {showFirstLast && (
               <button
@@ -346,6 +368,7 @@ export default function DataTable<T extends Record<string, unknown>>({
               </button>
             )}
           </div>
+          ) : null}
         </div>
       )}
     </div>
